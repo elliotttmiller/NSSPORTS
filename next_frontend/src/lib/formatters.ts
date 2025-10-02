@@ -4,12 +4,14 @@ export function formatOdds(odds: number): string {
 }
 
 // Format spread line for display
-export function formatSpreadLine(line: number): string {
+export function formatSpreadLine(line: number | undefined): string {
+  if (line === undefined) return "—";
   return line > 0 ? `+${line}` : `${line}`;
 }
 
 // Format total line for display
-export function formatTotalLine(line: number, type: "over" | "under"): string {
+export function formatTotalLine(line: number | undefined, type: "over" | "under"): string {
+  if (line === undefined) return "—";
   return `${type === "over" ? "O" : "U"} ${line}`;
 }
 

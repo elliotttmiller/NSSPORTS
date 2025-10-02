@@ -20,7 +20,24 @@ export interface Game {
   odds: Odds;
   startTime: string;
   leagueId?: string;
-  homeTeam?: { name: string; shortName: string; record?: string };
-  awayTeam?: { name: string; shortName: string; record?: string };
+  status?: "live" | "upcoming" | "finished";
+  homeTeam?: { 
+    id?: string;
+    name: string; 
+    shortName: string; 
+    record?: string;
+    logo?: string;
+  };
+  awayTeam?: { 
+    id?: string;
+    name: string; 
+    shortName: string; 
+    record?: string;
+    logo?: string;
+  };
+  homeScore?: number;
+  awayScore?: number;
+  period?: string;
+  timeRemaining?: string;
   // Add more fields as needed
 }

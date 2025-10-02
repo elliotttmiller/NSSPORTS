@@ -22,6 +22,10 @@ export interface Game {
   status: "upcoming" | "live" | "finished";
   odds: GameOdds;
   venue?: string;
+  homeScore?: number;
+  awayScore?: number;
+  period?: string;
+  timeRemaining?: string;
 }
 
 export interface Team {
