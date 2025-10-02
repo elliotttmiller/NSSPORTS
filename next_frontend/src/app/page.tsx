@@ -3,20 +3,21 @@
 import { TrendUp, Trophy } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { getLiveGames } from "@/services/mockApi";
+import type { Game } from "@/types";
+import { formatGameTime } from "@/lib/formatters";
 
 export default function Home() {
   const activeBetsCount = 3;
-  
-  const trendingGames = [
-    { id: 1, home: "Lakers", away: "Warriors", time: "7:00 PM" },
-    { id: 2, home: "Celtics", away: "Heat", time: "7:30 PM" },
-    { id: 3, home: "Nets", away: "76ers", time: "8:00 PM" },
-    { id: 4, home: "Bucks", away: "Bulls", time: "8:30 PM" },
-    { id: 5, home: "Mavs", away: "Suns", time: "9:00 PM" },
-  ];
+  const [trendingGames, setTrendingGames] = useState<Game[]>([]);
+
+  useEffect(() => {
+    getLiveGames().then((games) => setTrendingGames(games.slice(0, 5)));
+  }, []);
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="h-full overflow-y-auto bg-background text-foreground">
       {/* Main container with responsive padding */}
       <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
         <div className="max-w-4xl mx-auto space-y-6">
@@ -68,10 +69,10 @@ export default function Home() {
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <div className="text-sm md:text-base font-medium text-foreground">
-                        {game.away} @ {game.home}
+                        {game.awayTeam.shortName} @ {game.homeTeam.shortName}
                       </div>
                       <div className="text-xs md:text-sm text-muted-foreground mt-1">
-                        {game.time}
+                        {formatGameTime(game.startTime)}
                       </div>
                     </div>
                     <Button size="sm" variant="outline">
