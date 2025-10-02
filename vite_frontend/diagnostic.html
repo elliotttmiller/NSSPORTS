@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NSS App Diagnostic</title>
+    <script type="module">
+      console.log("=== NSS APP DIAGNOSTIC ===");
+
+      // Check if main modules are available
+      try {
+        const main = await import("/src/main.tsx");
+        console.log("✓ Main module loaded successfully");
+      } catch (error) {
+        console.error("✗ Failed to load main module:", error);
+      }
+
+      try {
+        const app = await import("/src/App.tsx");
+        console.log("✓ App component loaded successfully");
+      } catch (error) {
+        console.error("✗ Failed to load App component:", error);
+      }
+
+      try {
+        const css = await import("/src/index.css");
+        console.log("✓ Styles loaded successfully");
+      } catch (error) {
+        console.error("✗ Failed to load styles:", error);
+      }
+
+      console.log("=== DIAGNOSTIC COMPLETE ===");
+    </script>
+  </head>
+  <body>
+    <h1>NSS App Diagnostic</h1>
+    <p>Check the browser console for diagnostic information.</p>
+  </body>
+</html>

@@ -1,0 +1,85 @@
+# Node.js dependencies
+node_modules/
+
+# Build output
+.next/
+dist/
+build/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+
+# Environment files
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Misc
+*.log
+.cache/
+coverage/
+
+# Exclude lock files if desired
+# package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Exclude generated files
+*.tsbuildinfo
+
+# Exclude test coverage
+coverage/
+
+# Exclude public asset cache
+public/cache/
+
+# Exclude storybook
+.storybook/
+
+# Exclude other config
+config/
+
+# Exclude Replit
+.replit
+
+# Exclude Next.js specific
+.next/
+
+# Exclude Vite specific
+vite_frontend/node_modules/
+vite_frontend/dist/
+vite_frontend/.cache/
+
+# Exclude Nextjs specific
+nextjsj-framework/Nextjs/node_modules/
+nextjsj-framework/Nextjs/.next/
+nextjsj-framework/Nextjs/.cache/
+
+# Exclude Docker
+*.pid
+docker-compose.yml
+Dockerfile
+
+# Exclude nginx
+nginx.conf
+
+# Exclude miscellaneous
+*.swp
+*.swo
+*.tmp
+*.bak
+
+# Exclude test snapshots
+__snapshots__/
