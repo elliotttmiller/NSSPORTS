@@ -47,11 +47,9 @@ export const getLeague = async (
 // Get games by league
 export const getGamesByLeague = async (leagueId: string): Promise<Game[]> => {
   await delay(100);
-  for (const sport of mockSports) {
-    const league = sport.leagues.find((l) => l.id === leagueId);
-    if (league) return league.games;
-  }
-  return [];
+  return mockAllGames.filter(
+    (game) => game.leagueId.toLowerCase() === leagueId.toLowerCase()
+  );
 };
 
 // Get single game
