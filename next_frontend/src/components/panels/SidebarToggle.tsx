@@ -1,6 +1,6 @@
 "use client";
 
-import { Button } from "./ui/button";
+import { Button } from "@/components/ui";
 import { CaretLeft, CaretRight } from "@phosphor-icons/react/dist/ssr";
 
 interface SidebarToggleProps {

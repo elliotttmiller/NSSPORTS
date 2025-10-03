@@ -1,11 +1,7 @@
 "use client";
 
-import { useBetSlip } from "@/context/BetSlipContext";
-import { Button } from "./ui/button";
-import { Card, CardContent } from "./ui/card";
-import { Input } from "./ui/input";
-import { Badge } from "./ui/badge";
-import { Separator } from "./ui/separator";
+import { useBetSlip } from "@/context";
+import { Button, Card, CardContent, Input, Badge, Separator } from "@/components/ui";
 import { X, Stack, Target } from "@phosphor-icons/react/dist/ssr";
 import { formatOdds, formatCurrency } from "@/lib/formatters";
 

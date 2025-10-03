@@ -1,11 +1,9 @@
 "use client";
 
 import { ReactNode } from "react";
-import { useNavigation } from "@/context/NavigationContext";
+import { useNavigation } from "@/context";
 import { Header } from "./Header";
-import { SideNavPanel } from "./SideNavPanel";
-import { BetSlipPanel } from "./BetSlipPanel";
-import { SidebarToggle } from "./SidebarToggle";
+import { SideNavPanel, BetSlipPanel, SidebarToggle } from "@/components/panels";
 
 interface ThreePanelLayoutProps {
   children: ReactNode;

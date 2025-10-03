@@ -3,9 +3,9 @@
 import { Game } from "@/types";
 import { TeamLogo } from "./TeamLogo";
 import { formatOdds, formatSpreadLine, formatGameTime } from "@/lib/formatters";
-import { Button } from "./ui/button";
+import { Button } from "@/components/ui";
 import { cn } from "@/lib/utils";
-import { useBetSlip } from "@/context/BetSlipContext";
+import { useBetSlip } from "@/context";
 import { useCallback } from "react";
 
 interface ProfessionalGameRowProps {

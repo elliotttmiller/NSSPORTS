@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ProfessionalGameRow } from "@/components/ProfessionalGameRow";
-import { CompactMobileGameRow } from "@/components/CompactMobileGameRow";
+import { ProfessionalGameRow, CompactMobileGameRow } from "@/components/features/games";
 import { getLiveGames } from "@/services/mockApi";
 import type { Game } from "@/types";
 

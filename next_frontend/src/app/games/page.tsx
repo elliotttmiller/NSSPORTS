@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { ProfessionalGameRow } from "@/components/ProfessionalGameRow";
+import { Button } from "@/components/ui";
+import { ProfessionalGameRow } from "@/components/features/games";
 import { getLiveGames, getUpcomingGames } from "@/services/mockApi";
 import type { Game } from "@/types";
 

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Trophy, User } from "@phosphor-icons/react/dist/ssr";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui";
 
 export function Header() {
   const pathname = usePathname();

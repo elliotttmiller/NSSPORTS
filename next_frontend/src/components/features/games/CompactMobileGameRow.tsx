@@ -2,9 +2,8 @@
 
 import { useState } from "react";
 import { TeamLogo } from "./TeamLogo";
-import { Button } from "./ui/button";
-import { Badge } from "./ui/badge";
-import { useBetSlip } from "@/context/BetSlipContext";
+import { Button, Badge } from "@/components/ui";
+import { useBetSlip } from "@/context";
 import { formatOdds, formatGameTime, formatSpreadLine } from "@/lib/formatters";
 import type { Game } from "@/types";
 

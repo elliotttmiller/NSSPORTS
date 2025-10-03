@@ -2,9 +2,8 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "sonner";
-import { BetSlipProvider } from "@/context/BetSlipContext";
-import { NavigationProvider } from "@/context/NavigationContext";
-import { ThreePanelLayout } from "@/components/ThreePanelLayout";
+import { BetSlipProvider, NavigationProvider } from "@/context";
+import { ThreePanelLayout } from "@/components/layouts";
 
 const inter = Inter({
   variable: "--font-inter",
