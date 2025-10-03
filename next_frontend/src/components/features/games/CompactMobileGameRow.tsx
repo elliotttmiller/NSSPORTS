@@ -12,7 +12,7 @@ interface Props {
   index?: number;
 }
 
-export function CompactMobileGameRow({ game, index }: Props) {
+export function CompactMobileGameRow({ game }: Props) {
   const { betSlip, addBet, removeBet } = useBetSlip();
   const [expanded, setExpanded] = useState(false);
 
