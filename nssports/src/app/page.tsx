@@ -7,7 +7,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getLiveGames } from "@/services/api";
 import type { Game } from "@/types";
-import { ProfessionalGameRow } from "@/components/features/games/ProfessionalGameRow";
+import { ProfessionalGameRow, CompactMobileGameRow, MobileGameTableHeader } from "@/components/features/games";
 
 export default function Home() {
   const activeBetsCount = 3;
@@ -63,12 +63,26 @@ export default function Home() {
             
             <Card className="overflow-hidden">
               <div className="bg-card/50">
+                {/* Mobile Table Header */}
+                <div className="lg:hidden">
+                  <MobileGameTableHeader />
+                </div>
+                
                 {trendingGames.map((game, index) => (
-                  <ProfessionalGameRow 
-                    key={game.id} 
-                    game={game}
-                    isFirstInGroup={index === 0}
-                  />
+                  <div key={game.id}>
+                    {/* Desktop View */}
+                    <div className="hidden lg:block">
+                      <ProfessionalGameRow 
+                        game={game}
+                        isFirstInGroup={index === 0}
+                      />
+                    </div>
+                    
+                    {/* Mobile/Tablet View */}
+                    <div className="lg:hidden">
+                      <CompactMobileGameRow game={game} index={index} />
+                    </div>
+                  </div>
                 ))}
               </div>
             </Card>

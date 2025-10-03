@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ProfessionalGameRow, CompactMobileGameRow } from "@/components/features/games";
+import { ProfessionalGameRow, CompactMobileGameRow, MobileGameTableHeader } from "@/components/features/games";
 import { getLiveGames } from "@/services/api";
 import type { Game } from "@/types";
 
@@ -54,19 +54,26 @@ export default function LivePage() {
               </p>
             </div>
           ) : (
-            liveGames.map((game, idx) => (
-              <div key={game.id}>
-                {/* Desktop View */}
-                <div className="hidden lg:block">
-                  <ProfessionalGameRow game={game} />
-                </div>
-
-                {/* Mobile/Tablet View */}
-                <div className="lg:hidden">
-                  <CompactMobileGameRow game={game} index={idx} />
-                </div>
+            <>
+              {/* Mobile/Tablet Table Header */}
+              <div className="lg:hidden">
+                <MobileGameTableHeader />
               </div>
-            ))
+              
+              {liveGames.map((game, idx) => (
+                <div key={game.id}>
+                  {/* Desktop View */}
+                  <div className="hidden lg:block">
+                    <ProfessionalGameRow game={game} />
+                  </div>
+
+                  {/* Mobile/Tablet View */}
+                  <div className="lg:hidden">
+                    <CompactMobileGameRow game={game} index={idx} />
+                  </div>
+                </div>
+              ))}
+            </>
           )}
         </div>
       </div>
