@@ -1,0 +1,141 @@
+@import "tailwindcss";
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    font-family: "Inter", sans-serif;
+  }
+
+  /* Seamless scrolling */
+  .scrollbar-hide,
+  .seamless-scroll {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar,
+  .seamless-scroll::-webkit-scrollbar {
+    display: none;
+  }
+
+  .virtual-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(155, 155, 155, 0.5) transparent;
+  }
+
+  .virtual-scrollbar::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .virtual-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .virtual-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(155, 155, 155, 0.5);
+    border-radius: 2px;
+  }
+
+  #root {
+    height: 100vh;
+    overflow: hidden;
+  }
+}
+
+/* Focus states */
+.focus-ring:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+:root {
+  /* Core color system - Dark theme with blue accents */
+  /* Softer, less harsh dark gray for background */
+  --color-bg: oklch(0.16 0.007 240);
+  --color-bg-inset: oklch(0.08 0.007 240);
+  --color-bg-overlay: oklch(0.1 0.007 240);
+  --color-fg: oklch(0.98 0.003 240);
+  --color-fg-secondary: oklch(0.7 0.007 240);
+
+  /* Neutral grays */
+  --color-neutral-4: oklch(0.25 0.005 240);
+  --color-neutral-7: oklch(0.4 0.007 240);
+  --color-neutral-8: oklch(0.5 0.007 240);
+  --color-neutral-11: oklch(0.14 0.007 240);
+  --color-neutral-12: oklch(0.12 0.007 240);
+
+  /* Blue accent system */
+  --color-accent-9: oklch(0.55 0.15 240);
+  --color-accent-contrast: oklch(0.98 0.003 240);
+  --color-accent-secondary-9: oklch(0.45 0.12 140);
+
+  /* Focus and interaction */
+  --color-focus-ring: oklch(0.55 0.15 240);
+
+  /* Base colors - using defined variables */
+  --background: var(--color-bg);
+  --foreground: var(--color-fg);
+
+  --card: var(--color-bg-inset);
+  --card-foreground: var(--color-fg);
+
+  --popover: var(--color-bg-inset);
+  --popover-foreground: var(--color-fg);
+
+  /* Action colors - Blue theme */
+  --primary: var(--color-accent-9);
+  --primary-foreground: var(--color-accent-contrast);
+
+  --secondary: var(--color-neutral-11);
+  --secondary-foreground: var(--color-neutral-4);
+
+  --accent: var(--color-accent-9);
+  --accent-foreground: var(--color-accent-contrast);
+
+  --muted: var(--color-neutral-12);
+  --muted-foreground: var(--color-fg-secondary);
+  --border: var(--color-neutral-11);
+  --input: var(--color-neutral-11);
+  --ring: var(--color-focus-ring);
+
+  --destructive: oklch(0.55 0.15 0);
+  --destructive-foreground: var(--color-accent-contrast);
+
+  --color-win: var(--color-accent-secondary-9);
+  --color-lose: oklch(0.55 0.15 0);
+  --color-info: var(--color-accent-9);
+
+  --radius: 0.5rem;
+}
+
+@theme {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --radius-sm: calc(var(--radius) * 0.5);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) * 1.5);
+  --radius-xl: calc(var(--radius) * 2);
+  --radius-2xl: calc(var(--radius) * 3);
+  --radius-full: 9999px;
+}
