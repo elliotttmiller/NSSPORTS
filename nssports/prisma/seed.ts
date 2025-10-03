@@ -18,9 +18,9 @@ async function main() {
   console.log('Creating sports...');
   await prisma.sport.createMany({
     data: [
-      { id: 'nba', name: 'NBA', icon: 'basketball' },
-      { id: 'nfl', name: 'NFL', icon: 'football' },
-      { id: 'nhl', name: 'NHL', icon: 'hockey' },
+      { id: 'nba', name: 'Basketball', icon: '🏀' },
+      { id: 'nfl', name: 'Football', icon: '🏈' },
+      { id: 'nhl', name: 'Hockey', icon: '🏒' },
     ],
   });
 

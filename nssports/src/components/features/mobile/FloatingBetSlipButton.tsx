@@ -121,7 +121,7 @@ export function FloatingBetSlipButton() {
 
   return (
     <motion.div
-      className="fixed z-50 pointer-events-auto"
+      className="fixed z-50"
       style={{
         x,
         y,
@@ -134,6 +134,7 @@ export function FloatingBetSlipButton() {
         maxHeight: 72,
         boxSizing: "border-box",
         padding: 0,
+        WebkitTapHighlightColor: "transparent",
       }}
       drag
       dragMomentum={false}
@@ -143,7 +144,7 @@ export function FloatingBetSlipButton() {
       onDragEnd={handleDragEnd}
       whileHover={!isDragging ? { scale: 1.05 } : {}}
       whileTap={!isDragging ? { scale: 0.95 } : {}}
-      onClick={() => {
+      onTap={() => {
         if (!hasMoved.current) {
           setIsBetSlipOpen(!isBetSlipOpen);
         }
@@ -156,11 +157,18 @@ export function FloatingBetSlipButton() {
           "relative w-full h-full rounded-full flex items-center justify-center",
           "shadow-lg transition-colors duration-200",
           "cursor-pointer select-none border-2",
+          "touch-none",
           isDragging && "cursor-grabbing scale-105",
           isBetSlipOpen
             ? "bg-accent/90 border-accent"
             : "bg-background/80 border-border hover:bg-accent hover:border-accent"
         )}
+        style={{
+          WebkitTapHighlightColor: "transparent",
+          WebkitTouchCallout: "none",
+          WebkitUserSelect: "none",
+          userSelect: "none",
+        }}
       >
         <Receipt
           className="w-6 h-6 text-accent-foreground"
