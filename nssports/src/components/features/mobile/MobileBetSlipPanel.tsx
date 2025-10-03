@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { X, Trash } from "@phosphor-icons/react";
 import { Button, Badge, Input } from "@/components/ui";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useBetHistory } from "@/context";
 import { useBetSlip, useNavigation } from "@/context";
 import { useIsMobile } from "@/hooks";
 import { formatOdds } from "@/lib/formatters";
@@ -13,8 +14,8 @@ import type { Bet } from "@/types";
 
 // Minimal mobile betslip panel
 export function MobileBetSlipPanel() {
-  const { betSlip, removeBet, updateStake, setBetType, clearBetSlip } =
-    useBetSlip();
+  const { betSlip, removeBet, updateStake, setBetType, clearBetSlip } = useBetSlip();
+  const { addPlacedBet } = useBetHistory();
   const { isBetSlipOpen, setIsBetSlipOpen } = useNavigation();
   const isMobile = useIsMobile();
   const [placing, setPlacing] = useState(false);
@@ -25,8 +26,14 @@ export function MobileBetSlipPanel() {
     setPlacing(true);
 
     try {
-      // TODO: Implement actual bet placement API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Add placed bet to history (official Next.js context integration)
+      addPlacedBet(
+        betSlip.bets,
+        betSlip.betType,
+        betSlip.totalStake,
+        betSlip.totalPayout,
+        betSlip.totalOdds
+      );
 
       toast.success("Bet(s) placed successfully!");
       clearBetSlip();
@@ -93,19 +100,20 @@ export function MobileBetSlipPanel() {
           {/* Bet type toggle - always show when there are bets */}
           {betSlip.bets.length > 0 && (
             <div className="px-4 py-2">
-              <Tabs
-                value={betSlip.betType}
-                onValueChange={(value) => setBetType(value as "single" | "parlay")}
-                className="w-full"
-              >
+              <Tabs className="w-full">
                 <TabsList className="grid w-full grid-cols-2 h-9">
-                  <TabsTrigger value="single" className="text-sm">
+                  <TabsTrigger
+                    value="single"
+                    className={`text-sm ${betSlip.betType === "single" ? "bg-background text-foreground shadow-sm" : ""}`}
+                    onClick={() => setBetType("single")}
+                  >
                     Straight
                   </TabsTrigger>
                   <TabsTrigger
                     value="parlay"
-                    className="text-sm"
+                    className={`text-sm ${betSlip.betType === "parlay" ? "bg-background text-foreground shadow-sm" : ""}`}
                     disabled={betSlip.bets.length < 2}
+                    onClick={() => setBetType("parlay")}
                   >
                     Parlay {betSlip.bets.length < 2 && "(2+ bets)"}
                   </TabsTrigger>
