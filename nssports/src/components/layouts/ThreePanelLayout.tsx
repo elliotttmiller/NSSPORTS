@@ -2,8 +2,10 @@
 
 import { ReactNode } from "react";
 import { useNavigation } from "@/context";
+import { useIsMobile } from "@/hooks";
 import { Header } from "./Header";
 import { SideNavPanel, BetSlipPanel, SidebarToggle } from "@/components/panels";
+import { FloatingBetSlipButton, MobileBetSlipPanel, BottomNav } from "@/components/features/mobile";
 
 interface ThreePanelLayoutProps {
   children: ReactNode;
@@ -11,6 +13,7 @@ interface ThreePanelLayoutProps {
 
 export function ThreePanelLayout({ children }: ThreePanelLayoutProps) {
   const { sideNavOpen, betSlipOpen, toggleSideNav, toggleBetSlip } = useNavigation();
+  const isMobile = useIsMobile();
 
   return (
     <div className="h-screen bg-background text-foreground flex flex-col overflow-hidden">
@@ -53,7 +56,7 @@ export function ThreePanelLayout({ children }: ThreePanelLayoutProps) {
 
           {/* Center Panel - Main Content */}
           <div className="flex-1 min-w-0 overflow-hidden relative">
-            <div className="h-full overflow-y-auto seamless-scroll">
+            <div className={`h-full overflow-y-auto seamless-scroll ${isMobile ? "pb-20" : ""}`}>
               {children}
             </div>
           </div>
@@ -68,6 +71,15 @@ export function ThreePanelLayout({ children }: ThreePanelLayoutProps) {
           </div>
         </div>
       </div>
+
+      {/* Mobile Components */}
+      {isMobile && (
+        <>
+          <FloatingBetSlipButton />
+          <MobileBetSlipPanel />
+          <BottomNav />
+        </>
+      )}
     </div>
   );
 }

@@ -10,9 +10,12 @@ export function formatSpreadLine(line: number | undefined): string {
 }
 
 // Format total line for display
-export function formatTotalLine(line: number | undefined, type: "over" | "under"): string {
+export function formatTotalLine(line: number | undefined, type?: "over" | "under"): string {
   if (line === undefined) return "—";
-  return `${type === "over" ? "O" : "U"} ${line}`;
+  if (type) {
+    return `${type === "over" ? "O" : "U"} ${line}`;
+  }
+  return `${line}`;
 }
 
 // Calculate potential payout
