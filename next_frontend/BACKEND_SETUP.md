@@ -24,20 +24,39 @@ All API endpoints are located in `src/app/api/`:
 - `GET /api/games/upcoming` - Get upcoming games
 - `GET /api/games/league/[leagueId]` - Get games for a specific league
 
+**CORS Protection:**
+- Middleware at `src/middleware.ts` handles CORS for all API routes
+- Configurable allowed origins via `ALLOWED_ORIGINS` environment variable
+- Development mode: permissive for testing
+- Production mode: strict origin checking
+
 ### Service Layer
 - `src/services/api.ts` - Client-side API service with error handling
 - `src/lib/prisma.ts` - Prisma client singleton
 - `src/lib/apiTypes.ts` - TypeScript types for API operations
+- `src/lib/cors.ts` - CORS utilities and helpers
 
 ## Environment Setup
 
 ### 1. Create Environment File
 
-Create a `.env.local` file in the `next_frontend` directory:
+**📖 See [ENVIRONMENT.md](./ENVIRONMENT.md) for detailed environment configuration guide.**
+
+Quick start:
+
+```bash
+# Copy the example file
+cp .env.example .env.local
+
+# Edit with your values
+nano .env.local
+```
+
+Required variables for `.env.local`:
 
 ```env
 # Frontend Configuration
-NEXT_PUBLIC_APP_URL="http://localhost:3000"
+NEXT_PUBLIC_APP_URL="http://nssportsclub.ngrok.app"
 NEXT_PUBLIC_API_BASE_URL="/api"
 NEXT_PUBLIC_APP_NAME="NorthStar Sports"
 NEXT_PUBLIC_APP_VERSION="1.0.0"
@@ -47,9 +66,18 @@ NEXT_PUBLIC_FEATURE_FLAGS="betting,live-scores"
 DATABASE_URL="your_database_url_with_pooler"
 DIRECT_URL="your_direct_database_url"
 
+# CORS Configuration
+ALLOWED_ORIGINS="http://localhost:3000,http://nssportsclub.ngrok.app,https://nssportsclub.ngrok.app"
+
 # Development & Debugging
 NODE_ENV="development"
 ```
+
+**Important Notes:**
+- Next.js loads `.env.local` automatically (no dotenv package needed)
+- Restart dev server after changing environment variables
+- Never commit `.env.local` to version control
+- See `.env.example` for all available variables
 
 ### 2. Database Setup
 
