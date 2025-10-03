@@ -8,13 +8,19 @@ import {
   useCallback,
 } from "react";
 
+type MobilePanel = "navigation" | "betslip" | null;
+
 interface NavigationContextType {
   sideNavOpen: boolean;
   betSlipOpen: boolean;
+  mobilePanel: MobilePanel;
+  isBetSlipOpen: boolean;
   toggleSideNav: () => void;
   toggleBetSlip: () => void;
   setSideNavOpen: (open: boolean) => void;
   setBetSlipOpen: (open: boolean) => void;
+  setMobilePanel: (panel: MobilePanel) => void;
+  setIsBetSlipOpen: (open: boolean) => void;
 }
 
 const NavigationContext = createContext<NavigationContextType | undefined>(
@@ -38,6 +44,8 @@ interface NavigationProviderProps {
 export function NavigationProvider({ children }: NavigationProviderProps) {
   const [sideNavOpen, setSideNavOpen] = useState(false);
   const [betSlipOpen, setBetSlipOpen] = useState(true); // BetSlip open by default on desktop
+  const [mobilePanel, setMobilePanel] = useState<MobilePanel>(null);
+  const [isBetSlipOpen, setIsBetSlipOpen] = useState(false); // Mobile bet slip panel
 
   const toggleSideNav = useCallback(() => {
     setSideNavOpen((prev) => !prev);
@@ -52,10 +60,14 @@ export function NavigationProvider({ children }: NavigationProviderProps) {
       value={{
         sideNavOpen,
         betSlipOpen,
+        mobilePanel,
+        isBetSlipOpen,
         toggleSideNav,
         toggleBetSlip,
         setSideNavOpen,
         setBetSlipOpen,
+        setMobilePanel,
+        setIsBetSlipOpen,
       }}
     >
       {children}
