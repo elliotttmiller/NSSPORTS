@@ -1,12 +1,47 @@
 "use client";
 
-import { useBetSlip } from "@/context";
+import { useBetSlip, useBetHistory } from "@/context";
 import { Button, Card, CardContent, Input, Badge, Separator } from "@/components/ui";
 import { X, Stack, Target } from "@phosphor-icons/react/dist/ssr";
 import { formatOdds, formatCurrency } from "@/lib/formatters";
+import { toast } from "sonner";
+import { useCallback } from "react";
 
 export function BetSlipPanel() {
   const { betSlip, removeBet, updateStake, setBetType, clearBetSlip } = useBetSlip();
+  const { addPlacedBet } = useBetHistory();
+
+  const handlePlaceBet = useCallback(() => {
+    if (betSlip.bets.length === 0) {
+      toast.error("No bets in slip");
+      return;
+    }
+
+    if (betSlip.totalStake <= 0) {
+      toast.error("Please enter a stake amount");
+      return;
+    }
+
+    // Place the bet
+    addPlacedBet(
+      betSlip.bets,
+      betSlip.betType,
+      betSlip.totalStake,
+      betSlip.totalPayout,
+      betSlip.totalOdds,
+    );
+
+    // Clear the bet slip
+    clearBetSlip();
+
+    // Show success toast
+    toast.success(
+      `${betSlip.betType === "parlay" ? "Parlay" : "Bet"} placed successfully!`,
+      {
+        description: `Stake: ${formatCurrency(betSlip.totalStake)} • Potential Win: ${formatCurrency(betSlip.totalPayout - betSlip.totalStake)}`,
+      },
+    );
+  }, [betSlip, addPlacedBet, clearBetSlip]);
 
   if (betSlip.bets.length === 0) {
     return (
@@ -200,7 +235,7 @@ export function BetSlipPanel() {
           </div>
         </div>
 
-        <Button className="w-full" size="lg">
+        <Button className="w-full" size="lg" onClick={handlePlaceBet}>
           Place {betSlip.betType === "parlay" ? "Parlay" : "Bets"}
         </Button>
       </div>

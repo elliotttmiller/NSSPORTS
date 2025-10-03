@@ -3,56 +3,70 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
 import { Badge } from "@/components/ui";
 import { formatCurrency, formatOdds } from "@/lib/formatters";
-import { useBetSlip } from "@/hooks";
+import { useBetHistory } from "@/context";
+import { useMemo } from "react";
 
 export default function MyBetsPage() {
-  const { betSlip } = useBetSlip();
+  const { placedBets } = useBetHistory();
 
-  // Mock betting history
-  const betHistory = [
-    {
-      id: "1",
-      date: "2025-01-15",
-      type: "Parlay",
-      bets: [
-        { team: "Lakers", selection: "Spread -3.5", odds: -110 },
-        { team: "Warriors", selection: "Over 220.5", odds: -110 },
-      ],
-      stake: 20,
-      payout: 52.73,
-      profit: 32.73,
-      status: "won",
-    },
-    {
-      id: "2",
-      date: "2025-01-14",
-      type: "Single",
-      bets: [{ team: "Celtics", selection: "Moneyline", odds: -170 }],
-      stake: 17,
-      payout: 0,
-      profit: -17,
-      status: "lost",
-    },
-    {
-      id: "3",
-      date: "2025-01-14",
-      type: "Single",
-      bets: [{ team: "Heat", selection: "Spread +2.5", odds: -110 }],
-      stake: 10,
-      payout: 19.09,
-      profit: 9.09,
-      status: "won",
-    },
-  ];
+  // Mock betting history combined with placed bets
+  const betHistory = useMemo(() => {
+    const mockHistory = [
+      {
+        id: "mock-1",
+        date: "2025-01-15",
+        type: "parlay" as const,
+        bets: [
+          { team: "Lakers", selection: "Spread -3.5", odds: -110 },
+          { team: "Warriors", selection: "Over 220.5", odds: -110 },
+        ],
+        stake: 20,
+        payout: 52.73,
+        profit: 32.73,
+        status: "won" as const,
+      },
+      {
+        id: "mock-2",
+        date: "2025-01-14",
+        type: "single" as const,
+        bets: [{ team: "Celtics", selection: "Moneyline", odds: -170 }],
+        stake: 17,
+        payout: 0,
+        profit: -17,
+        status: "lost" as const,
+      },
+      {
+        id: "mock-3",
+        date: "2025-01-14",
+        type: "single" as const,
+        bets: [{ team: "Heat", selection: "Spread +2.5", odds: -110 }],
+        stake: 10,
+        payout: 19.09,
+        profit: 9.09,
+        status: "won" as const,
+      },
+    ];
 
-  const stats = {
-    totalBets: betHistory.length,
-    winRate: 67,
-    totalWagered: betHistory.reduce((sum, bet) => sum + bet.stake, 0),
-    totalWon: betHistory
+    // Combine placed bets with mock history
+    return [...placedBets, ...mockHistory];
+  }, [placedBets]);
+
+  const stats = useMemo(() => {
+    const totalBets = betHistory.length;
+    const wonBets = betHistory.filter((bet) => bet.status === "won").length;
+    const winRate = totalBets > 0 ? Math.round((wonBets / totalBets) * 100) : 0;
+    const totalWagered = betHistory.reduce((sum, bet) => sum + bet.stake, 0);
+    const totalWon = betHistory
       .filter((bet) => bet.status === "won")
-      .reduce((sum, bet) => sum + bet.profit, 0),
-  };
+      .reduce((sum, bet) => sum + bet.profit, 0);
+
+    return {
+      totalBets,
+      winRate,
+      totalWagered,
+      totalWon,
+    };
+  }, [betHistory]);
 
   return (
     <div className="h-full overflow-y-auto p-6">
@@ -100,38 +114,52 @@ export default function MyBetsPage() {
         {/* Active Bets */}
         <Card>
           <CardHeader>
-            <CardTitle>Active Bets ({betSlip.bets.length})</CardTitle>
+            <CardTitle>Active Bets ({placedBets.filter(bet => bet.status === "pending").length})</CardTitle>
           </CardHeader>
           <CardContent>
-            {betSlip.bets.length === 0 ? (
+            {placedBets.filter(bet => bet.status === "pending").length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 No active bets. Place a bet to get started!
               </div>
             ) : (
               <div className="space-y-3">
-                {betSlip.bets.map((bet) => (
-                  <div
-                    key={bet.id}
-                    className="flex items-center justify-between p-3 border border-border rounded-lg"
-                  >
-                    <div>
-                      <div className="font-medium">
-                        {bet.game.awayTeam.shortName} @ {bet.game.homeTeam.shortName}
+                {placedBets
+                  .filter(bet => bet.status === "pending")
+                  .map((bet) => (
+                    <div
+                      key={bet.id}
+                      className="flex items-center justify-between p-3 border border-border rounded-lg"
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Badge variant="outline">
+                            {bet.type.toUpperCase()}
+                          </Badge>
+                          {bet.type === "parlay" && bet.totalOdds && (
+                            <Badge variant="default" className="text-xs">
+                              {formatOdds(bet.totalOdds)}
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="space-y-1">
+                          {bet.bets.map((b, i) => (
+                            <div key={i} className="text-sm">
+                              <span className="font-medium">{b.team}</span> •{" "}
+                              {b.selection} ({formatOdds(b.odds)})
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                      <div className="text-sm text-muted-foreground">
-                        {bet.selection} • {formatOdds(bet.odds)}
+                      <div className="text-right ml-4">
+                        <div className="font-medium">
+                          Stake: {formatCurrency(bet.stake)}
+                        </div>
+                        <div className="text-sm text-accent">
+                          To Win: {formatCurrency(bet.profit)}
+                        </div>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div className="font-medium">
-                        Stake: {formatCurrency(bet.stake)}
-                      </div>
-                      <div className="text-sm text-accent">
-                        To Win: {formatCurrency(bet.potentialPayout - bet.stake)}
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                  ))}
               </div>
             )}
           </CardContent>
@@ -152,7 +180,7 @@ export default function MyBetsPage() {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       <Badge variant={bet.status === "won" ? "default" : "outline"}>
-                        {bet.type}
+                        {bet.type.toUpperCase()}
                       </Badge>
                       <Badge
                         variant={bet.status === "won" ? "default" : "destructive"}

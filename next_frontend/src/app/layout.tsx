@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "sonner";
-import { BetSlipProvider, NavigationProvider } from "@/context";
+import { BetSlipProvider, NavigationProvider, BetHistoryProvider } from "@/context";
 import { ThreePanelLayout } from "@/components/layouts";
 
 const inter = Inter({
@@ -26,8 +26,10 @@ export default function RootLayout({
       <body className="antialiased">
         <NavigationProvider>
           <BetSlipProvider>
-            <ThreePanelLayout>{children}</ThreePanelLayout>
-            <Toaster richColors position="top-right" />
+            <BetHistoryProvider>
+              <ThreePanelLayout>{children}</ThreePanelLayout>
+              <Toaster richColors position="top-right" />
+            </BetHistoryProvider>
           </BetSlipProvider>
         </NavigationProvider>
       </body>

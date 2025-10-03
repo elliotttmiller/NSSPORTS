@@ -21,7 +21,9 @@ export function ThreePanelLayout({ children }: ThreePanelLayoutProps) {
       <div className="flex-1 min-h-0 overflow-hidden relative">
         <div className="h-full flex relative">
           {/* Left Sidebar Toggle Button - Desktop Only */}
-          <div className="hidden lg:block absolute left-0 top-1/2 -translate-y-1/2 z-30">
+          <div className={`hidden lg:block absolute top-1/2 -translate-y-1/2 z-30 transition-all duration-300 ease-in-out ${
+            sideNavOpen ? "left-[288px]" : "left-0"
+          }`}>
             <SidebarToggle
               side="left"
               isOpen={sideNavOpen}
@@ -30,7 +32,9 @@ export function ThreePanelLayout({ children }: ThreePanelLayoutProps) {
           </div>
 
           {/* Right Sidebar Toggle Button - Desktop Only */}
-          <div className="hidden lg:block absolute right-0 top-1/2 -translate-y-1/2 z-30">
+          <div className={`hidden lg:block absolute top-1/2 -translate-y-1/2 z-30 transition-all duration-300 ease-in-out ${
+            betSlipOpen ? "right-[384px]" : "right-0"
+          }`}>
             <SidebarToggle
               side="right"
               isOpen={betSlipOpen}
@@ -49,7 +53,7 @@ export function ThreePanelLayout({ children }: ThreePanelLayoutProps) {
 
           {/* Center Panel - Main Content */}
           <div className="flex-1 min-w-0 overflow-hidden relative">
-            <div className="h-full overflow-y-auto">
+            <div className="h-full overflow-y-auto seamless-scroll">
               {children}
             </div>
           </div>

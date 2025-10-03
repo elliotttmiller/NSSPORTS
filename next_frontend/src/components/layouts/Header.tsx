@@ -9,7 +9,7 @@ export function Header() {
   const pathname = usePathname();
 
   return (
-    <header className="h-16 border-b border-border bg-card flex items-center justify-between px-4 relative">
+    <header className="h-16 border-b border-border bg-card flex items-center px-4 relative">
       {/* Desktop Left Section */}
       <div className="hidden md:flex items-center space-x-3">
         <Link
@@ -34,8 +34,8 @@ export function Header() {
         </Link>
       </div>
 
-      {/* Desktop Navigation */}
-      <div className="hidden md:flex items-center space-x-4">
+      {/* Desktop Navigation - Centered */}
+      <div className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
         <nav className="flex items-center space-x-2">
           <Button
             variant={pathname === "/" ? "default" : "ghost"}

@@ -2,11 +2,12 @@
 
 import { TrendUp, Trophy } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getLiveGames } from "@/services/mockApi";
 import type { Game } from "@/types";
-import { formatGameTime } from "@/lib/formatters";
+import { ProfessionalGameRow } from "@/components/features/games/ProfessionalGameRow";
 
 export default function Home() {
   const activeBetsCount = 3;
@@ -60,36 +61,25 @@ export default function Home() {
               </h2>
             </div>
             
-            <div className="space-y-2">
-              {trendingGames.map((game) => (
-                <div
-                  key={game.id}
-                  className="bg-card/50 border border-border/50 rounded-lg p-4 hover:bg-card/70 transition-colors"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="text-sm md:text-base font-medium text-foreground">
-                        {game.awayTeam.shortName} @ {game.homeTeam.shortName}
-                      </div>
-                      <div className="text-xs md:text-sm text-muted-foreground mt-1">
-                        {formatGameTime(game.startTime)}
-                      </div>
-                    </div>
-                    <Button size="sm" variant="outline">
-                      View Odds
-                    </Button>
-                  </div>
-                </div>
-              ))}
-              
-              <div className="flex justify-center mt-4">
-                <Link
-                  href="/live"
-                  className="text-xs px-3 py-1 rounded bg-muted/30 hover:bg-muted/50 text-muted-foreground transition-all duration-150 shadow-sm border border-border"
-                >
-                  View All
-                </Link>
+            <Card className="overflow-hidden">
+              <div className="bg-card/50">
+                {trendingGames.map((game, index) => (
+                  <ProfessionalGameRow 
+                    key={game.id} 
+                    game={game}
+                    isFirstInGroup={index === 0}
+                  />
+                ))}
               </div>
+            </Card>
+              
+            <div className="flex justify-center mt-4">
+              <Link
+                href="/live"
+                className="text-xs px-3 py-1 rounded bg-muted/30 hover:bg-muted/50 text-muted-foreground transition-all duration-150 shadow-sm border border-border"
+              >
+                View All
+              </Link>
             </div>
           </div>
 

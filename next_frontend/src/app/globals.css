@@ -9,7 +9,16 @@
     font-family: "Inter", sans-serif;
   }
 
-  /* Seamless scrolling */
+  /* Seamless scrolling - Hide all scrollbars globally */
+  * {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  *::-webkit-scrollbar {
+    display: none;
+  }
+
   .scrollbar-hide,
   .seamless-scroll {
     -ms-overflow-style: none;
