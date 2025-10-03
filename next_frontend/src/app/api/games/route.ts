@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import type { GameWithRelations, OddsMap } from '@/lib/apiTypes';
+import { Prisma } from '@prisma/client';
 
 // Helper function to transform Prisma game to frontend format
-function transformGame(game: any) {
-  const oddsMap = game.odds.reduce((acc: any, odd: any) => {
+function transformGame(game: GameWithRelations) {
+  const oddsMap: OddsMap = game.odds.reduce((acc: OddsMap, odd) => {
     if (!acc[odd.betType]) {
       acc[odd.betType] = {};
     }
@@ -56,7 +58,7 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status');
 
     // Build where clause
-    const where: any = {};
+    const where: Prisma.GameWhereInput = {};
     if (leagueId) {
       where.leagueId = leagueId;
     }

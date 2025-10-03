@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import type { GameWithRelations, OddsMap } from '@/lib/apiTypes';
 
 // Helper function to transform game data
-function transformGame(game: any) {
-  const oddsMap = game.odds.reduce((acc: any, odd: any) => {
+function transformGame(game: GameWithRelations) {
+  const oddsMap: OddsMap = game.odds.reduce((acc: OddsMap, odd) => {
     if (!acc[odd.betType]) {
       acc[odd.betType] = {};
     }
