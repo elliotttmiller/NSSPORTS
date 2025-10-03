@@ -1,5 +1,10 @@
 import type { Game, Sport } from "@/types";
 
+// ⚠️ DEPRECATED: This mock data is no longer used in the application.
+// All data now comes from the database via API routes in src/app/api/
+// This file is kept for reference and seed data only.
+// See prisma/seed.ts for the database seed implementation.
+
 // Simplified mock data for Next.js migration
 export const mockSports: Sport[] = [
   {

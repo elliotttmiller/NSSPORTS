@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ProfessionalGameRow, CompactMobileGameRow } from "@/components/features/games";
-import { getLiveGames } from "@/services/mockApi";
+import { getLiveGames } from "@/services/api";
 import type { Game } from "@/types";
 
 export default function LivePage() {

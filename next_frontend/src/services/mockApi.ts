@@ -1,3 +1,8 @@
+// ⚠️ DEPRECATED: This file is no longer used. 
+// All data now comes from the database via API routes.
+// See src/services/api.ts for the new implementation.
+// This file is kept for reference only.
+
 import { mockSports, mockAllGames } from "@/lib/data/mockData";
 import type { Game, Sport, League } from "@/types";
 

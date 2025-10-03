@@ -1,0 +1,119 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// Sports and Leagues
+model Sport {
+  id      String   @id
+  name    String
+  icon    String
+  leagues League[]
+
+  @@map("sports")
+}
+
+model League {
+  id      String @id
+  name    String
+  sportId String
+  sport   Sport  @relation(fields: [sportId], references: [id], onDelete: Cascade)
+  games   Game[]
+
+  @@index([sportId])
+  @@map("leagues")
+}
+
+// Teams
+model Team {
+  id        String @id
+  name      String
+  shortName String
+  logo      String
+  record    String?
+  leagueId  String?
+
+  homeGames Game[] @relation("HomeTeam")
+  awayGames Game[] @relation("AwayTeam")
+
+  @@index([leagueId])
+  @@map("teams")
+}
+
+// Games
+model Game {
+  id        String   @id
+  leagueId  String
+  homeTeamId String
+  awayTeamId String
+  startTime DateTime
+  status    String   @default("upcoming") // upcoming, live, finished
+  venue     String?
+  homeScore Int?
+  awayScore Int?
+  period    String?
+  timeRemaining String?
+  
+  league   League @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  homeTeam Team   @relation("HomeTeam", fields: [homeTeamId], references: [id], onDelete: Cascade)
+  awayTeam Team   @relation("AwayTeam", fields: [awayTeamId], references: [id], onDelete: Cascade)
+  
+  odds     Odds[]
+  bets     Bet[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([leagueId])
+  @@index([status])
+  @@index([startTime])
+  @@map("games")
+}
+
+// Odds
+model Odds {
+  id          String   @id @default(cuid())
+  gameId      String
+  betType     String   // spread, moneyline, total
+  selection   String?  // home, away, over, under
+  odds        Int      // American odds format
+  line        Float?   // for spread/total
+  lastUpdated DateTime @default(now())
+  
+  game Game @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@index([gameId])
+  @@index([betType])
+  @@map("odds")
+}
+
+// User Bets
+model Bet {
+  id               String   @id @default(cuid())
+  userId           String?  // Optional for now
+  gameId           String
+  betType          String   // spread, moneyline, total, parlay
+  selection        String   // home, away, over, under
+  odds             Int
+  line             Float?
+  stake            Float
+  potentialPayout  Float
+  status           String   @default("pending") // pending, won, lost
+  placedAt         DateTime @default(now())
+  settledAt        DateTime?
+  
+  game Game @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([gameId])
+  @@index([status])
+  @@map("bets")
+}
