@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { getLiveGames } from "@/services/mockApi";
+import { getLiveGames } from "@/services/api";
 import type { Game } from "@/types";
 import { ProfessionalGameRow } from "@/components/features/games/ProfessionalGameRow";
 

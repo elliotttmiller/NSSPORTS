@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Button } from "@/components/ui";
 import { ProfessionalGameRow } from "@/components/features/games";
-import { getGamesByLeague, getLeague } from "@/services/mockApi";
+import { getGamesByLeague, getLeague } from "@/services/api";
 import type { Game, League } from "@/types";
 
 export default function LeaguePage() {

@@ -8,7 +8,7 @@ import {
   useCallback,
 } from "react";
 import { Bet, BetSlip, Game } from "@/types";
-import { calculatePayout } from "@/services/mockApi";
+import { calculatePayout } from "@/services/api";
 
 interface BetSlipContextType {
   betSlip: BetSlip;

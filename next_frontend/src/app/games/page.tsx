@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui";
 import { ProfessionalGameRow } from "@/components/features/games";
-import { getLiveGames, getUpcomingGames } from "@/services/mockApi";
+import { getLiveGames, getUpcomingGames } from "@/services/api";
 import type { Game } from "@/types";
 
 export default function GamesPage() {
