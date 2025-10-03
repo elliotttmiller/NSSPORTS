@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Button } from "@/components/ui";
-import { ProfessionalGameRow } from "@/components/features/games";
+import { ProfessionalGameRow, CompactMobileGameRow, MobileGameTableHeader } from "@/components/features/games";
 import { getGamesByLeague, getLeague } from "@/services/api";
 import type { Game, League } from "@/types";
 
@@ -72,8 +72,8 @@ export default function LeaguePage() {
 
         {/* Games List */}
         <div className="bg-card/50 border border-border rounded-lg overflow-hidden">
-          {/* Header Row */}
-          <div className="grid grid-cols-[80px_1fr_120px_120px_120px] gap-4 items-center py-3 px-4 bg-muted/30 border-b border-border">
+          {/* Desktop Header Row */}
+          <div className="hidden lg:grid grid-cols-[80px_1fr_120px_120px_120px] gap-4 items-center py-3 px-4 bg-muted/30 border-b border-border">
             <div className="text-xs font-semibold text-muted-foreground uppercase">
               League
             </div>
@@ -91,6 +91,11 @@ export default function LeaguePage() {
             </div>
           </div>
 
+          {/* Mobile Header Row */}
+          <div className="lg:hidden">
+            <MobileGameTableHeader />
+          </div>
+
           {/* Games */}
           {loading ? (
             <div className="py-12 text-center text-muted-foreground">
@@ -103,7 +108,17 @@ export default function LeaguePage() {
           ) : (
             <div>
               {games.map((game, idx) => (
-                <ProfessionalGameRow key={game.id} game={game} isFirstInGroup={idx === 0} />
+                <div key={game.id}>
+                  {/* Desktop View */}
+                  <div className="hidden lg:block">
+                    <ProfessionalGameRow game={game} isFirstInGroup={idx === 0} />
+                  </div>
+                  
+                  {/* Mobile/Tablet View */}
+                  <div className="lg:hidden">
+                    <CompactMobileGameRow game={game} index={idx} />
+                  </div>
+                </div>
               ))}
             </div>
           )}

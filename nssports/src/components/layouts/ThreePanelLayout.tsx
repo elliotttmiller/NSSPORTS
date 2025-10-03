@@ -5,7 +5,7 @@ import { useNavigation } from "@/context";
 import { useIsMobile } from "@/hooks";
 import { Header } from "./Header";
 import { SideNavPanel, BetSlipPanel, SidebarToggle } from "@/components/panels";
-import { FloatingBetSlipButton, MobileBetSlipPanel, BottomNav } from "@/components/features/mobile";
+import { FloatingBetSlipButton, MobileBetSlipPanel, BottomNav, MobileSportsPanel } from "@/components/features/mobile";
 
 interface ThreePanelLayoutProps {
   children: ReactNode;
@@ -77,6 +77,7 @@ export function ThreePanelLayout({ children }: ThreePanelLayoutProps) {
         <>
           <FloatingBetSlipButton />
           <MobileBetSlipPanel />
+          <MobileSportsPanel />
           <BottomNav />
         </>
       )}
