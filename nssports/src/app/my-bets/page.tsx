@@ -145,7 +145,7 @@ export default function MyBetsPage() {
                           {bet.bets.map((b, i) => (
                             <div key={i} className="text-sm">
                               <span className="font-medium">{b.team}</span> •{" "}
-                              {b.selection} ({formatOdds(b.odds)})
+                              {b.selection.replace(/moneyline|spread|total/gi, (match) => match.charAt(0).toUpperCase() + match.slice(1).toLowerCase())} ({formatOdds(b.odds)})
                             </div>
                           ))}
                         </div>

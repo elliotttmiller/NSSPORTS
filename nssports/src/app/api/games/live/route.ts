@@ -4,11 +4,11 @@ import type { GameWithRelations, OddsMap } from '@/lib/apiTypes';
 
 // Helper function to transform game data
 function transformGame(game: GameWithRelations) {
-  const oddsMap: OddsMap = game.odds.reduce((acc: OddsMap, odd) => {
+  const oddsMap: OddsMap = game.odds.reduce((acc: OddsMap, odd: import('@/lib/apiTypes').OddsRecord) => {
     if (!acc[odd.betType]) {
       acc[odd.betType] = {};
     }
-    acc[odd.betType][odd.selection || odd.betType] = {
+  acc[odd.betType][odd.selection || odd.betType] = {
       odds: odd.odds,
       line: odd.line,
       lastUpdated: odd.lastUpdated,

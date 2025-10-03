@@ -1,12 +1,36 @@
 "use client";
 
 import Link from "next/link";
+import { useRef, useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 import { Trophy, User } from "@phosphor-icons/react/dist/ssr";
 import { Button } from "@/components/ui";
 
 export function Header() {
   const pathname = usePathname();
+
+
+  // Mock values for demonstration
+  const balance = 1250.0;
+  const available = 1000.0;
+  const risk = 250.0;
+
+  // Portal dropdown state
+  const [showDropdown, setShowDropdown] = useState(false);
+  const accountBtnRef = useRef<HTMLDivElement>(null);
+  const [dropdownPos, setDropdownPos] = useState<{top: number, left: number, width: number}>({top: 0, left: 0, width: 0});
+
+  useEffect(() => {
+    if (showDropdown && accountBtnRef.current) {
+      const rect = accountBtnRef.current.getBoundingClientRect();
+      setDropdownPos({
+        top: rect.bottom + window.scrollY,
+        left: rect.right - 224 + window.scrollX, // 224px = dropdown width
+        width: rect.width,
+      });
+    }
+  }, [showDropdown]);
 
   return (
     <header className="h-16 border-b border-border bg-card flex items-center px-4 relative">
@@ -58,16 +82,62 @@ export function Header() {
           >
             <Link href="/my-bets">My Bets</Link>
           </Button>
-          <Button
-            variant={pathname === "/account" ? "default" : "ghost"}
-            size="sm"
-            asChild
-          >
-            <Link href="/account">
-              <User size={16} className="mr-1" />
-              Account
-            </Link>
-          </Button>
+          <div className="relative group">
+            <div
+              ref={accountBtnRef}
+              onMouseEnter={() => setShowDropdown(true)}
+              onMouseLeave={() => setShowDropdown(false)}
+              className="inline-block"
+            >
+              <Button
+                variant={pathname === "/account" ? "default" : "ghost"}
+                size="sm"
+                asChild
+                className="flex items-center"
+              >
+                <Link href="/account">
+                  <User size={16} className="mr-1" />
+                  Account
+                </Link>
+              </Button>
+            </div>
+            {showDropdown && createPortal(
+              <div
+                style={{
+                  position: "absolute",
+                  top: dropdownPos.top,
+                  left: dropdownPos.left,
+                  width: "224px",
+                  zIndex: 99999,
+                  background: "var(--card)",
+                  border: "1px solid var(--border)",
+                  borderRadius: "0.5rem",
+                  boxShadow: "0 4px 24px rgba(0,0,0,0.12)",
+                  transition: "opacity 0.2s",
+                }}
+                onMouseEnter={() => setShowDropdown(true)}
+                onMouseLeave={() => setShowDropdown(false)}
+              >
+                <div className="p-4 space-y-2">
+                  <div className="flex flex-col space-y-2 text-foreground">
+                    <div className="flex justify-between text-sm">
+                      <span className="font-medium text-foreground">Balance:</span>
+                      <span className="font-bold text-accent">${balance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="font-medium text-foreground">Available:</span>
+                      <span className="font-bold text-green-600">${available.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="font-medium text-foreground">Risk:</span>
+                      <span className="font-bold text-red-600">${risk.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>,
+              document.body
+            )}
+          </div>
         </nav>
       </div>
 
