@@ -1,3 +1,15 @@
+// Pagination response interface
+export interface PaginatedResponse<T> {
+  data: T[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+  };
+}
 // Core data types for the wagering application
 export interface Sport {
   id: string;

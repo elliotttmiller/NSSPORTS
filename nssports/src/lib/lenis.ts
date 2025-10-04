@@ -13,31 +13,22 @@ export const initLenis = (isMobile: boolean = false) => {
     wrapper: window, // Use window for both mobile and desktop for consistency
   });
 
-  // Global scroll shadow effect for game card lists
+  // Global scroll shadow effect for all game pages/lists
   lenis.on('scroll', () => {
-    const shadowElements = document.querySelectorAll('[data-scroll-shadow]');
-    
-    shadowElements.forEach((element) => {
-      const rect = element.getBoundingClientRect();
-      const viewportHeight = window.innerHeight;
-      
-      // Calculate if element is in viewport and how much
-      const elementTop = rect.top;
-      const elementBottom = rect.bottom;
-      const isInViewport = elementTop < viewportHeight && elementBottom > 0;
-      
-      if (isInViewport) {
-        // Calculate shadow opacity based on scroll position and element visibility
-        const elementProgress = Math.max(0, Math.min(1, (viewportHeight - elementTop) / viewportHeight));
-        const shadowOpacity = Math.max(0, 1 - elementProgress);
-        
-        // Apply shadow effect
-        (element as HTMLElement).style.setProperty(
-          '--scroll-shadow-opacity', 
-          shadowOpacity.toString()
-        );
-      }
-    });
+    const shadow = document.getElementById('global-scroll-shadow');
+    if (!shadow) return;
+    const scrollTop = window.scrollY || document.documentElement.scrollTop;
+    const scrollHeight = document.documentElement.scrollHeight;
+    const clientHeight = window.innerHeight;
+    const maxScroll = scrollHeight - clientHeight;
+    let opacity = 1;
+    if (maxScroll > 0) {
+      const progress = Math.min(1, scrollTop / maxScroll);
+      opacity = 1 - progress;
+    } else {
+      opacity = 0;
+    }
+    shadow.style.opacity = opacity.toString();
   });
 
   // Emit custom scroll events for shadow synchronization

@@ -87,20 +87,23 @@ model Odds {
 model Bet {
   id              String    @id @default(cuid())
   userId          String?
-  gameId          String
+  gameId          String?
   betType         String
   selection       String
   odds            Int
   line            Float?
-  stake           Float
-  potentialPayout Float
+  stake           Decimal   @db.Decimal(18,2)
+  potentialPayout Decimal   @db.Decimal(18,2)
   status          String    @default("pending")
   placedAt        DateTime  @default(now())
   settledAt       DateTime?
-  game            Game      @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  game            Game?     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  legs            Json?
+  idempotencyKey  String?   @unique
 
   @@index([userId])
   @@index([gameId])
   @@index([status])
+  @@index([userId, status, placedAt])
   @@map("bets")
 }

@@ -1,20 +1,10 @@
-import type { Game, Sport, League } from "@/types";
+import type { Game, Sport, League, PaginatedResponse } from "@/types";
 
 // API Base URL from environment
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || '/api';
 
 // Pagination response interface
-export interface PaginatedResponse<T> {
-  data: T[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-    hasNextPage: boolean;
-    hasPrevPage: boolean;
-  };
-}
+// ...removed local PaginatedResponse, now using shared type from src/types/index.ts
 
 // Helper function to make API requests with error handling
 // Get bet history

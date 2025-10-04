@@ -3,11 +3,12 @@
 import type { Bet } from "@/types";
 import { useBetSlip, useBetHistory } from "@/context";
 import { useLenisScroll } from "@/hooks";
-import { Button, Card, CardContent, Input, Badge, Separator } from "@/components/ui";
+import { Button, Input, Separator } from "@/components/ui";
 import { X, Stack, Target } from "@phosphor-icons/react/dist/ssr";
 import { formatOdds, formatCurrency } from "@/lib/formatters";
 import { toast } from "sonner";
 import { useCallback } from "react";
+import { BetCardSingle, BetCardParlay } from "@/components/bets/BetCard";
 
 export function BetSlipPanel() {
   // Restriction: Cannot parlay both team moneylines from the same game
@@ -148,74 +149,73 @@ export function BetSlipPanel() {
       {/* Bets List - Lenis Smooth Scrolling */}
       <div ref={containerRef} className="flex-1 overflow-hidden">
         <div className="p-4 space-y-3">
-          {betSlip.bets.map((bet) => (
-          <Card key={bet.id} className="relative">
-            <CardContent className="p-3">
-              {/* Remove Button */}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => removeBet(bet.id)}
-                className="absolute top-2 right-2 h-6 w-6 p-0"
-              >
-                <X size={14} />
-              </Button>
-
-              {/* Bet Details */}
-              <div className="pr-8">
-                <div className="text-xs text-muted-foreground mb-1">
-                  {bet.betType.toUpperCase()}
-                </div>
-                <div className="font-medium text-sm">
-                  {bet.selection === "over" ? "Over" : bet.selection === "under" ? "Under" : 
-                   bet.selection === "away" ? bet.game.awayTeam.shortName : bet.game.homeTeam.shortName}
-                  {bet.line && ` ${bet.line > 0 ? "+" : ""}${bet.line}`}
-                </div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  {bet.game.awayTeam.shortName} @ {bet.game.homeTeam.shortName}
-                </div>
-                
-                <div className="flex items-center justify-between mt-2">
-                  <Badge variant="outline" className="text-xs">
-                    {formatOdds(bet.odds)}
-                  </Badge>
-                </div>
-
-                {/* Stake Input */}
-                {betSlip.betType === "single" && (
-                  <div className="mt-3">
-                    <label className="text-xs text-muted-foreground mb-1 block">
-                      Stake
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm">$</span>
-                      <Input
-                        type="number"
-                        value={bet.stake}
-                        onChange={(e) =>
-                          updateStake(bet.id, parseFloat(e.target.value) || 0)
-                        }
-                        className="h-8 text-sm"
-                        min="0"
-                        max="10000"
-                        step="1"
-                      />
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      To win: {formatCurrency(bet.potentialPayout - bet.stake)}
-                    </div>
+          {betSlip.betType === "single" && betSlip.bets.map((bet) => (
+            <BetCardSingle
+              key={bet.id}
+              id={bet.id}
+              betType={bet.betType}
+              placedAt={new Date()}
+              status={"pending"}
+              selection={bet.selection === "away" ? bet.game.awayTeam.shortName : bet.selection === "home" ? bet.game.homeTeam.shortName : bet.selection}
+              odds={bet.odds}
+              line={bet.line}
+              stake={bet.stake}
+              payout={bet.potentialPayout}
+              game={{ homeTeam: { shortName: bet.game.homeTeam.shortName }, awayTeam: { shortName: bet.game.awayTeam.shortName } }}
+              showTotals={false}
+              headerActions={(
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => removeBet(bet.id)}
+                  className="h-6 w-6 p-0"
+                  aria-label="Remove bet"
+                >
+                  <X size={14} />
+                </Button>
+              )}
+            >
+              {betSlip.betType === "single" && (
+                <div className="mt-3">
+                  <label className="text-xs text-muted-foreground mb-1 block">Stake</label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm">$</span>
+                    <Input
+                      type="number"
+                      value={bet.stake}
+                      onChange={(e) => updateStake(bet.id, parseFloat(e.target.value) || 0)}
+                      className="h-8 text-sm"
+                      min="0"
+                      max="10000"
+                      step="1"
+                    />
                   </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+                  <div className="text-xs text-muted-foreground mt-1">
+                    To win: {formatCurrency(bet.potentialPayout - bet.stake)}
+                  </div>
+                </div>
+              )}
+            </BetCardSingle>
+          ))}
 
         {/* Parlay Stake */}
         {betSlip.betType === "parlay" && betSlip.bets.length > 0 && (
-          <Card className="bg-accent/5">
-            <CardContent className="p-4">
-              <div className="text-sm font-medium mb-2">Parlay (3 picks)</div>
+          <BetCardParlay
+            id="parlay-slip"
+            betType="parlay"
+            placedAt={new Date()}
+            status={"pending"}
+            stake={betSlip.bets[0]?.stake || 0}
+            payout={betSlip.totalPayout}
+            legs={betSlip.bets.map((b) => ({
+              game: { homeTeam: { shortName: b.game.homeTeam.shortName }, awayTeam: { shortName: b.game.awayTeam.shortName } },
+              selection: b.selection,
+              odds: b.odds,
+              line: b.line,
+            }))}
+            showTotals={false}
+          >
+            <div className="p-4">
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-sm">Total Stake ($)</span>
               </div>
@@ -224,9 +224,7 @@ export function BetSlipPanel() {
                 <Input
                   type="number"
                   value={betSlip.bets[0]?.stake || 10}
-                  onChange={(e) =>
-                    updateStake(betSlip.bets[0].id, parseFloat(e.target.value) || 0)
-                  }
+                  onChange={(e) => updateStake(betSlip.bets[0].id, parseFloat(e.target.value) || 0)}
                   className="h-9 text-sm"
                   min="0"
                   max="10000"
@@ -237,13 +235,11 @@ export function BetSlipPanel() {
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Parlay Odds:</span>
-                  <span className="font-medium text-accent">
-                    {formatOdds(betSlip.totalOdds)}
-                  </span>
+                  <span className="font-medium text-accent">{formatOdds(betSlip.totalOdds)}</span>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </BetCardParlay>
         )}
         </div>
       </div>
@@ -269,7 +265,16 @@ export function BetSlipPanel() {
           </div>
         </div>
 
-        <Button className="w-full" size="lg" onClick={handlePlaceBet}>
+        <Button
+          className="w-full"
+          size="lg"
+          onClick={handlePlaceBet}
+          disabled={
+            betSlip.bets.length === 0 ||
+            betSlip.totalStake <= 0 ||
+            (betSlip.betType === "parlay" && !isParlayValid(betSlip.bets))
+          }
+        >
           Place {betSlip.betType === "parlay" ? "Parlay" : "Bets"}
         </Button>
       </div>

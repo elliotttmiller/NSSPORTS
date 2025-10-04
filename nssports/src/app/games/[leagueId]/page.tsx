@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import { useParams } from "next/navigation";
-import { Button } from "@/components/ui";
+import Image from "next/image";
 import { ProfessionalGameRow, CompactMobileGameRow, MobileGameTableHeader, DesktopGameTableHeader } from "@/components/features/games";
 import { getGamesByLeague, getLeague } from "@/services/api";
 import type { Game, League } from "@/types";
@@ -42,16 +41,26 @@ export default function LeaguePage() {
     <div className="bg-background">
       <div className="container mx-auto px-6 md:px-8 xl:px-12 pt-12 pb-6 max-w-screen-2xl">
   {/* Page Header */}
-        <div className="mb-6 flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">{leagueName} Games</h1>
-            <p className="text-muted-foreground mt-1">
-              {games.length} game{games.length !== 1 ? "s" : ""} available
-            </p>
+        <div className="mb-8 flex items-center justify-start">
+          <div className="flex items-center gap-5">
+            {league?.logo && (
+              <Image
+                src={league.logo}
+                alt={league.name + ' logo'}
+                width={48}
+                height={48}
+                className="w-12 h-12 md:w-14 md:h-14 rounded-full object-contain bg-white border border-border shadow"
+                style={{ minWidth: 48, minHeight: 48 }}
+                priority
+              />
+            )}
+            <div className="flex flex-col justify-center items-start">
+              <h1 className="text-3xl md:text-4xl font-bold text-foreground leading-tight mb-1">{leagueName} Games</h1>
+              <p className="text-muted-foreground text-base md:text-lg font-medium leading-tight" style={{marginTop: '-2px'}}>
+                {games.length} game{games.length !== 1 ? "s" : ""} available
+              </p>
+            </div>
           </div>
-          <Button asChild variant="outline" size="sm">
-            <Link href="/games">All Games</Link>
-          </Button>
         </div>
 
   {/* Games List */}
