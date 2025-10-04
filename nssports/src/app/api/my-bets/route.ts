@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import prisma from "@/lib/prisma";
 import { z } from "zod";
+import { logger } from "@/lib/logger";
+import { ApiErrors, withErrorHandling } from "@/lib/apiResponse";
 
 // Minimal leg shape stored in Bet.legs JSON
 type ParlayLeg = {
@@ -42,10 +44,10 @@ function toLegArray(input: unknown): ParlayLeg[] | null {
   }
 }
 
-const prisma = new PrismaClient();
-
 export async function GET() {
-  try {
+  return withErrorHandling(async () => {
+    logger.info('Fetching bet history');
+    
     // Fetch all bets (for demo, fetch all; in production, filter by user)
     const bets = await prisma.bet.findMany({
       orderBy: { placedAt: "desc" },
@@ -59,6 +61,9 @@ export async function GET() {
         },
       },
     });
+    
+    logger.debug('Bets fetched', { count: bets.length });
+    
     // Normalize legs for parlay bets and enrich leg.game when possible
     const allLegGameIds: Set<string> = new Set();
     for (const bet of bets) {
@@ -114,21 +119,48 @@ export async function GET() {
       }
       return 0;
     };
+    
     const serialized = normalized.map((b) => ({
       ...(b as Record<string, unknown>),
       stake: toNum((b as Record<string, unknown>).stake),
       potentialPayout: toNum((b as Record<string, unknown>).potentialPayout),
     }));
+    
+    logger.info('Bet history fetched successfully', { count: serialized.length });
+    
+    // Return data directly for backwards compatibility
     return NextResponse.json(JSON.parse(JSON.stringify(serialized)));
-  } catch {
-    return NextResponse.json({ error: "Failed to fetch bet history" }, { status: 500 });
-  }
+  });
 }
 
 export async function POST(req: Request) {
-  try {
-  // const idempotencyKey = req.headers.get("Idempotency-Key") ?? undefined;
+  return withErrorHandling(async () => {
     const body = await req.json();
+    logger.info('Placing bet', { betType: body?.betType });
+
+    // Idempotency key support for preventing duplicate bet placements
+    const idempotencyKey = req.headers.get("Idempotency-Key") || undefined;
+    
+    if (idempotencyKey) {
+      // Check if bet with this idempotency key already exists
+      const existingBet = await prisma.bet.findUnique({
+        where: { idempotencyKey },
+        include: {
+          game: {
+            include: {
+              homeTeam: true,
+              awayTeam: true,
+              league: true,
+            },
+          },
+        },
+      });
+      
+      if (existingBet) {
+        logger.info('Bet already exists with idempotency key', { idempotencyKey });
+        return NextResponse.json(JSON.parse(JSON.stringify(existingBet)), { status: 200 });
+      }
+    }
 
     const legSchema = z.object({
       gameId: z.string().optional(),
@@ -162,60 +194,95 @@ export async function POST(req: Request) {
     });
 
     const isParlay = body?.betType === "parlay";
-    const data = isParlay ? parlaySchema.parse(body) : singleSchema.parse(body);
+    
+    let data;
+    try {
+      data = isParlay ? parlaySchema.parse(body) : singleSchema.parse(body);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        logger.warn('Validation error', { errors: error.errors });
+        return ApiErrors.unprocessable('Invalid bet data', error.errors);
+      }
+      throw error;
+    }
 
-  // NOTE: Idempotency storage requires a DB migration and prisma generate.
-  // After running migrations, re-enable lookup by idempotencyKey to prevent duplicates.
-
-    // For parlay, store as a single bet with betType 'parlay', odds, stake, payout, and selection 'parlay'.
-  if (data.betType === "parlay") {
-      const parlayBet = await prisma.bet.create({
+    // Use transaction to ensure data consistency
+    const result = await prisma.$transaction(async (tx) => {
+      // For parlay bets
+      if (data.betType === "parlay") {
+        logger.info('Creating parlay bet', { legs: data.legs.length });
+        
+        const parlayBet = await tx.bet.create({
+          data: {
+            betType: "parlay",
+            stake: data.stake,
+            potentialPayout: data.potentialPayout,
+            status: data.status || "pending",
+            placedAt: new Date(),
+            userId: data.userId ?? null,
+            selection: "parlay",
+            odds: data.odds ?? 0,
+            line: null,
+            gameId: null,
+            legs: data.legs ?? null,
+            idempotencyKey,
+          },
+        });
+        
+        logger.info('Parlay bet created', { betId: parlayBet.id });
+        return parlayBet;
+      }
+      
+      // For single bets
+      if (!data.gameId || !data.selection || !data.odds) {
+        throw new Error("Missing required single bet fields");
+      }
+      
+      // Verify game exists
+      const game = await tx.game.findUnique({
+        where: { id: data.gameId },
+        select: { id: true, status: true },
+      });
+      
+      if (!game) {
+        throw new Error(`Game not found: ${data.gameId}`);
+      }
+      
+      if (game.status === "finished") {
+        throw new Error("Cannot place bet on finished game");
+      }
+      
+      logger.info('Creating single bet', { gameId: data.gameId, betType: data.betType });
+      
+      const bet = await tx.bet.create({
         data: {
-          betType: "parlay",
+          gameId: data.gameId,
+          betType: data.betType,
+          selection: data.selection,
+          odds: data.odds,
+          line: data.line ?? null,
           stake: data.stake,
-          potentialPayout: data.potentialPayout,
+          potentialPayout: data.potentialPayout ?? 0,
           status: data.status || "pending",
           placedAt: new Date(),
           userId: data.userId ?? null,
-          selection: "parlay",
-          odds: data.odds ?? 0,
-          line: null,
-          gameId: null,
-          // Store legs as JSON array directly so clients can consume without parsing strings
-          legs: data.legs ?? null,
+          idempotencyKey,
         },
-      });
-    return NextResponse.json(JSON.parse(JSON.stringify(parlayBet)), { status: 201 });
-    }
-    // Single bet
-    if (!data.gameId || !data.selection || !data.odds) {
-      return NextResponse.json({ error: "Missing required single bet fields" }, { status: 400 });
-    }
-    const bet = await prisma.bet.create({
-      data: {
-        gameId: data.gameId,
-        betType: data.betType,
-        selection: data.selection,
-        odds: data.odds,
-        line: data.line ?? null,
-        stake: data.stake,
-        potentialPayout: data.potentialPayout ?? 0,
-        status: data.status || "pending",
-        placedAt: new Date(),
-        userId: data.userId ?? null,
-      },
-      include: {
-        game: {
-          include: {
-            homeTeam: true,
-            awayTeam: true,
-            league: true,
+        include: {
+          game: {
+            include: {
+              homeTeam: true,
+              awayTeam: true,
+              league: true,
+            },
           },
         },
-      },
+      });
+      
+      logger.info('Single bet created', { betId: bet.id });
+      return bet;
     });
-    return NextResponse.json(JSON.parse(JSON.stringify(bet)), { status: 201 });
-  } catch {
-    return NextResponse.json({ error: "Failed to place bet" }, { status: 500 });
-  }
+
+    return NextResponse.json(JSON.parse(JSON.stringify(result)), { status: 201 });
+  });
 }
