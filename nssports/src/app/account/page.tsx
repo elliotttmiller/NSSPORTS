@@ -44,58 +44,6 @@ export default function AccountPage() {
           </CardContent>
         </Card>
 
-        {/* Profile Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Profile Information</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <label className="text-sm font-medium">Username</label>
-              <Input
-                value={profile.username}
-                onChange={(e) =>
-                  setProfile({ ...profile, username: e.target.value })
-                }
-                className="mt-1"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Email</label>
-              <Input
-                type="email"
-                value={profile.email}
-                onChange={(e) =>
-                  setProfile({ ...profile, email: e.target.value })
-                }
-                className="mt-1"
-              />
-            </div>
-            <Button>Save Changes</Button>
-          </CardContent>
-        </Card>
-
-        {/* Security Settings */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Security</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <label className="text-sm font-medium">Current Password</label>
-              <Input type="password" placeholder="Enter current password" className="mt-1" />
-            </div>
-            <div>
-              <label className="text-sm font-medium">New Password</label>
-              <Input type="password" placeholder="Enter new password" className="mt-1" />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Confirm New Password</label>
-              <Input type="password" placeholder="Confirm new password" className="mt-1" />
-            </div>
-            <Button>Update Password</Button>
-          </CardContent>
-        </Card>
 
         {/* Betting Preferences */}
         <Card>

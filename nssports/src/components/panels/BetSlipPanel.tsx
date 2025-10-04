@@ -1,5 +1,6 @@
 "use client";
 
+import type { Bet } from "@/types";
 import { useBetSlip, useBetHistory } from "@/context";
 import { Button, Card, CardContent, Input, Badge, Separator } from "@/components/ui";
 import { X, Stack, Target } from "@phosphor-icons/react/dist/ssr";
@@ -8,6 +9,22 @@ import { toast } from "sonner";
 import { useCallback } from "react";
 
 export function BetSlipPanel() {
+  // Restriction: Cannot parlay both team moneylines from the same game
+  function isParlayValid(bets: Bet[]): boolean {
+    const moneylineBetsByGame: Record<string, Set<string>> = {};
+    for (const bet of bets) {
+      if (bet.betType === "moneyline") {
+        if (!moneylineBetsByGame[bet.game.id]) {
+          moneylineBetsByGame[bet.game.id] = new Set<string>();
+        }
+        moneylineBetsByGame[bet.game.id]!.add(bet.selection);
+      }
+    }
+    // If any game has both 'home' and 'away' moneyline in the parlay, return false
+    return !Object.values(moneylineBetsByGame).some((selections: Set<string>) =>
+      selections.has("home") && selections.has("away")
+    );
+  }
   const { betSlip, removeBet, updateStake, setBetType, clearBetSlip } = useBetSlip();
   const { addPlacedBet } = useBetHistory();
 
@@ -101,6 +118,8 @@ export function BetSlipPanel() {
             size="sm"
             onClick={() => setBetType("parlay")}
             className="flex-1"
+            disabled={!isParlayValid(betSlip.bets)}
+            title={!isParlayValid(betSlip.bets) ? "Cannot parlay both team moneylines from the same game" : undefined}
           >
             Parlay ({betSlip.bets.length})
           </Button>
@@ -109,6 +128,11 @@ export function BetSlipPanel() {
         {betSlip.betType === "parlay" && betSlip.bets.length > 0 && (
           <div className="mt-2 text-xs text-muted-foreground">
             Parlay mode: all bets must win
+            {!isParlayValid(betSlip.bets) && (
+              <div className="text-destructive font-semibold mt-1">
+                You cannot parlay both team moneylines from the same game.
+              </div>
+            )}
           </div>
         )}
       </div>
