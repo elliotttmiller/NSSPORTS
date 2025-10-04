@@ -8,7 +8,8 @@ import requests
 DEV_SERVER_PORT = 3000
 NGROK_STATIC_DOMAIN = "nssportsclub.ngrok.app"
 SERVER_TIMEOUT = 30
-PROJECT_PATH = os.path.abspath(os.path.dirname(__file__))
+# Project path points to the nssports directory
+PROJECT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'nssports')
 # --- END CONFIGURATION ---
 
 def kill_process_on_port(port):
