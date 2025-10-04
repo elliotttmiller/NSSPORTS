@@ -116,7 +116,7 @@ export default function LeaguePage() {
                   
                   {/* Mobile/Tablet View */}
                   <div className="lg:hidden">
-                    <CompactMobileGameRow game={game} index={idx} />
+                    <CompactMobileGameRow game={game} />
                   </div>
                 </div>
               ))}

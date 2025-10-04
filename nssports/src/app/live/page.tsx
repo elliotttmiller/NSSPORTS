@@ -60,7 +60,7 @@ export default function LivePage() {
                 <MobileGameTableHeader />
               </div>
               
-              {liveGames.map((game, idx) => (
+              {liveGames.map((game) => (
                 <div key={game.id}>
                   {/* Desktop View */}
                   <div className="hidden lg:block">
@@ -69,7 +69,7 @@ export default function LivePage() {
 
                   {/* Mobile/Tablet View */}
                   <div className="lg:hidden">
-                    <CompactMobileGameRow game={game} index={idx} />
+                    <CompactMobileGameRow game={game} />
                   </div>
                 </div>
               ))}

@@ -104,8 +104,8 @@ export default function Home() {
             <div className="lg:hidden">
               <MobileGameTableHeader />
               <div className="space-y-2 mt-2">
-                {trendingGames.map((game, idx) => (
-                  <CompactMobileGameRow key={game.id} game={game} index={idx} />
+                {trendingGames.map((game) => (
+                  <CompactMobileGameRow key={game.id} game={game} />
                 ))}
               </div>
             </div>

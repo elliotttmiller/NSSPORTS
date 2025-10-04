@@ -6,6 +6,7 @@ import { useIsMobile } from "@/hooks";
 import { Header } from "./Header";
 import { SideNavPanel, BetSlipPanel, SidebarToggle } from "@/components/panels";
 import { FloatingBetSlipButton, MobileBetSlipPanel, BottomNav, MobileSportsPanel } from "@/components/features/mobile";
+import { motion } from "framer-motion";
 
 interface ThreePanelLayoutProps {
   children: ReactNode;
@@ -20,7 +21,11 @@ export function ThreePanelLayout({ children }: ThreePanelLayoutProps) {
       {/* Header - Always visible */}
       <Header />
       {/* Main Layout Container - Three Panel Structure */}
-      <div className="flex-1 relative">
+      <motion.div
+        layout
+        transition={{ type: "spring", stiffness: 320, damping: 32 }}
+        className="flex-1 relative"
+      >
         <div className="flex relative">
           {/* Left Sidebar Toggle Button - Desktop Only */}
           <div className={`hidden lg:block absolute top-1/2 -translate-y-1/2 z-30 transition-all duration-300 ease-in-out ${
@@ -55,9 +60,13 @@ export function ThreePanelLayout({ children }: ThreePanelLayoutProps) {
 
           {/* Center Panel - Main Content */}
           <div className="flex-1 min-w-0 relative">
-            <div className={`overflow-y-auto seamless-scroll pt-16 ${isMobile ? "mobile-safe-area pb-20" : ""}`}>
+            <motion.div
+              layout
+              transition={{ type: "spring", stiffness: 320, damping: 32 }}
+              className={`overflow-y-auto seamless-scroll pt-16 ${isMobile ? "mobile-safe-area pb-20" : ""}`}
+            >
               {children}
-            </div>
+            </motion.div>
           </div>
 
           {/* Right Panel - Bet Slip (Collapsible) */}
@@ -69,7 +78,7 @@ export function ThreePanelLayout({ children }: ThreePanelLayoutProps) {
             {betSlipOpen && <BetSlipPanel />}
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Mobile Components */}
       {isMobile && (

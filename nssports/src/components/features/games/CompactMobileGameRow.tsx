@@ -11,10 +11,9 @@ import type { Game } from "@/types";
 
 interface Props {
   game: Game;
-  index?: number;
 }
 
-export const CompactMobileGameRow = memo(({ game, index = 0 }: Props) => {
+export const CompactMobileGameRow = memo(({ game }: Props) => {
   const { betSlip, addBet, removeBet } = useBetSlip();
   const [expanded, setExpanded] = useState(false);
 
@@ -103,17 +102,17 @@ export const CompactMobileGameRow = memo(({ game, index = 0 }: Props) => {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      whileHover={{ scale: 1.01 }}
-      whileTap={{ scale: 0.99 }}
-      transition={{ delay: index * 0.05, duration: 0.3 }}
       className="bg-card/40 border border-border rounded-lg mb-2 hover:bg-card/60 hover:shadow-md transition-all duration-200 overflow-hidden"
+      initial={false}
+      animate={{ boxShadow: expanded ? "0 8px 32px rgba(0,0,0,0.10)" : "0 2px 8px rgba(0,0,0,0.04)" }}
     >
       {/* Main Card Content - Clickable */}
       <div
         className="p-2.5 cursor-pointer"
-        onClick={() => setExpanded(!expanded)}
+        onClick={() => setExpanded((prev) => !prev)}
+        role="button"
+        tabIndex={0}
+        aria-expanded={expanded}
       >
         {/* Time Header */}
         <div className="flex justify-between items-center mb-2">
@@ -325,47 +324,31 @@ export const CompactMobileGameRow = memo(({ game, index = 0 }: Props) => {
           </div>
         </div>
       </div>
-
-      {/* Expanded Section */}
-      <AnimatePresence>
+      <AnimatePresence initial={false}>
         {expanded && (
           <motion.div
-            initial={{ opacity: 0, scaleY: 0 }}
-            animate={{ opacity: 1, scaleY: 1 }}
-            exit={{ opacity: 0, scaleY: 0 }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
-            style={{ transformOrigin: "top" }}
-            className="border-t border-border bg-card/20"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            className="overflow-hidden bg-muted/20 border-t border-border px-4 py-4 rounded-b-lg shadow-md"
           >
-            <div className="p-4 space-y-4">
-              {/* Additional Game Info */}
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="text-muted-foreground">Status: </span>
-                  <span className="font-medium">
-                    {game.status || "Scheduled"}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">League: </span>
-                  <span className="font-medium">{game.leagueId}</span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Venue: </span>
-                  <span className="font-medium">{game.venue || "TBD"}</span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Start: </span>
-                  <span className="font-medium">
-                    {gameDate.toLocaleDateString()}
-                  </span>
-                </div>
-              </div>
-
-              {/* Additional betting markets could go here */}
-              <div className="text-center text-xs text-muted-foreground pt-2">
-                Tap anywhere on the card to collapse
-              </div>
+            {/* Future: Player/Game Prop Bets UI goes here */}
+            <div className="mb-3 text-center text-xs text-muted-foreground">
+              Game props and player props coming soon...
+            </div>
+            <div className="mb-2 text-sm font-semibold text-accent">Game Info</div>
+            <div className="mb-2 text-xs text-muted-foreground">Start Time: {timeString}</div>
+            <div className="mb-2 text-xs text-muted-foreground">Teams: {game.awayTeam.name} vs {game.homeTeam.name}</div>
+            <div className="mb-2 text-xs text-muted-foreground">League: {game.leagueId}</div>
+            <div className="mt-4">
+              <div className="text-xs font-semibold mb-1 text-muted-foreground">Upcoming Features:</div>
+              <ul className="list-disc pl-5 text-xs text-muted-foreground space-y-1">
+                <li>Player prop bets</li>
+                <li>Live stats</li>
+                <li>Team analytics</li>
+                <li>Bet recommendations</li>
+              </ul>
             </div>
           </motion.div>
         )}
