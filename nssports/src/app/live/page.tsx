@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ProfessionalGameRow, CompactMobileGameRow, MobileGameTableHeader } from "@/components/features/games";
+import { ProfessionalGameRow, CompactMobileGameRow, MobileGameTableHeader, DesktopGameTableHeader } from "@/components/features/games";
 import { getLiveGames } from "@/services/api";
 import type { Game } from "@/types";
 
@@ -55,16 +55,23 @@ export default function LivePage() {
             </div>
           ) : (
             <>
+              {/* Desktop Table Header */}
+              <DesktopGameTableHeader />
+              
               {/* Mobile/Tablet Table Header */}
               <div className="lg:hidden">
                 <MobileGameTableHeader />
               </div>
               
-              {liveGames.map((game) => (
+              {liveGames.map((game, index) => (
                 <div key={game.id}>
                   {/* Desktop View */}
                   <div className="hidden lg:block">
-                    <ProfessionalGameRow game={game} />
+                    <ProfessionalGameRow 
+                      game={game} 
+                      isFirstInGroup={index === 0}
+                      isLastInGroup={index === liveGames.length - 1}
+                    />
                   </div>
 
                   {/* Mobile/Tablet View */}

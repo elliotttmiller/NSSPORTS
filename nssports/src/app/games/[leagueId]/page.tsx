@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Button } from "@/components/ui";
-import { ProfessionalGameRow, CompactMobileGameRow, MobileGameTableHeader } from "@/components/features/games";
+import { ProfessionalGameRow, CompactMobileGameRow, MobileGameTableHeader, DesktopGameTableHeader } from "@/components/features/games";
 import { getGamesByLeague, getLeague } from "@/services/api";
 import type { Game, League } from "@/types";
 
@@ -39,17 +39,23 @@ export default function LeaguePage() {
   const leagueName = league?.name || leagueId.toUpperCase();
 
   return (
-    <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
-      <div className="max-w-7xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl md:text-3xl font-bold">{leagueName} Games</h1>
+    <div className="h-full overflow-y-auto bg-background">
+      <div className="container mx-auto px-4 py-6 max-w-screen-2xl">
+        {/* Page Header */}
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">{leagueName} Games</h1>
+            <p className="text-muted-foreground mt-1">
+              {games.length} game{games.length !== 1 ? "s" : ""} available
+            </p>
+          </div>
           <Button asChild variant="outline" size="sm">
             <Link href="/games">All Games</Link>
           </Button>
         </div>
 
         {/* Stats Header */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           {[
             { label: "Balance", value: "$1,250.00" },
             { label: "Win Rate", value: "68%" },
@@ -71,56 +77,47 @@ export default function LeaguePage() {
         </div>
 
         {/* Games List */}
-        <div className="bg-card/50 border border-border rounded-lg overflow-hidden">
-          {/* Desktop Header Row */}
-          <div className="hidden lg:grid grid-cols-[80px_1fr_120px_120px_120px] gap-4 items-center py-3 px-4 bg-muted/30 border-b border-border">
-            <div className="text-xs font-semibold text-muted-foreground uppercase">
-              League
-            </div>
-            <div className="text-xs font-semibold text-muted-foreground uppercase">
-              Teams
-            </div>
-            <div className="text-xs font-semibold text-muted-foreground uppercase text-center">
-              Spread
-            </div>
-            <div className="text-xs font-semibold text-muted-foreground uppercase text-center">
-              Total
-            </div>
-            <div className="text-xs font-semibold text-muted-foreground uppercase text-center">
-              Moneyline
-            </div>
-          </div>
-
-          {/* Mobile Header Row */}
-          <div className="lg:hidden">
-            <MobileGameTableHeader />
-          </div>
-
-          {/* Games */}
+        <div className="space-y-3">
           {loading ? (
-            <div className="py-12 text-center text-muted-foreground">
-              Loading {leagueName} games...
+            <div className="text-center py-12">
+              <div className="animate-spin w-8 h-8 border-2 border-accent border-t-transparent rounded-full mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Loading {leagueName} games...</p>
             </div>
           ) : games.length === 0 ? (
-            <div className="py-12 text-center text-muted-foreground">
-              No {leagueName} games available
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">No {leagueName} games available.</p>
+              <p className="text-sm text-muted-foreground mt-2">
+                Check back later for upcoming games
+              </p>
             </div>
           ) : (
-            <div>
-              {games.map((game, idx) => (
+            <>
+              {/* Desktop Table Header */}
+              <DesktopGameTableHeader />
+              
+              {/* Mobile/Tablet Table Header */}
+              <div className="lg:hidden">
+                <MobileGameTableHeader />
+              </div>
+              
+              {games.map((game, index) => (
                 <div key={game.id}>
                   {/* Desktop View */}
                   <div className="hidden lg:block">
-                    <ProfessionalGameRow game={game} isFirstInGroup={idx === 0} />
+                    <ProfessionalGameRow 
+                      game={game} 
+                      isFirstInGroup={index === 0}
+                      isLastInGroup={index === games.length - 1}
+                    />
                   </div>
-                  
+
                   {/* Mobile/Tablet View */}
                   <div className="lg:hidden">
                     <CompactMobileGameRow game={game} />
                   </div>
                 </div>
               ))}
-            </div>
+            </>
           )}
         </div>
       </div>

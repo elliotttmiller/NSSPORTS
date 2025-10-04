@@ -12,12 +12,14 @@ import { motion, AnimatePresence } from "framer-motion";
 interface ProfessionalGameRowProps {
   game: Game;
   isFirstInGroup?: boolean;
+  isLastInGroup?: boolean;
   showTime?: boolean;
 }
 
 export function ProfessionalGameRow({
   game,
   isFirstInGroup,
+  isLastInGroup,
   showTime = true,
 }: ProfessionalGameRowProps) {
   const timeString = formatGameTime(game.startTime);
@@ -91,9 +93,19 @@ export function ProfessionalGameRow({
     addBet(game, betType, selection, odds, line);
   };
 
+  const cardClasses = cn(
+    "bg-card/40 border-l border-r border-border hover:bg-card/60 transition-all duration-200 overflow-hidden",
+    {
+      "border-t rounded-t-lg": !isFirstInGroup, // Individual cards when not part of table
+      "border-b rounded-b-lg mb-2": !isFirstInGroup, // Individual cards when not part of table
+      "border-b-0": isFirstInGroup && !isLastInGroup, // Middle cards in table
+      "border-b rounded-b-lg": isLastInGroup, // Last card in table
+    }
+  );
+
   return (
     <motion.div
-      className="bg-card/40 border border-border rounded-lg mb-2 hover:bg-card/60 hover:shadow-md transition-all duration-200 overflow-hidden"
+      className={cardClasses}
       initial={false}
       animate={{
         boxShadow: expanded
@@ -103,73 +115,77 @@ export function ProfessionalGameRow({
     >
       {/* Main Card Content - Clickable */}
       <div
-        className="p-4 cursor-pointer"
+        className="cursor-pointer"
         onClick={() => setExpanded((prev) => !prev)}
         role="button"
         tabIndex={0}
         aria-expanded={expanded}
       >
-        {/* Game Row */}
+        {/* Game Row - Original Polished Layout */}
         <div
           className={cn(
             "group transition-colors duration-200 border-b border-border/20 last:border-b-0",
             isFirstInGroup && "border-t border-border",
           )}
         >
-          {/* League/Time Column */}
-          <div className="text-xs space-y-0.5">
-            <div className="text-muted-foreground font-medium uppercase">
-              {game.leagueId}
-            </div>
-            {showTime && (
-              <div className="text-muted-foreground">{timeString}</div>
-            )}
-          </div>
-
-          {/* Teams Column */}
-          <div className="space-y-1">
-            {/* Away Team */}
-            <div className="flex items-center gap-3">
-              <TeamLogo
-                src={game.awayTeam.logo}
-                alt={game.awayTeam.name}
-                size={24}
-              />
-              <span className="font-medium text-foreground">
-                {game.awayTeam.name}
-              </span>
-              <span className="text-sm text-muted-foreground">
-                ({game.awayTeam.shortName})
-              </span>
-              {game.awayTeam.record && (
-                <span className="text-xs text-muted-foreground ml-auto">
-                  {game.awayTeam.record}
-                </span>
+          {/* Responsive Grid - Adapts to container width */}
+          <div className="grid grid-cols-[60px_1fr_auto_auto_auto] xl:grid-cols-[80px_1fr_120px_120px_120px] gap-2 xl:gap-4 items-center py-2 px-2 xl:px-4 min-h-[60px]">
+            {/* League/Time Column */}
+            <div className="text-xs space-y-0.5">
+              <div className="text-muted-foreground font-medium uppercase text-[10px] xl:text-xs">
+                {game.leagueId}
+              </div>
+              {showTime && (
+                <div className="text-muted-foreground text-[10px] xl:text-xs">{timeString}</div>
               )}
             </div>
-            {/* Home Team */}
-            <div className="flex items-center gap-3">
-              <TeamLogo
-                src={game.homeTeam.logo}
-                alt={game.homeTeam.name}
-                size={24}
-              />
-              <span className="font-medium text-foreground">
-                {game.homeTeam.name}
-              </span>
-              <span className="text-sm text-muted-foreground">
-                ({game.homeTeam.shortName})
-              </span>
-              {game.homeTeam.record && (
-                <span className="text-xs text-muted-foreground ml-auto">
-                  {game.homeTeam.record}
-                </span>
-              )}
-            </div>
-          </div>
 
-          {/* Spread Column */}
-          <div className="space-y-1">
+            {/* Teams Column */}
+            <div className="space-y-1 min-w-0">
+              {/* Away Team */}
+              <div className="flex items-center gap-1 xl:gap-3 min-w-0">
+                <TeamLogo
+                  src={game.awayTeam.logo}
+                  alt={game.awayTeam.name}
+                  size={20}
+                  className="xl:w-6 xl:h-6 flex-shrink-0"
+                />
+                <span className="font-medium text-foreground text-sm xl:text-base truncate">
+                  {game.awayTeam.name}
+                </span>
+                <span className="text-xs xl:text-sm text-muted-foreground hidden lg:inline">
+                  ({game.awayTeam.shortName})
+                </span>
+                {game.awayTeam.record && (
+                  <span className="text-xs text-muted-foreground ml-auto hidden xl:inline">
+                    {game.awayTeam.record}
+                  </span>
+                )}
+              </div>
+              {/* Home Team */}
+              <div className="flex items-center gap-1 xl:gap-3 min-w-0">
+                <TeamLogo
+                  src={game.homeTeam.logo}
+                  alt={game.homeTeam.name}
+                  size={20}
+                  className="xl:w-6 xl:h-6 flex-shrink-0"
+                />
+                <span className="font-medium text-foreground text-sm xl:text-base truncate">
+                  {game.homeTeam.name}
+                </span>
+                <span className="text-xs xl:text-sm text-muted-foreground hidden lg:inline">
+                  ({game.homeTeam.shortName})
+                </span>
+                {game.homeTeam.record && (
+                  <span className="text-xs text-muted-foreground ml-auto hidden xl:inline">
+                    {game.homeTeam.record}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Spread Column */}
+            <div className="space-y-1 min-w-[80px] xl:min-w-[120px]">
             <Button
               variant={isBetInSlip("spread", "away") ? "default" : "outline"}
               size="sm"
@@ -201,13 +217,13 @@ export function ProfessionalGameRow({
           </div>
 
           {/* Total Column */}
-          <div className="space-y-1">
+          <div className="space-y-1 min-w-[80px] xl:min-w-[120px]">
             <Button
               variant={isBetInSlip("total", "over") ? "default" : "outline"}
               size="sm"
               onClick={(e) => handleBetClick("total", "over", e)}
               className={cn(
-                "w-full h-8 text-xs px-2 transition-all duration-200 font-medium",
+                "w-full h-8 text-[10px] xl:text-xs px-1 xl:px-2 transition-all duration-200 font-medium",
                 isBetInSlip("total", "over")
                   ? "bg-accent text-accent-foreground shadow-md ring-2 ring-accent/20"
                   : "hover:bg-accent hover:text-accent-foreground",
@@ -221,7 +237,7 @@ export function ProfessionalGameRow({
               size="sm"
               onClick={(e) => handleBetClick("total", "under", e)}
               className={cn(
-                "w-full h-8 text-xs px-2 transition-all duration-200 font-medium",
+                "w-full h-8 text-[10px] xl:text-xs px-1 xl:px-2 transition-all duration-200 font-medium",
                 isBetInSlip("total", "under")
                   ? "bg-accent text-accent-foreground shadow-md ring-2 ring-accent/20"
                   : "hover:bg-accent hover:text-accent-foreground",
@@ -233,13 +249,13 @@ export function ProfessionalGameRow({
           </div>
 
           {/* Moneyline Column */}
-          <div className="space-y-1">
+          <div className="space-y-1 min-w-[80px] xl:min-w-[120px]">
             <Button
               variant={isBetInSlip("moneyline", "away") ? "default" : "outline"}
               size="sm"
               onClick={(e) => handleBetClick("moneyline", "away", e)}
               className={cn(
-                "w-full h-8 text-xs px-2 transition-all duration-200 font-medium",
+                "w-full h-8 text-[10px] xl:text-xs px-1 xl:px-2 transition-all duration-200 font-medium",
                 isBetInSlip("moneyline", "away")
                   ? "bg-accent text-accent-foreground shadow-md ring-2 ring-accent/20"
                   : "hover:bg-accent hover:text-accent-foreground",
@@ -252,14 +268,15 @@ export function ProfessionalGameRow({
               size="sm"
               onClick={(e) => handleBetClick("moneyline", "home", e)}
               className={cn(
-                "w-full h-8 text-xs px-2 transition-all duration-200 font-medium",
+                "w-full h-8 text-[10px] xl:text-xs px-1 xl:px-2 transition-all duration-200 font-medium",
                 isBetInSlip("moneyline", "home")
                   ? "bg-accent text-accent-foreground shadow-md ring-2 ring-accent/20"
                   : "hover:bg-accent hover:text-accent-foreground",
               )}
             >
-              {formatOdds(game.odds.moneyline.home.odds)}
+                {formatOdds(game.odds.moneyline.home.odds)}
             </Button>
+          </div>
           </div>
         </div>
       </div>

@@ -54,8 +54,13 @@ export function ThreePanelLayout({ children }: ThreePanelLayoutProps) {
             className={`hidden lg:block border-r border-border bg-card/50 backdrop-blur-sm transition-all duration-300 ease-in-out overflow-hidden ${
               sideNavOpen ? "w-72" : "w-0"
             }`}
+            style={{ height: 'calc(100vh - 4rem)' }}
           >
-            {sideNavOpen && <SideNavPanel />}
+            {sideNavOpen && (
+              <div className="h-full overflow-y-auto seamless-scroll">
+                <SideNavPanel />
+              </div>
+            )}
           </div>
 
           {/* Center Panel - Main Content */}
@@ -63,7 +68,7 @@ export function ThreePanelLayout({ children }: ThreePanelLayoutProps) {
             <motion.div
               layout
               transition={{ type: "spring", stiffness: 320, damping: 32 }}
-              className={`overflow-y-auto seamless-scroll pt-16 ${isMobile ? "mobile-safe-area pb-20" : ""}`}
+              className={`h-screen overflow-y-auto seamless-scroll pt-16 ${isMobile ? "mobile-safe-area pb-20" : ""}`}
             >
               {children}
             </motion.div>
@@ -74,8 +79,13 @@ export function ThreePanelLayout({ children }: ThreePanelLayoutProps) {
             className={`hidden lg:block border-l border-border bg-card transition-all duration-300 ease-in-out overflow-hidden ${
               betSlipOpen ? "w-96" : "w-0"
             }`}
+            style={{ height: 'calc(100vh - 4rem)' }}
           >
-            {betSlipOpen && <BetSlipPanel />}
+            {betSlipOpen && (
+              <div className="h-full overflow-y-auto seamless-scroll">
+                <BetSlipPanel />
+              </div>
+            )}
           </div>
         </div>
       </motion.div>
