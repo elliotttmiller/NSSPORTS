@@ -3,14 +3,13 @@
 import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { House } from "@phosphor-icons/react";
-import { useNavigation, useBetSlip } from "@/context";
+import { useNavigation } from "@/context";
 import { useIsMobile } from "@/hooks";
 
 export function BottomNav() {
   const pathname = usePathname();
   const router = useRouter();
   const { mobilePanel, setMobilePanel } = useNavigation();
-  const { betSlip } = useBetSlip();
   const isMobile = useIsMobile();
 
   if (!isMobile) return null;
@@ -98,10 +97,10 @@ export function BottomNav() {
         />
       </motion.button>
 
-      {/* Bets - Text Only with Badge */}
+      {/* Bets - Text Only */}
       <motion.button
         onClick={handleBetsClick}
-        className={`px-3 py-2 rounded-md transition-all duration-200 text-[15px] font-medium min-w-[48px] flex-1 flex items-center justify-center relative mx-1 ${
+        className={`px-3 py-2 rounded-md transition-all duration-200 text-[15px] font-medium min-w-[48px] flex-1 flex items-center justify-center mx-1 ${
           pathname === "/my-bets"
             ? "bg-accent text-accent-foreground"
             : "text-muted-foreground hover:text-foreground hover:bg-accent/10"
@@ -111,11 +110,6 @@ export function BottomNav() {
         type="button"
       >
         Bets
-        {betSlip.bets.length > 0 && (
-          <div className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full flex items-center justify-center bg-primary text-primary-foreground text-[10px] font-bold">
-            {betSlip.bets.length}
-          </div>
-        )}
       </motion.button>
 
       {/* Account - Text Only */}
