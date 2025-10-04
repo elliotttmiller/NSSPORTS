@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, CaretRight } from "@phosphor-icons/react";
@@ -137,9 +138,20 @@ export function MobileSportsPanel() {
                                   <button
                                     key={league.id}
                                     onClick={() => handleLeagueClick(league.id)}
-                                    className="w-full text-left px-8 py-2.5 hover:bg-accent/10 transition-colors text-sm"
+                                    className="w-full flex items-center gap-3 text-left px-8 py-2.5 hover:bg-accent/10 transition-colors text-sm"
                                   >
-                                    {league.name}
+                                    {league.logo && (
+                                      <Image
+                                        src={league.logo}
+                                        alt={league.name + ' logo'}
+                                        width={24}
+                                        height={24}
+                                        className="w-6 h-6 rounded-full object-contain bg-white border border-border"
+                                        style={{ minWidth: 24, minHeight: 24 }}
+                                        priority
+                                      />
+                                    )}
+                                    <span className="truncate">{league.name}</span>
                                   </button>
                                 ))
                               )}
