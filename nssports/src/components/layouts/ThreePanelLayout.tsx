@@ -16,13 +16,12 @@ export function ThreePanelLayout({ children }: ThreePanelLayoutProps) {
   const isMobile = useIsMobile();
 
   return (
-    <div className="h-screen bg-background text-foreground flex flex-col overflow-hidden">
+    <div className="bg-background text-foreground flex flex-col min-h-screen">
       {/* Header - Always visible */}
       <Header />
-      
       {/* Main Layout Container - Three Panel Structure */}
-      <div className="flex-1 min-h-0 overflow-hidden relative">
-        <div className="h-full flex relative">
+      <div className="flex-1 relative">
+        <div className="flex relative">
           {/* Left Sidebar Toggle Button - Desktop Only */}
           <div className={`hidden lg:block absolute top-1/2 -translate-y-1/2 z-30 transition-all duration-300 ease-in-out ${
             sideNavOpen ? "left-[288px]" : "left-0"
@@ -55,8 +54,8 @@ export function ThreePanelLayout({ children }: ThreePanelLayoutProps) {
           </div>
 
           {/* Center Panel - Main Content */}
-          <div className="flex-1 min-w-0 overflow-hidden relative">
-            <div className={`h-full overflow-y-auto seamless-scroll ${isMobile ? "mobile-safe-area pb-20" : ""}`}>
+          <div className="flex-1 min-w-0 relative">
+            <div className={`overflow-y-auto seamless-scroll pt-16 ${isMobile ? "mobile-safe-area pb-20" : ""}`}>
               {children}
             </div>
           </div>

@@ -175,10 +175,10 @@ export default function MyBetsPage() {
               {betHistory.map((bet) => (
                 <div
                   key={bet.id}
-                  className="flex items-start justify-between p-4 border border-border rounded-lg"
+                  className="flex flex-col md:flex-row md:items-start md:justify-between p-4 border border-border rounded-lg bg-background"
                 >
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
                       <Badge variant={bet.status === "won" ? "default" : "outline"}>
                         {bet.type.toUpperCase()}
                       </Badge>
@@ -199,13 +199,12 @@ export default function MyBetsPage() {
                     <div className="space-y-1">
                       {bet.bets.map((b, i) => (
                         <div key={i} className="text-sm">
-                          <span className="font-medium">{b.team}</span> •{" "}
-                          {b.selection} ({formatOdds(b.odds)})
+                          <span className="font-medium">{b.team}</span> • {b.selection} ({formatOdds(b.odds)})
                         </div>
                       ))}
                     </div>
                   </div>
-                  <div className="text-right ml-4">
+                  <div className="mt-3 md:mt-0 md:ml-4 text-left min-w-[120px]">
                     <div className="text-sm text-muted-foreground">
                       Stake: {formatCurrency(bet.stake)}
                     </div>

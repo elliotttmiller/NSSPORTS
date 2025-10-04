@@ -120,7 +120,7 @@ export function Header() {
   }, [showDropdown]);
 
   return (
-    <header className="h-16 border-b border-border bg-card flex items-center px-4 relative">
+    <header className="fixed top-0 left-0 right-0 h-16 border-b border-border bg-card flex items-center px-4 z-50 shadow-sm">
       {/* Desktop Centered Logo */}
       <div className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
         <Link
