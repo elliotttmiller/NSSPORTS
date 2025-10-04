@@ -4,7 +4,8 @@ import { TrendUp, Trophy } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { getLiveGames } from "@/services/api";
 import type { Game } from "@/types";
 import { ProfessionalGameRow, CompactMobileGameRow, MobileGameTableHeader } from "@/components/features/games";
@@ -17,12 +18,20 @@ export default function Home() {
     getLiveGames().then((games) => setTrendingGames(games.slice(0, 5)));
   }, []);
 
+  // Virtualizer setup for trending games
+  const parentRef = useRef<HTMLDivElement>(null);
+  const rowVirtualizer = useVirtualizer({
+    count: trendingGames.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 72, // Approximate row height in px
+    overscan: 4,
+  });
+
   return (
     <div className="h-full overflow-y-auto bg-background text-foreground">
-      {/* Main container with responsive padding */}
       <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
         <div className="max-w-4xl mx-auto space-y-6">
-          {/* Welcome Section */}
+          {/* ...existing code... */}
           <div className="text-center py-8 md:py-12">
             <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-foreground tracking-tight mb-4">
               Welcome, NorthStar User
@@ -30,7 +39,6 @@ export default function Home() {
             <div className="w-16 md:w-24 h-1 bg-accent mx-auto rounded-full"></div>
           </div>
 
-          {/* Quick Stats - Responsive Grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
               { label: "Balance", value: "$1,250.00" },
@@ -52,7 +60,7 @@ export default function Home() {
             ))}
           </div>
 
-          {/* Trending Games Section */}
+          {/* Trending Games Section with Virtual Scrolling */}
           <div className="mt-12">
             <div className="flex items-center space-x-2 mb-4">
               <TrendUp size={20} className="text-accent" />
@@ -60,33 +68,45 @@ export default function Home() {
                 Trending Live Games
               </h2>
             </div>
-            
             <Card className="overflow-hidden">
-              <div className="bg-card/50">
+              <div className="bg-card/50" ref={parentRef} style={{ maxHeight: 400, overflowY: 'auto', position: 'relative' }}>
                 {/* Mobile Table Header */}
                 <div className="lg:hidden">
                   <MobileGameTableHeader />
                 </div>
-                
-                {trendingGames.map((game, index) => (
-                  <div key={game.id}>
-                    {/* Desktop View */}
-                    <div className="hidden lg:block">
-                      <ProfessionalGameRow 
-                        game={game}
-                        isFirstInGroup={index === 0}
-                      />
-                    </div>
-                    
-                    {/* Mobile/Tablet View */}
-                    <div className="lg:hidden">
-                      <CompactMobileGameRow game={game} index={index} />
-                    </div>
-                  </div>
-                ))}
+                <div style={{ height: rowVirtualizer.getTotalSize(), position: 'relative' }}>
+                  {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                    const game = trendingGames[virtualRow.index];
+                    if (!game) return null;
+                    return (
+                      <div
+                        key={game.id}
+                        style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          width: '100%',
+                          height: `${virtualRow.size}px`,
+                          transform: `translateY(${virtualRow.start}px)`,
+                        }}
+                      >
+                        {/* Desktop View */}
+                        <div className="hidden lg:block">
+                          <ProfessionalGameRow 
+                            game={game}
+                            isFirstInGroup={virtualRow.index === 0}
+                          />
+                        </div>
+                        {/* Mobile/Tablet View */}
+                        <div className="lg:hidden">
+                          <CompactMobileGameRow game={game} index={virtualRow.index} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </Card>
-              
             <div className="flex justify-center mt-4">
               <Link
                 href="/live"
