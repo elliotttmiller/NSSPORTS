@@ -16,6 +16,7 @@ interface Props {
 export const CompactMobileGameRow = memo(({ game }: Props) => {
   const { betSlip, addBet, removeBet } = useBetSlip();
   const [expanded, setExpanded] = useState(false);
+  const [shouldRenderDropdown, setShouldRenderDropdown] = useState(false);
 
   const gameDate = new Date(game.startTime);
   const timeString = gameDate.toLocaleTimeString("en-US", {
@@ -109,7 +110,14 @@ export const CompactMobileGameRow = memo(({ game }: Props) => {
       {/* Main Card Content - Clickable */}
       <div
         className="p-2.5 cursor-pointer"
-        onClick={() => setExpanded((prev) => !prev)}
+        onClick={() => {
+          if (expanded) {
+            setExpanded(false);
+          } else {
+            setExpanded(true);
+            setShouldRenderDropdown(true);
+          }
+        }}
         role="button"
         tabIndex={0}
         aria-expanded={expanded}
@@ -325,13 +333,16 @@ export const CompactMobileGameRow = memo(({ game }: Props) => {
         </div>
       </div>
       <AnimatePresence initial={false}>
-        {expanded && (
+        {shouldRenderDropdown && (
           <motion.div
             initial={{ maxHeight: 0, opacity: 0 }}
-            animate={{ maxHeight: 500, opacity: 1 }}
+            animate={{ maxHeight: expanded ? 500 : 0, opacity: expanded ? 1 : 0 }}
             exit={{ maxHeight: 0, opacity: 0 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
             className="overflow-hidden bg-muted/20 border-t border-border px-4 py-4 rounded-b-lg shadow-md"
+            onAnimationComplete={() => {
+              if (!expanded) setShouldRenderDropdown(false);
+            }}
           >
             {/* Future: Player/Game Prop Bets UI goes here */}
             <div className="mb-3 text-center text-xs text-muted-foreground">
