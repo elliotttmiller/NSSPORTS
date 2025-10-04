@@ -30,8 +30,8 @@ export default function LivePage() {
 
   return (
     <div className="bg-background">
-      <div className="container mx-auto px-4 py-6 max-w-screen-2xl">
-        {/* Page Header */}
+  <div className="container mx-auto px-6 md:px-8 xl:px-12 pt-12 pb-6 max-w-screen-2xl">
+  {/* Page Header */}
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-foreground">Live Games</h1>
           <p className="text-muted-foreground mt-1">
@@ -39,7 +39,7 @@ export default function LivePage() {
           </p>
         </div>
 
-        {/* Games List */}
+  {/* Games List */}
         <div className="space-y-3">
           {loading ? (
             <div className="text-center py-12">

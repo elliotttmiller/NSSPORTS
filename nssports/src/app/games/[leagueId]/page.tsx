@@ -40,8 +40,8 @@ export default function LeaguePage() {
 
   return (
     <div className="bg-background">
-      <div className="container mx-auto px-4 py-6 max-w-screen-2xl">
-        {/* Page Header */}
+      <div className="container mx-auto px-6 md:px-8 xl:px-12 pt-12 pb-6 max-w-screen-2xl">
+  {/* Page Header */}
         <div className="mb-6 flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground">{leagueName} Games</h1>
@@ -54,7 +54,7 @@ export default function LeaguePage() {
           </Button>
         </div>
 
-        {/* Games List */}
+  {/* Games List */}
         <div className="space-y-3">
           {loading ? (
             <div className="text-center py-12">
