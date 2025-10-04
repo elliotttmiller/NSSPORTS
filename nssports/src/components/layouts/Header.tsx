@@ -4,8 +4,95 @@ import Link from "next/link";
 import { useRef, useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
-import { Trophy, User } from "@phosphor-icons/react/dist/ssr";
+import { Trophy, User, X } from "@phosphor-icons/react/dist/ssr";
 import { Button } from "@/components/ui";
+interface MobileAccountDropdownProps {
+  balance: number;
+  available: number;
+  risk: number;
+}
+
+function MobileAccountDropdown({ balance, available, risk }: MobileAccountDropdownProps) {
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  return (
+    <>
+      <Button 
+        variant="ghost" 
+        size="sm" 
+        className="h-8 w-8 p-0"
+        onClick={() => setShowDropdown(!showDropdown)}
+      >
+        <User
+          size={18}
+          className="text-muted-foreground hover:text-foreground transition-colors"
+        />
+      </Button>
+
+      {showDropdown && createPortal(
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
+            onClick={() => setShowDropdown(false)}
+          />
+          
+          {/* Dropdown */}
+          <div className="fixed top-20 right-4 w-64 bg-card border border-border rounded-xl shadow-2xl z-50 max-w-[calc(100vw-32px)]">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-border">
+              <h3 className="font-semibold text-foreground">Account</h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 w-6 p-0"
+                onClick={() => setShowDropdown(false)}
+              >
+                <X size={14} />
+              </Button>
+            </div>
+
+            {/* Balance Information */}
+            <div className="p-4 space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium text-muted-foreground">Balance:</span>
+                <span className="text-sm font-bold text-accent">
+                  ${balance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium text-muted-foreground">Available:</span>
+                <span className="text-sm font-bold text-green-600">
+                  ${available.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium text-muted-foreground">Risk:</span>
+                <span className="text-sm font-bold text-red-600">
+                  ${risk.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                </span>
+              </div>
+            </div>
+
+            {/* View Account Link */}
+            <div className="p-4 border-t border-border">
+              <div className="flex justify-center">
+                <Link
+                  href="/account"
+                  onClick={() => setShowDropdown(false)}
+                  className="text-xs px-3 py-1 rounded bg-muted/30 hover:bg-muted/50 text-muted-foreground transition-all duration-150 shadow-sm border border-border"
+                >
+                  View Account
+                </Link>
+              </div>
+            </div>
+          </div>
+        </>,
+        document.body
+      )}
+    </>
+  );
+}
 
 export function Header() {
   const pathname = usePathname();
@@ -118,16 +205,13 @@ export function Header() {
         </div>
       </div>
 
-      {/* Mobile Account Icon - Top Right */}
+      {/* Mobile Account Icon with Dropdown - Top Right */}
       <div className="md:hidden absolute right-4 top-1/2 -translate-y-1/2 flex items-center">
-        <Button variant="ghost" size="sm" asChild className="h-8 w-8 p-0">
-          <Link href="/account">
-            <User
-              size={18}
-              className="text-muted-foreground hover:text-foreground transition-colors"
-            />
-          </Link>
-        </Button>
+        <MobileAccountDropdown 
+          balance={balance}
+          available={available}
+          risk={risk}
+        />
       </div>
     </header>
   );
