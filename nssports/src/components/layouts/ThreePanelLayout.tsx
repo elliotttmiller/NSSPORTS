@@ -56,7 +56,7 @@ export function ThreePanelLayout({ children }: ThreePanelLayoutProps) {
 
           {/* Center Panel - Main Content */}
           <div className="flex-1 min-w-0 overflow-hidden relative">
-            <div className={`h-full overflow-y-auto seamless-scroll ${isMobile ? "pb-20" : ""}`}>
+            <div className={`h-full overflow-y-auto seamless-scroll ${isMobile ? "mobile-safe-area pb-20" : ""}`}>
               {children}
             </div>
           </div>
