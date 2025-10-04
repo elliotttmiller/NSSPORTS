@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { Button } from "@/components/ui";
 import { useBetSlip } from "@/context";
+import { Button } from "@/components/ui";
 import { CaretLeft, CaretRight } from "@phosphor-icons/react/dist/ssr";
 
 interface SidebarToggleProps {
@@ -31,7 +31,7 @@ export function SidebarToggle({ side, isOpen, onToggle }: SidebarToggleProps) {
       ) : (
         <CaretLeft size={16} />
       )}
-      {betSlip.bets.length > 0 && (
+      {side === "right" && betSlip.bets.length > 0 && (
         <span className="absolute top-1 right-1 bg-primary text-primary-foreground rounded-full px-2 py-0.5 text-xs font-bold shadow">
           {betSlip.bets.length}
         </span>
