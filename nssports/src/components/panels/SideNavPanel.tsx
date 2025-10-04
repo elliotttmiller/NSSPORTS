@@ -34,11 +34,33 @@ export function SideNavPanel() {
       try {
         const response = await fetch('/api/sports');
         const data = await response.json();
-        setSports(data);
-        // Expand all sports by default
-        setExpandedSports(new Set(data.map((sport: Sport) => sport.id)));
+        // Check if data is an array (valid response) or an error object
+        if (Array.isArray(data)) {
+          setSports(data);
+          // Expand all sports by default
+          setExpandedSports(new Set(data.map((sport: Sport) => sport.id)));
+        } else {
+          // Handle error response or use fallback data
+          console.error('Invalid sports data received:', data);
+          // Use fallback sports data when API fails
+          const fallbackSports: Sport[] = [
+            { id: 'nba', name: 'Basketball', icon: '🏀', leagues: [{ id: 'nba', name: 'NBA', sportId: 'nba', games: [] }] },
+            { id: 'nfl', name: 'Football', icon: '🏈', leagues: [{ id: 'nfl', name: 'NFL', sportId: 'nfl', games: [] }] },
+            { id: 'nhl', name: 'Hockey', icon: '🏒', leagues: [{ id: 'nhl', name: 'NHL', sportId: 'nhl', games: [] }] },
+          ];
+          setSports(fallbackSports);
+          setExpandedSports(new Set(fallbackSports.map((sport: Sport) => sport.id)));
+        }
       } catch (error) {
         console.error('Failed to fetch sports:', error);
+        // Use fallback sports data when API fails
+        const fallbackSports: Sport[] = [
+          { id: 'nba', name: 'Basketball', icon: '🏀', leagues: [{ id: 'nba', name: 'NBA', sportId: 'nba', games: [] }] },
+          { id: 'nfl', name: 'Football', icon: '🏈', leagues: [{ id: 'nfl', name: 'NFL', sportId: 'nfl', games: [] }] },
+          { id: 'nhl', name: 'Hockey', icon: '🏒', leagues: [{ id: 'nhl', name: 'NHL', sportId: 'nhl', games: [] }] },
+        ];
+        setSports(fallbackSports);
+        setExpandedSports(new Set(fallbackSports.map((sport: Sport) => sport.id)));
       } finally {
         setLoading(false);
       }
