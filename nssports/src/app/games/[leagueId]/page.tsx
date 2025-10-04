@@ -54,28 +54,6 @@ export default function LeaguePage() {
           </Button>
         </div>
 
-        {/* Stats Header */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          {[
-            { label: "Balance", value: "$1,250.00" },
-            { label: "Win Rate", value: "68%" },
-            { label: "Active", value: "0" },
-            { label: "This Week", value: "+$340" },
-          ].map((stat) => (
-            <div
-              key={stat.label}
-              className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-lg shadow-sm p-4 flex flex-col items-center justify-center gap-1"
-            >
-              <p className="text-xs md:text-sm text-muted-foreground font-medium">
-                {stat.label}
-              </p>
-              <p className="font-bold text-sm md:text-base text-foreground">
-                {stat.value}
-              </p>
-            </div>
-          ))}
-        </div>
-
         {/* Games List */}
         <div className="space-y-3">
           {loading ? (
