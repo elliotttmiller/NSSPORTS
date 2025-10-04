@@ -17,6 +17,10 @@ export interface PaginatedResponse<T> {
 }
 
 // Helper function to make API requests with error handling
+// Get bet history
+export const getBetHistory = async () => {
+  return fetchAPI('/my-bets');
+};
 async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
   

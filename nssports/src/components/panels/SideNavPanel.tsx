@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
@@ -14,6 +15,7 @@ import {
   CaretRight
 } from "@phosphor-icons/react/dist/ssr";
 import type { Sport } from "@/types";
+import { getSports } from "@/services/api";
 
 const navItems = [
   { href: "/", label: "Home", icon: House },
@@ -28,39 +30,23 @@ export function SideNavPanel() {
   const [sports, setSports] = useState<Sport[]>([]);
   const [expandedSports, setExpandedSports] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchSports = async () => {
       try {
-        const response = await fetch('/api/sports');
-        const data = await response.json();
-        // Check if data is an array (valid response) or an error object
-        if (Array.isArray(data)) {
-          setSports(data);
-          // Expand all sports by default
-          setExpandedSports(new Set(data.map((sport: Sport) => sport.id)));
-        } else {
-          // Handle error response or use fallback data
-          console.error('Invalid sports data received:', data);
-          // Use fallback sports data when API fails
-          const fallbackSports: Sport[] = [
-            { id: 'nba', name: 'Basketball', icon: '🏀', leagues: [{ id: 'nba', name: 'NBA', sportId: 'nba', games: [] }] },
-            { id: 'nfl', name: 'Football', icon: '🏈', leagues: [{ id: 'nfl', name: 'NFL', sportId: 'nfl', games: [] }] },
-            { id: 'nhl', name: 'Hockey', icon: '🏒', leagues: [{ id: 'nhl', name: 'NHL', sportId: 'nhl', games: [] }] },
-          ];
-          setSports(fallbackSports);
-          setExpandedSports(new Set(fallbackSports.map((sport: Sport) => sport.id)));
+        setError(null);
+        const data = await getSports();
+        if (!data || !Array.isArray(data)) {
+          setError('No sports data received from API');
+          setSports([]);
+          return;
         }
-      } catch (error) {
-        console.error('Failed to fetch sports:', error);
-        // Use fallback sports data when API fails
-        const fallbackSports: Sport[] = [
-          { id: 'nba', name: 'Basketball', icon: '🏀', leagues: [{ id: 'nba', name: 'NBA', sportId: 'nba', games: [] }] },
-          { id: 'nfl', name: 'Football', icon: '🏈', leagues: [{ id: 'nfl', name: 'NFL', sportId: 'nfl', games: [] }] },
-          { id: 'nhl', name: 'Hockey', icon: '🏒', leagues: [{ id: 'nhl', name: 'NHL', sportId: 'nhl', games: [] }] },
-        ];
-        setSports(fallbackSports);
-        setExpandedSports(new Set(fallbackSports.map((sport: Sport) => sport.id)));
+        setSports(data);
+        setExpandedSports(new Set(data.map((sport: Sport) => sport.id)));
+      } catch {
+        setError('Failed to fetch sports from API');
+        setSports([]);
       } finally {
         setLoading(false);
       }
@@ -113,28 +99,24 @@ export function SideNavPanel() {
           Sports
         </h3>
         {loading ? (
-          <div className="px-3 py-2 text-sm text-muted-foreground">
-            Loading sports...
-          </div>
+          <div className="px-3 py-2 text-sm text-muted-foreground">Loading sports...</div>
+        ) : error ? (
+          <div className="px-3 py-2 text-sm text-destructive">{error}</div>
+        ) : sports.length === 0 ? (
+          <div className="px-3 py-2 text-sm text-muted-foreground">No sports available. Please check your database connection.</div>
         ) : (
           sports.map((sport) => {
             const isExpanded = expandedSports.has(sport.id);
-            const CaretIcon = isExpanded ? CaretDown : CaretRight;
-            
             return (
-              <div key={sport.id} className="space-y-1">
-                {/* Sport Header - Clickable to expand/collapse */}
+              <div key={sport.id} className="mb-2">
                 <button
+                  className="flex items-center gap-2 px-3 py-2 w-full text-left rounded-md hover:bg-accent/20 transition-colors"
                   onClick={() => toggleSport(sport.id)}
-                  className="w-full flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium text-foreground hover:bg-accent/50 transition-colors"
+                  aria-expanded={isExpanded}
                 >
-                  <span className="flex items-center gap-2">
-                    <span>{sport.icon}</span>
-                    <span>{sport.name}</span>
-                  </span>
-                  <CaretIcon size={16} weight="bold" />
+                  {isExpanded ? <CaretDown size={16} /> : <CaretRight size={16} />}
+                  <span className="font-medium">{sport.name}</span>
                 </button>
-                
                 {/* Leagues under this sport */}
                 {isExpanded && sport.leagues && sport.leagues.length > 0 && (
                   <div className="ml-4 space-y-1">
@@ -143,13 +125,23 @@ export function SideNavPanel() {
                         key={league.id}
                         href={`/games/${league.id}`}
                         className={cn(
-                          "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors",
+                          "flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors",
                           pathname === `/games/${league.id}`
                             ? "bg-accent/70 text-accent-foreground font-medium"
                             : "text-muted-foreground hover:bg-accent/30 hover:text-foreground"
                         )}
                       >
-                        {league.name}
+                        {league.logo && (
+                          <Image
+                            src={league.logo}
+                            alt={league.name + ' logo'}
+                            width={24}
+                            height={24}
+                            className="inline-block align-middle mr-2"
+                            style={{ objectFit: 'contain' }}
+                          />
+                        )}
+                        <span>{league.name}</span>
                       </Link>
                     ))}
                   </div>

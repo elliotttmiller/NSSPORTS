@@ -10,6 +10,7 @@ export interface League {
   id: string;
   name: string;
   sportId: string;
+  logo: string;
   games: Game[];
 }
 

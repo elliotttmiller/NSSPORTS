@@ -10,6 +10,7 @@ export async function GET() {
             id: true,
             name: true,
             sportId: true,
+            logo: true,
           },
         },
       },
@@ -24,6 +25,7 @@ export async function GET() {
         id: league.id,
         name: league.name,
         sportId: league.sportId,
+        logo: league.logo,
         games: [], // Games will be fetched separately
       })),
     }));

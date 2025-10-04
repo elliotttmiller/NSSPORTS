@@ -37,7 +37,7 @@ export function BetSlipPanel() {
     easing: (t: number) => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2,
   });
 
-  const handlePlaceBet = useCallback(() => {
+  const handlePlaceBet = useCallback(async () => {
     if (betSlip.bets.length === 0) {
       toast.error("No bets in slip");
       return;
@@ -48,25 +48,24 @@ export function BetSlipPanel() {
       return;
     }
 
-    // Place the bet
-    addPlacedBet(
-      betSlip.bets,
-      betSlip.betType,
-      betSlip.totalStake,
-      betSlip.totalPayout,
-      betSlip.totalOdds,
-    );
-
-    // Clear the bet slip
-    clearBetSlip();
-
-    // Show success toast
-    toast.success(
-      `${betSlip.betType === "parlay" ? "Parlay" : "Bet"} placed successfully!`,
-      {
-        description: `Stake: ${formatCurrency(betSlip.totalStake)} • Potential Win: ${formatCurrency(betSlip.totalPayout - betSlip.totalStake)}`,
-      },
-    );
+    try {
+      await addPlacedBet(
+        betSlip.bets,
+        betSlip.betType,
+        betSlip.totalStake,
+        betSlip.totalPayout,
+        betSlip.totalOdds
+      );
+      clearBetSlip();
+      toast.success(
+        `${betSlip.betType === "parlay" ? "Parlay" : "Bet"} placed successfully!`,
+        {
+          description: `Stake: ${formatCurrency(betSlip.totalStake)} • Potential Win: ${formatCurrency(betSlip.totalPayout - betSlip.totalStake)}`,
+        },
+      );
+    } catch {
+      toast.error("Failed to place bet. Please try again.");
+    }
   }, [betSlip, addPlacedBet, clearBetSlip]);
 
   if (betSlip.bets.length === 0) {

@@ -26,24 +26,19 @@ export function MobileBetSlipPanel() {
     setPlacing(true);
 
     try {
-      // Add placed bet to history (official Next.js context integration)
-      addPlacedBet(
+      await addPlacedBet(
         betSlip.bets,
         betSlip.betType,
         betSlip.totalStake,
         betSlip.totalPayout,
         betSlip.totalOdds
       );
-
       toast.success("Bet(s) placed successfully!");
       clearBetSlip();
-
-      // Close panel after a short delay
       setTimeout(() => {
         setIsBetSlipOpen(false);
       }, 1500);
-    } catch (error) {
-      console.error("Failed to place bets:", error);
+    } catch {
       toast.error("Failed to place bets. Please try again.");
     } finally {
       setPlacing(false);
