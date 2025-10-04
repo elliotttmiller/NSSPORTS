@@ -68,45 +68,47 @@ export default function Home() {
                 Trending Live Games
               </h2>
             </div>
-            <Card className="overflow-hidden">
-              <div className="bg-card/50" ref={parentRef} style={{ maxHeight: 400, overflowY: 'auto', position: 'relative' }}>
-                {/* Mobile Table Header */}
-                <div className="lg:hidden">
-                  <MobileGameTableHeader />
-                </div>
-                <div style={{ height: rowVirtualizer.getTotalSize(), position: 'relative' }}>
-                  {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-                    const game = trendingGames[virtualRow.index];
-                    if (!game) return null;
-                    return (
-                      <div
-                        key={game.id}
-                        style={{
-                          position: 'absolute',
-                          top: 0,
-                          left: 0,
-                          width: '100%',
-                          height: `${virtualRow.size}px`,
-                          transform: `translateY(${virtualRow.start}px)`,
-                        }}
-                      >
-                        {/* Desktop View */}
-                        <div className="hidden lg:block">
+            {/* Desktop View - Keep virtual scrolling container */}
+            <div className="hidden lg:block">
+              <Card className="overflow-hidden">
+                <div className="bg-card/50" ref={parentRef} style={{ maxHeight: 400, overflowY: 'auto', position: 'relative' }}>
+                  <div style={{ height: rowVirtualizer.getTotalSize(), position: 'relative' }}>
+                    {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                      const game = trendingGames[virtualRow.index];
+                      if (!game) return null;
+                      return (
+                        <div
+                          key={game.id}
+                          style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            height: `${virtualRow.size}px`,
+                            transform: `translateY(${virtualRow.start}px)`,
+                          }}
+                        >
                           <ProfessionalGameRow 
                             game={game}
                             isFirstInGroup={virtualRow.index === 0}
                           />
                         </div>
-                        {/* Mobile/Tablet View */}
-                        <div className="lg:hidden">
-                          <CompactMobileGameRow game={game} index={virtualRow.index} />
-                        </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
+              </Card>
+            </div>
+
+            {/* Mobile/Tablet View - Natural page flow */}
+            <div className="lg:hidden">
+              <MobileGameTableHeader />
+              <div className="space-y-2 mt-2">
+                {trendingGames.map((game, idx) => (
+                  <CompactMobileGameRow key={game.id} game={game} index={idx} />
+                ))}
               </div>
-            </Card>
+            </div>
             <div className="flex justify-center mt-4">
               <Link
                 href="/live"
