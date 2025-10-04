@@ -2,6 +2,7 @@
 
 import type { Bet } from "@/types";
 import { useBetSlip, useBetHistory } from "@/context";
+import { useLenisScroll } from "@/hooks";
 import { Button, Card, CardContent, Input, Badge, Separator } from "@/components/ui";
 import { X, Stack, Target } from "@phosphor-icons/react/dist/ssr";
 import { formatOdds, formatCurrency } from "@/lib/formatters";
@@ -27,6 +28,14 @@ export function BetSlipPanel() {
   }
   const { betSlip, removeBet, updateStake, setBetType, clearBetSlip } = useBetSlip();
   const { addPlacedBet } = useBetHistory();
+  
+  // Initialize Lenis smooth scrolling for bet slip content
+  const { containerRef } = useLenisScroll({
+    enabled: true,
+    duration: 1.2,
+    lerp: 0.1,
+    easing: (t: number) => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2,
+  });
 
   const handlePlaceBet = useCallback(() => {
     if (betSlip.bets.length === 0) {
@@ -62,14 +71,14 @@ export function BetSlipPanel() {
 
   if (betSlip.bets.length === 0) {
     return (
-      <div className="w-96 bg-card border-l border-border h-full overflow-hidden flex flex-col">
+      <div className="w-96 bg-card border-l border-border h-full flex flex-col">
         <div className="p-4 border-b border-border">
           <h2 className="text-lg font-semibold flex items-center gap-2">
             <Stack size={20} className="text-accent" />
             Bet Slip
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
-            3 selections • Parlay
+            Add selections to create bets
           </p>
         </div>
         <div className="flex-1 flex items-center justify-center p-8 text-center">
@@ -85,7 +94,7 @@ export function BetSlipPanel() {
   }
 
   return (
-    <div className="w-96 bg-card border-l border-border h-full overflow-hidden flex flex-col">
+    <div className="w-96 bg-card border-l border-border h-full flex flex-col">
       {/* Header */}
       <div className="p-4 border-b border-border">
         <div className="flex items-center justify-between mb-2">
@@ -137,9 +146,10 @@ export function BetSlipPanel() {
         )}
       </div>
 
-      {/* Bets List */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
-        {betSlip.bets.map((bet) => (
+      {/* Bets List - Lenis Smooth Scrolling */}
+      <div ref={containerRef} className="flex-1 overflow-hidden">
+        <div className="p-4 space-y-3">
+          {betSlip.bets.map((bet) => (
           <Card key={bet.id} className="relative">
             <CardContent className="p-3">
               {/* Remove Button */}
@@ -236,6 +246,7 @@ export function BetSlipPanel() {
             </CardContent>
           </Card>
         )}
+        </div>
       </div>
 
       {/* Footer */}

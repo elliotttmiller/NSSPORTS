@@ -4,6 +4,7 @@ import "./globals.css";
 import { Toaster } from "sonner";
 import { BetSlipProvider, NavigationProvider, BetHistoryProvider } from "@/context";
 import { ThreePanelLayout } from "@/components/layouts";
+import { SmoothScrollProvider } from "@/components/SmoothScrollProvider";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -44,14 +45,16 @@ export default function RootLayout({
   return (
     <html lang="en" className={inter.variable}>
       <body className="antialiased">
-        <NavigationProvider>
-          <BetSlipProvider>
-            <BetHistoryProvider>
-              <ThreePanelLayout>{children}</ThreePanelLayout>
-              <Toaster richColors position="top-right" />
-            </BetHistoryProvider>
-          </BetSlipProvider>
-        </NavigationProvider>
+        <SmoothScrollProvider>
+          <NavigationProvider>
+            <BetSlipProvider>
+              <BetHistoryProvider>
+                <ThreePanelLayout>{children}</ThreePanelLayout>
+                <Toaster richColors position="top-right" />
+              </BetHistoryProvider>
+            </BetSlipProvider>
+          </NavigationProvider>
+        </SmoothScrollProvider>
       </body>
     </html>
   );

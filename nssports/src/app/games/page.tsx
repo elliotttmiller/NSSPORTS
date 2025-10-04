@@ -1,6 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+gsap.registerPlugin(ScrollTrigger);
 import Link from "next/link";
 import { Button } from "@/components/ui";
 import { ProfessionalGameRow, CompactMobileGameRow, MobileGameTableHeader, DesktopGameTableHeader } from "@/components/features/games";
@@ -10,6 +13,7 @@ import type { Game } from "@/types";
 export default function GamesPage() {
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
+  const gameRowsRef = useRef<(HTMLDivElement | null)[]>([]);
 
   useEffect(() => {
     const loadGames = async () => {
@@ -21,6 +25,34 @@ export default function GamesPage() {
     };
     loadGames();
   }, []);
+
+  useEffect(() => {
+    if (!loading && games.length > 0) {
+      gameRowsRef.current.forEach((el) => {
+        if (el) {
+          gsap.fromTo(
+            el,
+            { opacity: 0, y: 50 },
+            {
+              opacity: 1,
+              y: 0,
+              duration: 1,
+              ease: "power2.out",
+              scrollTrigger: {
+                trigger: el,
+                start: "top 90%",
+                end: "bottom 10%",
+                scrub: true,
+              },
+            }
+          );
+        }
+      });
+    }
+    return () => {
+      ScrollTrigger.getAll().forEach((trigger) => trigger.kill());
+    };
+  }, [loading, games]);
 
   return (
     <div className="bg-background">
@@ -78,14 +110,15 @@ export default function GamesPage() {
             <>
               {/* Desktop Table Header */}
               <DesktopGameTableHeader />
-              
               {/* Mobile/Tablet Table Header */}
               <div className="lg:hidden">
                 <MobileGameTableHeader />
               </div>
-              
               {games.map((game, index) => (
-                <div key={game.id}>
+                <div
+                  key={game.id}
+                  ref={(el) => { gameRowsRef.current[index] = el; }}
+                >
                   {/* Desktop View */}
                   <div className="hidden lg:block">
                     <ProfessionalGameRow 
@@ -94,7 +127,6 @@ export default function GamesPage() {
                       isLastInGroup={index === games.length - 1}
                     />
                   </div>
-
                   {/* Mobile/Tablet View */}
                   <div className="lg:hidden">
                     <CompactMobileGameRow game={game} />

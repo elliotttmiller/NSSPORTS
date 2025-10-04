@@ -228,4 +228,26 @@
   --radius-full: 9999px;
   
   --font-sans: var(--font-inter);
+  
+  /* Scroll shadow variables */
+  --scroll-shadow-opacity: 1;
+}
+
+/* Global scroll shadow effect for game card lists */
+[data-scroll-shadow] {
+  position: relative;
+}
+
+[data-scroll-shadow]::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 20px;
+  background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.08));
+  opacity: var(--scroll-shadow-opacity);
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+  z-index: 10;
 }

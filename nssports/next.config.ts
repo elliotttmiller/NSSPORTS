@@ -12,6 +12,9 @@ import type { NextConfig } from "next";
  */
 
 const nextConfig: NextConfig = {
+  // Disable dev indicators for cleaner development experience
+  devIndicators: false,
+  
   // Environment variables validation
   env: {
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,

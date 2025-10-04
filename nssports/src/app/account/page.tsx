@@ -5,10 +5,15 @@ import { Card, CardContent, CardHeader, CardTitle, Input, Button, Separator } fr
 import { formatCurrency } from "@/lib/formatters";
 
 export default function AccountPage() {
-  const [profile, setProfile] = useState({
-    username: "NorthStar User",
-    email: "user@nssportsclub.com",
-    balance: 1250.0,
+  const [profile] = useState({
+    username: 'JohnDoe123',
+    email: 'john.doe@example.com',
+    phoneNumber: '+1 (555) 123-4567',
+    dateJoined: '2023-01-15',
+    accountBalance: 1250.75,
+    totalWagered: 15000.00,
+    totalWon: 12500.00,
+    winRate: 68.5
   });
 
   const [settings, setSettings] = useState({
@@ -18,8 +23,9 @@ export default function AccountPage() {
   });
 
   return (
-    <div className="p-6 pb-8">
-      <div className="max-w-4xl mx-auto space-y-6">
+    <div className="bg-background">
+      <div className="container mx-auto px-4 py-6 max-w-screen-2xl">
+        <div className="space-y-6">
         {/* Page Header */}
         <div>
           <h1 className="text-3xl font-bold">Account Settings</h1>
@@ -35,7 +41,7 @@ export default function AccountPage() {
           </CardHeader>
           <CardContent>
             <div className="text-4xl font-bold text-accent">
-              {formatCurrency(profile.balance)}
+              {formatCurrency(profile.accountBalance)}
             </div>
             <div className="flex gap-2 mt-4">
               <Button>Deposit</Button>
@@ -120,6 +126,7 @@ export default function AccountPage() {
             <Button>Save Preferences</Button>
           </CardContent>
         </Card>
+        </div>
       </div>
     </div>
   );

@@ -69,8 +69,9 @@ export default function MyBetsPage() {
   }, [betHistory]);
 
   return (
-    <div className="p-6 pb-8">
-      <div className="max-w-6xl mx-auto space-y-6">
+    <div className="bg-background">
+      <div className="container mx-auto px-4 py-6 max-w-screen-2xl">
+        <div className="space-y-6">
         {/* Page Header */}
         <div>
           <h1 className="text-3xl font-bold">My Bets</h1>
@@ -231,5 +232,6 @@ export default function MyBetsPage() {
         </Card>
       </div>
     </div>
+  </div>
   );
 }
