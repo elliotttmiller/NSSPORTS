@@ -48,7 +48,7 @@
     border-radius: 2px;
   }
 
-  /* Professional Mobile Scroll System - Next.js Official Approach */
+  /* Next.js Official Mobile Scroll Implementation */
   .seamless-scroll {
     /* iOS momentum scrolling - Apple's official recommendation */
     -webkit-overflow-scrolling: touch;
@@ -65,25 +65,40 @@
     touch-action: pan-y;
   }
 
-  /* Mobile-specific optimizations using Next.js recommended patterns */
+  /* Next.js Documented Mobile Patterns */
   @media (max-width: 768px) {
-    .seamless-scroll {
-      /* Enhanced mobile scrolling performance */
-      scroll-behavior: smooth;
-      
-      /* Prevent horizontal overflow on mobile */
-      overflow-x: hidden;
-      
-      /* Momentum scrolling for smooth iOS experience */
-      -webkit-overflow-scrolling: touch;
-    }
-    
-    /* Global mobile overflow prevention */
-    html, body {
-      overflow-x: hidden;
-      position: relative;
+    /* Root level mobile optimization */
+    html {
       /* Prevent zoom on input focus */
       -webkit-text-size-adjust: 100%;
+      /* Fixed positioning support */
+      position: fixed;
+      width: 100%;
+      height: 100%;
+    }
+    
+    body {
+      /* Single scroll container pattern */
+      position: fixed;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      /* Prevent horizontal scroll */
+      overflow-x: hidden;
+    }
+    
+    /* Mobile scroll containers */
+    [data-mobile-scroll] {
+      /* Official Next.js mobile scroll implementation */
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-y;
+      overscroll-behavior-y: none;
+      scroll-behavior: auto;
+      /* Prevent scroll chaining */
+      overscroll-behavior: none;
+      /* Hardware acceleration */
+      transform: translateZ(0);
+      will-change: scroll-position;
     }
     
     /* Safe area support for modern iOS devices */

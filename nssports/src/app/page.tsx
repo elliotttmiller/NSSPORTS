@@ -17,7 +17,7 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="h-full overflow-y-auto bg-background text-foreground">
+    <div className="bg-background text-foreground">
       <div className="container mx-auto px-4 py-6 max-w-screen-2xl">
         <div className="space-y-6">
           {/* ...existing code... */}

@@ -65,13 +65,26 @@ export function ThreePanelLayout({ children }: ThreePanelLayoutProps) {
 
           {/* Center Panel - Main Content */}
           <div className="flex-1 min-w-0 relative">
-            <motion.div
-              layout
-              transition={{ type: "spring", stiffness: 320, damping: 32 }}
-              className={`h-screen overflow-y-auto seamless-scroll pt-16 ${isMobile ? "mobile-safe-area pb-20" : ""}`}
-            >
-              {children}
-            </motion.div>
+            {isMobile ? (
+              /* Mobile: Official Next.js single scroll container pattern */
+              <div 
+                className="fixed inset-0 top-16 bottom-20 overflow-y-auto bg-background"
+                data-mobile-scroll
+              >
+                <div className="min-h-full pb-4">
+                  {children}
+                </div>
+              </div>
+            ) : (
+              /* Desktop: Standard layout */
+              <motion.div
+                layout
+                transition={{ type: "spring", stiffness: 320, damping: 32 }}
+                className="h-screen overflow-y-auto seamless-scroll pt-16"
+              >
+                {children}
+              </motion.div>
+            )}
           </div>
 
           {/* Right Panel - Bet Slip (Collapsible) */}

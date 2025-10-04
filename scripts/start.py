@@ -7,7 +7,7 @@ import requests
 # --- CONFIGURATION ---
 DEV_SERVER_PORT = 3000
 NGROK_STATIC_DOMAIN = "nssportsclub.ngrok.app"
-SERVER_TIMEOUT = 30
+SERVER_TIMEOUT = 45  # Increased timeout for Next.js with Turbopack
 # Project path points to the nssports directory
 PROJECT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'nssports')
 # --- END CONFIGURATION ---
@@ -22,13 +22,19 @@ def wait_for_server(port, timeout):
     start_time = time.time()
     url = f"http://localhost:{port}"
     print(f"⏳ Waiting for server...")
+    
+    # Give Next.js a bit more time to initialize
+    time.sleep(3)
+    
     while time.time() - start_time < timeout:
         try:
-            requests.get(url, timeout=1)
-            print("✅ Server ready!")
-            return True
+            response = requests.get(url, timeout=3)
+            if response.status_code == 200:
+                print("✅ Server ready!")
+                return True
         except (requests.exceptions.ConnectionError, requests.exceptions.ReadTimeout):
-            time.sleep(1)
+            print(".", end="", flush=True)
+            time.sleep(2)
     return False
 
 def run():

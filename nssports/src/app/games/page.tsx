@@ -23,7 +23,7 @@ export default function GamesPage() {
   }, []);
 
   return (
-    <div className="h-full overflow-y-auto bg-background">
+    <div className="bg-background">
       <div className="container mx-auto px-4 py-6 max-w-screen-2xl">
         {/* Page Header */}
         <div className="mb-6 flex items-center justify-between">

@@ -69,7 +69,7 @@ export default function MyBetsPage() {
   }, [betHistory]);
 
   return (
-    <div className="h-full overflow-y-auto p-6">
+    <div className="p-6 pb-8">
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Page Header */}
         <div>
