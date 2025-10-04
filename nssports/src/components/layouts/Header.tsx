@@ -34,8 +34,8 @@ export function Header() {
 
   return (
     <header className="h-16 border-b border-border bg-card flex items-center px-4 relative">
-      {/* Desktop Left Section */}
-      <div className="hidden md:flex items-center space-x-3">
+      {/* Desktop Centered Logo */}
+      <div className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
         <Link
           href="/"
           className="flex items-center space-x-2 hover:opacity-80 transition-opacity"
@@ -58,87 +58,64 @@ export function Header() {
         </Link>
       </div>
 
-      {/* Desktop Navigation - Centered */}
-      <div className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-        <nav className="flex items-center space-x-2">
-          <Button
-            variant={pathname === "/" ? "default" : "ghost"}
-            size="sm"
-            asChild
+      {/* Desktop Account Button with Dropdown - Top Right */}
+      <div className="hidden md:flex absolute right-4 top-1/2 -translate-y-1/2">
+        <div className="relative group">
+          <div
+            ref={accountBtnRef}
+            onMouseEnter={() => setShowDropdown(true)}
+            onMouseLeave={() => setShowDropdown(false)}
+            className="inline-block"
           >
-            <Link href="/">Home</Link>
-          </Button>
-          <Button
-            variant={pathname === "/games" ? "default" : "ghost"}
-            size="sm"
-            asChild
-          >
-            <Link href="/games">Games</Link>
-          </Button>
-          <Button
-            variant={pathname === "/my-bets" ? "default" : "ghost"}
-            size="sm"
-            asChild
-          >
-            <Link href="/my-bets">My Bets</Link>
-          </Button>
-          <div className="relative group">
+            <Button
+              variant={pathname === "/account" ? "default" : "ghost"}
+              size="sm"
+              asChild
+              className="flex items-center"
+            >
+              <Link href="/account">
+                <User size={16} className="mr-1" />
+                Account
+              </Link>
+            </Button>
+          </div>
+          {showDropdown && createPortal(
             <div
-              ref={accountBtnRef}
+              style={{
+                position: "absolute",
+                top: dropdownPos.top,
+                left: dropdownPos.left,
+                width: "224px",
+                zIndex: 99999,
+                background: "var(--card)",
+                border: "1px solid var(--border)",
+                borderRadius: "0.5rem",
+                boxShadow: "0 4px 24px rgba(0,0,0,0.12)",
+                transition: "opacity 0.2s",
+              }}
               onMouseEnter={() => setShowDropdown(true)}
               onMouseLeave={() => setShowDropdown(false)}
-              className="inline-block"
             >
-              <Button
-                variant={pathname === "/account" ? "default" : "ghost"}
-                size="sm"
-                asChild
-                className="flex items-center"
-              >
-                <Link href="/account">
-                  <User size={16} className="mr-1" />
-                  Account
-                </Link>
-              </Button>
-            </div>
-            {showDropdown && createPortal(
-              <div
-                style={{
-                  position: "absolute",
-                  top: dropdownPos.top,
-                  left: dropdownPos.left,
-                  width: "224px",
-                  zIndex: 99999,
-                  background: "var(--card)",
-                  border: "1px solid var(--border)",
-                  borderRadius: "0.5rem",
-                  boxShadow: "0 4px 24px rgba(0,0,0,0.12)",
-                  transition: "opacity 0.2s",
-                }}
-                onMouseEnter={() => setShowDropdown(true)}
-                onMouseLeave={() => setShowDropdown(false)}
-              >
-                <div className="p-4 space-y-2">
-                  <div className="flex flex-col space-y-2 text-foreground">
-                    <div className="flex justify-between text-sm">
-                      <span className="font-medium text-foreground">Balance:</span>
-                      <span className="font-bold text-accent">${balance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="font-medium text-foreground">Available:</span>
-                      <span className="font-bold text-green-600">${available.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="font-medium text-foreground">Risk:</span>
-                      <span className="font-bold text-red-600">${risk.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
-                    </div>
+              <div className="p-4 space-y-2">
+                <div className="flex flex-col space-y-2 text-foreground">
+                  <div className="flex justify-between text-sm">
+                    <span className="font-medium text-foreground">Balance:</span>
+                    <span className="font-bold text-accent">${balance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="font-medium text-foreground">Available:</span>
+                    <span className="font-bold text-green-600">${available.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="font-medium text-foreground">Risk:</span>
+                    <span className="font-bold text-red-600">${risk.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
                   </div>
                 </div>
-              </div>,
-              document.body
-            )}
-          </div>
-        </nav>
+              </div>
+            </div>,
+            document.body
+          )}
+        </div>
       </div>
 
       {/* Mobile Account Icon - Top Right */}
