@@ -47,11 +47,14 @@ NorthStar Sports is a comprehensive sports betting platform that provides real-t
 ### Technical Features
 
 - Server-side rendering and static generation
+- **Secure authentication with NextAuth.js**
+- **Protected API routes with session management**
 - API route handlers with CORS protection
 - Database connection pooling
-- Type-safe API contracts
+- Type-safe API contracts with Zod validation
 - Environment-based configuration
 - Comprehensive error handling
+- Pre-commit hooks for code quality
 
 ## 🏗️ Architecture
 
@@ -108,6 +111,7 @@ NSSPORTS/
 
 **Backend**
 - Next.js API Routes
+- NextAuth.js v5 for authentication
 - Prisma ORM 6.x
 - PostgreSQL (Supabase)
 - Server-side rendering
@@ -116,6 +120,8 @@ NSSPORTS/
 - ESLint for code quality
 - Prettier for code formatting
 - EditorConfig for consistency
+- Husky for pre-commit hooks
+- Vitest for testing
 
 ## 🚀 Getting Started
 
@@ -143,8 +149,13 @@ NSSPORTS/
 3. **Set up environment variables**
    ```bash
    cp .env.example .env.local
-   # Edit .env.local with your database credentials
    ```
+   
+   Edit `.env.local` with your configuration:
+   - `DATABASE_URL`: Your PostgreSQL connection string (from Supabase or other provider)
+   - `DIRECT_URL`: Direct database connection (non-pooled)
+   - `NEXTAUTH_SECRET`: Generate with `openssl rand -base64 32`
+   - `NEXTAUTH_URL`: Your app URL (http://localhost:3000 for development)
 
 4. **Set up the database**
    ```bash
@@ -179,6 +190,44 @@ npm run db:studio        # Open Prisma Studio
 
 # Code Quality
 npm run lint             # Run ESLint
+npm run test             # Run tests
+npm run format           # Format code with Prettier
+```
+
+## 🔐 Authentication
+
+The application uses NextAuth.js v5 for secure authentication:
+
+### User Registration & Login
+
+1. **Register**: Navigate to `/auth/register` or click "Register" in the header
+   - Create an account with email and password
+   - New users receive a $1000 starting balance
+   
+2. **Login**: Navigate to `/auth/login` or click "Login" in the header
+   - Use your email and password credentials
+   
+3. **Session Management**: 
+   - Sessions are managed via JWT tokens
+   - Authentication state is available across the app
+   - API routes automatically verify user identity
+
+### Protected Features
+
+The following features require authentication:
+- Placing bets (`POST /api/my-bets`)
+- Viewing bet history (`GET /api/my-bets`)
+- Account management (`GET /api/account`)
+
+### API Authentication
+
+API routes use session-based authentication:
+
+```typescript
+import { getAuthUser } from "@/lib/authHelpers";
+
+// In your API route
+const userId = await getAuthUser(); // Throws if not authenticated
 ```
 
 ## 📚 Documentation
@@ -195,11 +244,21 @@ Comprehensive documentation is available in the `/docs` directory:
 
 RESTful API endpoints are available at `/api`:
 
+**Public Endpoints:**
 - `GET /api/sports` - Get all sports with leagues
 - `GET /api/games` - Get games (paginated)
 - `GET /api/games/upcoming` - Get upcoming games
 - `GET /api/games/live` - Get live games
 - `GET /api/games/league/:leagueId` - Get games by league
+
+**Protected Endpoints (require authentication):**
+- `GET /api/account` - Get user account balance and stats
+- `GET /api/my-bets` - Get user's bet history
+- `POST /api/my-bets` - Place a new bet
+
+**Authentication Endpoints:**
+- `POST /api/auth/register` - Register a new user
+- `POST /api/auth/[...nextauth]` - NextAuth.js authentication handler
 
 ## 💻 Development
 
