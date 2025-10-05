@@ -6,6 +6,7 @@ import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 import { Crown, User, X } from "@phosphor-icons/react/dist/ssr";
 import { Button } from "@/components/ui";
+import { useAccount } from "@/hooks/useAccount";
 interface MobileAccountDropdownProps {
   balance: number;
   available: number;
@@ -98,10 +99,10 @@ export function Header() {
   const pathname = usePathname();
 
 
-  // Mock values for demonstration
-  const balance = 1250.0;
-  const available = 1000.0;
-  const risk = 250.0;
+  const { data: account } = useAccount();
+  const balance = account?.balance ?? 0;
+  const available = account?.available ?? 0;
+  const risk = account?.risk ?? 0;
 
   // Portal dropdown state
   const [showDropdown, setShowDropdown] = useState(false);

@@ -436,6 +436,18 @@ async function main() {
   const nhlGameCount = await prisma.game.count({ where: { leagueId: 'nhl' } });
   console.log(`Inserted ${nhlGameCount} NHL games`);
 
+  // Seed account for demo user
+  console.log('Seeding account for demo-user...');
+  try {
+    await prisma.account.upsert({
+      where: { userId: 'demo-user' },
+      update: { balance: 2500.0 },
+      create: { userId: 'demo-user', balance: 2500.0 },
+    });
+  } catch (e) {
+    console.error('Error seeding account:', e);
+  }
+
   // Seed mock bet history
   console.log('Seeding mock bet history...');
   const demoBets = [

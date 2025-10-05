@@ -156,7 +156,7 @@ export function BetSlipPanel() {
               betType={bet.betType}
               placedAt={new Date()}
               status={"pending"}
-              selection={bet.selection === "away" ? bet.game.awayTeam.shortName : bet.selection === "home" ? bet.game.homeTeam.shortName : bet.selection}
+              selection={bet.selection}
               odds={bet.odds}
               line={bet.line}
               stake={bet.stake}
@@ -208,6 +208,7 @@ export function BetSlipPanel() {
             stake={betSlip.bets[0]?.stake || 0}
             payout={betSlip.totalPayout}
             legs={betSlip.bets.map((b) => ({
+              betType: b.betType,
               game: { homeTeam: { shortName: b.game.homeTeam.shortName }, awayTeam: { shortName: b.game.awayTeam.shortName } },
               selection: b.selection,
               odds: b.odds,

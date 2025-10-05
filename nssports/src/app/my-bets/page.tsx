@@ -85,6 +85,7 @@ export default function MyBetsPage() {
                         placedAt={bet.placedAt}
                         status={bet.status}
                         selection={bet.selection}
+                        displaySelection={bet.displaySelection}
                         odds={bet.odds}
                         line={bet.line}
                         stake={bet.stake}
@@ -132,6 +133,7 @@ export default function MyBetsPage() {
                         placedAt={bet.placedAt}
                         status={bet.status}
                         selection={bet.selection}
+                        displaySelection={bet.displaySelection}
                         odds={bet.odds}
                         line={bet.line}
                         stake={bet.stake}

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import type { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
 import { ApiErrors, withErrorHandling } from "@/lib/apiResponse";
@@ -49,7 +50,10 @@ export async function GET() {
     logger.info('Fetching bet history');
     
     // Fetch all bets (for demo, fetch all; in production, filter by user)
-    const bets = await prisma.bet.findMany({
+  type GameWithTeams = Prisma.GameGetPayload<{ include: { homeTeam: true; awayTeam: true; league: true } }>;
+  type BetWithGame = Prisma.BetGetPayload<{ include: { game: { include: { homeTeam: true; awayTeam: true; league: true } } } }>;
+
+  const bets: BetWithGame[] = await prisma.bet.findMany({
       orderBy: { placedAt: "desc" },
       include: {
         game: {
@@ -77,7 +81,7 @@ export async function GET() {
       }
     }
 
-    let legGamesById: Record<string, unknown> = {};
+    let legGamesById: Record<string, GameWithTeams> = {};
     if (allLegGameIds.size > 0) {
       const games = await prisma.game.findMany({
         where: { id: { in: Array.from(allLegGameIds) } },
@@ -87,9 +91,7 @@ export async function GET() {
           league: true,
         },
       });
-      legGamesById = Object.fromEntries(
-        games.map((g) => [g.id, JSON.parse(JSON.stringify(g))])
-      );
+      legGamesById = Object.fromEntries(games.map((g) => [g.id, g]));
     }
 
     const normalized = bets.map((bet) => {
@@ -99,7 +101,7 @@ export async function GET() {
         ? legsRaw.map((leg) => ({
             ...leg,
             game: leg?.gameId
-              ? (legGamesById[leg.gameId] as unknown) ?? undefined
+              ? legGamesById[leg.gameId] ?? undefined
               : undefined,
           }))
         : null;
@@ -120,11 +122,98 @@ export async function GET() {
       return 0;
     };
     
-    const serialized = normalized.map((b) => ({
-      ...(b as Record<string, unknown>),
-      stake: toNum((b as Record<string, unknown>).stake),
-      potentialPayout: toNum((b as Record<string, unknown>).potentialPayout),
-    }));
+    function cap(s: string) { return s.charAt(0).toUpperCase() + s.slice(1); }
+    function fmtLine(line?: number | null) {
+      if (line === null || typeof line !== 'number') return '';
+      const sign = line > 0 ? '+' : '';
+      return ` ${sign}${line}`;
+    }
+    type SingleDisplayInput = {
+      betType: string;
+      selection: string;
+      line: number | null;
+      game?: {
+        homeTeam?: { shortName?: string; name?: string };
+        awayTeam?: { shortName?: string; name?: string };
+      };
+    };
+
+    function computeDisplaySelection(b: SingleDisplayInput): string | undefined {
+      const bt = String(b?.betType || '').toLowerCase();
+      const sel = String(b?.selection || '').toLowerCase();
+      if (bt === 'moneyline' && b?.game) {
+        const team = sel === 'home' ? (b.game.homeTeam?.shortName || b.game.homeTeam?.name) : sel === 'away' ? (b.game.awayTeam?.shortName || b.game.awayTeam?.name) : cap(sel);
+        return `${team} Win`;
+      }
+      if (bt === 'spread') {
+        const side = sel === 'home' ? 'Home' : sel === 'away' ? 'Away' : cap(sel);
+        return `${side}${fmtLine(b?.line ?? null)}`;
+      }
+      if (bt === 'total') {
+        return `${cap(sel)}${fmtLine(b?.line ?? null)}`;
+      }
+      return undefined;
+    }
+
+    type SerializedSingleBet = Omit<BetWithGame, 'stake' | 'potentialPayout'> & {
+      stake: number;
+      potentialPayout: number;
+      displaySelection?: string;
+    };
+
+    type SerializedParlayBet = Omit<BetWithGame, 'stake' | 'potentialPayout' | 'legs'> & {
+      stake: number;
+      potentialPayout: number;
+      legs: (ParlayLeg & { game?: GameWithTeams; displaySelection?: string })[] | null;
+    };
+
+    const serialized: Array<SerializedSingleBet | SerializedParlayBet> = normalized.map((b) => {
+      const baseStake = toNum((b as unknown as { stake: unknown }).stake);
+      const basePayout = toNum((b as unknown as { potentialPayout: unknown }).potentialPayout);
+
+      if (b.betType !== 'parlay') {
+        const single: SerializedSingleBet = {
+          ...(b as BetWithGame),
+          stake: baseStake,
+          potentialPayout: basePayout,
+          displaySelection: computeDisplaySelection({
+            betType: b.betType,
+            selection: b.selection,
+            line: (b as BetWithGame).line ?? null,
+            game: (b as BetWithGame).game as SingleDisplayInput['game'],
+          }),
+        };
+        return single;
+      }
+
+      const parlay: SerializedParlayBet = {
+        ...(b as BetWithGame),
+        stake: baseStake,
+        potentialPayout: basePayout,
+        legs: Array.isArray((b as unknown as { legs?: unknown }).legs)
+          ? ((b as unknown as { legs: (ParlayLeg & { game?: GameWithTeams })[] }).legs).map((leg) => ({
+              ...leg,
+              displaySelection: (() => {
+                const bt = String(leg?.betType || '').toLowerCase();
+                const sel = String(leg?.selection || '').toLowerCase();
+                if (bt === 'moneyline' && leg?.game) {
+                  const team = sel === 'home' ? (leg.game.homeTeam?.shortName || leg.game.homeTeam?.name) : sel === 'away' ? (leg.game.awayTeam?.shortName || leg.game.awayTeam?.name) : cap(sel);
+                  return `${team} Win`;
+                }
+                if (bt === 'spread') {
+                  const side = sel === 'home' ? 'Home' : sel === 'away' ? 'Away' : cap(sel);
+                  return `${side}${fmtLine(leg?.line ?? null)}`;
+                }
+                if (bt === 'total') {
+                  return `${cap(sel)}${fmtLine(leg?.line ?? null)}`;
+                }
+                return undefined;
+              })(),
+            }))
+          : null,
+      };
+      return parlay;
+    });
     
     logger.info('Bet history fetched successfully', { count: serialized.length });
     
