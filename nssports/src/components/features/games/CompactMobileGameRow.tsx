@@ -109,7 +109,7 @@ export const CompactMobileGameRow = memo(({ game }: Props) => {
     >
       {/* Main Card Content - Clickable */}
       <div
-        className="p-2.5 cursor-pointer"
+  className="p-3 cursor-pointer"
         onClick={() => {
           if (expanded) {
             setExpanded(false);
@@ -133,7 +133,7 @@ export const CompactMobileGameRow = memo(({ game }: Props) => {
         {/* Teams and Odds Grid - 4 columns to match header */}
         <div className="grid grid-cols-4 gap-2">
           {/* Teams Column */}
-          <div className="flex flex-col justify-between h-[60px]">
+          <div className="flex flex-col justify-between h-[72px]">
             {/* Away Team */}
             <div className="flex items-center h-7">
               <motion.div
@@ -172,7 +172,7 @@ export const CompactMobileGameRow = memo(({ game }: Props) => {
           </div>
 
           {/* Spread Column */}
-          <div className="flex flex-col justify-between h-[60px]">
+          <div className="flex flex-col justify-between h-[72px]">
             {/* Away Spread */}
             <motion.div
               whileHover={{ scale: 1.03 }}
@@ -228,7 +228,7 @@ export const CompactMobileGameRow = memo(({ game }: Props) => {
           </div>
 
           {/* Total Column */}
-          <div className="flex flex-col justify-between h-[60px]">
+          <div className="flex flex-col justify-between h-[72px]">
             {/* Over */}
             <motion.div
               whileHover={{ scale: 1.03 }}
@@ -282,7 +282,7 @@ export const CompactMobileGameRow = memo(({ game }: Props) => {
           </div>
 
           {/* Money Line Column */}
-          <div className="flex flex-col justify-between h-[60px]">
+          <div className="flex flex-col justify-between h-[72px]">
             {/* Away ML */}
             <motion.div
               whileHover={{ scale: 1.03 }}
