@@ -246,7 +246,7 @@ export const CompactMobileGameRow = memo(({ game }: Props) => {
                 )}
               >
                 <span className="text-[10px] font-bold leading-none">
-                  <span className="tracking-wide">O{formatTotalLine(game.odds.total.over?.line || 0)}</span>
+                  <span className="tracking-wide">O<span className="mx-1">{formatTotalLine(game.odds.total.over?.line || 0)}</span></span>
                 </span>
                 <span className="text-[8px] opacity-75 leading-none -mt-px">
                   {formatOdds(game.odds.total.over?.odds || 0)}
@@ -272,7 +272,7 @@ export const CompactMobileGameRow = memo(({ game }: Props) => {
                 )}
               >
                 <span className="text-[10px] font-bold leading-none">
-                  <span className="tracking-wide">U{formatTotalLine(game.odds.total.under?.line || 0)}</span>
+                  <span className="tracking-wide">U<span className="mx-1">{formatTotalLine(game.odds.total.under?.line || 0)}</span></span>
                 </span>
                 <span className="text-[8px] opacity-75 leading-none -mt-px">
                   {formatOdds(game.odds.total.under?.odds || 0)}
