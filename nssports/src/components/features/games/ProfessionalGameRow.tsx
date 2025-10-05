@@ -94,13 +94,13 @@ export function ProfessionalGameRow({
   };
 
   const cardClasses = cn(
-    "bg-card/40 border-l border-r border-border hover:bg-card/60 transition-all duration-200 overflow-hidden",
+    "bg-card text-card-foreground flex flex-col border border-border rounded-lg transition-all duration-300 ease-[cubic-bezier(.4,0,.2,1)] shadow-sm hover:shadow-xl hover:-translate-y-1.5 hover:scale-[1.025] active:scale-95 focus-within:ring-2 focus-within:ring-accent/40 cursor-pointer outline-[0.5px] outline-gray-400/20 overflow-hidden",
     {
-      "border-t rounded-t-lg": !isFirstInGroup, // Individual cards when not part of table
-      "border-b rounded-b-lg mb-2": !isFirstInGroup, // Individual cards when not part of table
-      "border-b-0": isFirstInGroup && !isLastInGroup, // Middle cards in table
-      "border-b rounded-b-lg": isLastInGroup, // Last card in table
-    }
+      "border-t rounded-t-lg": !isFirstInGroup,
+      "border-b rounded-b-lg mb-2": !isFirstInGroup,
+      "border-b-0": isFirstInGroup && !isLastInGroup,
+      "border-b rounded-b-lg": isLastInGroup,
+    },
   );
 
   return (

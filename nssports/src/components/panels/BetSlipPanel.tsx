@@ -71,7 +71,7 @@ export function BetSlipPanel() {
 
   if (betSlip.bets.length === 0) {
     return (
-      <div className="w-96 bg-card border-l border-border h-full flex flex-col">
+      <div className="w-96 border-l border-border h-full flex flex-col bg-transparent">
         <div className="p-4 border-b border-border">
           <h2 className="text-lg font-semibold flex items-center gap-2">
             <Stack size={20} className="text-accent" />
@@ -94,7 +94,7 @@ export function BetSlipPanel() {
   }
 
   return (
-    <div className="w-96 bg-card border-l border-border h-full flex flex-col">
+  <div className="w-96 border-l border-border h-full flex flex-col bg-transparent">
       {/* Header */}
       <div className="p-4 border-b border-border">
         <div className="flex items-center justify-between mb-2">

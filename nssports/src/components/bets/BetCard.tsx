@@ -1,6 +1,7 @@
 "use client";
 
 import { Badge, Card, CardContent } from "@/components/ui";
+import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
 import { formatCurrency, formatOdds } from "@/lib/formatters";
 
@@ -52,7 +53,10 @@ export function BetCardSingle({
   const placed = placedAt ? new Date(placedAt) : null;
   const isWon = status === "won";
   return (
-    <Card className={`border-border/50 ${isWon ? "bg-green-50/50 border-green-200/50" : status === "lost" ? "bg-red-50/50 border-red-200/50" : ""}`}>
+    <Card className={cn(
+      "border-border/50",
+      isWon ? "border-green-200/50 ring-2 ring-green-100" : status === "lost" ? "border-red-200/50 ring-2 ring-red-100" : "",
+    )}>
       <CardContent className="p-5">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
@@ -123,7 +127,10 @@ export function BetCardParlay({ placedAt, status, stake, payout, legs, children,
   const placed = placedAt ? new Date(placedAt) : null;
   const isWon = status === "won";
   return (
-    <Card className={`border-accent/20 ${isWon ? "bg-green-50/50 border-green-200/50" : status === "lost" ? "bg-red-50/50 border-red-200/50" : "bg-accent/5"}`}>
+    <Card className={cn(
+      "border-accent/20",
+      isWon ? "border-green-200/50 ring-2 ring-green-100" : status === "lost" ? "border-red-200/50 ring-2 ring-red-100" : "ring-1 ring-accent/10",
+    )}>
       <CardContent className="p-5">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
