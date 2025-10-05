@@ -103,7 +103,7 @@ export const CompactMobileGameRow = memo(({ game }: Props) => {
 
   return (
     <motion.div
-      className="bg-card/40 border border-border rounded-lg mb-2 hover:bg-card/60 hover:shadow-md transition-all duration-200 overflow-hidden"
+      className="bg-card/40 border border-accent/20 ring-1 ring-accent/10 rounded-lg mb-2 hover:bg-card/60 hover:shadow-md transition-all duration-200 overflow-hidden"
       initial={false}
       animate={{ boxShadow: expanded ? "0 8px 32px rgba(0,0,0,0.10)" : "0 2px 8px rgba(0,0,0,0.04)" }}
     >
