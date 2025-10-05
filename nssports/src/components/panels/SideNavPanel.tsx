@@ -68,7 +68,7 @@ export function SideNavPanel() {
   };
 
   return (
-    <div className="h-full w-64 max-w-xs overflow-y-auto p-3">
+    <div className="h-full w-full overflow-y-auto p-4">
       <div className="space-y-2">
         <h2 className="text-lg font-semibold mb-4 px-3">Navigation</h2>
         {navItems.map((item) => {

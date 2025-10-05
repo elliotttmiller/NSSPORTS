@@ -26,23 +26,23 @@ export default function Home() {
               Welcome, NorthStar User
             </h1>
             <div className="w-16 md:w-24 h-1 bg-accent mx-auto rounded-full"></div>
-          </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[
-              { label: "Balance", value: "$1,250.00" },
-              { label: "Win Rate", value: "68%" },
-              { label: "Active Bets", value: activeBetsCount },
-              { label: "This Week", value: "+$340" },
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8 md:mt-12">
+            {/* Revised account summary elements, original containers */}
+            {[ 
+              { label: "Balance", value: "$1,250.00", color: "text-accent" },
+              { label: "Available", value: "$1,000.00", color: "text-green-500" },
+              { label: "Risk", value: "$250.00", color: "text-red-500" },
+              { label: "Active Bets", value: activeBetsCount, color: "text-foreground" },
             ].map((stat) => (
               <div
                 key={stat.label}
                 className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-lg shadow-sm min-h-[70px] md:min-h-[80px] p-4 flex flex-col items-center justify-center gap-1"
               >
-                <p className="text-xs md:text-sm text-muted-foreground font-medium">
+                <p className="text-sm md:text-base text-foreground font-normal">
                   {stat.label}
                 </p>
-                <p className="font-bold text-sm md:text-base text-foreground">
+                <p className={`font-semibold text-base ${stat.color}`}>
                   {stat.value}
                 </p>
               </div>
@@ -121,6 +121,7 @@ export default function Home() {
           {/* Bottom spacing for mobile */}
           <div className="h-8" />
         </div>
+      </div>
       </div>
     </div>
   );
