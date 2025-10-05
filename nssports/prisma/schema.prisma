@@ -92,6 +92,9 @@ model Game {
   @@index([leagueId])
   @@index([status])
   @@index([startTime])
+  @@index([leagueId, status, startTime])
+  @@index([homeTeamId])
+  @@index([awayTeamId])
   @@map("games")
 }
 
@@ -107,6 +110,7 @@ model Odds {
 
   @@index([gameId])
   @@index([betType])
+  @@index([gameId, betType])
   @@map("odds")
 }
 
