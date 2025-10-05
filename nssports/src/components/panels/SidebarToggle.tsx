@@ -17,7 +17,7 @@ export function SidebarToggle({ side, isOpen, onToggle }: SidebarToggleProps) {
       variant="outline"
       size="sm"
       onClick={onToggle}
-      className="h-16 w-8 rounded-full shadow-lg border-2 relative"
+      className="h-16 w-8 rounded-full shadow-lg border-2 relative transition-all duration-300 ease-[cubic-bezier(.4,0,.2,1)] hover:shadow-xl hover:-translate-y-1.5 hover:scale-[1.08] active:scale-95 focus-within:ring-2 focus-within:ring-accent/40"
       aria-label={`Toggle ${side} sidebar`}
     >
       {side === "left" ? (

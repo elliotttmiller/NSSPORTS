@@ -80,7 +80,7 @@ export function SideNavPanel() {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors",
+                "flex items-center gap-3 px-3 py-2.5 rounded-md transition-all duration-300 ease-[cubic-bezier(.4,0,.2,1)] shadow-sm hover:shadow-lg hover:-translate-y-1 hover:scale-[1.04] active:scale-95 focus-within:ring-2 focus-within:ring-accent/40 cursor-pointer",
                 isActive
                   ? "bg-accent text-accent-foreground font-medium"
                   : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
