@@ -95,7 +95,7 @@ function BetSummary({ stake, payout, status }: { stake: number; payout: number; 
           {(() => {
             const profit = status === 'lost' ? -stake : (payout - stake);
             const sign = profit > 0 ? '+' : '';
-            const color = profit >= 0 ? "text-green-600" : "text-red-600";
+            const color = profit >= 0 ? "text-accent" : "text-destructive";
             return (
               <div ref={profitWrapRef} className="w-full overflow-hidden">
                 <span
@@ -186,15 +186,15 @@ export function BetCardSingle({
   return (
     <Card className={cn(
       isWon
-        ? "border-green-200/50 ring-2 ring-green-100"
+  ? "border-accent/50 ring-2 ring-accent/20"
         : status === "lost"
-        ? "border-red-200/50 ring-2 ring-red-100"
+  ? "border-destructive/50 ring-2 ring-destructive/20"
         : "border-accent/20 ring-1 ring-accent/10"
     )}>
       <CardContent className="p-5">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <Badge variant={isWon ? "default" : "outline"} className={isWon ? "bg-green-100 text-green-800 border-green-200" : ""}>
+            <Badge variant={isWon ? "default" : "outline"} className={isWon ? "bg-accent/10 text-accent border-accent/30" : ""}>
               {betType.toUpperCase()}
             </Badge>
             <Badge variant={isWon ? "default" : status === "lost" ? "destructive" : "outline"} className={isWon ? "bg-green-600 text-white" : status === "lost" ? "bg-red-600 text-white" : "bg-yellow-50 text-yellow-700 border-yellow-200"}>

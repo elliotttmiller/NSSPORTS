@@ -176,7 +176,7 @@ export function FloatingBetSlipButton() {
         />
         {betSlip.bets.length > 0 && (
           <div
-            className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full flex items-center justify-center bg-primary text-primary-foreground text-xs font-medium shadow-lg border-2 border-white dark:border-background"
+            className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full flex items-center justify-center bg-accent text-accent-foreground text-xs font-medium shadow-lg border-2 border-card"
             style={{ zIndex: 100 }}
           >
             {betSlip.bets.length}

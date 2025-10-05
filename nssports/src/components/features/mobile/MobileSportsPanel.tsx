@@ -146,7 +146,7 @@ export function MobileSportsPanel() {
                                         alt={league.name + ' logo'}
                                         width={24}
                                         height={24}
-                                        className="w-6 h-6 rounded-full object-contain bg-white border border-border"
+                                        className="w-6 h-6 rounded-full object-contain bg-card border border-border"
                                         style={{ minWidth: 24, minHeight: 24 }}
                                         priority
                                       />

@@ -35,7 +35,7 @@ function MobileAccountDropdown({ balance, available, risk }: MobileAccountDropdo
         <>
           {/* Backdrop */}
           <div
-            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
+            className="fixed inset-0 bg-card/80 backdrop-blur-sm z-40"
             onClick={() => setShowDropdown(false)}
           />
           
@@ -64,13 +64,13 @@ function MobileAccountDropdown({ balance, available, risk }: MobileAccountDropdo
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium text-muted-foreground">Available:</span>
-                <span className="text-sm font-bold text-green-600">
+                <span className="text-sm font-bold text-accent">
                   ${available.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                 </span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium text-muted-foreground">Risk:</span>
-                <span className="text-sm font-bold text-red-600">
+                <span className="text-sm font-bold text-destructive">
                   ${risk.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                 </span>
               </div>
@@ -207,11 +207,11 @@ export function Header() {
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="font-medium text-foreground">Available:</span>
-                    <span className="font-bold text-green-600">${available.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                    <span className="font-bold text-accent">${available.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="font-medium text-foreground">Risk:</span>
-                    <span className="font-bold text-red-600">${risk.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                    <span className="font-bold text-destructive">${risk.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
                   </div>
                 </div>
               </div>
