@@ -59,36 +59,41 @@ NorthStar Sports is a comprehensive sports betting platform that provides real-t
 
 ```
 NSSPORTS/
-├── next_frontend/              # Main Next.js application
-│   ├── src/
-│   │   ├── app/               # App Router pages & API routes
-│   │   │   ├── api/           # RESTful API endpoints
-│   │   │   ├── games/         # Games listing page
-│   │   │   ├── live/          # Live games page
-│   │   │   ├── my-bets/       # Betting history page
-│   │   │   └── account/       # User account page
-│   │   ├── components/        # React components
-│   │   │   ├── layouts/       # Layout components
-│   │   │   ├── panels/        # Side panels (nav, bet slip)
-│   │   │   ├── features/      # Feature-specific components
-│   │   │   └── ui/            # Base UI components
-│   │   ├── context/           # React Context providers
-│   │   ├── hooks/             # Custom React hooks
-│   │   ├── lib/               # Utility functions
-│   │   ├── services/          # API services
-│   │   └── types/             # TypeScript definitions
-│   ├── prisma/                # Database schema and seeds
-│   │   ├── schema.prisma      # Prisma schema
-│   │   └── seed.ts            # Database seeding
-│   └── public/                # Static assets
-├── docs/                      # Documentation (to be organized)
-├── .editorconfig              # Editor configuration
-├── .prettierrc.json           # Code formatting rules
-├── .gitattributes             # Git file handling
-├── CONTRIBUTING.md            # Contribution guidelines
-├── CODE_OF_CONDUCT.md         # Community guidelines
-├── SECURITY.md                # Security policies
-└── LICENSE                    # MIT License
+├── nssports/                   # Main Next.js application (App Router)
+│   ├── package.json
+│   ├── next.config.ts
+│   ├── postcss.config.mjs
+│   ├── tsconfig.json
+│   ├── prisma/                 # Database schema and seeds
+│   │   ├── schema.prisma
+│   │   ├── seed.ts
+│   │   └── migrations/
+│   ├── public/                 # Static assets (icons, logos)
+│   └── src/
+│       ├── app/                # App Router routes & pages
+│       │   ├── page.tsx        # Homepage (trending + stats)
+│       │   ├── live/page.tsx   # Live games list
+│       │   ├── games/          # Games index & league routes
+│       │   ├── my-bets/        # Active/history bets
+│       │   ├── account/        # Account views
+│       │   └── globals.css     # Tailwind v4 theme/styles
+│       ├── components/
+│       │   ├── bets/BetCard.tsx
+│       │   ├── features/games/ # ProfessionalGameRow, CompactMobileGameRow
+│       │   └── ui/             # Card, Button, Badge, etc.
+│       ├── context/            # BetSlip, Navigation, etc.
+│       ├── hooks/              # usePaginatedGames, queries
+│       ├── lib/                # formatters, prisma client, utils
+│       ├── services/           # api.ts (client adapters)
+│       └── types/              # Game, Bet, User models
+├── scripts/                    # Utility scripts
+│   ├── clean.py
+│   ├── start.py
+│   └── README.md
+├── CONTRIBUTING.md
+├── LICENSE
+├── README.md                   # This file
+└── SECURITY.md
 
 ```
 
@@ -131,7 +136,7 @@ NSSPORTS/
 
 2. **Install dependencies**
    ```bash
-   cd next_frontend
+   cd nssports/nssports
    npm install
    ```
 
@@ -235,7 +240,7 @@ RESTful API endpoints are available at `/api`:
 
 ### Environment Configuration
 
-Create a `.env.local` file in the `next_frontend` directory:
+Create a `.env.local` file in the `nssports` app directory (`NSSPORTS/nssports`):
 
 ```env
 # Database (required)
@@ -264,7 +269,7 @@ ALLOWED_ORIGINS="http://localhost:3000"
 
 ```bash
 # Build image
-docker build -t nssports ./next_frontend
+docker build -t nssports ./nssports
 
 # Run container
 docker run -p 3000:3000 nssports
