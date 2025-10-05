@@ -11,9 +11,27 @@ import { ProfessionalGameRow, CompactMobileGameRow, MobileGameTableHeader, Deskt
 export default function Home() {
   const activeBetsCount = 3;
   const [trendingGames, setTrendingGames] = useState<Game[]>([]);
+  const [loadingTrending, setLoadingTrending] = useState(true);
 
   useEffect(() => {
-    getLiveGames().then((games) => setTrendingGames(games.slice(0, 5)));
+    let mounted = true;
+    const load = async () => {
+      try {
+        setLoadingTrending(true);
+        const games = await getLiveGames();
+        if (!mounted) return;
+        setTrendingGames(games.slice(0, 5));
+      } catch (e) {
+        if (!mounted) return;
+        setTrendingGames([]);
+      } finally {
+        if (mounted) setLoadingTrending(false);
+      }
+    };
+    load();
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   return (
@@ -60,7 +78,12 @@ export default function Home() {
             
             {/* Games List - Responsive like /live page */}
             <div className="space-y-3">
-              {trendingGames.length === 0 ? (
+              {loadingTrending ? (
+                <div className="text-center py-12">
+                  <div className="animate-spin w-8 h-8 border-2 border-accent border-t-transparent rounded-full mx-auto mb-4"></div>
+                  <p className="text-muted-foreground">Loading games...</p>
+                </div>
+              ) : trendingGames.length === 0 ? (
                 <div className="text-center py-12">
                   <p className="text-muted-foreground">No trending games right now.</p>
                   <p className="text-sm text-muted-foreground mt-2">
