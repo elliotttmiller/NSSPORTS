@@ -6,8 +6,91 @@ import { formatOdds, formatSpreadLine, formatGameTime } from "@/lib/formatters";
 import { Button } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import { useBetSlip } from "@/context";
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { PlayerPropsList, GamePropsList } from "@/components/features/props";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui";
+
+// Helper component for displaying props with tabs
+function PropsDisplay({ game, playerProps, gameProps }: any) {
+  const [activeTab, setActiveTab] = useState<'player' | 'game' | 'info'>('player');
+
+  return (
+    <div className="w-full">
+      <div className="inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground mb-4">
+        <button
+          onClick={() => setActiveTab('player')}
+          className={cn(
+            "inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium transition-all",
+            activeTab === 'player' && "bg-background text-foreground shadow-sm"
+          )}
+        >
+          Player Props
+        </button>
+        <button
+          onClick={() => setActiveTab('game')}
+          className={cn(
+            "inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium transition-all",
+            activeTab === 'game' && "bg-background text-foreground shadow-sm"
+          )}
+        >
+          Game Props
+        </button>
+        <button
+          onClick={() => setActiveTab('info')}
+          className={cn(
+            "inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium transition-all",
+            activeTab === 'info' && "bg-background text-foreground shadow-sm"
+          )}
+        >
+          Game Info
+        </button>
+      </div>
+
+      {activeTab === 'player' && (
+        <PlayerPropsList game={game} playerProps={playerProps} />
+      )}
+
+      {activeTab === 'game' && (
+        <GamePropsList game={game} gameProps={gameProps} />
+      )}
+
+      {activeTab === 'info' && (
+        <div className="space-y-3">
+          <div className="mb-2 text-sm font-semibold text-accent">Game Details</div>
+          <div className="grid grid-cols-2 gap-3 text-xs">
+            <div>
+              <span className="text-muted-foreground">Start Time:</span>
+              <div className="font-medium">{formatGameTime(game.startTime)}</div>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Status:</span>
+              <div className="font-medium capitalize">{game.status}</div>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Away Team:</span>
+              <div className="font-medium">{game.awayTeam.name}</div>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Home Team:</span>
+              <div className="font-medium">{game.homeTeam.name}</div>
+            </div>
+            <div>
+              <span className="text-muted-foreground">League:</span>
+              <div className="font-medium uppercase">{game.leagueId}</div>
+            </div>
+            {game.venue && (
+              <div>
+                <span className="text-muted-foreground">Venue:</span>
+                <div className="font-medium">{game.venue}</div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface ProfessionalGameRowProps {
   game: Game;
@@ -25,6 +108,33 @@ export function ProfessionalGameRow({
   const timeString = formatGameTime(game.startTime);
   const { addBet, removeBet, betSlip } = useBetSlip();
   const [expanded, setExpanded] = useState(false);
+  const [playerProps, setPlayerProps] = useState<any[]>([]);
+  const [gameProps, setGameProps] = useState<any>({});
+  const [propsLoading, setPropsLoading] = useState(false);
+
+  // Fetch props when expanded
+  useEffect(() => {
+    if (expanded && playerProps.length === 0) {
+      setPropsLoading(true);
+      
+      // Fetch player props
+      fetch(`/api/player-props?gameId=${game.id}`)
+        .then((res) => res.json())
+        .then((data) => {
+          setPlayerProps(data.data || []);
+        })
+        .catch((err) => console.error("Error fetching player props:", err));
+
+      // Fetch game props
+      fetch(`/api/game-props?gameId=${game.id}`)
+        .then((res) => res.json())
+        .then((data) => {
+          setGameProps(data.data || {});
+        })
+        .catch((err) => console.error("Error fetching game props:", err))
+        .finally(() => setPropsLoading(false));
+    }
+  }, [expanded, game.id, playerProps.length]);
 
   const getBetId = useCallback(
     (betType: string, selection: string) => {
@@ -304,28 +414,18 @@ export function ProfessionalGameRow({
         {expanded && (
           <motion.div
             initial={{ maxHeight: 0, opacity: 0 }}
-            animate={{ maxHeight: 500, opacity: 1 }}
+            animate={{ maxHeight: 800, opacity: 1 }}
             exit={{ maxHeight: 0, opacity: 0 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
             className="overflow-hidden bg-muted/20 border-t border-border px-4 py-4 rounded-b-lg shadow-md"
           >
-            {/* Future: Player/Game Prop Bets UI goes here */}
-            <div className="mb-3 text-center text-xs text-muted-foreground">
-              Game props and player props coming soon...
-            </div>
-            <div className="mb-2 text-sm font-semibold text-accent">Game Info</div>
-            <div className="mb-2 text-xs text-muted-foreground">Start Time: {formatGameTime(game.startTime)}</div>
-            <div className="mb-2 text-xs text-muted-foreground">Teams: {game.awayTeam.name} vs {game.homeTeam.name}</div>
-            <div className="mb-2 text-xs text-muted-foreground">League: {game.leagueId}</div>
-            <div className="mt-4">
-              <div className="text-xs font-semibold mb-1 text-muted-foreground">Upcoming Features:</div>
-              <ul className="list-disc pl-5 text-xs text-muted-foreground space-y-1">
-                <li>Player prop bets</li>
-                <li>Live stats</li>
-                <li>Team analytics</li>
-                <li>Bet recommendations</li>
-              </ul>
-            </div>
+            {propsLoading ? (
+              <div className="text-center py-8 text-sm text-muted-foreground">
+                Loading props...
+              </div>
+            ) : (
+              <PropsDisplay game={game} playerProps={playerProps} gameProps={gameProps} />
+            )}
           </motion.div>
         )}
       </AnimatePresence>

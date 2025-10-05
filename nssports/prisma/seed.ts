@@ -8,6 +8,9 @@ async function main() {
   // Clear existing data
   console.log('Clearing existing data...');
   await prisma.bet.deleteMany();
+  await prisma.gameProp.deleteMany();
+  await prisma.playerProp.deleteMany();
+  await prisma.player.deleteMany();
   await prisma.odds.deleteMany();
   await prisma.game.deleteMany();
   await prisma.team.deleteMany();
@@ -435,6 +438,139 @@ async function main() {
   }
   const nhlGameCount = await prisma.game.count({ where: { leagueId: 'nhl' } });
   console.log(`Inserted ${nhlGameCount} NHL games`);
+
+  // Create NBA Players
+  console.log('Creating NBA players...');
+  const nbaPlayers = [
+    // Lakers players
+    { id: 'player-lebron', name: 'LeBron James', teamId: 'nba-lakers', position: 'F', jerseyNumber: '23' },
+    { id: 'player-ad', name: 'Anthony Davis', teamId: 'nba-lakers', position: 'F-C', jerseyNumber: '3' },
+    { id: 'player-reaves', name: 'Austin Reaves', teamId: 'nba-lakers', position: 'G', jerseyNumber: '15' },
+    // Warriors players
+    { id: 'player-curry', name: 'Stephen Curry', teamId: 'nba-warriors', position: 'G', jerseyNumber: '30' },
+    { id: 'player-wiggins', name: 'Andrew Wiggins', teamId: 'nba-warriors', position: 'F', jerseyNumber: '22' },
+    { id: 'player-green', name: 'Draymond Green', teamId: 'nba-warriors', position: 'F', jerseyNumber: '23' },
+    // Celtics players
+    { id: 'player-tatum', name: 'Jayson Tatum', teamId: 'nba-celtics', position: 'F', jerseyNumber: '0' },
+    { id: 'player-brown', name: 'Jaylen Brown', teamId: 'nba-celtics', position: 'G-F', jerseyNumber: '7' },
+    { id: 'player-white', name: 'Derrick White', teamId: 'nba-celtics', position: 'G', jerseyNumber: '9' },
+    // Heat players
+    { id: 'player-butler', name: 'Jimmy Butler', teamId: 'nba-heat', position: 'F', jerseyNumber: '22' },
+    { id: 'player-bam', name: 'Bam Adebayo', teamId: 'nba-heat', position: 'C', jerseyNumber: '13' },
+    { id: 'player-herro', name: 'Tyler Herro', teamId: 'nba-heat', position: 'G', jerseyNumber: '14' },
+    // 76ers players
+    { id: 'player-embiid', name: 'Joel Embiid', teamId: 'nba-76ers', position: 'C', jerseyNumber: '21' },
+    { id: 'player-maxey', name: 'Tyrese Maxey', teamId: 'nba-76ers', position: 'G', jerseyNumber: '0' },
+    { id: 'player-harris', name: 'Tobias Harris', teamId: 'nba-76ers', position: 'F', jerseyNumber: '12' },
+    // Nets players
+    { id: 'player-bridges', name: 'Mikal Bridges', teamId: 'nba-nets', position: 'F', jerseyNumber: '1' },
+    { id: 'player-cam-johnson', name: 'Cameron Johnson', teamId: 'nba-nets', position: 'F', jerseyNumber: '2' },
+    { id: 'player-claxton', name: 'Nic Claxton', teamId: 'nba-nets', position: 'C', jerseyNumber: '33' },
+  ];
+  
+  for (const player of nbaPlayers) {
+    try {
+      await prisma.player.create({ data: player });
+    } catch (e) {
+      console.error('Error creating NBA player:', player, e);
+    }
+  }
+  console.log(`Inserted ${nbaPlayers.length} NBA players`);
+
+  // Create Player Props for NBA Game 1 (Lakers vs Warriors)
+  console.log('Creating player props for NBA games...');
+  const playerPropsGame1 = [
+    // LeBron James
+    { gameId: '1', playerId: 'player-lebron', statType: 'Points', line: 27.5, overOdds: -115, underOdds: -105, category: 'scoring' },
+    { gameId: '1', playerId: 'player-lebron', statType: 'Rebounds', line: 8.5, overOdds: -110, underOdds: -110, category: 'scoring' },
+    { gameId: '1', playerId: 'player-lebron', statType: 'Assists', line: 6.5, overOdds: -120, underOdds: 100, category: 'scoring' },
+    { gameId: '1', playerId: 'player-lebron', statType: 'Points + Rebounds + Assists', line: 42.5, overOdds: -110, underOdds: -110, category: 'scoring' },
+    // Anthony Davis
+    { gameId: '1', playerId: 'player-ad', statType: 'Points', line: 24.5, overOdds: -110, underOdds: -110, category: 'scoring' },
+    { gameId: '1', playerId: 'player-ad', statType: 'Rebounds', line: 11.5, overOdds: -105, underOdds: -115, category: 'scoring' },
+    { gameId: '1', playerId: 'player-ad', statType: 'Blocks', line: 1.5, overOdds: -140, underOdds: 120, category: 'defense' },
+    // Stephen Curry
+    { gameId: '1', playerId: 'player-curry', statType: 'Points', line: 29.5, overOdds: -110, underOdds: -110, category: 'scoring' },
+    { gameId: '1', playerId: 'player-curry', statType: 'Three-Pointers Made', line: 4.5, overOdds: -125, underOdds: 105, category: 'scoring' },
+    { gameId: '1', playerId: 'player-curry', statType: 'Assists', line: 5.5, overOdds: -105, underOdds: -115, category: 'scoring' },
+    // Andrew Wiggins
+    { gameId: '1', playerId: 'player-wiggins', statType: 'Points', line: 17.5, overOdds: -110, underOdds: -110, category: 'scoring' },
+    { gameId: '1', playerId: 'player-wiggins', statType: 'Rebounds', line: 4.5, overOdds: -110, underOdds: -110, category: 'scoring' },
+  ];
+
+  const playerPropsGame2 = [
+    // Jayson Tatum
+    { gameId: '2', playerId: 'player-tatum', statType: 'Points', line: 28.5, overOdds: -110, underOdds: -110, category: 'scoring' },
+    { gameId: '2', playerId: 'player-tatum', statType: 'Rebounds', line: 8.5, overOdds: -115, underOdds: -105, category: 'scoring' },
+    { gameId: '2', playerId: 'player-tatum', statType: 'Assists', line: 4.5, overOdds: -105, underOdds: -115, category: 'scoring' },
+    // Jaylen Brown
+    { gameId: '2', playerId: 'player-brown', statType: 'Points', line: 23.5, overOdds: -110, underOdds: -110, category: 'scoring' },
+    { gameId: '2', playerId: 'player-brown', statType: 'Rebounds', line: 5.5, overOdds: -110, underOdds: -110, category: 'scoring' },
+    // Jimmy Butler
+    { gameId: '2', playerId: 'player-butler', statType: 'Points', line: 21.5, overOdds: -110, underOdds: -110, category: 'scoring' },
+    { gameId: '2', playerId: 'player-butler', statType: 'Rebounds', line: 6.5, overOdds: -105, underOdds: -115, category: 'scoring' },
+    { gameId: '2', playerId: 'player-butler', statType: 'Assists', line: 5.5, overOdds: -120, underOdds: 100, category: 'scoring' },
+    // Bam Adebayo
+    { gameId: '2', playerId: 'player-bam', statType: 'Points', line: 18.5, overOdds: -110, underOdds: -110, category: 'scoring' },
+    { gameId: '2', playerId: 'player-bam', statType: 'Rebounds', line: 10.5, overOdds: -110, underOdds: -110, category: 'scoring' },
+  ];
+
+  const playerPropsGame3 = [
+    // Joel Embiid
+    { gameId: '3', playerId: 'player-embiid', statType: 'Points', line: 32.5, overOdds: -110, underOdds: -110, category: 'scoring' },
+    { gameId: '3', playerId: 'player-embiid', statType: 'Rebounds', line: 10.5, overOdds: -105, underOdds: -115, category: 'scoring' },
+    { gameId: '3', playerId: 'player-embiid', statType: 'Assists', line: 4.5, overOdds: -110, underOdds: -110, category: 'scoring' },
+    // Tyrese Maxey
+    { gameId: '3', playerId: 'player-maxey', statType: 'Points', line: 26.5, overOdds: -115, underOdds: -105, category: 'scoring' },
+    { gameId: '3', playerId: 'player-maxey', statType: 'Assists', line: 6.5, overOdds: -110, underOdds: -110, category: 'scoring' },
+    // Mikal Bridges
+    { gameId: '3', playerId: 'player-bridges', statType: 'Points', line: 20.5, overOdds: -110, underOdds: -110, category: 'scoring' },
+    { gameId: '3', playerId: 'player-bridges', statType: 'Rebounds', line: 4.5, overOdds: -110, underOdds: -110, category: 'scoring' },
+    { gameId: '3', playerId: 'player-bridges', statType: 'Steals', line: 1.5, overOdds: -130, underOdds: 110, category: 'defense' },
+  ];
+
+  const allPlayerProps = [...playerPropsGame1, ...playerPropsGame2, ...playerPropsGame3];
+  for (const prop of allPlayerProps) {
+    try {
+      await prisma.playerProp.create({ data: prop });
+    } catch (e) {
+      console.error('Error creating player prop:', prop, e);
+    }
+  }
+  console.log(`Inserted ${allPlayerProps.length} player props`);
+
+  // Create Game Props
+  console.log('Creating game props...');
+  const gameProps = [
+    // Game 1 props
+    { gameId: '1', propType: 'first_basket', description: 'First Basket Scorer', selection: 'LeBron James', odds: 650, line: null },
+    { gameId: '1', propType: 'first_basket', description: 'First Basket Scorer', selection: 'Stephen Curry', odds: 600, line: null },
+    { gameId: '1', propType: 'first_basket', description: 'First Basket Scorer', selection: 'Anthony Davis', odds: 700, line: null },
+    { gameId: '1', propType: 'total_threes', description: 'Total Three-Pointers Made', selection: 'over', odds: -110, line: 24.5 },
+    { gameId: '1', propType: 'total_threes', description: 'Total Three-Pointers Made', selection: 'under', odds: -110, line: 24.5 },
+    { gameId: '1', propType: 'winning_margin', description: 'Winning Margin', selection: '1-5 points', odds: 300, line: null },
+    { gameId: '1', propType: 'winning_margin', description: 'Winning Margin', selection: '6-10 points', odds: 350, line: null },
+    { gameId: '1', propType: 'winning_margin', description: 'Winning Margin', selection: '11+ points', odds: 400, line: null },
+    // Game 2 props
+    { gameId: '2', propType: 'first_basket', description: 'First Basket Scorer', selection: 'Jayson Tatum', odds: 550, line: null },
+    { gameId: '2', propType: 'first_basket', description: 'First Basket Scorer', selection: 'Jimmy Butler', odds: 600, line: null },
+    { gameId: '2', propType: 'double_double', description: 'Player to Record Double-Double', selection: 'Bam Adebayo', odds: 200, line: null },
+    { gameId: '2', propType: 'double_double', description: 'Player to Record Double-Double', selection: 'Jayson Tatum', odds: 250, line: null },
+    // Game 3 props
+    { gameId: '3', propType: 'first_basket', description: 'First Basket Scorer', selection: 'Joel Embiid', odds: 500, line: null },
+    { gameId: '3', propType: 'first_basket', description: 'First Basket Scorer', selection: 'Tyrese Maxey', odds: 650, line: null },
+    { gameId: '3', propType: 'race_to', description: 'Race to 20 Points', selection: '76ers', odds: -135, line: null },
+    { gameId: '3', propType: 'race_to', description: 'Race to 20 Points', selection: 'Nets', odds: 115, line: null },
+  ];
+
+  for (const prop of gameProps) {
+    try {
+      await prisma.gameProp.create({ data: prop });
+    } catch (e) {
+      console.error('Error creating game prop:', prop, e);
+    }
+  }
+  console.log(`Inserted ${gameProps.length} game props`);
 
   // Ensure demo account exists
   console.log('Upserting demo account...');
