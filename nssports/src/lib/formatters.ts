@@ -36,6 +36,21 @@ export function formatCurrency(amount: number): string {
   }).format(amount);
 }
 
+// Format currency in compact notation for tight spaces (e.g., mobile): $10K, $1.2M
+export function formatCurrencyCompact(amount: number): string {
+  const isNegative = amount < 0;
+  const abs = Math.abs(amount);
+  const formatted = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    notation: "compact",
+    compactDisplay: "short",
+    maximumFractionDigits: abs >= 1000 ? 1 : 2,
+    minimumFractionDigits: 0,
+  }).format(abs);
+  return isNegative ? `-${formatted}` : formatted;
+}
+
 // Format date/time
 export function formatGameTime(date: Date | string): string {
   const gameDate = typeof date === "string" ? new Date(date) : date;
@@ -52,4 +67,14 @@ export function formatGameDate(date: Date | string): string {
     month: "short",
     day: "numeric",
   });
+}
+
+// Format currency without cents (no decimals)
+export function formatCurrencyNoCents(amount: number): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
 }
