@@ -1,6 +1,6 @@
 "use client";
 
-import { PropCategory } from "./PropCategory";
+import { StatTypeCategory } from "./StatTypeCategory";
 import { Game } from "@/types";
 
 interface PlayerPropsListProps {
@@ -19,14 +19,20 @@ interface PlayerPropsListProps {
   }>;
 }
 
-// Category metadata with icons and proper names
-const categoryMetadata: Record<string, { name: string; icon: string; priority: number }> = {
-  scoring: { name: "Scoring Props", icon: "🎯", priority: 1 },
-  defense: { name: "Defensive Props", icon: "🛡️", priority: 2 },
-  passing: { name: "Passing Props", icon: "🏈", priority: 3 },
-  rushing: { name: "Rushing Props", icon: "🏃", priority: 4 },
-  receiving: { name: "Receiving Props", icon: "🙌", priority: 5 },
-  kicking: { name: "Kicking Props", icon: "⚽", priority: 6 },
+// Stat type priority for sorting
+const statTypePriority: Record<string, number> = {
+  Points: 1,
+  Rebounds: 2,
+  Assists: 3,
+  Steals: 4,
+  Blocks: 5,
+  "Three-Pointers Made": 6,
+  "Passing Yards": 7,
+  "Passing TDs": 8,
+  "Rushing Yards": 9,
+  "Receiving Yards": 10,
+  Receptions: 11,
+  Touchdowns: 12,
 };
 
 export function PlayerPropsList({ game, playerProps }: PlayerPropsListProps) {
@@ -38,23 +44,23 @@ export function PlayerPropsList({ game, playerProps }: PlayerPropsListProps) {
     );
   }
 
-  // Group props by category
-  const propsByCategory = playerProps.reduce((acc, prop) => {
-    if (!acc[prop.category]) {
-      acc[prop.category] = [];
+  // Group props by stat type (this is now the primary organization)
+  const propsByStatType = playerProps.reduce((acc, prop) => {
+    if (!acc[prop.statType]) {
+      acc[prop.statType] = [];
     }
-    acc[prop.category].push(prop);
+    acc[prop.statType].push(prop);
     return acc;
   }, {} as Record<string, typeof playerProps>);
 
-  // Sort categories by priority
-  const sortedCategories = Object.keys(propsByCategory).sort((a, b) => {
-    const priorityA = categoryMetadata[a]?.priority || 999;
-    const priorityB = categoryMetadata[b]?.priority || 999;
+  // Sort stat types by priority
+  const sortedStatTypes = Object.keys(propsByStatType).sort((a, b) => {
+    const priorityA = statTypePriority[a] || 999;
+    const priorityB = statTypePriority[b] || 999;
     return priorityA - priorityB;
   });
 
-  if (sortedCategories.length === 0) {
+  if (sortedStatTypes.length === 0) {
     return (
       <div className="text-center py-8 text-sm text-muted-foreground">
         No player props available for this game.
@@ -64,23 +70,17 @@ export function PlayerPropsList({ game, playerProps }: PlayerPropsListProps) {
 
   return (
     <div className="space-y-3">
-      {sortedCategories.map((categoryKey, index) => {
-        const metadata = categoryMetadata[categoryKey] || {
-          name: categoryKey.charAt(0).toUpperCase() + categoryKey.slice(1),
-          icon: "📊",
-          priority: 999,
-        };
-
+      {sortedStatTypes.map((statType, index) => {
         return (
-          <PropCategory
-            key={categoryKey}
-            category={{
-              name: metadata.name,
-              icon: metadata.icon,
-              props: propsByCategory[categoryKey],
+          <StatTypeCategory
+            key={statType}
+            statType={{
+              name: statType,
+              displayName: statType,
+              props: propsByStatType[statType],
             }}
             game={game}
-            defaultOpen={index === 0} // Open first category by default
+            defaultOpen={index === 0} // Open first stat type by default
           />
         );
       })}

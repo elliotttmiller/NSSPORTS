@@ -13,7 +13,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui";
 
 // Helper component for displaying props with tabs
 function PropsDisplay({ game, playerProps, gameProps }: any) {
-  const [activeTab, setActiveTab] = useState<'player' | 'game' | 'info'>('player');
+  const [activeTab, setActiveTab] = useState<'player' | 'game'>('player');
 
   return (
     <div className="w-full">
@@ -36,15 +36,6 @@ function PropsDisplay({ game, playerProps, gameProps }: any) {
         >
           Game Props
         </button>
-        <button
-          onClick={() => setActiveTab('info')}
-          className={cn(
-            "inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium transition-all",
-            activeTab === 'info' && "bg-background text-foreground shadow-sm"
-          )}
-        >
-          Game Info
-        </button>
       </div>
 
       {activeTab === 'player' && (
@@ -53,40 +44,6 @@ function PropsDisplay({ game, playerProps, gameProps }: any) {
 
       {activeTab === 'game' && (
         <GamePropsList game={game} gameProps={gameProps} />
-      )}
-
-      {activeTab === 'info' && (
-        <div className="space-y-3">
-          <div className="mb-2 text-sm font-semibold text-accent">Game Details</div>
-          <div className="grid grid-cols-2 gap-3 text-xs">
-            <div>
-              <span className="text-muted-foreground">Start Time:</span>
-              <div className="font-medium">{formatGameTime(game.startTime)}</div>
-            </div>
-            <div>
-              <span className="text-muted-foreground">Status:</span>
-              <div className="font-medium capitalize">{game.status}</div>
-            </div>
-            <div>
-              <span className="text-muted-foreground">Away Team:</span>
-              <div className="font-medium">{game.awayTeam.name}</div>
-            </div>
-            <div>
-              <span className="text-muted-foreground">Home Team:</span>
-              <div className="font-medium">{game.homeTeam.name}</div>
-            </div>
-            <div>
-              <span className="text-muted-foreground">League:</span>
-              <div className="font-medium uppercase">{game.leagueId}</div>
-            </div>
-            {game.venue && (
-              <div>
-                <span className="text-muted-foreground">Venue:</span>
-                <div className="font-medium">{game.venue}</div>
-              </div>
-            )}
-          </div>
-        </div>
       )}
     </div>
   );
