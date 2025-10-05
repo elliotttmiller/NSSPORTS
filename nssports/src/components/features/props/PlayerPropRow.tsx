@@ -59,53 +59,53 @@ export function PlayerPropRow({ prop, game }: PlayerPropRowProps) {
   };
 
   return (
-    <div className="grid grid-cols-[1fr_auto_auto] gap-3 items-center py-3 border-b border-border/50 hover:bg-muted/20 transition-colors px-3 -mx-3">
-      <div className="flex flex-col">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-foreground">
+    <div className="grid grid-cols-[1fr_auto_auto] md:grid-cols-[1.5fr_auto_auto] gap-2 md:gap-3 items-center py-3 border-b border-border/50 hover:bg-muted/20 transition-colors px-2 md:px-3 -mx-2 md:-mx-3 last:border-b-0">
+      <div className="flex flex-col min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs md:text-sm font-semibold text-foreground truncate">
             {prop.playerName}
           </span>
-          <span className="text-xs text-muted-foreground">
+          <span className="text-xs text-muted-foreground flex-shrink-0">
             {prop.position}
           </span>
         </div>
-        <div className="text-xs text-muted-foreground mt-0.5">
+        <div className="text-xs text-muted-foreground mt-0.5 hidden md:block">
           {prop.statType}
         </div>
       </div>
 
-      <div className="flex flex-col items-center">
+      <div className="flex flex-col items-center flex-shrink-0">
         <Button
           size="sm"
           variant={isBetInSlip("over") ? "default" : "outline"}
           onClick={(e) => handleBetClick("over", prop.overOdds, e)}
           className={cn(
-            "min-w-[80px] h-9 text-xs font-medium",
+            "min-w-[70px] md:min-w-[80px] h-8 md:h-9 text-xs font-medium",
             isBetInSlip("over") &&
               "bg-primary text-primary-foreground border-primary"
           )}
         >
           <div className="flex flex-col items-center leading-tight">
             <span className="text-[10px] opacity-80">O {prop.line}</span>
-            <span className="font-semibold">{formatOdds(prop.overOdds)}</span>
+            <span className="font-semibold text-[11px] md:text-xs">{formatOdds(prop.overOdds)}</span>
           </div>
         </Button>
       </div>
 
-      <div className="flex flex-col items-center">
+      <div className="flex flex-col items-center flex-shrink-0">
         <Button
           size="sm"
           variant={isBetInSlip("under") ? "default" : "outline"}
           onClick={(e) => handleBetClick("under", prop.underOdds, e)}
           className={cn(
-            "min-w-[80px] h-9 text-xs font-medium",
+            "min-w-[70px] md:min-w-[80px] h-8 md:h-9 text-xs font-medium",
             isBetInSlip("under") &&
               "bg-primary text-primary-foreground border-primary"
           )}
         >
           <div className="flex flex-col items-center leading-tight">
             <span className="text-[10px] opacity-80">U {prop.line}</span>
-            <span className="font-semibold">{formatOdds(prop.underOdds)}</span>
+            <span className="font-semibold text-[11px] md:text-xs">{formatOdds(prop.underOdds)}</span>
           </div>
         </Button>
       </div>
