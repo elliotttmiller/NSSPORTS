@@ -1,16 +1,14 @@
 import Lenis from '@studio-freight/lenis';
 
 export const initLenis = (isMobile: boolean = false) => {
+  if (typeof window === 'undefined') return null;
+
   const lenis = new Lenis({
-    // Mobile-optimized settings vs Desktop settings
-    duration: isMobile ? 1.2 : 2.5, // Faster on mobile for responsive feel
-    easing: isMobile 
-      ? (t: number) => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2 // Smooth but snappy easing for mobile
-      : (t: number) => 1 - Math.pow(1 - t, 4), // Quartic ease-out for desktop
-    touchMultiplier: isMobile ? 1.5 : 0.8, // Higher sensitivity on mobile for natural touch
-    wheelMultiplier: isMobile ? 1.0 : 0.4, // Standard wheel on mobile, reduced on desktop
-    lerp: isMobile ? 0.1 : 0.05, // Less smooth interpolation on mobile for better performance
-    wrapper: window, // Use window for both mobile and desktop for consistency
+    duration: 1.3,
+    easing: (t: number) => 1 - Math.pow(1 - t, 3), // cubic ease-out for a natural feel
+    touchMultiplier: 1.0,
+    wheelMultiplier: 0.8,
+    lerp: 0.07,
   });
 
   // Global scroll shadow effect for all game pages/lists
@@ -43,11 +41,12 @@ export const initLenis = (isMobile: boolean = false) => {
     }));
   });
 
-  function raf(time: number) {
+  let rafId: number;
+  const raf = (time: number) => {
     lenis.raf(time);
-    requestAnimationFrame(raf);
-  }
-  requestAnimationFrame(raf);
+    rafId = requestAnimationFrame(raf);
+  };
+  rafId = requestAnimationFrame(raf);
 
   return lenis;
 };

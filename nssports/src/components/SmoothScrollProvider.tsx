@@ -21,13 +21,12 @@ export function SmoothScrollProvider({ children }: { children: React.ReactNode }
   }, []);
 
   useEffect(() => {
-    // Initialize Lenis for both mobile and desktop with device-specific settings
-    const lenis = initLenis(isMobile);
-    
+    // On mobile, prefer native momentum scrolling for best UX
+    if (isMobile) return;
+
+    const lenis = initLenis(false);
     return () => {
-      if (lenis) {
-        lenis.destroy();
-      }
+      if (lenis) lenis.destroy();
     };
   }, [isMobile]);
 

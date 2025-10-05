@@ -24,6 +24,36 @@ export type BetCardBaseProps = {
   status: BetStatus;
 };
 
+function BetSummary({ stake, payout, status }: { stake: number; payout: number; status: BetStatus }) {
+  return (
+    <div className="pt-3 border-t border-border/50">
+      <div className="grid grid-cols-3 gap-4">
+        <div className="flex flex-col gap-0.5">
+          <span className="text-xs text-muted-foreground">Total Stake</span>
+          <span className="text-sm font-semibold tabular-nums">{formatCurrency(stake)}</span>
+        </div>
+        <div className="flex flex-col gap-0.5">
+          <span className="text-xs text-muted-foreground">Potential Payout</span>
+          <span className="text-sm font-semibold tabular-nums">{formatCurrency(status !== 'lost' ? payout : 0)}</span>
+        </div>
+        <div className="flex flex-col gap-0.5 items-end text-right">
+          <span className="text-xs text-muted-foreground">Potential Profit</span>
+          <span className={cn(
+            "text-sm font-bold tabular-nums",
+            (status === 'lost' ? -stake : (payout - stake)) >= 0 ? "text-green-600" : "text-red-600"
+          )}>
+            {(() => {
+              const profit = status === 'lost' ? -stake : (payout - stake);
+              const sign = profit > 0 ? '+' : '';
+              return `${sign}${formatCurrency(profit)}`;
+            })()}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export type BetCardSingleProps = BetCardBaseProps & {
   selection: string;
   odds: number;
@@ -84,31 +114,7 @@ export function BetCardSingle({
           <Badge variant="outline" className="text-xs font-medium">{formatOdds(odds)}</Badge>
         </div>
   {children}
-  {showTotals && (
-  <div className="space-y-2 pt-3 border-t border-border/50">
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">Stake:</span>
-            <span className="text-sm font-semibold">{formatCurrency(stake)}</span>
-          </div>
-          {status !== "lost" ? (
-            <>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Payout:</span>
-                <span className="text-sm font-semibold">{formatCurrency(payout)}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Profit:</span>
-                <span className="text-sm font-bold text-green-600">+{formatCurrency(payout - stake)}</span>
-              </div>
-            </>
-          ) : (
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">Loss:</span>
-              <span className="text-sm font-bold text-red-600">{formatCurrency(-stake)}</span>
-            </div>
-          )}
-  </div>
-  )}
+  {showTotals && <BetSummary stake={stake} payout={payout} status={status} />}
       </CardContent>
     </Card>
   );
@@ -160,31 +166,7 @@ export function BetCardParlay({ placedAt, status, stake, payout, legs, children,
           ))}
         </div>
   {children}
-  {showTotals && (
-  <div className="space-y-2 pt-3 border-t border-border/50">
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">Total Stake:</span>
-            <span className="text-sm font-semibold">{formatCurrency(stake)}</span>
-          </div>
-          {status !== "lost" ? (
-            <>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Potential Payout:</span>
-                <span className="text-sm font-semibold text-accent">{formatCurrency(payout)}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Potential Profit:</span>
-                <span className="text-sm font-bold text-accent">{formatCurrency(payout - stake)}</span>
-              </div>
-            </>
-          ) : (
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">Loss:</span>
-              <span className="text-sm font-bold text-red-600">{formatCurrency(-(stake))}</span>
-            </div>
-          )}
-  </div>
-  )}
+  {showTotals && <BetSummary stake={stake} payout={payout} status={status} />}
       </CardContent>
     </Card>
   );
