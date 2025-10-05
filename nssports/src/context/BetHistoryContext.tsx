@@ -4,12 +4,9 @@ import {
   createContext,
   useContext,
   ReactNode,
-  useState,
-  useCallback,
-  useEffect,
 } from "react";
-import { getBetHistory } from "@/services/api";
 import { Bet } from "@/types";
+import { useBetHistoryQuery, usePlaceBet } from "@/hooks/useBetHistory";
 
 export interface PlacedBet {
   id: string;
@@ -72,15 +69,15 @@ export interface PlacedBet {
 
 interface BetHistoryContextType {
   placedBets: PlacedBet[];
-    loading: boolean;
-    refreshBetHistory: () => Promise<void>;
-    addPlacedBet: (
-      bets: Bet[],
-      betType: "single" | "parlay",
-      totalStake: number,
-      totalPayout: number,
-      totalOdds: number,
-    ) => void;
+  loading: boolean;
+  refreshBetHistory: () => Promise<void>;
+  addPlacedBet: (
+    bets: Bet[],
+    betType: "single" | "parlay",
+    totalStake: number,
+    totalPayout: number,
+    totalOdds: number,
+  ) => Promise<void>;
 }
 
 export const BetHistoryContext = createContext<BetHistoryContextType | undefined>(
@@ -102,92 +99,37 @@ interface BetHistoryProviderProps {
 }
 
 export function BetHistoryProvider({ children }: BetHistoryProviderProps) {
-  const [placedBets, setPlacedBets] = useState<PlacedBet[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  // Use React Query for data fetching
+  const { data: placedBets = [], isLoading, refetch } = useBetHistoryQuery();
+  const placeBetMutation = usePlaceBet();
 
-  const fetchBetHistory = useCallback(async () => {
-    setLoading(true);
-    try {
-      const bets = await getBetHistory();
-      setPlacedBets(bets as PlacedBet[]);
-    } catch {
-      setPlacedBets([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const refreshBetHistory = async () => {
+    await refetch();
+  };
 
-  useEffect(() => {
-    fetchBetHistory();
-  }, [fetchBetHistory]);
-
-  // Professional addPlacedBet: supports single and parlay bets
-  const addPlacedBet = useCallback(
-    async (
-      bets: Bet[],
-      betType: "single" | "parlay",
-      totalStake: number,
-      totalPayout: number,
-      totalOdds: number,
-    ) => {
-      if (!bets || bets.length === 0) return;
-      try {
-        if (betType === "parlay") {
-          // Parlay: send all legs in one request
-          const res = await fetch("/api/my-bets", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              gameId: null,
-              betType: "parlay",
-              legs: bets.map((bet) => ({
-                gameId: bet.gameId,
-                betType: bet.betType,
-                selection: bet.selection,
-                odds: bet.odds,
-                line: bet.line ?? null,
-              })),
-              stake: totalStake,
-              potentialPayout: totalPayout,
-              odds: totalOdds,
-              status: "pending",
-            }),
-          });
-          if (!res.ok) throw new Error("Failed to place parlay bet");
-        } else {
-          // Single: send each bet individually (or just the first)
-          for (const bet of bets) {
-            const res = await fetch("/api/my-bets", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                gameId: bet.gameId,
-                betType: bet.betType,
-                selection: bet.selection,
-                odds: bet.odds,
-                line: bet.line ?? null,
-                stake: bet.stake,
-                potentialPayout: bet.potentialPayout,
-                status: "pending",
-              }),
-            });
-            if (!res.ok) throw new Error("Failed to place single bet");
-          }
-        }
-        await fetchBetHistory();
-      } catch {
-        // Optionally handle error (e.g., toast)
-      }
-    },
-    [fetchBetHistory],
-  );
+  // Professional addPlacedBet: supports single and parlay bets with optimistic updates
+  const addPlacedBet = async (
+    bets: Bet[],
+    betType: "single" | "parlay",
+    totalStake: number,
+    totalPayout: number,
+    totalOdds: number,
+  ) => {
+    await placeBetMutation.mutateAsync({
+      bets,
+      betType,
+      totalStake,
+      totalPayout,
+      totalOdds,
+    });
+  };
 
   return (
     <BetHistoryContext.Provider
       value={{
         placedBets,
-        loading,
-        refreshBetHistory: fetchBetHistory,
+        loading: isLoading,
+        refreshBetHistory,
         addPlacedBet,
       }}
     >
