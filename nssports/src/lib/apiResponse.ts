@@ -4,6 +4,15 @@ import { UnauthorizedError } from './errors';
 
 /**
  * Standardized API response utilities following Next.js best practices
+ * 
+ * Backend for Frontend (BFF) Pattern:
+ * - Consistent response structure across all endpoints
+ * - Proper error handling and status codes
+ * - Type-safe responses with TypeScript
+ * - Structured error logging
+ * - Request/response metadata
+ * 
+ * Reference: https://nextjs.org/docs/app/guides/backend-for-frontend
  */
 
 export interface ApiSuccessResponse<T = unknown> {
