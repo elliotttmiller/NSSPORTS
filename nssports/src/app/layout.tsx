@@ -7,6 +7,7 @@ import { BetSlipProvider, NavigationProvider, BetHistoryProvider } from "@/conte
 import { ThreePanelLayout } from "@/components/layouts";
 import { GlobalMotionProvider } from "@/components/layouts/GlobalMotionProvider";
 import { SmoothScrollProvider } from "@/components/SmoothScrollProvider";
+import { AuthProvider } from "@/components/providers/AuthProvider";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -53,20 +54,22 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             transition: "opacity 0.3s",
           }}
         />
-        <QueryProvider>
-          <SmoothScrollProvider>
-            <NavigationProvider>
-              <BetSlipProvider>
-                <BetHistoryProvider>
-                  <GlobalMotionProvider>
-                    <ThreePanelLayout>{children}</ThreePanelLayout>
-                  </GlobalMotionProvider>
-                  <Toaster richColors position="top-right" />
-                </BetHistoryProvider>
-              </BetSlipProvider>
-            </NavigationProvider>
-          </SmoothScrollProvider>
-        </QueryProvider>
+        <AuthProvider>
+          <QueryProvider>
+            <SmoothScrollProvider>
+              <NavigationProvider>
+                <BetSlipProvider>
+                  <BetHistoryProvider>
+                    <GlobalMotionProvider>
+                      <ThreePanelLayout>{children}</ThreePanelLayout>
+                    </GlobalMotionProvider>
+                    <Toaster richColors position="top-right" />
+                  </BetHistoryProvider>
+                </BetSlipProvider>
+              </NavigationProvider>
+            </SmoothScrollProvider>
+          </QueryProvider>
+        </AuthProvider>
       </body>
     </html>
   );
