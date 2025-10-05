@@ -143,8 +143,8 @@ function formatSelectionLabel(
   const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
 
   if (type === 'total') {
-    const sign = typeof line === 'number' && line > 0 ? '+' : '';
-    return `${cap(selection)} ${typeof line === 'number' ? `${sign}${line}` : ''}`.trim();
+  // For totals, do not show a leading plus sign, e.g., "Over 218.5" not "+218.5"
+  return `${cap(selection)} ${typeof line === 'number' ? `${line}` : ''}`.trim();
   }
   if (type === 'moneyline') {
     const team = selection === 'home' ? game?.homeTeam?.shortName : game?.awayTeam?.shortName;
@@ -207,16 +207,14 @@ export function BetCardSingle({
           </div>
         </div>
         <div className="mb-4">
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              <div className="font-semibold text-base md:text-lg leading-6 text-white truncate">
-                {game?.awayTeam?.shortName} / {game?.homeTeam?.shortName}
-              </div>
-              <div className="text-sm text-muted-foreground">
-                {formatSelectionLabel(betType, selection, line, game)}
-              </div>
+          <div className="grid grid-cols-[1fr_auto] grid-rows-[auto_auto] gap-x-4">
+            <div className="font-semibold text-base md:text-lg leading-6 text-white truncate row-start-1 col-start-1">
+              {game?.awayTeam?.shortName} / {game?.homeTeam?.shortName}
             </div>
-            <div className="flex items-center">
+            <div className="text-sm text-muted-foreground mt-3 md:mt-1 row-start-2 col-start-1">
+              {formatSelectionLabel(betType, selection, line, game)}
+            </div>
+            <div className="row-start-2 col-start-2 self-center">
               <Badge variant="outline" className="text-base md:text-lg px-3 py-1 font-semibold">{formatOdds(odds)}</Badge>
             </div>
           </div>
@@ -259,16 +257,14 @@ export function BetCardParlay({ placedAt, status, stake, payout, legs, children,
         <div className="text-sm font-medium text-foreground mb-3">Parlay ({legs.length} picks)</div>
         <div className="space-y-2 mb-4 bg-background/50 rounded-lg p-3">
           {legs.map((leg, idx) => (
-            <div key={idx} className="grid grid-cols-[1fr_auto] items-center py-1 gap-3">
-              <div className="min-w-0">
-                <div className="text-xs text-muted-foreground">
-                  {leg.game?.awayTeam?.shortName} / {leg.game?.homeTeam?.shortName}
-                </div>
-                <div className="text-sm font-medium leading-5 truncate">
-                  {formatSelectionLabel(leg.betType, leg.selection, leg.line, leg.game)}
-                </div>
+            <div key={idx} className="grid grid-cols-[1fr_auto] grid-rows-[auto_auto] py-1 gap-x-3">
+              <div className="text-xs text-muted-foreground row-start-1 col-start-1">
+                {leg.game?.awayTeam?.shortName} / {leg.game?.homeTeam?.shortName}
               </div>
-              <div>
+              <div className="text-sm font-medium leading-5 truncate row-start-2 col-start-1">
+                {formatSelectionLabel(leg.betType, leg.selection, leg.line, leg.game)}
+              </div>
+              <div className="row-start-2 col-start-2 self-center">
                 <Badge variant="outline" className="text-base md:text-lg px-3 py-1 font-semibold">{formatOdds(leg.odds)}</Badge>
               </div>
             </div>
