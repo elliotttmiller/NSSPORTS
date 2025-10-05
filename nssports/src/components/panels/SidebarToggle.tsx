@@ -18,7 +18,7 @@ export function SidebarToggle({ side, isOpen, onToggle }: SidebarToggleProps) {
       variant="outline"
       size="sm"
       onClick={onToggle}
-      className="group h-16 w-8 rounded-full shadow-lg border-2 border-border relative text-foreground/90 transition-all duration-300 ease-[cubic-bezier(.4,0,.2,1)] bg-card/80 backdrop-blur supports-[backdrop-filter]:bg-card/60 hover:shadow-xl hover:-translate-y-1.5 hover:scale-[1.08] active:scale-95 focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:outline-none"
+      className="group h-14 w-7 rounded-full shadow-lg border-2 border-border relative text-foreground/90 transition-all duration-300 ease-[cubic-bezier(.4,0,.2,1)] bg-card/80 backdrop-blur supports-[backdrop-filter]:bg-card/60 hover:shadow-xl hover:-translate-y-1.5 hover:scale-[1.08] active:scale-95 focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:outline-none"
       aria-label={`Toggle ${side} sidebar`}
       aria-pressed={isOpen}
     >
@@ -36,14 +36,14 @@ export function SidebarToggle({ side, isOpen, onToggle }: SidebarToggleProps) {
       >
         {side === "left" ? (
           isOpen ? (
-            <CaretLeft size={18} weight="bold" />
+            <CaretLeft size={16} weight="bold" />
           ) : (
-            <CaretRight size={18} weight="bold" />
+            <CaretRight size={16} weight="bold" />
           )
         ) : isOpen ? (
-          <CaretRight size={18} weight="bold" />
+          <CaretRight size={16} weight="bold" />
         ) : (
-          <CaretLeft size={18} weight="bold" />
+          <CaretLeft size={16} weight="bold" />
         )}
       </span>
       {side === "right" && betSlip.bets.length > 0 && (

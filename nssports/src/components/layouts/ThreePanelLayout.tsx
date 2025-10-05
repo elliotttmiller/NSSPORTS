@@ -30,7 +30,7 @@ export function ThreePanelLayout({ children }: ThreePanelLayoutProps) {
         <div className="flex relative h-full w-full">
           {/* Left Sidebar Toggle Button - Desktop Only - Fixed Position */}
           <div className={`hidden lg:block fixed top-1/2 -translate-y-1/2 z-40 transition-all duration-300 ease-in-out ${
-            sideNavOpen ? "left-[288px]" : "left-0"
+            sideNavOpen ? "left-[296px]" : "left-2"
           }`}
           style={{ top: 'calc(50vh + 2rem)' }}>
             <SidebarToggle
@@ -42,7 +42,7 @@ export function ThreePanelLayout({ children }: ThreePanelLayoutProps) {
 
           {/* Right Sidebar Toggle Button - Desktop Only - Fixed Position */}
           <div className={`hidden lg:block fixed top-1/2 -translate-y-1/2 z-40 transition-all duration-300 ease-in-out ${
-            betSlipOpen ? "right-[384px]" : "right-0"
+            betSlipOpen ? "right-[392px]" : "right-2"
           }`}
           style={{ top: 'calc(50vh + 2rem)' }}>
             <SidebarToggle
