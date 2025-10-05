@@ -37,85 +37,47 @@ function BetSummary({ stake, payout, status }: { stake: number; payout: number; 
   const [scale, setScale] = useState(1);
 
   useEffect(() => {
-    const wraps = [stakeWrapRef.current, profitWrapRef.current, payoutWrapRef.current];
-    const spans = [stakeSpanRef.current, profitSpanRef.current, payoutSpanRef.current];
-    const row = rowRef.current;
-    if (!row || wraps.some(w => !w) || spans.some(s => !s)) return;
-
-    const measure = () => {
-      let minScale = 1;
-      for (let i = 0; i < wraps.length; i++) {
-        const wrap = wraps[i]!;
-        const span = spans[i]!;
-        // Reset before measuring
-        span.style.transform = `scale(1)`;
-        const available = wrap.clientWidth;
-        const needed = span.scrollWidth;
-        if (available > 0 && needed > 0) {
-          const s = Math.min(1, available / needed);
-          if (s < minScale) minScale = s;
-        }
-      }
-      setScale(minScale);
-      // Apply immediately to avoid flicker
-      for (let i = 0; i < spans.length; i++) {
-        spans[i]!.style.transform = `scale(${minScale})`;
-      }
-    };
-
-    const ro = new ResizeObserver(() => measure());
-    ro.observe(row);
-    wraps.forEach(w => w && ro.observe(w));
-    measure();
-    const onWin = () => measure();
-    window.addEventListener('resize', onWin);
-    return () => {
-      ro.disconnect();
-      window.removeEventListener('resize', onWin);
-    };
+    // You can add responsive scaling logic here if needed
   }, [stake, payout, status]);
 
   return (
     <div className="pt-3 border-t border-border/50">
-  <div ref={rowRef} className="grid grid-cols-3 gap-3 sm:gap-4 px-1 sm:px-0">
-        <div className="flex flex-col gap-0.5 min-w-0">
-          <span className="text-xs text-muted-foreground">Stake</span>
-          <div ref={stakeWrapRef} className="w-full overflow-hidden pl-1 sm:pl-0">
+      <div ref={rowRef} className="grid grid-cols-3 gap-3 sm:gap-4 px-1 sm:px-0">
+        <div className="flex flex-col items-center gap-0.5 min-w-0">
+          <span className="text-xs text-muted-foreground text-center">Stake</span>
+          <div ref={stakeWrapRef} className="w-full overflow-hidden flex justify-center">
             <span
               ref={stakeSpanRef}
-              className="inline-block whitespace-nowrap tabular-nums font-semibold leading-tight"
-              style={{ transformOrigin: 'left center' }}
+              className="inline-block whitespace-nowrap tabular-nums font-semibold leading-tight text-center"
+              style={{ transformOrigin: 'center center' }}
             >
               {formatCurrencyNoCents(stake)}
             </span>
           </div>
         </div>
-        <div className="flex flex-col gap-0.5 min-w-0 items-center text-center">
-          <span className="text-xs text-muted-foreground">Profit</span>
-          {(() => {
-            const profit = status === 'lost' ? -stake : (payout - stake);
-            const sign = profit > 0 ? '+' : '';
-            const color = profit >= 0 ? "text-accent" : "text-destructive";
-            return (
-              <div ref={profitWrapRef} className="w-full overflow-hidden">
-                <span
-                  ref={profitSpanRef}
-                  className={cn("inline-block whitespace-nowrap tabular-nums font-bold leading-tight", color)}
-                  style={{ transformOrigin: 'center center' }}
-                >
-                  {`${sign}${formatCurrencyNoCents(profit)}`}
-                </span>
-              </div>
-            );
-          })()}
+        <div className="flex flex-col items-center gap-0.5 min-w-0">
+          <span className="text-xs text-muted-foreground text-center">Profit</span>
+          <div ref={profitWrapRef} className="w-full overflow-hidden flex justify-center">
+            <span
+              ref={profitSpanRef}
+              className="inline-block whitespace-nowrap tabular-nums font-semibold leading-tight text-center"
+              style={{ transformOrigin: 'center center' }}
+            >
+              {(() => {
+                const profit = status === 'lost' ? -stake : (payout - stake);
+                const sign = profit > 0 ? '+' : '';
+                return `${sign}${formatCurrencyNoCents(profit)}`;
+              })()}
+            </span>
+          </div>
         </div>
-        <div className="flex flex-col gap-0.5 items-end text-right min-w-0">
-          <span className="text-xs text-muted-foreground">Payout</span>
-          <div ref={payoutWrapRef} className="w-full overflow-hidden pr-1 sm:pr-0">
+        <div className="flex flex-col items-center gap-0.5 min-w-0">
+          <span className="text-xs text-muted-foreground text-center">Payout</span>
+          <div ref={payoutWrapRef} className="w-full overflow-hidden flex justify-center">
             <span
               ref={payoutSpanRef}
-              className="inline-block whitespace-nowrap tabular-nums font-semibold leading-tight"
-              style={{ transformOrigin: 'right center' }}
+              className="inline-block whitespace-nowrap tabular-nums font-semibold leading-tight text-center"
+              style={{ transformOrigin: 'center center' }}
             >
               {formatCurrencyNoCents(status !== 'lost' ? payout : 0)}
             </span>
@@ -126,27 +88,18 @@ function BetSummary({ stake, payout, status }: { stake: number; payout: number; 
   );
 }
 
-// Infer bet type from selection/line when not provided
-function inferBetType(selection: string, line?: number): 'spread' | 'moneyline' | 'total' {
-  if (selection === 'over' || selection === 'under') return 'total';
-  if (line === null || typeof line === 'undefined') return 'moneyline';
-  return 'spread';
-}
-
-function formatSelectionLabel(
+// Utility function for formatting selection label
+export function formatSelectionLabel(
   betType: string | undefined,
   selection: string,
-  line: number | undefined,
+  line?: number,
   game?: { homeTeam?: { shortName?: string }; awayTeam?: { shortName?: string } }
 ) {
-  const type = (betType as any) ?? inferBetType(selection, line);
   const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
-
-  if (type === 'total') {
-  // For totals, do not show a leading plus sign, e.g., "Over 218.5" not "+218.5"
-  return `${cap(selection)} ${typeof line === 'number' ? `${line}` : ''}`.trim();
+  if (betType === 'total') {
+    return `${cap(selection)} ${typeof line === 'number' ? `${line}` : ''}`.trim();
   }
-  if (type === 'moneyline') {
+  if (betType === 'moneyline') {
     const team = selection === 'home' ? game?.homeTeam?.shortName : game?.awayTeam?.shortName;
     return `${team ?? cap(selection)} Win`;
   }
@@ -185,10 +138,11 @@ export function BetCardSingle({
   const isWon = status === "won";
   return (
     <Card className={cn(
+      "w-full max-w-[95vw] mx-auto",
       isWon
-  ? "border-border/30 ring-1 ring-white/10"
+        ? "border-border/30 ring-1 ring-white/10"
         : status === "lost"
-  ? "border-destructive/50 ring-1 ring-white/10"
+        ? "border-destructive/50 ring-1 ring-white/10"
         : "border-accent/20 ring-1 ring-accent/10"
     )}>
       <CardContent className="p-5">
@@ -219,8 +173,8 @@ export function BetCardSingle({
             </div>
           </div>
         </div>
-  {children}
-  {showTotals && <BetSummary stake={stake} payout={payout} status={status} />}
+        {children}
+        {showTotals && <BetSummary stake={stake} payout={payout} status={status} />}
       </CardContent>
     </Card>
   );
@@ -235,26 +189,41 @@ export type BetCardParlayProps = BetCardBaseProps & {
   headerActions?: ReactNode;
 };
 
-export function BetCardParlay({ placedAt, status, stake, payout, legs, children, showTotals = true, headerActions }: BetCardParlayProps) {
+export function BetCardParlay({
+  placedAt,
+  status,
+  stake,
+  payout,
+  legs,
+  children,
+  showTotals = true,
+  headerActions,
+}: BetCardParlayProps) {
   const placed = placedAt ? new Date(placedAt) : null;
   const isWon = status === "won";
   return (
     <Card className={cn(
-      "border-accent/20",
+      "w-full max-w-[95vw] mx-auto border-accent/20",
       isWon ? "border-green-200/50 ring-2 ring-green-100" : status === "lost" ? "border-red-200/50 ring-2 ring-red-100" : "ring-1 ring-accent/10",
     )}>
       <CardContent className="p-5">
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Badge variant={isWon ? "default" : "outline"} className={isWon ? "bg-green-100 text-green-800 border-green-200" : ""}>PARLAY</Badge>
-            <Badge variant={isWon ? "default" : status === "lost" ? "destructive" : "outline"} className={isWon ? "bg-green-600 text-white" : status === "lost" ? "bg-red-600 text-white" : "bg-yellow-50 text-yellow-700 border-yellow-200"}>{status.toUpperCase()}</Badge>
+          <div className="flex items-center gap-1.5">
+            <Badge variant={isWon ? "default" : "outline"} className={cn(isWon ? "bg-green-100 text-green-800 border-green-200" : "", "flex items-center gap-0.5 px-3 py-1")}>
+              PARLAY
+              <span className="text-[0.7em] font-semibold ml-0.5 text-accent-foreground align-top">
+                ({legs.length}-Leg)
+              </span>
+            </Badge>
+            <Badge variant={isWon ? "default" : status === "lost" ? "destructive" : "outline"} className={cn(isWon ? "bg-green-600 text-white" : status === "lost" ? "bg-red-600 text-white" : "bg-yellow-50 text-yellow-700 border-yellow-200", "ml-1")}>
+              {status.toUpperCase()}
+            </Badge>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-4">
             {headerActions}
             <span className="text-xs text-muted-foreground">{placed ? placed.toLocaleDateString() : "-"}</span>
           </div>
         </div>
-        <div className="text-sm font-medium text-foreground mb-3">Parlay ({legs.length} picks)</div>
         <div className="space-y-2 mb-4 bg-background/50 rounded-lg p-3">
           {legs.map((leg, idx) => (
             <div key={idx} className="grid grid-cols-[1fr_auto] grid-rows-[auto_auto] py-1 gap-x-3">
@@ -270,8 +239,8 @@ export function BetCardParlay({ placedAt, status, stake, payout, legs, children,
             </div>
           ))}
         </div>
-  {children}
-  {showTotals && <BetSummary stake={stake} payout={payout} status={status} />}
+        {children}
+        {showTotals && <BetSummary stake={stake} payout={payout} status={status} />}
       </CardContent>
     </Card>
   );

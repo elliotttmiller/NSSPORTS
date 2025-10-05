@@ -179,7 +179,7 @@ export function MobileBetSlipPanel() {
                           <div className="text-xs text-muted-foreground mb-2">
                             To Win
                           </div>
-                          <div className="text-sm font-bold text-accent py-2.5 px-3 bg-accent/10 rounded-md border border-accent/30">
+                          <div className="text-sm font-bold text-white py-2.5 px-3 bg-white/10 rounded-md border border-white/30">
                             $
                             {bet.stake > 0
                               ? (bet.potentialPayout - bet.stake).toFixed(2)
@@ -291,7 +291,7 @@ export function MobileBetSlipPanel() {
                         <div className="text-xs text-muted-foreground mb-2">
                           To Win
                         </div>
-                        <div className="text-sm font-bold text-green-600 dark:text-green-400 py-2.5 px-3 bg-green-50 dark:bg-green-900/20 rounded-md border border-green-200 dark:border-green-800">
+                        <div className="text-sm font-bold text-white py-2.5 px-3 bg-white/10 rounded-md border border-white/30">
                           $
                           {betSlip.totalPayout > betSlip.totalStake
                             ? (betSlip.totalPayout - betSlip.totalStake).toFixed(2)

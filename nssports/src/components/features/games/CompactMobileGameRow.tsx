@@ -131,9 +131,9 @@ export const CompactMobileGameRow = memo(({ game }: Props) => {
         </div>
 
         {/* Teams and Odds Grid - 4 columns to match header */}
-        <div className="grid grid-cols-4 gap-2">
+  <div className="grid grid-cols-4 gap-2">
           {/* Teams Column */}
-          <div className="flex flex-col justify-between h-[72px]">
+          <div className="flex flex-col justify-between h-[72px] gap-2">
             {/* Away Team */}
             <div className="flex items-center h-7">
               <motion.div
@@ -172,55 +172,45 @@ export const CompactMobileGameRow = memo(({ game }: Props) => {
           </div>
 
           {/* Spread Column */}
-          <div className="flex flex-col justify-between h-[72px]">
+          <div className="flex flex-col justify-between h-[72px] gap-2">
             {/* Away Spread */}
-            <motion.div
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-            >
+            <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
               <Button
-                variant={
-                  isBetInSlip("spread", "away") ? "default" : "outline"
-                }
+                variant={isBetInSlip("spread", "away") ? "default" : "outline"}
                 size="sm"
                 onClick={(e) => handleBetClick("spread", "away", e)}
                 className={cn(
-                  "w-full h-7 px-2 transition-all duration-200 font-medium flex flex-col justify-center items-center gap-1 text-center",
+                  "w-full h-8 px-2 transition-all duration-200 font-medium flex flex-col justify-center items-center gap-0.5 text-center rounded-md border border-border",
                   isBetInSlip("spread", "away")
-                    ? "bg-accent text-accent-foreground shadow-lg ring-2 ring-accent/20"
+                    ? "bg-accent text-accent-foreground shadow-sm ring-1 ring-accent/20"
                     : "hover:bg-accent hover:text-accent-foreground hover:shadow-md"
                 )}
               >
-                <span className="text-[10px] leading-none">
-                  <span className="tracking-wide text-xs font-medium leading-none">{formatSpreadLine(game.odds.spread.away.line || 0)}</span>
+                <span className="text-xs leading-none font-semibold">
+                  {formatSpreadLine(game.odds.spread.away.line || 0)}
                 </span>
-                <span className="text-[10px] text-foreground/90 font-semibold block w-full text-center leading-none">
+                <span className="text-xs text-foreground/90 font-semibold block w-full text-center leading-none">
                   {formatOdds(game.odds.spread.away.odds)}
                 </span>
               </Button>
             </motion.div>
             {/* Home Spread */}
-            <motion.div
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-            >
+            <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
               <Button
-                variant={
-                  isBetInSlip("spread", "home") ? "default" : "outline"
-                }
+                variant={isBetInSlip("spread", "home") ? "default" : "outline"}
                 size="sm"
                 onClick={(e) => handleBetClick("spread", "home", e)}
                 className={cn(
-                  "w-full h-7 px-2 transition-all duration-200 font-medium flex flex-col justify-center items-center gap-1 text-center",
+                  "w-full h-8 px-2 transition-all duration-200 font-medium flex flex-col justify-center items-center gap-0.5 text-center rounded-md border border-border",
                   isBetInSlip("spread", "home")
-                    ? "bg-accent text-accent-foreground shadow-lg ring-2 ring-accent/20"
+                    ? "bg-accent text-accent-foreground shadow-sm ring-1 ring-accent/20"
                     : "hover:bg-accent hover:text-accent-foreground hover:shadow-md"
                 )}
               >
-                <span className="text-[10px] leading-none">
-                  <span className="tracking-wide text-xs font-medium leading-none">{formatSpreadLine(game.odds.spread.home.line || 0)}</span>
+                <span className="text-xs leading-none font-semibold">
+                  {formatSpreadLine(game.odds.spread.home.line || 0)}
                 </span>
-                <span className="text-[10px] text-foreground/90 font-semibold block w-full text-center leading-none">
+                <span className="text-xs text-foreground/90 font-semibold block w-full text-center leading-none">
                   {formatOdds(game.odds.spread.home.odds)}
                 </span>
               </Button>
@@ -228,53 +218,45 @@ export const CompactMobileGameRow = memo(({ game }: Props) => {
           </div>
 
           {/* Total Column */}
-          <div className="flex flex-col justify-between h-[72px]">
+          <div className="flex flex-col justify-between h-[72px] gap-2">
             {/* Over */}
-            <motion.div
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-            >
+            <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
               <Button
                 variant={isBetInSlip("total", "over") ? "default" : "outline"}
                 size="sm"
                 onClick={(e) => handleBetClick("total", "over", e)}
                 className={cn(
-                  "w-full h-7 px-2 transition-all duration-200 font-medium flex flex-col justify-center items-center gap-1 text-center",
+                  "w-full h-8 px-2 transition-all duration-200 font-medium flex flex-col justify-center items-center gap-0.5 text-center rounded-md border border-border",
                   isBetInSlip("total", "over")
-                    ? "bg-accent text-accent-foreground shadow-lg ring-2 ring-accent/20"
+                    ? "bg-accent text-accent-foreground shadow-sm ring-1 ring-accent/20"
                     : "hover:bg-accent hover:text-accent-foreground hover:shadow-md"
                 )}
               >
-                <span className="text-[10px] leading-none">
-                  <span className="tracking-wide text-xs font-medium leading-none">O<span className="mx-1">{formatTotalLine(game.odds.total.over?.line || 0)}</span></span>
+                <span className="text-xs leading-none font-semibold">
+                  O<span className="mx-1">{formatTotalLine(game.odds.total.over?.line || 0)}</span>
                 </span>
-                <span className="text-[10px] text-foreground/90 font-semibold block w-full text-center leading-none">
+                <span className="text-xs text-foreground/90 font-semibold block w-full text-center leading-none">
                   {formatOdds(game.odds.total.over?.odds || 0)}
                 </span>
               </Button>
             </motion.div>
             {/* Under */}
-            <motion.div
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-            >
+            <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
               <Button
-                variant={
-                  isBetInSlip("total", "under") ? "default" : "outline"
-                }
+                variant={isBetInSlip("total", "under") ? "default" : "outline"}
                 size="sm"
                 onClick={(e) => handleBetClick("total", "under", e)}
                 className={cn(
-                  "w-full h-7 px-2 transition-all duration-200 font-medium flex flex-col justify-center items-center gap-1 text-center",
+                  "w-full h-8 px-2 transition-all duration-200 font-medium flex flex-col justify-center items-center gap-0.5 text-center rounded-md border border-border",
                   isBetInSlip("total", "under")
-                    ? "bg-accent text-accent-foreground shadow-lg ring-2 ring-accent/20"
+                    ? "bg-accent text-accent-foreground shadow-sm ring-1 ring-accent/20"
                     : "hover:bg-accent hover:text-accent-foreground hover:shadow-md"
                 )}
               >
-                <span className="text-[10px] leading-none">
-                  <span className="tracking-wide text-xs font-medium leading-none">U<span className="mx-1">{formatTotalLine(game.odds.total.under?.line || 0)}</span></span>
+                <span className="text-xs leading-none font-semibold">
+                  U<span className="mx-1">{formatTotalLine(game.odds.total.under?.line || 0)}</span>
                 </span>
-                <span className="text-[10px] text-foreground/90 font-semibold block w-full text-center leading-none">
+                <span className="text-xs text-foreground/90 font-semibold block w-full text-center leading-none">
                   {formatOdds(game.odds.total.under?.odds || 0)}
                 </span>
               </Button>
@@ -282,49 +264,39 @@ export const CompactMobileGameRow = memo(({ game }: Props) => {
           </div>
 
           {/* Money Line Column */}
-          <div className="flex flex-col justify-between h-[72px]">
+          <div className="flex flex-col justify-between h-[72px] gap-2">
             {/* Away ML */}
-            <motion.div
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-            >
+            <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
               <Button
-                variant={
-                  isBetInSlip("moneyline", "away") ? "default" : "outline"
-                }
+                variant={isBetInSlip("moneyline", "away") ? "default" : "outline"}
                 size="sm"
                 onClick={(e) => handleBetClick("moneyline", "away", e)}
                 className={cn(
-                  "w-full h-7 px-2 transition-all duration-200 font-medium flex items-center justify-center text-center",
+                  "w-full h-8 px-2 transition-all duration-200 font-medium flex items-center justify-center text-center rounded-md border border-border",
                   isBetInSlip("moneyline", "away")
-                    ? "bg-accent text-accent-foreground shadow-lg ring-2 ring-accent/20"
+                    ? "bg-accent text-accent-foreground shadow-sm ring-1 ring-accent/20"
                     : "hover:bg-accent hover:text-accent-foreground hover:shadow-md"
                 )}
               >
-                <span className="text-[10px] font-semibold">
+                <span className="text-xs font-semibold">
                   <span className="tracking-wide text-xs font-semibold leading-none">{formatOdds(game.odds.moneyline.away.odds)}</span>
                 </span>
               </Button>
             </motion.div>
             {/* Home ML */}
-            <motion.div
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-            >
+            <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
               <Button
-                variant={
-                  isBetInSlip("moneyline", "home") ? "default" : "outline"
-                }
+                variant={isBetInSlip("moneyline", "home") ? "default" : "outline"}
                 size="sm"
                 onClick={(e) => handleBetClick("moneyline", "home", e)}
                 className={cn(
-                  "w-full h-7 px-2 transition-all duration-200 font-medium flex items-center justify-center text-center",
+                  "w-full h-8 px-2 transition-all duration-200 font-medium flex items-center justify-center text-center rounded-md border border-border",
                   isBetInSlip("moneyline", "home")
-                    ? "bg-accent text-accent-foreground shadow-lg ring-2 ring-accent/20"
+                    ? "bg-accent text-accent-foreground shadow-sm ring-1 ring-accent/20"
                     : "hover:bg-accent hover:text-accent-foreground hover:shadow-md"
                 )}
               >
-                <span className="text-[10px] font-semibold">
+                <span className="text-xs font-semibold">
                   <span className="tracking-wide text-xs font-semibold leading-none">{formatOdds(game.odds.moneyline.home.odds)}</span>
                 </span>
               </Button>
@@ -339,7 +311,7 @@ export const CompactMobileGameRow = memo(({ game }: Props) => {
             animate={{ maxHeight: expanded ? 500 : 0, opacity: expanded ? 1 : 0 }}
             exit={{ maxHeight: 0, opacity: 0 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="overflow-hidden bg-muted/20 border-t border-border px-4 py-4 rounded-b-lg shadow-md"
+            className="overflow-hidden bg-muted/20 border-t border-border px-4 py-4 rounded-b-lg shadow-sm"
             onAnimationComplete={() => {
               if (!expanded) setShouldRenderDropdown(false);
             }}

@@ -49,7 +49,7 @@ export default function Home() {
             {[ 
               { label: "Balance", value: "$1,250.00", color: "text-foreground" },
               { label: "Available", value: "$1,000.00", color: "text-foreground" },
-              { label: "Risk", value: "$250.00", color: "text-red-500" },
+              { label: "Risk", value: "$250.00", color: "text-destructive" },
               { label: "Active Bets", value: activeBetsCount, color: "text-foreground" },
             ].map((stat) => {
               const content = (
