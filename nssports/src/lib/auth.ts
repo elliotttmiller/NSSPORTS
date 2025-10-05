@@ -10,6 +10,9 @@ const loginSchema = z.object({
 });
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  secret: process.env.AUTH_SECRET,
+  session: { strategy: "jwt" },
+  trustHost: true,
   providers: [
     Credentials({
       credentials: {
@@ -24,15 +27,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             where: { email },
           });
 
-          if (!user || !user.password) {
-            return null;
-          }
+          if (!user || !user.password) return null;
 
           const isValidPassword = await bcrypt.compare(password, user.password);
-
-          if (!isValidPassword) {
-            return null;
-          }
+          if (!isValidPassword) return null;
 
           return {
             id: user.id,
@@ -49,23 +47,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   ],
   callbacks: {
     async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
-      }
+      if (user) token.id = (user as any).id;
       return token;
     },
     async session({ session, token }) {
-      if (session.user) {
-        session.user.id = token.id as string;
-      }
+      if (session.user) (session.user as any).id = token.id as string;
       return session;
     },
   },
   pages: {
     signIn: "/auth/login",
     error: "/auth/error",
-  },
-  session: {
-    strategy: "jwt",
   },
 });

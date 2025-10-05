@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from '@jest/globals';
 import { transformGame } from './game';
 import { GameSchema } from '@/lib/schemas/game';
 
@@ -30,6 +30,6 @@ describe('transformGame', () => {
     const payload = transformGame(game);
     const parsed = GameSchema.parse(payload);
     expect(parsed.id).toBe('g1');
-    expect(parsed.odds.spread.home.odds).toBeTypeOf('number');
+    expect(typeof parsed.odds.spread.home.odds).toBe('number');
   });
 });

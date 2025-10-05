@@ -8,6 +8,8 @@ import { transformGame } from '@/lib/transformers/game';
 
 
 export const revalidate = 15;
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   return withErrorHandling(async () => {

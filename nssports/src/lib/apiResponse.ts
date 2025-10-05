@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { logger } from './logger';
+import { UnauthorizedError } from './errors';
 
 /**
  * Standardized API response utilities following Next.js best practices
@@ -113,6 +114,9 @@ export function withErrorHandling<T>(
   handler: () => Promise<NextResponse<ApiResponse<T>>>
 ): Promise<NextResponse<ApiResponse<T>>> {
   return handler().catch((error: unknown) => {
+    if (error instanceof UnauthorizedError) {
+      return ApiErrors.unauthorized();
+    }
     logger.error('Unhandled error in API route', error);
     return ApiErrors.internal(
       error instanceof Error ? error.message : 'An unexpected error occurred'

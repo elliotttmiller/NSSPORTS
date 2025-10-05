@@ -8,16 +8,21 @@ import { BetsResponseSchema } from "@/lib/schemas/bets";
 // API Base URL from environment
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || '/api';
 
+class ApiHttpError extends Error {
+  status: number;
+  body?: unknown;
+  constructor(message: string, status: number, body?: unknown) {
+    super(message);
+    this.name = 'ApiHttpError';
+    this.status = status;
+    this.body = body;
+  }
+}
+
 // Pagination response interface
 // ...removed local PaginatedResponse, now using shared type from src/types/index.ts
 
 // Helper function to make API requests with error handling
-// Get bet history
-export const getBetHistory = async () => {
-  const json = await fetchAPI<unknown>('/my-bets');
-  const payload = (json && typeof json === 'object' && 'data' in (json as any)) ? (json as any).data : json;
-  return BetsResponseSchema.parse(payload);
-};
 async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
   
@@ -28,19 +33,42 @@ async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> 
         'Content-Type': 'application/json',
         ...options?.headers,
       },
+      // Ensure cookies are sent for same-origin auth
+      credentials: 'same-origin',
     });
 
     if (!response.ok) {
-      throw new Error(`API Error: ${response.status} ${response.statusText}`);
+      let body: unknown = undefined;
+      try {
+        body = await response.json();
+      } catch {
+        // ignore body parse errors
+      }
+      throw new ApiHttpError(`API Error: ${response.status} ${response.statusText}`, response.status, body);
     }
 
-  const json = await response.json();
-  return json as T;
+    const json = await response.json();
+    return json as T;
   } catch (error) {
     console.error(`Error fetching ${endpoint}:`, error);
     throw error;
   }
 }
+
+// Get bet history
+export const getBetHistory = async () => {
+  try {
+    const json = await fetchAPI<unknown>('/my-bets');
+    const payload = (json && typeof json === 'object' && 'data' in (json as any)) ? (json as any).data : json;
+    return BetsResponseSchema.parse(payload);
+  } catch (err) {
+    if (err instanceof ApiHttpError && err.status === 401) {
+      // Not authenticated: return empty history without throwing
+      return [] as any;
+    }
+    throw err;
+  }
+};
 
 // Helper function to calculate odds payout
 export const calculatePayout = (stake: number, odds: number): number => {
@@ -81,10 +109,10 @@ export const getGamesByLeague = async (leagueId: string): Promise<Game[]> => {
 // Get single game
 export const getGame = async (gameId: string): Promise<Game | undefined> => {
   try {
-  const response = await fetchAPI<unknown>(`/games?limit=1000`);
-  const Schema = paginatedResponseSchema(GameSchema);
-  const parsed = Schema.parse(response) as PaginatedResponse<Game>;
-  return parsed.data.find((game) => game.id === gameId);
+    const response = await fetchAPI<unknown>(`/games?limit=1000`);
+    const Schema = paginatedResponseSchema(GameSchema);
+    const parsed = Schema.parse(response) as PaginatedResponse<Game>;
+    return parsed.data.find((game) => game.id === gameId);
   } catch (error) {
     console.error('Error fetching game:', error);
     return undefined;

@@ -3,6 +3,8 @@ import prisma from '@/lib/prisma';
 import { withErrorHandling, successResponse, ApiErrors } from '@/lib/apiResponse';
 
 export const revalidate = 30;
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   return withErrorHandling(async () => {
