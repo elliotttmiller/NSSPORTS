@@ -57,7 +57,7 @@ export async function GET() {
     const userId = await getAuthUser();
     
     // Fetch bets for the authenticated user
-    const bets = await prisma.bet.findMany({
+  const bets = await prisma.bet.findMany({
       where: { userId },
       orderBy: { placedAt: "desc" },
       include: {
@@ -97,22 +97,36 @@ export async function GET() {
         },
       });
       legGamesById = Object.fromEntries(
-        games.map((g) => [g.id, JSON.parse(JSON.stringify(g))])
+        games.map((g: any) => [g.id, JSON.parse(JSON.stringify(g))])
       );
     }
 
-    const normalized = bets.map((bet) => {
-      if (bet.betType !== "parlay") return bet;
+    const normalized = bets.map((bet: any) => {
+      if (bet.betType !== "parlay") return bet as any;
       const legsRaw = toLegArray(bet.legs);
+      // Sanitize legs to avoid downstream validation issues
       const legs = Array.isArray(legsRaw)
-        ? legsRaw.map((leg) => ({
-            ...leg,
-            game: leg?.gameId
-              ? (legGamesById[leg.gameId] as unknown) ?? undefined
-              : undefined,
-          }))
+        ? legsRaw
+            .filter((leg) => {
+              // Keep only legs with minimally required fields
+              const hasSelection = typeof leg?.selection === 'string' && leg.selection.length > 0;
+              const hasOdds = typeof leg?.odds === 'number' && !Number.isNaN(leg.odds);
+              return hasSelection && hasOdds;
+            })
+            .map((leg) => ({
+              ...leg,
+              line:
+                typeof leg.line === 'number'
+                  ? leg.line
+                  : typeof leg.line === 'string'
+                  ? Number(leg.line)
+                  : undefined,
+              game: leg?.gameId
+                ? (legGamesById[leg.gameId] as unknown) ?? undefined
+                : undefined,
+            }))
         : null;
-      return { ...bet, legs };
+  return { ...bet, legs } as any;
     });
 
     // Convert Decimal fields to numbers for client consumption
@@ -129,17 +143,48 @@ export async function GET() {
       return 0;
     };
     
-    const serialized = normalized.map((b) => ({
+  const serialized = normalized.map((b: any) => ({
       ...(b as Record<string, unknown>),
       stake: toNum((b as Record<string, unknown>).stake),
       potentialPayout: toNum((b as Record<string, unknown>).potentialPayout),
     }));
     
-  logger.info('Bet history fetched successfully', { count: serialized.length });
+    logger.info('Bet history fetched successfully', { count: serialized.length });
     
-  // Validate response shape and return
-  const safe = BetsResponseSchema.parse(serialized);
-  return successResponse(JSON.parse(JSON.stringify(safe)));
+    // Validate response shape; on failure, try to recover gracefully
+    try {
+      const safe = BetsResponseSchema.parse(serialized);
+      return successResponse(JSON.parse(JSON.stringify(safe)));
+    } catch (e) {
+      logger.warn('Bet history validation failed, returning best-effort data', {
+        error: (e as any)?.message,
+      });
+      // Fallback: strip to minimal public fields to avoid runtime errors
+      const fallback = normalized.map((b: any) => ({
+        id: b.id,
+        betType: b.betType,
+        selection: b.selection,
+        odds: typeof b.odds === 'number' ? b.odds : Number(b.odds) || 0,
+        line: typeof b.line === 'number' ? b.line : b.line ?? null,
+        stake: toNum(b.stake),
+        potentialPayout: toNum(b.potentialPayout),
+        status: b.status,
+        placedAt: b.placedAt,
+        settledAt: b.settledAt ?? null,
+        game: b.game ?? undefined,
+        legs: Array.isArray(b.legs)
+          ? b.legs
+              .filter((leg: any) => typeof leg?.selection === 'string' && typeof leg?.odds === 'number')
+              .map((leg: any) => ({
+                selection: leg.selection,
+                odds: leg.odds,
+                line: typeof leg.line === 'number' ? leg.line : undefined,
+                game: leg.game ?? undefined,
+              }))
+          : null,
+      }));
+      return successResponse(JSON.parse(JSON.stringify(fallback)));
+    }
   });
 }
 
@@ -197,7 +242,8 @@ export async function POST(req: Request) {
     }
 
     // Use transaction to ensure data consistency
-    const result = await prisma.$transaction(async (tx) => {
+  type TxClient = typeof prisma;
+  const result = await prisma.$transaction(async (tx: TxClient) => {
       // For parlay bets
       if (data.betType === "parlay") {
         logger.info('Creating parlay bet', { legs: data.legs.length });

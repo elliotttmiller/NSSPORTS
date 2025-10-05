@@ -93,10 +93,13 @@ export function formatSelectionLabel(
   game?: { homeTeam?: { shortName?: string }; awayTeam?: { shortName?: string } }
 ) {
   const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+  const isSide = selection === 'home' || selection === 'away';
+
   if (betType === 'total') {
     return `${cap(selection)} ${typeof line === 'number' ? `${line}` : ''}`.trim();
   }
-  if (betType === 'moneyline') {
+  // Treat as moneyline if explicitly moneyline OR side pick with no line provided
+  if (betType === 'moneyline' || (isSide && (line === undefined || line === null))) {
     const team = selection === 'home' ? game?.homeTeam?.shortName : game?.awayTeam?.shortName;
     return `${team ?? cap(selection)} Win`;
   }

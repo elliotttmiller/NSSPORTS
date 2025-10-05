@@ -156,7 +156,7 @@ export function BetSlipPanel() {
               betType={bet.betType}
               placedAt={new Date()}
               status={"pending"}
-              selection={bet.selection === "away" ? bet.game.awayTeam.shortName : bet.selection === "home" ? bet.game.homeTeam.shortName : bet.selection}
+              selection={bet.selection}
               odds={bet.odds}
               line={bet.line}
               stake={bet.stake}
