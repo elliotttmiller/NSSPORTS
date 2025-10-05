@@ -21,8 +21,8 @@ export default function MyBetsPage() {
       <div className="bg-background min-h-screen">
         <div className="container mx-auto px-6 md:px-8 xl:px-12 pt-12 pb-6 max-w-screen-2xl">
           <div className="space-y-6">
-            <Card className="lg:hover:shadow-none lg:hover:translate-y-0 lg:hover:scale-100 lg:active:scale-100 lg:cursor-default">
-              <CardHeader className="pb-4 lg:pt-4 lg:pb-3">
+            <Card>
+              <CardHeader className="pb-4">
                 <CardTitle className="text-xl font-semibold">Active Bets</CardTitle>
               </CardHeader>
               <CardContent className="pt-0">
@@ -31,8 +31,8 @@ export default function MyBetsPage() {
                 </div>
               </CardContent>
             </Card>
-            <Card className="lg:hover:shadow-none lg:hover:translate-y-0 lg:hover:scale-100 lg:active:scale-100 lg:cursor-default">
-              <CardHeader className="pb-4 lg:pt-4 lg:pb-3">
+            <Card>
+              <CardHeader className="pb-4">
                 <CardTitle className="text-xl font-semibold">My Bet History</CardTitle>
               </CardHeader>
               <CardContent className="pt-0">
@@ -52,8 +52,8 @@ export default function MyBetsPage() {
       <div className="container mx-auto px-6 md:px-8 xl:px-12 pt-12 pb-6 max-w-screen-2xl">
         <div className={isMobile ? "space-y-6 pointer-events-none" : "space-y-6"}>
           {/* Active Bets Section - Using shared BetCard */}
-          <Card className="lg:hover:shadow-none lg:hover:translate-y-0 lg:hover:scale-100 lg:active:scale-100 lg:cursor-default">
-            <CardHeader className="pb-4 lg:pt-4 lg:pb-3">
+          <Card>
+            <CardHeader className="pb-4">
               <CardTitle className="text-xl font-semibold">Active Bets</CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
@@ -85,7 +85,6 @@ export default function MyBetsPage() {
                         placedAt={bet.placedAt}
                         status={bet.status}
                         selection={bet.selection}
-                        displaySelection={bet.displaySelection}
                         odds={bet.odds}
                         line={bet.line}
                         stake={bet.stake}
@@ -100,8 +99,8 @@ export default function MyBetsPage() {
           </Card>
 
           {/* Bet History Section - Using shared BetCard */}
-          <Card className="lg:hover:shadow-none lg:hover:translate-y-0 lg:hover:scale-100 lg:active:scale-100 lg:cursor-default">
-            <CardHeader className="pb-4 lg:pt-4 lg:pb-3">
+          <Card>
+            <CardHeader className="pb-4">
               <CardTitle className="text-xl font-semibold">My Bet History</CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
@@ -133,7 +132,6 @@ export default function MyBetsPage() {
                         placedAt={bet.placedAt}
                         status={bet.status}
                         selection={bet.selection}
-                        displaySelection={bet.displaySelection}
                         odds={bet.odds}
                         line={bet.line}
                         stake={bet.stake}

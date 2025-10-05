@@ -19,7 +19,6 @@ export interface PlacedBet {
   status: "pending" | "won" | "lost";
   placedAt?: string;
   settledAt?: string;
-  displaySelection?: string; // API-provided canonical label for single bets
   game?: {
     id: string;
     homeTeam: {
@@ -62,11 +61,9 @@ export interface PlacedBet {
         logo: string;
       };
     };
-  betType?: string;
     selection: string;
     odds: number;
     line?: number;
-  displaySelection?: string; // API-provided canonical label per leg
   }>;
 }
 

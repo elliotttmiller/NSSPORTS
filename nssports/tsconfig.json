@@ -18,7 +18,8 @@
         "name": "next"
       }
     ],
-    "paths": {
+  "types": ["node"],
+  "paths": {
       "@/*": ["./src/*"]
     }
   },

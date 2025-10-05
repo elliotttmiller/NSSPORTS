@@ -1,4 +1,9 @@
 import type { Game, Sport, League, PaginatedResponse } from "@/types";
+import { z } from "zod";
+import { GameSchema } from "@/lib/schemas/game";
+import { SportSchema } from "@/lib/schemas/sport";
+import { paginatedResponseSchema } from "@/lib/schemas/pagination";
+import { BetsResponseSchema } from "@/lib/schemas/bets";
 
 // API Base URL from environment
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || '/api';
@@ -9,7 +14,9 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || '/api';
 // Helper function to make API requests with error handling
 // Get bet history
 export const getBetHistory = async () => {
-  return fetchAPI('/my-bets');
+  const json = await fetchAPI<unknown>('/my-bets');
+  const payload = (json && typeof json === 'object' && 'data' in (json as any)) ? (json as any).data : json;
+  return BetsResponseSchema.parse(payload);
 };
 async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
@@ -27,7 +34,8 @@ async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> 
       throw new Error(`API Error: ${response.status} ${response.statusText}`);
     }
 
-    return await response.json();
+  const json = await response.json();
+  return json as T;
   } catch (error) {
     console.error(`Error fetching ${endpoint}:`, error);
     throw error;
@@ -45,7 +53,10 @@ export const calculatePayout = (stake: number, odds: number): number => {
 
 // Get sports with leagues
 export const getSports = async (): Promise<Sport[]> => {
-  return fetchAPI<Sport[]>('/sports');
+  const json = await fetchAPI<unknown>('/sports');
+  // Some routes may return success envelope; unwrap if present
+  const payload = (json && typeof json === 'object' && 'data' in (json as any)) ? (json as any).data : json;
+  return z.array(SportSchema).parse(payload) as Sport[];
 };
 
 // Get specific league
@@ -62,14 +73,18 @@ export const getLeague = async (
 
 // Get games by league
 export const getGamesByLeague = async (leagueId: string): Promise<Game[]> => {
-  return fetchAPI<Game[]>(`/games/league/${leagueId}`);
+  const json = await fetchAPI<unknown>(`/games/league/${leagueId}`);
+  const payload = (json && typeof json === 'object' && 'data' in (json as any)) ? (json as any).data : json;
+  return z.array(GameSchema).parse(payload) as Game[];
 };
 
 // Get single game
 export const getGame = async (gameId: string): Promise<Game | undefined> => {
   try {
-    const response = await fetchAPI<PaginatedResponse<Game>>(`/games?limit=1000`);
-    return response.data.find((game) => game.id === gameId);
+  const response = await fetchAPI<unknown>(`/games?limit=1000`);
+  const Schema = paginatedResponseSchema(GameSchema);
+  const parsed = Schema.parse(response) as PaginatedResponse<Game>;
+  return parsed.data.find((game) => game.id === gameId);
   } catch (error) {
     console.error('Error fetching game:', error);
     return undefined;
@@ -84,12 +99,16 @@ export const getTrendingGames = async (): Promise<Game[]> => {
 
 // Get live games
 export const getLiveGames = async (): Promise<Game[]> => {
-  return fetchAPI<Game[]>('/games/live');
+  const json = await fetchAPI<unknown>('/games/live');
+  const payload = (json && typeof json === 'object' && 'data' in (json as any)) ? (json as any).data : json;
+  return z.array(GameSchema).parse(payload) as Game[];
 };
 
 // Get upcoming games
 export const getUpcomingGames = async (): Promise<Game[]> => {
-  return fetchAPI<Game[]>('/games/upcoming');
+  const json = await fetchAPI<unknown>('/games/upcoming');
+  const payload = (json && typeof json === 'object' && 'data' in (json as any)) ? (json as any).data : json;
+  return z.array(GameSchema).parse(payload) as Game[];
 };
 
 // Main paginated games API
@@ -107,5 +126,8 @@ export const getGamesPaginated = async (
     params.append('leagueId', leagueId);
   }
 
-  return fetchAPI<PaginatedResponse<Game>>(`/games?${params.toString()}`);
+  const json = await fetchAPI<unknown>(`/games?${params.toString()}`);
+  const Schema = paginatedResponseSchema(GameSchema);
+  const parsed = Schema.parse(json) as PaginatedResponse<Game>;
+  return parsed;
 };

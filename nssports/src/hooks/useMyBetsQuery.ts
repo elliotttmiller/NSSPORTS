@@ -8,7 +8,7 @@ export const MY_BETS_QUERY_KEY = ["my-bets"] as const;
 export function useMyBetsQuery(options?: UseQueryOptions<PlacedBet[], Error, PlacedBet[], typeof MY_BETS_QUERY_KEY>) {
   return useQuery<PlacedBet[], Error, PlacedBet[], typeof MY_BETS_QUERY_KEY>({
     queryKey: MY_BETS_QUERY_KEY,
-    queryFn: () => getBetHistory() as Promise<PlacedBet[]>,
+  queryFn: () => getBetHistory() as Promise<PlacedBet[]>,
     // Professional defaults; override via options if needed
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,

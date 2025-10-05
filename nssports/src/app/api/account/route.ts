@@ -1,36 +1,50 @@
 import prisma from "@/lib/prisma";
-import { withErrorHandling, successResponse } from "@/lib/apiResponse";
+import { withErrorHandling, successResponse, ApiErrors } from "@/lib/apiResponse";
+import { AccountSchema } from "@/lib/schemas";
+import { z } from "zod";
+import { Prisma } from "@prisma/client";
 
-// In a real app, derive userId from auth; for now default to 'demo-user'
-const getUserId = async (): Promise<string> => {
-  return "demo-user";
-};
+// TODO: Replace with real auth-derived user id
+const getUserId = async () => "demo-user";
 
 export async function GET() {
-  return withErrorHandling(async () => {
-    const userId = await getUserId();
+	return withErrorHandling(async () => {
+		const userId = await getUserId();
 
-    // Fetch base balance (guard until prisma generate/migrate introduces Account)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const prismaAny = prisma as any;
-    const account = prismaAny.account
-      ? await prismaAny.account.findUnique({ where: { userId } })
-      : null;
-    const balance = account ? Number(account.balance) : 0;
+		let balance = 0;
+		let risk = 0;
+		let available = 0;
 
-    // Compute risk from pending bets (sum of stakes)
-    const pendingBets = await prisma.bet.findMany({
-      where: { userId, status: "pending" },
-      select: { stake: true },
-    });
-    const risk = pendingBets.reduce((sum, b) => sum + Number(b.stake), 0);
-    const available = Math.max(0, balance - risk);
+		try {
+			const account = await prisma.account.findUnique({ where: { userId } });
+			balance = account ? Number(account.balance) : 0;
 
-    return successResponse<{ userId: string; balance: number; available: number; risk: number }>({
-      userId,
-      balance,
-      available,
-      risk,
-    });
-  });
+			const pendingBets = await prisma.bet.findMany({
+				where: { userId, status: "pending" },
+				select: { stake: true },
+			});
+			risk = pendingBets.reduce((s, b) => s + Number(b.stake), 0);
+			available = Math.max(0, balance - risk);
+		} catch (err) {
+			// If the accounts table is missing, gracefully return zeros
+			if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2021') {
+				balance = 0;
+				risk = 0;
+				available = 0;
+			} else {
+				throw err;
+			}
+		}
+
+		try {
+			const payload = AccountSchema.parse({ userId, balance, available, risk });
+			return successResponse(payload);
+		} catch (e) {
+			if (e instanceof z.ZodError) {
+				return ApiErrors.unprocessable('Account payload validation failed', e.errors);
+			}
+			throw e;
+		}
+	});
 }
+

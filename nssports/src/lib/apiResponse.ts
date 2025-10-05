@@ -110,7 +110,7 @@ export const ApiErrors = {
  * Safely handle async API route handlers with error catching
  */
 export function withErrorHandling<T>(
-  handler: () => Promise<NextResponse<ApiSuccessResponse<T>>>
+  handler: () => Promise<NextResponse<ApiResponse<T>>>
 ): Promise<NextResponse<ApiResponse<T>>> {
   return handler().catch((error: unknown) => {
     logger.error('Unhandled error in API route', error);

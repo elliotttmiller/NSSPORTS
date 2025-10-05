@@ -4,4 +4,3 @@ export { useBetSlip } from "./useBetSlip";
 export { useNavigation } from "./useNavigation";
 export { useKV } from "./useKV";
 export { useLenisScroll } from "./useLenisScroll";
-export { useAccount } from "./useAccount";

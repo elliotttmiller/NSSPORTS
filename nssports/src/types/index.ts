@@ -168,3 +168,5 @@ export interface PropCategory {
   name: string;
   props: PlayerProp[];
 }
+
+export type { Account } from "./account";

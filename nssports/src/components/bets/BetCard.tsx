@@ -12,11 +12,9 @@ export type BetLeg = {
     homeTeam?: { shortName?: string };
     awayTeam?: { shortName?: string };
   };
-  betType?: string;
   selection: string;
   odds: number;
   line?: number;
-  displaySelection?: string;
 };
 
 export type BetCardBaseProps = {
@@ -36,7 +34,6 @@ export type BetCardSingleProps = BetCardBaseProps & {
   children?: ReactNode;
   showTotals?: boolean; // default true; set false when embedding in betslip with custom controls
   headerActions?: ReactNode;
-  displaySelection?: string; // Canonical API-provided label (preferred when present)
 };
 
 export function BetCardSingle({
@@ -52,29 +49,9 @@ export function BetCardSingle({
   children,
   showTotals = true,
   headerActions,
-  displaySelection,
 }: BetCardSingleProps) {
   const placed = placedAt ? new Date(placedAt) : null;
   const isWon = status === "won";
-  const computedSelection = (() => {
-    const s = (selection || "").toString();
-    const lower = s.toLowerCase();
-    const market = (betType || "").toString().toLowerCase();
-    if (market === "moneyline") {
-  let team: string | undefined;
-  if (lower === "home") team = game?.homeTeam?.shortName;
-  else if (lower === "away") team = game?.awayTeam?.shortName;
-      const selLabel = lower === "home" ? "Home" : lower === "away" ? "Away" : s.charAt(0).toUpperCase() + s.slice(1);
-      return `${team ?? selLabel} Win`;
-    }
-    const lineSuffix = typeof line === "number" ? ` ${line > 0 ? "+" : ""}${line}` : "";
-    if (lower === "over") return `Over${lineSuffix}`;
-    if (lower === "under") return `Under${lineSuffix}`;
-    if (lower === "home") return `Home${lineSuffix}`;
-    if (lower === "away") return `Away${lineSuffix}`;
-    return s.charAt(0).toUpperCase() + s.slice(1);
-  })();
-  const finalSelection = displaySelection && displaySelection.length > 0 ? displaySelection : computedSelection;
   return (
     <Card className={cn(
       "border-border/50",
@@ -92,46 +69,41 @@ export function BetCardSingle({
           </div>
           <div className="flex items-center gap-2">
             {headerActions}
-            <span className="text-xs text-foreground/70">{placed ? placed.toLocaleDateString() : "-"}</span>
+            <span className="text-xs text-muted-foreground">{placed ? placed.toLocaleDateString() : "-"}</span>
           </div>
         </div>
         <div className="mb-4">
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <div className="text-sm text-foreground/80 truncate">
-                {game?.awayTeam?.shortName} @ {game?.homeTeam?.shortName}
-              </div>
-              <div className="text-[10px] text-foreground/60 uppercase tracking-wide mt-0.5">{betType}</div>
-              <div className="font-medium text-base mt-4">
-                {finalSelection}
-              </div>
-            </div>
-            <div className="shrink-0 self-center">
-              <Badge variant="outline" className="text-sm md:text-base font-medium px-2 py-0.5">{formatOdds(odds)}</Badge>
-            </div>
+          <div className="text-xs text-muted-foreground mb-1 uppercase tracking-wide">{betType}</div>
+          <div className="font-medium text-base mb-1">
+            {selection === "over" ? "Over" : selection === "under" ? "Under" : selection}
+            {typeof line === "number" ? ` ${line > 0 ? "+" : ""}${line}` : ""}
           </div>
+          <div className="text-sm text-muted-foreground mb-2">
+            {game?.awayTeam?.shortName} @ {game?.homeTeam?.shortName}
+          </div>
+          <Badge variant="outline" className="text-xs font-medium">{formatOdds(odds)}</Badge>
         </div>
   {children}
   {showTotals && (
   <div className="space-y-2 pt-3 border-t border-border/50">
           <div className="flex justify-between items-center">
-            <span className="text-sm text-foreground/80">Stake:</span>
+            <span className="text-sm text-muted-foreground">Stake:</span>
             <span className="text-sm font-semibold">{formatCurrency(stake)}</span>
           </div>
           {status !== "lost" ? (
             <>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-foreground/80">Payout:</span>
+                <span className="text-sm text-muted-foreground">Payout:</span>
                 <span className="text-sm font-semibold">{formatCurrency(payout)}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-foreground/80">Profit:</span>
+                <span className="text-sm text-muted-foreground">Profit:</span>
                 <span className="text-sm font-bold text-green-600">+{formatCurrency(payout - stake)}</span>
               </div>
             </>
           ) : (
             <div className="flex justify-between items-center">
-              <span className="text-sm text-foreground/80">Loss:</span>
+              <span className="text-sm text-muted-foreground">Loss:</span>
               <span className="text-sm font-bold text-red-600">{formatCurrency(-stake)}</span>
             </div>
           )}
@@ -167,42 +139,22 @@ export function BetCardParlay({ placedAt, status, stake, payout, legs, children,
           </div>
           <div className="flex items-center gap-2">
             {headerActions}
-            <span className="text-xs text-foreground/70">{placed ? placed.toLocaleDateString() : "-"}</span>
+            <span className="text-xs text-muted-foreground">{placed ? placed.toLocaleDateString() : "-"}</span>
           </div>
         </div>
         <div className="text-sm font-medium text-foreground mb-3">Parlay ({legs.length} picks)</div>
         <div className="space-y-2 mb-4 bg-background/50 rounded-lg p-3">
           {legs.map((leg, idx) => (
-            <div key={idx} className="flex items-center justify-between py-1 gap-3">
-              <div className="min-w-0">
-                <div className="text-xs text-foreground/80 truncate">
-                  {leg.game?.awayTeam?.shortName} @ {leg.game?.homeTeam?.shortName}
-                </div>
-                <div className="text-sm font-medium text-foreground mt-2 truncate">
-                  {leg.displaySelection ?? (() => {
-                    const sel = (leg.selection || "").toString();
-                    const lower = sel.toLowerCase();
-                    const hasLine = typeof leg.line === "number";
-                    const market = (leg.betType || "").toString().toLowerCase();
-                    if (market === "moneyline") {
-                      let team: string | undefined;
-                      if (lower === "home") team = leg.game?.homeTeam?.shortName;
-                      else if (lower === "away") team = leg.game?.awayTeam?.shortName;
-                      const selLabel = lower === "home" ? "Home" : lower === "away" ? "Away" : sel.charAt(0).toUpperCase() + sel.slice(1);
-                      return `${team ?? selLabel} Win`;
-                    }
-                    const label = sel.charAt(0).toUpperCase() + sel.slice(1);
-                    return (
-                      <>
-                        {label}
-                        {hasLine ? ` ${leg.line! > 0 ? "+" : ""}${leg.line}` : ""}
-                      </>
-                    );
-                  })()}
-                </div>
+            <div key={idx} className="flex items-center justify-between py-1">
+              <div className="text-xs text-muted-foreground">
+                {leg.game?.awayTeam?.shortName} @ {leg.game?.homeTeam?.shortName}
               </div>
-              <div className="shrink-0 self-center">
-                <Badge variant="outline" className="text-sm md:text-base px-2 py-0.5">{formatOdds(leg.odds)}</Badge>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium">
+                  {leg.selection.charAt(0).toUpperCase() + leg.selection.slice(1)}
+                  {typeof leg.line === "number" ? ` ${leg.line > 0 ? "+" : ""}${leg.line}` : ""}
+                </span>
+                <Badge variant="outline" className="text-xs px-1.5 py-0.5">{formatOdds(leg.odds)}</Badge>
               </div>
             </div>
           ))}
@@ -211,23 +163,23 @@ export function BetCardParlay({ placedAt, status, stake, payout, legs, children,
   {showTotals && (
   <div className="space-y-2 pt-3 border-t border-border/50">
           <div className="flex justify-between items-center">
-            <span className="text-sm text-foreground/80">Total Stake:</span>
+            <span className="text-sm text-muted-foreground">Total Stake:</span>
             <span className="text-sm font-semibold">{formatCurrency(stake)}</span>
           </div>
           {status !== "lost" ? (
             <>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-foreground/80">Potential Payout:</span>
+                <span className="text-sm text-muted-foreground">Potential Payout:</span>
                 <span className="text-sm font-semibold text-accent">{formatCurrency(payout)}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-foreground/80">Potential Profit:</span>
+                <span className="text-sm text-muted-foreground">Potential Profit:</span>
                 <span className="text-sm font-bold text-accent">{formatCurrency(payout - stake)}</span>
               </div>
             </>
           ) : (
             <div className="flex justify-between items-center">
-              <span className="text-sm text-foreground/80">Loss:</span>
+              <span className="text-sm text-muted-foreground">Loss:</span>
               <span className="text-sm font-bold text-red-600">{formatCurrency(-(stake))}</span>
             </div>
           )}

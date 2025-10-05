@@ -8,6 +8,15 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+model Account {
+  userId    String  @id
+  balance   Decimal @db.Decimal(18, 2)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("accounts")
+}
+
 model Sport {
   id      String   @id
   name    String
@@ -106,14 +115,4 @@ model Bet {
   @@index([status])
   @@index([userId, status, placedAt])
   @@map("bets")
-}
-
-/// Account balance for a user; risk/available are derived from open bets.
-model Account {
-  userId    String   @id
-  balance   Decimal  @db.Decimal(18,2)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("accounts")
 }

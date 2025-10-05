@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { z } from 'zod';
+import { SportSchema } from '@/lib/schemas/sport';
 
 export async function GET() {
   try {
@@ -30,7 +32,8 @@ export async function GET() {
       })),
     }));
 
-    return NextResponse.json(transformedSports);
+  const parsed = z.array(SportSchema).parse(transformedSports);
+  return NextResponse.json(parsed);
   } catch (error) {
     console.error('Error fetching sports:', error);
     return NextResponse.json(

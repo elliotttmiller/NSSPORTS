@@ -2,60 +2,41 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import type { GameWithRelations, OddsMap } from '@/lib/apiTypes';
 import { Prisma } from '@prisma/client';
+import { z } from 'zod';
+import { GameSchema } from '@/lib/schemas/game';
+import { paginatedResponseSchema } from '@/lib/schemas/pagination';
+import { withErrorHandling, ApiErrors, successResponse } from '@/lib/apiResponse';
 
-// Helper function to transform Prisma game to frontend format
-function transformGame(game: GameWithRelations) {
-  const oddsMap: OddsMap = game.odds.reduce((acc: OddsMap, odd) => {
-    if (!acc[odd.betType]) {
-      acc[odd.betType] = {};
-    }
-    acc[odd.betType][odd.selection || odd.betType] = {
-      odds: odd.odds,
-      line: odd.line,
-      lastUpdated: odd.lastUpdated,
-    };
-    return acc;
-  }, {});
+import { transformGame } from '@/lib/transformers/game';
 
-  return {
-    id: game.id,
-    leagueId: game.leagueId,
-    homeTeam: {
-      id: game.homeTeam.id,
-      name: game.homeTeam.name,
-      shortName: game.homeTeam.shortName,
-      logo: game.homeTeam.logo,
-      record: game.homeTeam.record,
-    },
-    awayTeam: {
-      id: game.awayTeam.id,
-      name: game.awayTeam.name,
-      shortName: game.awayTeam.shortName,
-      logo: game.awayTeam.logo,
-      record: game.awayTeam.record,
-    },
-    startTime: game.startTime,
-    status: game.status,
-    venue: game.venue,
-    homeScore: game.homeScore,
-    awayScore: game.awayScore,
-    period: game.period,
-    timeRemaining: game.timeRemaining,
-    odds: {
-      spread: oddsMap.spread || {},
-      moneyline: oddsMap.moneyline || {},
-      total: oddsMap.total || {},
-    },
-  };
-}
+export const revalidate = 30;
 
 export async function GET(request: NextRequest) {
-  try {
+  return withErrorHandling(async () => {
     const searchParams = request.nextUrl.searchParams;
-    const leagueId = searchParams.get('leagueId');
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '10');
-    const status = searchParams.get('status');
+    const QuerySchema = z.object({
+      leagueId: z.string().optional(),
+      page: z.coerce.number().int().positive().default(1),
+      limit: z.coerce.number().int().positive().max(100).default(10),
+      status: z.enum(["upcoming", "live", "finished"]).optional(),
+    });
+    let leagueId: string | undefined;
+    let page: number = 1;
+    let limit: number = 10;
+    let status: 'upcoming' | 'live' | 'finished' | undefined;
+    try {
+      ({ leagueId, page, limit, status } = QuerySchema.parse({
+        leagueId: searchParams.get('leagueId') ?? undefined,
+        page: searchParams.get('page') ?? undefined,
+        limit: searchParams.get('limit') ?? undefined,
+        status: searchParams.get('status') ?? undefined,
+      }));
+    } catch (e) {
+      if (e instanceof z.ZodError) {
+        return ApiErrors.unprocessable('Invalid query parameters', e.errors);
+      }
+      throw e;
+    }
 
     // Build where clause
     const where: Prisma.GameWhereInput = {};
@@ -88,7 +69,7 @@ export async function GET(request: NextRequest) {
 
     const totalPages = Math.ceil(total / limit);
 
-    return NextResponse.json({
+    const payload = {
       data: transformedGames,
       pagination: {
         page,
@@ -98,12 +79,11 @@ export async function GET(request: NextRequest) {
         hasNextPage: page < totalPages,
         hasPrevPage: page > 1,
       },
-    });
-  } catch (error) {
-    console.error('Error fetching games:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch games' },
-      { status: 500 }
-    );
-  }
+    };
+
+    // Validate with Zod before returning
+    const Schema = paginatedResponseSchema(GameSchema);
+    const parsed = Schema.parse(payload);
+    return successResponse(parsed, 200, undefined);
+  });
 }
