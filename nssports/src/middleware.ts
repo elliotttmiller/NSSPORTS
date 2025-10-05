@@ -51,7 +51,7 @@ export function middleware(request: NextRequest) {
     );
     preflightResponse.headers.set(
       'Access-Control-Allow-Headers',
-      'Content-Type, Authorization, X-Requested-With, Accept, Origin'
+      'Content-Type, Authorization, X-Requested-With, Accept, Origin, Idempotency-Key'
     );
     preflightResponse.headers.set('Access-Control-Allow-Credentials', 'true');
     preflightResponse.headers.set('Access-Control-Max-Age', '86400'); // 24 hours
@@ -76,19 +76,16 @@ export function middleware(request: NextRequest) {
   );
   response.headers.set(
     'Access-Control-Allow-Headers',
-    'Content-Type, Authorization, X-Requested-With, Accept, Origin'
+    'Content-Type, Authorization, X-Requested-With, Accept, Origin, Idempotency-Key'
   );
   response.headers.set('Access-Control-Allow-Credentials', 'true');
   
   return response;
 }
 
-// Configure which paths the middleware runs on
+// Configure which paths the middleware runs on (API only, exclude NextAuth)
 export const config = {
   matcher: [
-    // Apply to all API routes except auth
-    '/api/:path*',
-    // Exclude NextAuth routes
-    '/((?!api/auth).*)',
+    '/api/(?!auth).*',
   ],
 };

@@ -33,8 +33,8 @@ async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> 
         'Content-Type': 'application/json',
         ...options?.headers,
       },
-      // Ensure cookies are sent for same-origin auth
-      credentials: 'same-origin',
+      // Always include cookies for auth (supports same-origin and cross-origin with CORS)
+      credentials: 'include',
     });
 
     if (!response.ok) {

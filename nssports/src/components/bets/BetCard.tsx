@@ -48,8 +48,7 @@ function BetSummary({ stake, payout, status }: { stake: number; payout: number; 
           <div ref={stakeWrapRef} className="w-full overflow-hidden flex justify-center">
             <span
               ref={stakeSpanRef}
-              className="inline-block whitespace-nowrap tabular-nums font-semibold leading-tight text-center"
-              style={{ transformOrigin: 'center center' }}
+              className="inline-block whitespace-nowrap tabular-nums font-semibold leading-tight text-center origin-center"
             >
               {formatCurrencyNoCents(stake)}
             </span>
@@ -60,8 +59,7 @@ function BetSummary({ stake, payout, status }: { stake: number; payout: number; 
           <div ref={profitWrapRef} className="w-full overflow-hidden flex justify-center">
             <span
               ref={profitSpanRef}
-              className="inline-block whitespace-nowrap tabular-nums font-semibold leading-tight text-center"
-              style={{ transformOrigin: 'center center' }}
+              className="inline-block whitespace-nowrap tabular-nums font-semibold leading-tight text-center origin-center"
             >
               {(() => {
                 const profit = status === 'lost' ? -stake : (payout - stake);
@@ -76,8 +74,7 @@ function BetSummary({ stake, payout, status }: { stake: number; payout: number; 
           <div ref={payoutWrapRef} className="w-full overflow-hidden flex justify-center">
             <span
               ref={payoutSpanRef}
-              className="inline-block whitespace-nowrap tabular-nums font-semibold leading-tight text-center"
-              style={{ transformOrigin: 'center center' }}
+              className="inline-block whitespace-nowrap tabular-nums font-semibold leading-tight text-center origin-center"
             >
               {formatCurrencyNoCents(status !== 'lost' ? payout : 0)}
             </span>
@@ -163,7 +160,7 @@ export function BetCardSingle({
         <div className="mb-4">
           <div className="grid grid-cols-[1fr_auto] grid-rows-[auto_auto] gap-x-4">
             <div className="font-semibold text-base md:text-lg leading-6 text-white truncate row-start-1 col-start-1">
-              {game?.awayTeam?.shortName} / {game?.homeTeam?.shortName}
+              {game?.awayTeam?.shortName} @ {game?.homeTeam?.shortName}
             </div>
             <div className="text-sm text-muted-foreground mt-3 md:mt-1 row-start-2 col-start-1">
               {formatSelectionLabel(betType, selection, line, game)}
@@ -228,7 +225,7 @@ export function BetCardParlay({
           {legs.map((leg, idx) => (
             <div key={idx} className="grid grid-cols-[1fr_auto] grid-rows-[auto_auto] py-1 gap-x-3">
               <div className="text-xs text-muted-foreground row-start-1 col-start-1">
-                {leg.game?.awayTeam?.shortName} / {leg.game?.homeTeam?.shortName}
+                {leg.game?.awayTeam?.shortName} @ {leg.game?.homeTeam?.shortName}
               </div>
               <div className="text-sm font-medium leading-5 truncate row-start-2 col-start-1">
                 {formatSelectionLabel(leg.betType, leg.selection, leg.line, leg.game)}

@@ -7,9 +7,13 @@ import { useEffect, useState } from "react";
 import { getLiveGames } from "@/services/api";
 import type { Game } from "@/types";
 import { ProfessionalGameRow, CompactMobileGameRow, MobileGameTableHeader, DesktopGameTableHeader } from "@/components/features/games";
+import { useSession } from "next-auth/react";
+import { useBetHistory } from "@/context";
 
 export default function Home() {
-  const activeBetsCount = 3;
+  const { data: session } = useSession();
+  const { placedBets } = useBetHistory();
+  const activeBetsCount = (placedBets || []).filter(b => b.status === 'pending').length;
   const [trendingGames, setTrendingGames] = useState<Game[]>([]);
   const [loadingTrending, setLoadingTrending] = useState(true);
 
@@ -34,6 +38,8 @@ export default function Home() {
     };
   }, []);
 
+  const displayName = session?.user?.email || session?.user?.name || 'NorthStar User';
+
   return (
     <div className="bg-background text-foreground">
   <div className="container mx-auto px-6 md:px-8 xl:px-12 py-6 max-w-screen-2xl">
@@ -41,7 +47,7 @@ export default function Home() {
           {/* ...existing code... */}
           <div className="text-center py-8 md:py-12">
             <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-foreground tracking-tight mb-4">
-              Welcome, NorthStar User
+              {`Welcome, ${displayName}`}
             </h1>
             <div className="w-32 md:w-48 h-1 bg-accent mx-auto rounded-full"></div>
 

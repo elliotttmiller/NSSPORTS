@@ -572,76 +572,76 @@ async function main() {
   }
   console.log(`Inserted ${gameProps.length} game props`);
 
-  // Ensure demo account exists
-  console.log('Upserting demo account...');
-  try {
-    await prisma.account.upsert({
-      where: { userId: 'demo-user' },
-      update: {},
-      create: { userId: 'demo-user', balance: 1000.00 },
+  // Removed legacy demo 'demo-user' seeding block to avoid FK violations.
+  // Demo user and associated account/bets are created in the block below using a real user ID.
+
+  // Create demo user and account
+  console.log('Creating demo user...');
+  const bcrypt = await import('bcryptjs');
+  const demoEmail = 'admin@ns.com';
+  const demoPasswordHash = await bcrypt.hash('admin', 10);
+  let demoUser = await prisma.user.findUnique({ where: { email: demoEmail } });
+  if (!demoUser) {
+    demoUser = await prisma.user.create({
+      data: {
+        email: demoEmail,
+        password: demoPasswordHash,
+        name: 'Admin',
+      },
     });
-  } catch (e) {
-    console.error('Error upserting demo account', e);
+    await prisma.account.create({ data: { userId: demoUser.id, balance: 2500 } });
+    console.log('Demo user created:', demoEmail);
+  } else {
+    console.log('Demo user already exists:', demoEmail);
   }
 
-  // Seed mock bet history
-  console.log('Seeding mock bet history...');
-  const demoBets = [
-    {
-      userId: 'demo-user',
-      gameId: '1', // Lakers vs Warriors
-      betType: 'moneyline',
-      selection: 'home',
-      odds: -150,
-      line: null,
-      stake: 100,
-      potentialPayout: 166.67,
-      status: 'won',
-      placedAt: new Date(Date.now() - 86400000),
-      settledAt: new Date(Date.now() - 43200000),
-    },
-    {
-      userId: 'demo-user',
-      gameId: '2', // Celtics vs Heat
-      betType: 'spread',
-      selection: 'away',
-      odds: 120,
-      line: 5.5,
-      stake: 50,
-      potentialPayout: 110,
-      status: 'lost',
-      placedAt: new Date(Date.now() - 172800000),
-      settledAt: new Date(Date.now() - 86400000),
-    },
-    {
-      userId: 'demo-user',
-      gameId: '3', // Nets vs 76ers
-      betType: 'total',
-      selection: 'over',
-      odds: -110,
-      line: 220.5,
-      stake: 75,
-      potentialPayout: 145.45,
-      status: 'pending',
-      placedAt: new Date(Date.now() - 3600000),
-      settledAt: null,
-    },
-  ];
-  for (const bet of demoBets) {
-    try {
-      await prisma.bet.create({ data: bet });
-    } catch (e) {
-      console.error('Error creating demo bet:', bet, e);
+  // Optional: add a couple of demo bets for the user
+  try {
+    const existingBets = await prisma.bet.count({ where: { userId: demoUser.id } });
+    if (existingBets === 0) {
+      await prisma.bet.create({
+        data: {
+          userId: demoUser.id,
+          gameId: '3',
+          betType: 'moneyline',
+          selection: 'away',
+          odds: -155,
+          line: null,
+          stake: 100,
+          potentialPayout: 64.52,
+          status: 'pending',
+          placedAt: new Date(),
+        },
+      });
+      await prisma.bet.create({
+        data: {
+          userId: demoUser.id,
+          betType: 'parlay',
+          selection: 'parlay',
+          odds: 260,
+          line: null,
+          stake: 50,
+          potentialPayout: 130,
+          status: 'pending',
+          placedAt: new Date(),
+          legs: [
+            { gameId: '1', betType: 'spread', selection: 'home', odds: -110, line: -2.5 },
+            { gameId: 'nfl-1', betType: 'total', selection: 'over', odds: -110, line: 48.5 },
+          ] as any,
+        },
+      });
+      console.log('Demo bets created for demo user');
     }
+  } catch (e) {
+    console.warn('Skipping demo bets due to error:', e);
   }
-  console.log('Inserted demo bet history for demo-user');
 
-  console.log('Database seeded successfully!');
+  console.log('Seed complete.');
 }
 
 main()
   .catch((e) => {
-    console.error('Seed error:', e);
+    console.error(e);
     process.exit(1);
   })
   .finally(async () => {
