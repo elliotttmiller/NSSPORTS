@@ -121,13 +121,13 @@
   --color-neutral-11: oklch(0.14 0.007 240);
   --color-neutral-12: oklch(0.12 0.007 240);
 
-  /* Blue accent system */
-  --color-accent-9: oklch(0.55 0.15 240);
-  --color-accent-contrast: oklch(0.98 0.003 240);
-  --color-accent-secondary-9: oklch(0.45 0.12 140);
+  /* Green accent system (matches Minnesota outline) */
+  --color-accent-9: #22c55e;
+  --color-accent-contrast: #f8fafc;
+  --color-accent-secondary-9: #16a34a;
 
   /* Focus and interaction */
-  --color-focus-ring: oklch(0.55 0.15 240);
+  --color-focus-ring: #22c55e;
 
   /* Base colors - using defined variables */
   --background: var(--color-bg);

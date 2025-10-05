@@ -127,13 +127,13 @@ export function Header() {
       <div className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
         <Link
           href="/"
-          className="flex items-center space-x-2 hover:opacity-80 transition-opacity"
+          className="flex items-center space-x-1 hover:opacity-80 transition-opacity"
         >
           <Image
             src="/mn-outline.svg"
             alt="NorthStar Sports"
-            width={24}
-            height={24}
+            width={32}
+            height={32}
             className="filter drop-shadow-sm hover:drop-shadow-md transition-transform hover:scale-105 duration-200"
             priority
           />
@@ -150,8 +150,8 @@ export function Header() {
           <Image
             src="/mn-outline.svg"
             alt="NorthStar Sports"
-            width={22}
-            height={22}
+            width={32}
+            height={32}
             className="filter drop-shadow-sm hover:drop-shadow-md transition-transform hover:scale-105 duration-200"
             priority
           />
