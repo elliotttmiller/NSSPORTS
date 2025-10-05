@@ -83,8 +83,8 @@ export function BottomNav() {
         onClick={handleHomeClick}
         className={`flex items-center justify-center w-12 h-12 rounded-full transition-all duration-200 mx-2 self-center ${
           pathname === "/"
-            ? "bg-accent text-accent-foreground shadow-lg scale-110"
-            : "bg-secondary text-accent-foreground hover:bg-accent hover:text-accent-foreground shadow-md"
+            ? "bg-accent/70 text-accent-foreground shadow-md ring-2 ring-accent/30 scale-110"
+            : "bg-secondary text-accent-foreground hover:bg-accent/60 hover:text-accent-foreground shadow-sm"
         }`}
         whileHover={{ scale: pathname === "/" ? 1.15 : 1.05 }}
         whileTap={{ scale: 0.95 }}

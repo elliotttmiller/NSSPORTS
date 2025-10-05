@@ -58,10 +58,10 @@ export function MobileSportsPanel() {
         <>
           {/* Backdrop */}
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.98 }}
+            transition={{ type: "spring", duration: 0.35, stiffness: 160, damping: 28, mass: 0.7 }}
             className="fixed inset-0 bg-background/80 backdrop-blur-sm z-[98]"
             onClick={handleClose}
           />

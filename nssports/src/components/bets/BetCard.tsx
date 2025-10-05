@@ -186,9 +186,9 @@ export function BetCardSingle({
   return (
     <Card className={cn(
       isWon
-  ? "border-accent/50 ring-2 ring-accent/20"
+  ? "border-border/30 ring-1 ring-white/10"
         : status === "lost"
-  ? "border-destructive/50 ring-2 ring-destructive/20"
+  ? "border-destructive/50 ring-1 ring-white/10"
         : "border-accent/20 ring-1 ring-accent/10"
     )}>
       <CardContent className="p-5">

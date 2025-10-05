@@ -183,6 +183,7 @@ export function FloatingBetSlipButton() {
           </div>
         )}
       </div>
+    {/* End of FloatingBetSlipButton content */}
     </motion.div>
-  );
+  )
 }

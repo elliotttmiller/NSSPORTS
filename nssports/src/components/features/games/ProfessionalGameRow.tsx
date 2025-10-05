@@ -94,7 +94,7 @@ export function ProfessionalGameRow({
   };
 
   const cardClasses = cn(
-    "bg-card text-card-foreground flex flex-col border border-border rounded-lg transition-all duration-300 ease-[cubic-bezier(.4,0,.2,1)] shadow-sm hover:shadow-xl hover:-translate-y-1.5 hover:scale-[1.025] active:scale-95 focus-within:ring-2 focus-within:ring-accent/40 cursor-pointer outline-[0.5px] outline-gray-400/20 overflow-hidden",
+    "bg-card text-card-foreground flex flex-col border border-border rounded-lg transition-all duration-300 ease-[cubic-bezier(.4,0,.2,1)] shadow-sm hover:shadow-md hover:-translate-y-1.5 hover:scale-[1.015] active:scale-95 focus-within:ring-1 focus-within:ring-white/20 cursor-pointer outline-[0.5px] outline-gray-400/10 overflow-hidden",
     {
       "border-t rounded-t-lg": !isFirstInGroup,
       "border-b rounded-b-lg mb-2": !isFirstInGroup,

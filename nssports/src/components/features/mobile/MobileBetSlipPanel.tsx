@@ -66,10 +66,10 @@ export function MobileBetSlipPanel() {
     <AnimatePresence>
       {isBetSlipOpen && (
         <motion.div
-          initial={{ y: "100%" }}
-          animate={{ y: 0 }}
-          exit={{ y: "100%" }}
-          transition={{ type: "spring", stiffness: 300, damping: 30 }}
+          initial={{ y: "100%", opacity: 0.7, scale: 0.98 }}
+          animate={{ y: 0, opacity: 1, scale: 1 }}
+          exit={{ y: "100%", opacity: 0.7, scale: 0.98 }}
+          transition={{ type: "spring", stiffness: 180, damping: 32, mass: 0.8 }}
           className="fixed right-0 bottom-0 left-0 z-[99] flex h-[85vh] max-h-[90vh] flex-col rounded-t-2xl border-t border-border bg-background/95 shadow-2xl backdrop-blur-xl"
         >
           {/* Compact header */}

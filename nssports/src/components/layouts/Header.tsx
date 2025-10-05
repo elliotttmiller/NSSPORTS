@@ -58,7 +58,7 @@ function MobileAccountDropdown({ balance, available, risk }: MobileAccountDropdo
             <div className="p-4 space-y-3">
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium text-muted-foreground">Balance:</span>
-                <span className="text-sm font-bold text-accent">
+                <span className="text-sm font-bold text-foreground">
                   ${balance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                 </span>
               </div>
@@ -207,7 +207,7 @@ export function Header() {
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="font-medium text-foreground">Available:</span>
-                    <span className="font-bold text-accent">${available.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                    <span className="font-bold text-foreground">${available.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="font-medium text-foreground">Risk:</span>

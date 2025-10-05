@@ -5,6 +5,7 @@ import { Toaster } from "sonner";
 import { QueryProvider } from "@/components/QueryProvider";
 import { BetSlipProvider, NavigationProvider, BetHistoryProvider } from "@/context";
 import { ThreePanelLayout } from "@/components/layouts";
+import { GlobalMotionProvider } from "@/components/layouts/GlobalMotionProvider";
 import { SmoothScrollProvider } from "@/components/SmoothScrollProvider";
 
 const inter = Inter({
@@ -57,7 +58,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <NavigationProvider>
               <BetSlipProvider>
                 <BetHistoryProvider>
-                  <ThreePanelLayout>{children}</ThreePanelLayout>
+                  <GlobalMotionProvider>
+                    <ThreePanelLayout>{children}</ThreePanelLayout>
+                  </GlobalMotionProvider>
                   <Toaster richColors position="top-right" />
                 </BetHistoryProvider>
               </BetSlipProvider>

@@ -47,8 +47,8 @@ export default function Home() {
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8 md:mt-12">
             {[ 
-              { label: "Balance", value: "$1,250.00", color: "text-accent" },
-              { label: "Available", value: "$1,000.00", color: "text-green-500" },
+              { label: "Balance", value: "$1,250.00", color: "text-foreground" },
+              { label: "Available", value: "$1,000.00", color: "text-foreground" },
               { label: "Risk", value: "$250.00", color: "text-red-500" },
               { label: "Active Bets", value: activeBetsCount, color: "text-foreground" },
             ].map((stat) => {
@@ -68,7 +68,7 @@ export default function Home() {
                     key={stat.label}
                     href="/my-bets"
                     aria-label="View my active bets"
-                    className="bg-card/50 backdrop-blur-sm border border-accent/20 ring-1 ring-accent/10 rounded-lg shadow-sm min-h-[70px] md:min-h-[80px] p-4 flex flex-col items-center justify-center gap-1 hover:bg-accent/5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 transition-colors"
+                    className="bg-card/50 backdrop-blur-sm border border-border/30 ring-1 ring-white/10 rounded-lg shadow-sm min-h-[70px] md:min-h-[80px] p-4 flex flex-col items-center justify-center gap-1 hover:bg-accent/5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 transition-colors"
                   >
                     {content}
                   </Link>
@@ -77,7 +77,7 @@ export default function Home() {
               return (
                 <div
                   key={stat.label}
-                  className="bg-card/50 backdrop-blur-sm border border-accent/20 ring-1 ring-accent/10 rounded-lg shadow-sm min-h-[70px] md:min-h-[80px] p-4 flex flex-col items-center justify-center gap-1"
+                  className="bg-card/50 backdrop-blur-sm border border-border/30 ring-1 ring-white/10 rounded-lg shadow-sm min-h-[70px] md:min-h-[80px] p-4 flex flex-col items-center justify-center gap-1"
                 >
                   {content}
                 </div>
