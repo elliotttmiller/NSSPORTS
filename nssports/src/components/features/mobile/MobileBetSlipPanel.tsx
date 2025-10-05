@@ -73,20 +73,21 @@ export function MobileBetSlipPanel() {
           className="fixed right-0 bottom-0 left-0 z-[99] flex h-[85vh] max-h-[90vh] flex-col rounded-t-2xl border-t border-border bg-background shadow-2xl backdrop-blur-xl"
         >
           {/* Compact header */}
-          <div className="flex items-center justify-between p-4 border-b border-border/20">
-            <div className="flex items-center gap-3">
-              <h3 className="font-bold text-lg">Bet Slip</h3>
-              {betSlip.bets.length > 0 && (
-                <Badge variant="secondary" className="font-bold">
-                  {betSlip.bets.length}
-                </Badge>
-              )}
-            </div>
+          <div className="relative flex items-center p-4 border-b border-border/20 h-14">
+            {/* Centered title */}
+            <h3 className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 font-bold text-lg m-0">Bet Slip</h3>
+            {/* Badge, left aligned */}
+            {betSlip.bets.length > 0 && (
+              <Badge variant="secondary" className="font-bold ml-1">
+                {betSlip.bets.length}
+              </Badge>
+            )}
+            {/* Close button, right aligned */}
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setIsBetSlipOpen(false)}
-              className="h-8 w-8 p-0"
+              className="h-8 w-8 p-0 ml-auto"
             >
               <X size={18} />
             </Button>
