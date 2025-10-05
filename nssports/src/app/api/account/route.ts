@@ -3,13 +3,11 @@ import { withErrorHandling, successResponse, ApiErrors } from "@/lib/apiResponse
 import { AccountSchema } from "@/lib/schemas";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
-
-// TODO: Replace with real auth-derived user id
-const getUserId = async () => "demo-user";
+import { getAuthUser } from "@/lib/authHelpers";
 
 export async function GET() {
 	return withErrorHandling(async () => {
-		const userId = await getUserId();
+		const userId = await getAuthUser();
 
 		let balance = 0;
 		let risk = 0;

@@ -8,11 +8,28 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  password      String
+  name          String?
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  account       Account?
+  bets          Bet[]
+
+  @@index([email])
+  @@map("users")
+}
+
 model Account {
   userId    String  @id
   balance   Decimal @db.Decimal(18, 2)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("accounts")
 }
@@ -75,6 +92,9 @@ model Game {
   @@index([leagueId])
   @@index([status])
   @@index([startTime])
+  @@index([leagueId, status, startTime])
+  @@index([homeTeamId])
+  @@index([awayTeamId])
   @@map("games")
 }
 
@@ -90,12 +110,13 @@ model Odds {
 
   @@index([gameId])
   @@index([betType])
+  @@index([gameId, betType])
   @@map("odds")
 }
 
 model Bet {
   id              String    @id @default(cuid())
-  userId          String?
+  userId          String
   gameId          String?
   betType         String
   selection       String
@@ -107,6 +128,7 @@ model Bet {
   placedAt        DateTime  @default(now())
   settledAt       DateTime?
   game            Game?     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   legs            Json?
   idempotencyKey  String?   @unique
 

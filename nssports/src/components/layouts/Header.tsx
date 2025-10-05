@@ -4,17 +4,21 @@ import Link from "next/link";
 import { useRef, useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
-import { User, X } from "@phosphor-icons/react/dist/ssr";
+import { User, X, SignOut, SignIn } from "@phosphor-icons/react/dist/ssr";
 import { Button } from "@/components/ui";
 import { useAccount } from "@/hooks/useAccount";
 import Image from "next/image";
+import { useSession, signOut } from "next-auth/react";
 interface MobileAccountDropdownProps {
   balance: number;
   available: number;
   risk: number;
+  isAuthenticated: boolean;
+  userEmail?: string | null;
+  onLogout: () => void;
 }
 
-function MobileAccountDropdown({ balance, available, risk }: MobileAccountDropdownProps) {
+function MobileAccountDropdown({ balance, available, risk, isAuthenticated, userEmail, onLogout }: MobileAccountDropdownProps) {
   const [showDropdown, setShowDropdown] = useState(false);
 
   return (
@@ -54,40 +58,75 @@ function MobileAccountDropdown({ balance, available, risk }: MobileAccountDropdo
               </Button>
             </div>
 
-            {/* Balance Information */}
-            <div className="p-4 space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-muted-foreground">Balance:</span>
-                <span className="text-sm font-bold text-foreground">
-                  ${balance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-muted-foreground">Available:</span>
-                <span className="text-sm font-bold text-accent">
-                  ${available.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-muted-foreground">Risk:</span>
-                <span className="text-sm font-bold text-destructive">
-                  ${risk.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
-                </span>
-              </div>
-            </div>
+            {isAuthenticated ? (
+              <>
+                {/* User Email */}
+                {userEmail && (
+                  <div className="px-4 pt-4 pb-2">
+                    <p className="text-xs text-muted-foreground truncate">{userEmail}</p>
+                  </div>
+                )}
 
-            {/* View Account Link */}
-            <div className="p-4 border-t border-border">
-              <div className="flex justify-center">
+                {/* Balance Information */}
+                <div className="p-4 space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium text-muted-foreground">Balance:</span>
+                    <span className="text-sm font-bold text-foreground">
+                      ${balance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium text-muted-foreground">Available:</span>
+                    <span className="text-sm font-bold text-accent">
+                      ${available.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium text-muted-foreground">Risk:</span>
+                    <span className="text-sm font-bold text-destructive">
+                      ${risk.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                    </span>
+                  </div>
+                </div>
+
+                {/* View Account & Logout */}
+                <div className="p-4 border-t border-border space-y-2">
+                  <Link
+                    href="/account"
+                    onClick={() => setShowDropdown(false)}
+                    className="block text-center text-xs px-3 py-1.5 rounded bg-muted/30 hover:bg-muted/50 text-muted-foreground transition-all duration-150 shadow-sm border border-border"
+                  >
+                    View Account
+                  </Link>
+                  <button
+                    onClick={() => {
+                      setShowDropdown(false);
+                      onLogout();
+                    }}
+                    className="w-full text-center text-xs px-3 py-1.5 rounded bg-destructive/10 hover:bg-destructive/20 text-destructive transition-all duration-150 shadow-sm border border-destructive/20"
+                  >
+                    Logout
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="p-4 space-y-2">
                 <Link
-                  href="/account"
+                  href="/auth/login"
                   onClick={() => setShowDropdown(false)}
-                  className="text-xs px-3 py-1 rounded bg-muted/30 hover:bg-muted/50 text-muted-foreground transition-all duration-150 shadow-sm border border-border"
+                  className="block text-center text-sm px-4 py-2 rounded bg-accent hover:bg-accent/80 text-white transition-all duration-150 shadow-sm"
                 >
-                  View Account
+                  Login
+                </Link>
+                <Link
+                  href="/auth/register"
+                  onClick={() => setShowDropdown(false)}
+                  className="block text-center text-sm px-4 py-2 rounded bg-muted/30 hover:bg-muted/50 text-foreground transition-all duration-150 shadow-sm border border-border"
+                >
+                  Register
                 </Link>
               </div>
-            </div>
+            )}
           </div>
         </>,
         document.body
@@ -98,12 +137,17 @@ function MobileAccountDropdown({ balance, available, risk }: MobileAccountDropdo
 
 export function Header() {
   const pathname = usePathname();
-
+  const { data: session, status } = useSession();
+  const isAuthenticated = status === "authenticated";
 
   const { data: account } = useAccount();
   const balance = account?.balance ?? 0;
   const available = account?.available ?? 0;
   const risk = account?.risk ?? 0;
+
+  const handleLogout = async () => {
+    await signOut({ callbackUrl: "/" });
+  };
 
   // Portal dropdown state
   const [showDropdown, setShowDropdown] = useState(false);
@@ -163,62 +207,99 @@ export function Header() {
 
       {/* Desktop Account Button with Dropdown - Top Right */}
       <div className="hidden md:flex absolute right-4 top-1/2 -translate-y-1/2">
-        <div className="relative group">
-          <div
-            ref={accountBtnRef}
-            onMouseEnter={() => setShowDropdown(true)}
-            onMouseLeave={() => setShowDropdown(false)}
-            className="inline-block"
-          >
+        {isAuthenticated ? (
+          <div className="relative group">
+            <div
+              ref={accountBtnRef}
+              onMouseEnter={() => setShowDropdown(true)}
+              onMouseLeave={() => setShowDropdown(false)}
+              className="inline-block"
+            >
+              <Button
+                variant={pathname === "/account" ? "default" : "ghost"}
+                size="sm"
+                asChild
+                className="flex items-center"
+              >
+                <Link href="/account">
+                  <User size={16} className="mr-1" />
+                  Account
+                </Link>
+              </Button>
+            </div>
+            {showDropdown && createPortal(
+              <div
+                style={{
+                  position: "absolute",
+                  top: dropdownPos.top,
+                  left: dropdownPos.left,
+                  width: "224px",
+                  zIndex: 99999,
+                  background: "var(--card)",
+                  border: "1px solid var(--border)",
+                  borderRadius: "0.5rem",
+                  boxShadow: "0 4px 24px rgba(0,0,0,0.12)",
+                  transition: "opacity 0.2s",
+                }}
+                onMouseEnter={() => setShowDropdown(true)}
+                onMouseLeave={() => setShowDropdown(false)}
+              >
+                {session?.user?.email && (
+                  <div className="px-4 pt-4 pb-2 border-b border-border">
+                    <p className="text-xs text-muted-foreground truncate">{session.user.email}</p>
+                  </div>
+                )}
+                <div className="p-4 space-y-2">
+                  <div className="flex flex-col space-y-2 text-foreground">
+                    <div className="flex justify-between text-sm">
+                      <span className="font-medium text-foreground">Balance:</span>
+                      <span className="font-bold text-accent">${balance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="font-medium text-foreground">Available:</span>
+                      <span className="font-bold text-foreground">${available.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="font-medium text-foreground">Risk:</span>
+                      <span className="font-bold text-destructive">${risk.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="px-4 pb-4 pt-2 border-t border-border">
+                  <button
+                    onClick={handleLogout}
+                    className="w-full text-center text-xs px-3 py-1.5 rounded bg-destructive/10 hover:bg-destructive/20 text-destructive transition-all duration-150 shadow-sm border border-destructive/20"
+                  >
+                    Logout
+                  </button>
+                </div>
+              </div>,
+              document.body
+            )}
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
             <Button
-              variant={pathname === "/account" ? "default" : "ghost"}
+              variant="ghost"
               size="sm"
               asChild
-              className="flex items-center"
             >
-              <Link href="/account">
-                <User size={16} className="mr-1" />
-                Account
+              <Link href="/auth/login">
+                <SignIn size={16} className="mr-1" />
+                Login
+              </Link>
+            </Button>
+            <Button
+              variant="default"
+              size="sm"
+              asChild
+            >
+              <Link href="/auth/register">
+                Register
               </Link>
             </Button>
           </div>
-          {showDropdown && createPortal(
-            <div
-              style={{
-                position: "absolute",
-                top: dropdownPos.top,
-                left: dropdownPos.left,
-                width: "224px",
-                zIndex: 99999,
-                background: "var(--card)",
-                border: "1px solid var(--border)",
-                borderRadius: "0.5rem",
-                boxShadow: "0 4px 24px rgba(0,0,0,0.12)",
-                transition: "opacity 0.2s",
-              }}
-              onMouseEnter={() => setShowDropdown(true)}
-              onMouseLeave={() => setShowDropdown(false)}
-            >
-              <div className="p-4 space-y-2">
-                <div className="flex flex-col space-y-2 text-foreground">
-                  <div className="flex justify-between text-sm">
-                    <span className="font-medium text-foreground">Balance:</span>
-                    <span className="font-bold text-accent">${balance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="font-medium text-foreground">Available:</span>
-                    <span className="font-bold text-foreground">${available.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="font-medium text-foreground">Risk:</span>
-                    <span className="font-bold text-destructive">${risk.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
-                  </div>
-                </div>
-              </div>
-            </div>,
-            document.body
-          )}
-        </div>
+        )}
       </div>
 
       {/* Mobile Account Icon with Dropdown - Top Right */}
@@ -227,6 +308,9 @@ export function Header() {
           balance={balance}
           available={available}
           risk={risk}
+          isAuthenticated={isAuthenticated}
+          userEmail={session?.user?.email}
+          onLogout={handleLogout}
         />
       </div>
     </header>

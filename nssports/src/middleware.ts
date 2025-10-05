@@ -86,7 +86,9 @@ export function middleware(request: NextRequest) {
 // Configure which paths the middleware runs on
 export const config = {
   matcher: [
-    // Apply to all API routes
+    // Apply to all API routes except auth
     '/api/:path*',
+    // Exclude NextAuth routes
+    '/((?!api/auth).*)',
   ],
 };

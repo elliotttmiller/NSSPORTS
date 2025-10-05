@@ -4,6 +4,7 @@ import { z } from "zod";
 import { logger } from "@/lib/logger";
 import { ApiErrors, withErrorHandling, successResponse } from "@/lib/apiResponse";
 import { BetsResponseSchema, BetRequestSchema, ParlayBetRequestSchema, SingleBetRequestSchema, SingleBetResponseSchema, ParlayBetResponseSchema } from "@/lib/schemas/bets";
+import { getAuthUser } from "@/lib/authHelpers";
 
 // Minimal leg shape stored in Bet.legs JSON
 type ParlayLeg = {
@@ -49,8 +50,11 @@ export async function GET() {
   return withErrorHandling(async () => {
     logger.info('Fetching bet history');
     
-    // Fetch all bets (for demo, fetch all; in production, filter by user)
+    const userId = await getAuthUser();
+    
+    // Fetch bets for the authenticated user
     const bets = await prisma.bet.findMany({
+      where: { userId },
       orderBy: { placedAt: "desc" },
       include: {
         game: {
@@ -140,6 +144,8 @@ export async function POST(req: Request) {
   const body = await req.json();
     logger.info('Placing bet', { betType: body?.betType });
 
+    const userId = await getAuthUser();
+
     // Idempotency key support for preventing duplicate bet placements
     const idempotencyKey = req.headers.get("Idempotency-Key") || undefined;
     
@@ -199,7 +205,7 @@ export async function POST(req: Request) {
             potentialPayout: data.potentialPayout,
             status: data.status || "pending",
             placedAt: new Date(),
-            userId: data.userId ?? null,
+            userId,
             selection: "parlay",
             odds: data.odds ?? 0,
             line: null,
@@ -245,7 +251,7 @@ export async function POST(req: Request) {
           potentialPayout: data.potentialPayout ?? 0,
           status: data.status || "pending",
           placedAt: new Date(),
-          userId: data.userId ?? null,
+          userId,
           idempotencyKey,
         },
         include: {
