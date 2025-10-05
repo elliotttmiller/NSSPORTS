@@ -1,16 +1,24 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { auth } from '@/lib/auth';
 
 /**
- * Next.js Middleware for CORS and Request Handling
- * Runs before every request to API routes
+ * Next.js Middleware for CORS, Request Handling, and Authentication
+ * Runs before every request to API routes and protected pages
  * 
- * Industry Standard Implementation:
+ * Official Next.js Best Practices:
  * - Validates allowed origins
  * - Handles preflight OPTIONS requests
  * - Sets proper CORS headers
  * - Supports credentials
+ * - Protects authenticated routes
+ * 
+ * Reference: https://nextjs.org/docs/app/guides/authentication
  */
+
+// Protected routes that require authentication
+const PROTECTED_ROUTES = ['/my-bets', '/account'];
+const PROTECTED_API_ROUTES = ['/api/my-bets', '/api/account'];
 
 // Get allowed origins from environment variable
 function getAllowedOrigins(): string[] {
@@ -28,11 +36,37 @@ function getAllowedOrigins(): string[] {
   ];
 }
 
-export function middleware(request: NextRequest) {
-  // Skip NextAuth routes explicitly
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  
+  // Skip NextAuth routes explicitly
   if (pathname.startsWith('/api/auth')) {
     return NextResponse.next();
+  }
+
+  // Check authentication for protected routes
+  const isProtectedPage = PROTECTED_ROUTES.some(route => pathname.startsWith(route));
+  const isProtectedApi = PROTECTED_API_ROUTES.some(route => pathname.startsWith(route));
+  
+  if (isProtectedPage || isProtectedApi) {
+    const session = await auth();
+    
+    if (!session) {
+      // Redirect to login for protected pages
+      if (isProtectedPage) {
+        const loginUrl = new URL('/auth/login', request.url);
+        loginUrl.searchParams.set('callbackUrl', pathname);
+        return NextResponse.redirect(loginUrl);
+      }
+      
+      // Return 401 for protected API routes
+      if (isProtectedApi) {
+        return new NextResponse(
+          JSON.stringify({ error: 'Unauthorized', message: 'Authentication required' }),
+          { status: 401, headers: { 'content-type': 'application/json' } }
+        );
+      }
+    }
   }
 
   // Get origin from request
@@ -89,7 +123,12 @@ export function middleware(request: NextRequest) {
   return response;
 }
 
-// Configure which paths the middleware runs on (API only)
+// Configure which paths the middleware runs on
+// Include both API routes and protected pages
 export const config = {
-  matcher: ['/api/:path*'],
+  matcher: [
+    '/api/:path*',
+    '/my-bets/:path*',
+    '/account/:path*',
+  ],
 };

@@ -1,17 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
-export default function LoginPage() {
+function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl") || "/";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,7 +30,8 @@ export default function LoginPage() {
         toast.error("Invalid email or password");
       } else {
         toast.success("Logged in successfully!");
-        router.push("/");
+        // Use the callback URL from middleware or default to home
+        router.push(callbackUrl);
         router.refresh();
       }
     } catch (error) {
@@ -97,5 +100,27 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="container mx-auto px-6 py-12 max-w-md">
+        <div className="bg-card border border-border rounded-xl p-8 shadow-lg">
+          <div className="animate-pulse">
+            <div className="h-8 bg-muted rounded w-3/4 mb-4"></div>
+            <div className="h-4 bg-muted rounded w-1/2 mb-6"></div>
+            <div className="space-y-4">
+              <div className="h-10 bg-muted rounded"></div>
+              <div className="h-10 bg-muted rounded"></div>
+              <div className="h-10 bg-muted rounded"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   );
 }
