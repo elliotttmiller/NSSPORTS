@@ -43,7 +43,7 @@ export default function Home() {
             <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-foreground tracking-tight mb-4">
               Welcome, NorthStar User
             </h1>
-            <div className="w-16 md:w-24 h-1 bg-accent mx-auto rounded-full"></div>
+            <div className="w-32 md:w-48 h-1 bg-accent mx-auto rounded-full"></div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8 md:mt-12">
             {[ 
