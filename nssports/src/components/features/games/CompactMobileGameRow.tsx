@@ -185,16 +185,16 @@ export const CompactMobileGameRow = memo(({ game }: Props) => {
                 size="sm"
                 onClick={(e) => handleBetClick("spread", "away", e)}
                 className={cn(
-                  "w-full h-7 px-2 transition-all duration-200 font-medium flex flex-col justify-center items-center gap-0 text-center",
+                  "w-full h-7 px-2 transition-all duration-200 font-medium flex flex-col justify-center items-center gap-1 text-center",
                   isBetInSlip("spread", "away")
                     ? "bg-accent text-accent-foreground shadow-lg ring-2 ring-accent/20"
                     : "hover:bg-accent hover:text-accent-foreground hover:shadow-md"
                 )}
               >
-                <span className="text-[10px] font-bold leading-none">
-                  <span className="tracking-wide">{formatSpreadLine(game.odds.spread.away.line || 0)}</span>
+                <span className="text-[10px] leading-none">
+                  <span className="tracking-wide text-xs font-medium leading-none">{formatSpreadLine(game.odds.spread.away.line || 0)}</span>
                 </span>
-                <span className="text-[8px] opacity-75 leading-none -mt-px">
+                <span className="text-[10px] text-foreground/90 font-semibold block w-full text-center leading-none">
                   {formatOdds(game.odds.spread.away.odds)}
                 </span>
               </Button>
@@ -211,16 +211,16 @@ export const CompactMobileGameRow = memo(({ game }: Props) => {
                 size="sm"
                 onClick={(e) => handleBetClick("spread", "home", e)}
                 className={cn(
-                  "w-full h-7 px-2 transition-all duration-200 font-medium flex flex-col justify-center items-center gap-0 text-center",
+                  "w-full h-7 px-2 transition-all duration-200 font-medium flex flex-col justify-center items-center gap-1 text-center",
                   isBetInSlip("spread", "home")
                     ? "bg-accent text-accent-foreground shadow-lg ring-2 ring-accent/20"
                     : "hover:bg-accent hover:text-accent-foreground hover:shadow-md"
                 )}
               >
-                <span className="text-[10px] font-bold leading-none">
-                  <span className="tracking-wide">{formatSpreadLine(game.odds.spread.home.line || 0)}</span>
+                <span className="text-[10px] leading-none">
+                  <span className="tracking-wide text-xs font-medium leading-none">{formatSpreadLine(game.odds.spread.home.line || 0)}</span>
                 </span>
-                <span className="text-[8px] opacity-75 leading-none -mt-px">
+                <span className="text-[10px] text-foreground/90 font-semibold block w-full text-center leading-none">
                   {formatOdds(game.odds.spread.home.odds)}
                 </span>
               </Button>
@@ -239,16 +239,16 @@ export const CompactMobileGameRow = memo(({ game }: Props) => {
                 size="sm"
                 onClick={(e) => handleBetClick("total", "over", e)}
                 className={cn(
-                  "w-full h-7 px-2 transition-all duration-200 font-medium flex flex-col justify-center items-center gap-0 text-center",
+                  "w-full h-7 px-2 transition-all duration-200 font-medium flex flex-col justify-center items-center gap-1 text-center",
                   isBetInSlip("total", "over")
                     ? "bg-accent text-accent-foreground shadow-lg ring-2 ring-accent/20"
                     : "hover:bg-accent hover:text-accent-foreground hover:shadow-md"
                 )}
               >
-                <span className="text-[10px] font-bold leading-none">
-                  <span className="tracking-wide">O<span className="mx-1">{formatTotalLine(game.odds.total.over?.line || 0)}</span></span>
+                <span className="text-[10px] leading-none">
+                  <span className="tracking-wide text-xs font-medium leading-none">O<span className="mx-1">{formatTotalLine(game.odds.total.over?.line || 0)}</span></span>
                 </span>
-                <span className="text-[8px] opacity-75 leading-none -mt-px">
+                <span className="text-[10px] text-foreground/90 font-semibold block w-full text-center leading-none">
                   {formatOdds(game.odds.total.over?.odds || 0)}
                 </span>
               </Button>
@@ -265,16 +265,16 @@ export const CompactMobileGameRow = memo(({ game }: Props) => {
                 size="sm"
                 onClick={(e) => handleBetClick("total", "under", e)}
                 className={cn(
-                  "w-full h-7 px-2 transition-all duration-200 font-medium flex flex-col justify-center items-center gap-0 text-center",
+                  "w-full h-7 px-2 transition-all duration-200 font-medium flex flex-col justify-center items-center gap-1 text-center",
                   isBetInSlip("total", "under")
                     ? "bg-accent text-accent-foreground shadow-lg ring-2 ring-accent/20"
                     : "hover:bg-accent hover:text-accent-foreground hover:shadow-md"
                 )}
               >
-                <span className="text-[10px] font-bold leading-none">
-                  <span className="tracking-wide">U<span className="mx-1">{formatTotalLine(game.odds.total.under?.line || 0)}</span></span>
+                <span className="text-[10px] leading-none">
+                  <span className="tracking-wide text-xs font-medium leading-none">U<span className="mx-1">{formatTotalLine(game.odds.total.under?.line || 0)}</span></span>
                 </span>
-                <span className="text-[8px] opacity-75 leading-none -mt-px">
+                <span className="text-[10px] text-foreground/90 font-semibold block w-full text-center leading-none">
                   {formatOdds(game.odds.total.under?.odds || 0)}
                 </span>
               </Button>
@@ -302,7 +302,7 @@ export const CompactMobileGameRow = memo(({ game }: Props) => {
                 )}
               >
                 <span className="text-[10px] font-semibold">
-                  <span className="tracking-wide">{formatOdds(game.odds.moneyline.away.odds)}</span>
+                  <span className="tracking-wide text-xs font-semibold leading-none">{formatOdds(game.odds.moneyline.away.odds)}</span>
                 </span>
               </Button>
             </motion.div>
@@ -325,7 +325,7 @@ export const CompactMobileGameRow = memo(({ game }: Props) => {
                 )}
               >
                 <span className="text-[10px] font-semibold">
-                  <span className="tracking-wide">{formatOdds(game.odds.moneyline.home.odds)}</span>
+                  <span className="tracking-wide text-xs font-semibold leading-none">{formatOdds(game.odds.moneyline.home.odds)}</span>
                 </span>
               </Button>
             </motion.div>

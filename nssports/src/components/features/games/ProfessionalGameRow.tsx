@@ -186,35 +186,43 @@ export function ProfessionalGameRow({
 
             {/* Spread Column */}
             <div className="space-y-1 min-w-[80px] xl:min-w-[120px]">
-            <Button
-              variant={isBetInSlip("spread", "away") ? "default" : "outline"}
-              size="sm"
-              onClick={(e) => handleBetClick("spread", "away", e)}
-              className={cn(
-                "w-full h-8 text-xs px-2 transition-all duration-200 font-medium",
-                isBetInSlip("spread", "away")
-                  ? "bg-accent text-accent-foreground shadow-md ring-2 ring-accent/20"
-                  : "hover:bg-accent hover:text-accent-foreground",
-              )}
-            >
-              {formatSpreadLine(game.odds.spread.away.line || 0)}{" "}
-              {formatOdds(game.odds.spread.away.odds)}
-            </Button>
-            <Button
-              variant={isBetInSlip("spread", "home") ? "default" : "outline"}
-              size="sm"
-              onClick={(e) => handleBetClick("spread", "home", e)}
-              className={cn(
-                "w-full h-8 text-xs px-2 transition-all duration-200 font-medium",
-                isBetInSlip("spread", "home")
-                  ? "bg-accent text-accent-foreground shadow-md ring-2 ring-accent/20"
-                  : "hover:bg-accent hover:text-accent-foreground",
-              )}
-            >
-              {formatSpreadLine(game.odds.spread.home.line || 0)}{" "}
-              {formatOdds(game.odds.spread.home.odds)}
-            </Button>
-          </div>
+              <Button
+                variant={isBetInSlip("spread", "away") ? "default" : "outline"}
+                size="sm"
+                onClick={(e) => handleBetClick("spread", "away", e)}
+                className={cn(
+                  "w-full h-9 px-2 transition-all duration-200 font-medium flex flex-col justify-center items-center gap-1 text-center",
+                  isBetInSlip("spread", "away")
+                    ? "bg-accent text-accent-foreground shadow-md ring-2 ring-accent/20"
+                    : "hover:bg-accent hover:text-accent-foreground",
+                )}
+              >
+                <span className="text-xs xl:text-sm font-medium leading-none tracking-wide">
+                  {formatSpreadLine(game.odds.spread.away.line || 0)}
+                </span>
+                <span className="text-[10px] xl:text-[11px] text-foreground/90 font-semibold leading-none">
+                  {formatOdds(game.odds.spread.away.odds)}
+                </span>
+              </Button>
+              <Button
+                variant={isBetInSlip("spread", "home") ? "default" : "outline"}
+                size="sm"
+                onClick={(e) => handleBetClick("spread", "home", e)}
+                className={cn(
+                  "w-full h-9 px-2 transition-all duration-200 font-medium flex flex-col justify-center items-center gap-1 text-center",
+                  isBetInSlip("spread", "home")
+                    ? "bg-accent text-accent-foreground shadow-md ring-2 ring-accent/20"
+                    : "hover:bg-accent hover:text-accent-foreground",
+                )}
+              >
+                <span className="text-xs xl:text-sm font-medium leading-none tracking-wide">
+                  {formatSpreadLine(game.odds.spread.home.line || 0)}
+                </span>
+                <span className="text-[10px] xl:text-[11px] text-foreground/90 font-semibold leading-none">
+                  {formatOdds(game.odds.spread.home.odds)}
+                </span>
+              </Button>
+            </div>
 
           {/* Total Column */}
           <div className="space-y-1 min-w-[80px] xl:min-w-[120px]">
@@ -223,28 +231,36 @@ export function ProfessionalGameRow({
               size="sm"
               onClick={(e) => handleBetClick("total", "over", e)}
               className={cn(
-                "w-full h-8 text-[10px] xl:text-xs px-1 xl:px-2 transition-all duration-200 font-medium",
+                "w-full h-9 px-2 transition-all duration-200 font-medium flex flex-col justify-center items-center gap-1 text-center",
                 isBetInSlip("total", "over")
                   ? "bg-accent text-accent-foreground shadow-md ring-2 ring-accent/20"
                   : "hover:bg-accent hover:text-accent-foreground",
               )}
             >
-              O {game.odds.total.over?.line}{" "}
-              {formatOdds(game.odds.total.over?.odds || 0)}
+              <span className="text-xs xl:text-sm font-medium leading-none tracking-wide">
+                O<span className="mx-1">{game.odds.total.over?.line}</span>
+              </span>
+              <span className="text-[10px] xl:text-[11px] text-foreground/90 font-semibold leading-none">
+                {formatOdds(game.odds.total.over?.odds || 0)}
+              </span>
             </Button>
             <Button
               variant={isBetInSlip("total", "under") ? "default" : "outline"}
               size="sm"
               onClick={(e) => handleBetClick("total", "under", e)}
               className={cn(
-                "w-full h-8 text-[10px] xl:text-xs px-1 xl:px-2 transition-all duration-200 font-medium",
+                "w-full h-9 px-2 transition-all duration-200 font-medium flex flex-col justify-center items-center gap-1 text-center",
                 isBetInSlip("total", "under")
                   ? "bg-accent text-accent-foreground shadow-md ring-2 ring-accent/20"
                   : "hover:bg-accent hover:text-accent-foreground",
               )}
             >
-              U {game.odds.total.under?.line}{" "}
-              {formatOdds(game.odds.total.under?.odds || 0)}
+              <span className="text-xs xl:text-sm font-medium leading-none tracking-wide">
+                U<span className="mx-1">{game.odds.total.under?.line}</span>
+              </span>
+              <span className="text-[10px] xl:text-[11px] text-foreground/90 font-semibold leading-none">
+                {formatOdds(game.odds.total.under?.odds || 0)}
+              </span>
             </Button>
           </div>
 
@@ -255,26 +271,30 @@ export function ProfessionalGameRow({
               size="sm"
               onClick={(e) => handleBetClick("moneyline", "away", e)}
               className={cn(
-                "w-full h-8 text-[10px] xl:text-xs px-1 xl:px-2 transition-all duration-200 font-medium",
+                "w-full h-8 px-1 xl:px-2 transition-all duration-200 font-medium flex items-center justify-center text-center",
                 isBetInSlip("moneyline", "away")
                   ? "bg-accent text-accent-foreground shadow-md ring-2 ring-accent/20"
                   : "hover:bg-accent hover:text-accent-foreground",
               )}
             >
-              {formatOdds(game.odds.moneyline.away.odds)}
+              <span className="text-xs xl:text-sm font-medium leading-none tracking-wide">
+                {formatOdds(game.odds.moneyline.away.odds)}
+              </span>
             </Button>
             <Button
               variant={isBetInSlip("moneyline", "home") ? "default" : "outline"}
               size="sm"
               onClick={(e) => handleBetClick("moneyline", "home", e)}
               className={cn(
-                "w-full h-8 text-[10px] xl:text-xs px-1 xl:px-2 transition-all duration-200 font-medium",
+                "w-full h-8 px-1 xl:px-2 transition-all duration-200 font-medium flex items-center justify-center text-center",
                 isBetInSlip("moneyline", "home")
                   ? "bg-accent text-accent-foreground shadow-md ring-2 ring-accent/20"
                   : "hover:bg-accent hover:text-accent-foreground",
               )}
             >
+              <span className="text-xs xl:text-sm font-medium leading-none tracking-wide">
                 {formatOdds(game.odds.moneyline.home.odds)}
+              </span>
             </Button>
           </div>
           </div>
