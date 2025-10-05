@@ -3,9 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
 }
 
 model User {
@@ -26,7 +25,7 @@ model User {
 
 model Account {
   userId    String  @id
-  balance   Decimal @db.Decimal(18, 2)
+  balance   Float
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -56,38 +55,41 @@ model League {
 }
 
 model Team {
-  id        String  @id
+  id        String   @id
   name      String
   shortName String
   logo      String
   record    String?
   leagueId  String?
-  awayGames Game[]  @relation("AwayTeam")
-  homeGames Game[]  @relation("HomeTeam")
+  awayGames Game[]   @relation("AwayTeam")
+  homeGames Game[]   @relation("HomeTeam")
+  players   Player[]
 
   @@index([leagueId])
   @@map("teams")
 }
 
 model Game {
-  id            String   @id
+  id            String       @id
   leagueId      String
   homeTeamId    String
   awayTeamId    String
   startTime     DateTime
-  status        String   @default("upcoming")
+  status        String       @default("upcoming")
   venue         String?
   homeScore     Int?
   awayScore     Int?
   period        String?
   timeRemaining String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
   bets          Bet[]
-  awayTeam      Team     @relation("AwayTeam", fields: [awayTeamId], references: [id], onDelete: Cascade)
-  homeTeam      Team     @relation("HomeTeam", fields: [homeTeamId], references: [id], onDelete: Cascade)
-  league        League   @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  awayTeam      Team         @relation("AwayTeam", fields: [awayTeamId], references: [id], onDelete: Cascade)
+  homeTeam      Team         @relation("HomeTeam", fields: [homeTeamId], references: [id], onDelete: Cascade)
+  league        League       @relation(fields: [leagueId], references: [id], onDelete: Cascade)
   odds          Odds[]
+  playerProps   PlayerProp[]
+  gameProps     GameProp[]
 
   @@index([leagueId])
   @@index([status])
@@ -122,8 +124,8 @@ model Bet {
   selection       String
   odds            Int
   line            Float?
-  stake           Decimal   @db.Decimal(18,2)
-  potentialPayout Decimal   @db.Decimal(18,2)
+  stake           Float
+  potentialPayout Float
   status          String    @default("pending")
   placedAt        DateTime  @default(now())
   settledAt       DateTime?
@@ -137,4 +139,52 @@ model Bet {
   @@index([status])
   @@index([userId, status, placedAt])
   @@map("bets")
+}
+
+model Player {
+  id          String       @id
+  name        String
+  teamId      String
+  position    String
+  jerseyNumber String?
+  team        Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  playerProps PlayerProp[]
+
+  @@index([teamId])
+  @@map("players")
+}
+
+model PlayerProp {
+  id          String   @id @default(cuid())
+  gameId      String
+  playerId    String
+  statType    String
+  line        Float
+  overOdds    Int
+  underOdds   Int
+  category    String
+  lastUpdated DateTime @default(now())
+  game        Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  player      Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([gameId])
+  @@index([playerId])
+  @@index([gameId, playerId])
+  @@map("player_props")
+}
+
+model GameProp {
+  id          String   @id @default(cuid())
+  gameId      String
+  propType    String
+  description String
+  selection   String?
+  odds        Int
+  line        Float?
+  lastUpdated DateTime @default(now())
+  game        Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@index([gameId])
+  @@index([propType])
+  @@map("game_props")
 }
