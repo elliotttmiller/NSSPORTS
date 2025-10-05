@@ -2,16 +2,27 @@ import type { NextConfig } from "next";
 
 /**
  * Next.js Configuration
- * Industry Standard Implementation
+ * Official Next.js Production Best Practices
  * 
  * Features:
  * - Environment variable validation
  * - Security headers
  * - CORS configuration
  * - Image optimization
+ * - Performance optimizations
+ * - Production-ready settings
+ * 
+ * References:
+ * - https://nextjs.org/docs/app/guides/production-checklist
+ * - https://nextjs.org/docs/app/api-reference/config/next-config-js
  */
 
 const nextConfig: NextConfig = {
+  // Production optimizations
+  reactStrictMode: true,
+  poweredByHeader: false,
+  compress: true,
+  
   // Disable dev indicators for cleaner development experience
   devIndicators: false,
   
@@ -35,6 +46,7 @@ const nextConfig: NextConfig = {
         hostname: 'nssportsclub.ngrok.app',
       },
     ],
+    formats: ['image/avif', 'image/webp'],
   },
 
   // Security and performance headers
@@ -47,6 +59,10 @@ const nextConfig: NextConfig = {
           {
             key: 'X-DNS-Prefetch-Control',
             value: 'on',
+          },
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=31536000; includeSubDomains',
           },
           {
             key: 'X-Frame-Options',
@@ -63,6 +79,10 @@ const nextConfig: NextConfig = {
           {
             key: 'Referrer-Policy',
             value: 'origin-when-cross-origin',
+          },
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()',
           },
         ],
       },

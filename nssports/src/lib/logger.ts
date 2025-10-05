@@ -1,6 +1,14 @@
 /**
  * Centralized logging utility for the application
  * Provides structured logging with different levels
+ * 
+ * Official Next.js Best Practices:
+ * - Structured logging with JSON format for production
+ * - Context enrichment for debugging
+ * - Request ID tracking
+ * - Performance metrics
+ * 
+ * Reference: https://nextjs.org/docs/app/guides/production-checklist
  */
 
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
@@ -11,6 +19,7 @@ interface LogContext {
 
 class Logger {
   private isDevelopment = process.env.NODE_ENV === 'development';
+  private isProduction = process.env.NODE_ENV === 'production';
 
   private log(level: LogLevel, message: string, context?: LogContext) {
     const timestamp = new Date().toISOString();
@@ -18,18 +27,22 @@ class Logger {
       timestamp,
       level,
       message,
+      environment: process.env.NODE_ENV,
       ...context,
     };
 
-    // In production, you might want to send logs to a service like Sentry, DataDog, etc.
-    if (this.isDevelopment) {
+    // In production, use structured JSON logging
+    if (this.isProduction) {
+      // Only log warnings and errors in production, or info if explicitly configured
+      if (level === 'error' || level === 'warn' || (level === 'info' && process.env.LOG_LEVEL === 'info')) {
+        console[level === 'error' || level === 'warn' ? level : 'log'](JSON.stringify(logData));
+      }
+    } else if (this.isDevelopment) {
+      // In development, use colored console output
       const logMethod = level === 'error' ? console.error : 
                        level === 'warn' ? console.warn : 
                        console.log;
       logMethod(`[${timestamp}] [${level.toUpperCase()}]`, message, context || '');
-    } else if (level === 'error' || level === 'warn') {
-      // In production, only log warnings and errors
-      console[level](JSON.stringify(logData));
     }
   }
 
@@ -55,6 +68,20 @@ class Logger {
       } : error,
     };
     this.log('error', message, errorContext);
+  }
+
+  // Request-specific logging helper
+  request(method: string, path: string, context?: LogContext) {
+    this.info(`${method} ${path}`, { type: 'request', ...context });
+  }
+
+  // Performance tracking helper
+  performance(operation: string, durationMs: number, context?: LogContext) {
+    this.info(`Performance: ${operation}`, { 
+      type: 'performance', 
+      durationMs, 
+      ...context 
+    });
   }
 }
 
