@@ -6,6 +6,8 @@ import { BetCardParlay, BetCardSingle } from "@/components/bets/BetCard";
 import type { BetLeg } from "@/components/bets/BetCard";
 
 export default function MyBetsPage() {
+  // Mobile detection (reuse hook if available)
+  const isMobile = typeof window !== "undefined" && window.matchMedia && window.matchMedia("(max-width: 768px)").matches;
   const { placedBets, loading } = useBetHistory();
   
   // Ensure all bets are API-driven, no fallback/hardcoded data
@@ -48,7 +50,7 @@ export default function MyBetsPage() {
   return (
     <div className="bg-background min-h-screen">
       <div className="container mx-auto px-6 md:px-8 xl:px-12 pt-12 pb-6 max-w-screen-2xl">
-        <div className="space-y-6">
+        <div className={isMobile ? "space-y-6 pointer-events-none" : "space-y-6"}>
           {/* Active Bets Section - Using shared BetCard */}
           <Card>
             <CardHeader className="pb-4">
