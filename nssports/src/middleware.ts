@@ -29,6 +29,12 @@ function getAllowedOrigins(): string[] {
 }
 
 export function middleware(request: NextRequest) {
+  // Skip NextAuth routes explicitly
+  const { pathname } = request.nextUrl;
+  if (pathname.startsWith('/api/auth')) {
+    return NextResponse.next();
+  }
+
   // Get origin from request
   const origin = request.headers.get('origin');
   const allowedOrigins = getAllowedOrigins();
@@ -83,9 +89,7 @@ export function middleware(request: NextRequest) {
   return response;
 }
 
-// Configure which paths the middleware runs on (API only, exclude NextAuth)
+// Configure which paths the middleware runs on (API only)
 export const config = {
-  matcher: [
-    '/api/(?!auth).*',
-  ],
+  matcher: ['/api/:path*'],
 };
