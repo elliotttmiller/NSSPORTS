@@ -62,7 +62,7 @@ export function MobileSportsPanel() {
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.98 }}
             transition={{ type: "spring", duration: 0.35, stiffness: 160, damping: 28, mass: 0.7 }}
-            className="fixed inset-0 bg-background/80 backdrop-blur-sm z-[98]"
+            className="fixed inset-0 bg-background backdrop-blur-sm z-[98]"
             onClick={handleClose}
           />
 
@@ -72,7 +72,7 @@ export function MobileSportsPanel() {
             animate={{ x: 0 }}
             exit={{ x: "-100%" }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="fixed left-0 top-0 bottom-0 w-[280px] bg-card border-r border-border z-[99] flex flex-col"
+            className="fixed left-0 top-0 bottom-0 w-[280px] bg-background border-r border-border z-[99] flex flex-col"
           >
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-border">

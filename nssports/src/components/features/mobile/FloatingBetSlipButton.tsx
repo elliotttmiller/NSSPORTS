@@ -161,7 +161,7 @@ export function FloatingBetSlipButton() {
           isDragging && "cursor-grabbing scale-105",
           isBetSlipOpen
             ? "bg-accent/90 border-accent"
-            : "bg-background/80 border-border hover:bg-accent hover:border-accent"
+            : "bg-background border-border hover:bg-accent hover:border-accent"
         )}
         style={{
           WebkitTapHighlightColor: "transparent",

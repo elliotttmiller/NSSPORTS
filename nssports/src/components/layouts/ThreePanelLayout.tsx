@@ -17,7 +17,7 @@ export function ThreePanelLayout({ children }: ThreePanelLayoutProps) {
   const isMobile = useIsMobile();
 
   return (
-    <div className="bg-background text-foreground flex flex-col min-h-screen">
+  <div className="bg-background text-foreground flex flex-col min-h-screen">
       {/* Header - Always visible */}
       <Header />
       {/* Main Layout Container - Three Panel Structure */}
@@ -54,13 +54,13 @@ export function ThreePanelLayout({ children }: ThreePanelLayoutProps) {
 
           {/* Left Panel - Side Navigation (Collapsible) - Fixed */}
           <div
-            className={`hidden lg:block border-r border-border bg-card/50 backdrop-blur-sm transition-all duration-300 ease-in-out overflow-hidden fixed left-0 top-16 z-20 ${
+            className={`hidden lg:block border-r border-border bg-background transition-all duration-300 ease-in-out overflow-hidden fixed left-0 top-16 z-20 ${
               sideNavOpen ? "w-72" : "w-0"
             }`}
             style={{ height: 'calc(100vh - 4rem)' }}
           >
             {sideNavOpen && (
-              <div className="h-full overflow-y-auto seamless-scroll">
+              <div className="h-full overflow-y-auto seamless-scroll bg-background">
                 <SideNavPanel />
               </div>
             )}
@@ -96,7 +96,7 @@ export function ThreePanelLayout({ children }: ThreePanelLayoutProps) {
 
           {/* Right Panel - Bet Slip (Collapsible) - Fixed */}
           <div
-            className={`hidden lg:block border-l border-border bg-card transition-all duration-300 ease-in-out overflow-hidden fixed right-0 top-16 z-20 ${
+            className={`hidden lg:block border-l border-border bg-background transition-all duration-300 ease-in-out overflow-hidden fixed right-0 top-16 z-20 ${
               betSlipOpen ? "w-96" : "w-0"
             }`}
             style={{ height: 'calc(100vh - 4rem)' }}

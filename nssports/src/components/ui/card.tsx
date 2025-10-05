@@ -6,8 +6,8 @@ function Card({ className, ...props }: ComponentProps<"div">) {
     <div
       data-slot="card"
       className={cn(
-        "bg-card text-card-foreground flex flex-col border border-border rounded-lg transition-all duration-300 ease-[cubic-bezier(.4,0,.2,1)] shadow-sm hover:shadow-xl hover:-translate-y-1.5 hover:scale-[1.025] active:scale-95 focus-within:ring-2 focus-within:ring-accent/40 cursor-pointer",
-  "outline-[0.5px] outline-gray-400/20",
+    "bg-background text-card-foreground flex flex-col border border-border rounded-lg transition-all duration-300 ease-[cubic-bezier(.4,0,.2,1)] shadow-sm hover:shadow-xl hover:-translate-y-1.5 hover:scale-[1.025] active:scale-95 focus-within:ring-2 focus-within:ring-accent/40 cursor-pointer",
+  "outline-[0.5px] outline-white/10",
         className,
       )}
       {...props}
