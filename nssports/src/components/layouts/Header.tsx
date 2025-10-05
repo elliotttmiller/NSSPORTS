@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRef, useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
-import { Trophy, User, X } from "@phosphor-icons/react/dist/ssr";
+import { Crown, User, X } from "@phosphor-icons/react/dist/ssr";
 import { Button } from "@/components/ui";
 interface MobileAccountDropdownProps {
   balance: number;
@@ -127,7 +127,7 @@ export function Header() {
           href="/"
           className="flex items-center space-x-2 hover:opacity-80 transition-opacity"
         >
-          <Trophy size={24} weight="fill" className="text-accent" />
+          <Crown size={24} weight="fill" className="text-yellow-400 drop-shadow" />
           <h1 className="text-xl font-bold text-foreground">NSSPORTSCLUB</h1>
         </Link>
       </div>
@@ -138,7 +138,7 @@ export function Header() {
           href="/"
           className="flex items-center space-x-2 hover:opacity-80 transition-opacity"
         >
-          <Trophy size={22} weight="fill" className="text-accent" />
+          <Crown size={22} weight="fill" className="text-yellow-400 drop-shadow" />
           <h1 className="text-lg font-bold text-foreground tracking-tight">
             NSSPORTSCLUB
           </h1>
