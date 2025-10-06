@@ -7,9 +7,9 @@
  * - Makes system resilient to upstream changes
  */
 
-import type { OddsApiEvent } from "./the-odds-api";
-import type { GamePayload } from "./schemas/game";
-import { logger } from "./logger";
+import type { OddsApiEvent } from "../the-odds-api";
+import type { GamePayload } from "../schemas/game";
+import { logger } from "../logger";
 
 /**
  * Map sport keys from The Odds API to our internal league IDs
