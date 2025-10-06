@@ -27,7 +27,7 @@ import { logger } from "@/lib/logger";
 
 // Cache duration: 60 seconds for live odds data
 // This balances data freshness with API quota usage
-const CACHE_DURATION = 60;
+const CACHE_DURATION_SECONDS = 60;
 
 // Query parameters schema
 const QuerySchema = z.object({
@@ -60,7 +60,7 @@ const getCachedOdds = unstable_cache(
   },
   ["odds-api-matches"],
   {
-    revalidate: CACHE_DURATION,
+    revalidate: CACHE_DURATION_SECONDS,
     tags: ["matches"],
   }
 );
@@ -102,7 +102,7 @@ export async function GET(request: NextRequest) {
           sport,
           count: validatedGames.length,
           cached: true,
-          cacheDuration: CACHE_DURATION,
+          cacheDuration: CACHE_DURATION_SECONDS,
         }
       );
     } catch (error) {
@@ -132,4 +132,4 @@ export async function GET(request: NextRequest) {
 // Export route segment config
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const revalidate = CACHE_DURATION;
+export const revalidate = 60;

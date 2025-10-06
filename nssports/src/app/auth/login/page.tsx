@@ -1,45 +1,46 @@
 "use client";
 
-import { useState, Suspense } from "react";
-import { signIn } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect } from "react";
+import { useFormState, useFormStatus } from "react-dom";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { loginAction, type LoginState } from "../actions";
+
+function SubmitButton() {
+  const { pending } = useFormStatus();
+  
+  return (
+    <Button
+      type="submit"
+      disabled={pending}
+      className="w-full"
+    >
+      {pending ? "Logging in..." : "Login"}
+    </Button>
+  );
+}
 
 function LoginForm() {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/";
+  
+  const [state, formAction] = useFormState<LoginState, FormData>(
+    loginAction,
+    { success: false }
+  );
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      const result = await signIn("credentials", {
-        username,
-        password,
-        redirect: false,
-      });
-
-      if (result?.error) {
-        toast.error("Invalid username or password");
-        setLoading(false);
-      } else {
-        toast.success("Logged in successfully!");
-        // Use window.location.href for a full page reload to ensure proper session handling
-        window.location.href = callbackUrl;
-      }
-    } catch (error) {
-      toast.error("An error occurred during login");
-      setLoading(false);
+  // Show toast notifications based on action result
+  useEffect(() => {
+    if (state.success && state.message) {
+      toast.success(state.message);
+      // Redirect after successful login
+      window.location.href = callbackUrl;
+    } else if (state.error) {
+      toast.error(state.error);
     }
-    // Don't set loading to false here since we're redirecting
-  };
+  }, [state, callbackUrl]);
 
   return (
     <div className="w-full max-w-md">
@@ -49,21 +50,23 @@ function LoginForm() {
           Welcome back to NorthStar Sports
         </p>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form action={formAction} className="space-y-4">
           <div>
             <label htmlFor="username" className="block text-sm font-medium text-foreground mb-2">
               Username
             </label>
             <input
               id="username"
+              name="username"
               type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
               required
               minLength={3}
               className="w-full px-4 py-2 bg-background border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-accent"
               placeholder="your_username"
             />
+            {state.errors?.username && (
+              <p className="text-sm text-red-500 mt-1">{state.errors.username[0]}</p>
+            )}
           </div>
 
           <div>
@@ -72,23 +75,19 @@ function LoginForm() {
             </label>
             <input
               id="password"
+              name="password"
               type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
               required
               minLength={6}
               className="w-full px-4 py-2 bg-background border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-accent"
               placeholder="••••••••"
             />
+            {state.errors?.password && (
+              <p className="text-sm text-red-500 mt-1">{state.errors.password[0]}</p>
+            )}
           </div>
 
-          <Button
-            type="submit"
-            disabled={loading}
-            className="w-full"
-          >
-            {loading ? "Logging in..." : "Login"}
-          </Button>
+          <SubmitButton />
         </form>
 
         <div className="mt-6 text-center">
