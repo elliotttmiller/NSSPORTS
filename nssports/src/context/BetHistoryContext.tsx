@@ -4,9 +4,11 @@ import {
   createContext,
   useContext,
   ReactNode,
+  useEffect,
 } from "react";
 import { Bet } from "@/types";
 import { useBetHistoryQuery, usePlaceBet } from "@/hooks/useBetHistory";
+import { toast } from "sonner";
 
 export interface PlacedBet {
   id: string;
@@ -100,8 +102,19 @@ interface BetHistoryProviderProps {
 
 export function BetHistoryProvider({ children }: BetHistoryProviderProps) {
   // Use React Query for data fetching
-  const { data: placedBets = [], isLoading, refetch } = useBetHistoryQuery();
+  const { data: placedBets = [], isLoading, refetch, error } = useBetHistoryQuery();
   const placeBetMutation = usePlaceBet();
+
+  // Global error handling: Show toast notification for fetch errors
+  useEffect(() => {
+    if (error && !(error instanceof Error && error.message.includes('401'))) {
+      // Only show toast for non-auth errors (auth errors are gracefully handled)
+      toast.error("Failed to load bet history", {
+        description: "Please check your connection and try again.",
+        duration: 5000,
+      });
+    }
+  }, [error]);
 
   const refreshBetHistory = async () => {
     await refetch();

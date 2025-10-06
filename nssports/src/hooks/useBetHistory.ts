@@ -13,6 +13,12 @@ export const betQueryKeys = {
 
 /**
  * Hook to fetch bet history with React Query
+ * 
+ * Features:
+ * - Automatic refetch every 30 seconds for live bet status updates
+ * - Returns empty array on authentication errors (graceful degradation)
+ * - Retries on network errors with exponential backoff
+ * - Refetches on window focus for up-to-date status
  */
 export function useBetHistoryQuery() {
   return useQuery({
@@ -23,6 +29,23 @@ export function useBetHistoryQuery() {
     },
     // Refetch every 30 seconds for live updates
     refetchInterval: 30 * 1000,
+    // Always refetch on window focus to ensure data is fresh
+    refetchOnWindowFocus: true,
+    // Keep data in cache for 5 minutes
+    gcTime: 5 * 60 * 1000,
+    // Consider data stale after 30 seconds
+    staleTime: 30 * 1000,
+    // Retry on network errors but not on auth errors (handled in getBetHistory)
+    retry: (failureCount, error) => {
+      // Don't retry on auth errors - getBetHistory already handles 401
+      if (error instanceof Error && error.message.includes('401')) {
+        return false;
+      }
+      // Retry network errors up to 2 times
+      return failureCount < 2;
+    },
+    // Show network errors but suppress auth errors (gracefully handled)
+    throwOnError: false,
   });
 }
 
@@ -210,6 +233,8 @@ export function usePlaceBet() {
       if (context?.previousBets) {
         queryClient.setQueryData(betQueryKeys.history(), context.previousBets);
       }
+      // The calling component should handle displaying the error to the user
+      console.error("Failed to place bet:", err);
     },
     // Always refetch after error or success
     onSettled: () => {
