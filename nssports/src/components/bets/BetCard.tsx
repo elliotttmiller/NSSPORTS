@@ -101,7 +101,7 @@ export function formatSelectionLabel(
   // Treat as moneyline if explicitly moneyline OR side pick with no line provided
   if (betType === 'moneyline' || (isSide && (line === undefined || line === null))) {
     const team = selection === 'home' ? game?.homeTeam?.shortName : game?.awayTeam?.shortName;
-    return `${team ?? cap(selection)} Win`;
+    return `${team ?? cap(selection)} WIN`;
   }
   // spread
   const sign = typeof line === 'number' && line > 0 ? '+' : '';
