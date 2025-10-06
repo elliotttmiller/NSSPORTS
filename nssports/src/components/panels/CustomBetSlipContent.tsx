@@ -476,7 +476,7 @@ export function CustomBetSlipContent() {
             Use the checkboxes above to configure your bets
           </div>
           <div className="text-xs text-muted-foreground">
-            Mark bets as "Straight" for individual wagers or "Add to Parlay" to combine them
+            Mark bets as &quot;Straight&quot; for individual wagers or &quot;Add to Parlay&quot; to combine them
           </div>
         </div>
       )}
