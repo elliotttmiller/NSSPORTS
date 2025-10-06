@@ -1,32 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { ProfessionalGameRow, CompactMobileGameRow, MobileGameTableHeader, DesktopGameTableHeader } from "@/components/features/games";
-import { getLiveGames } from "@/services/api";
-import type { Game } from "@/types";
+import { useLiveDataStore, selectLiveMatches, selectIsLoading, selectError } from "@/store";
 
 export default function LivePage() {
-  const [liveGames, setLiveGames] = useState<Game[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Protocol I: Single Source of Truth - consume from centralized store
+  const fetchMatches = useLiveDataStore((state) => state.fetchMatches);
+  const liveGames = useLiveDataStore(selectLiveMatches);
+  const loading = useLiveDataStore(selectIsLoading);
+  const error = useLiveDataStore(selectError);
 
+  // Protocol II: Efficient State Hydration - fetch once on mount
   useEffect(() => {
-    const loadLiveGames = async () => {
-      try {
-        const games = await getLiveGames();
-        // Sort by start time
-        const sortedGames = games.sort(
-          (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
-        );
-        setLiveGames(sortedGames);
-      } catch (error) {
-        console.error("Failed to load live games:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadLiveGames();
-  }, []);
+    fetchMatches('basketball_nba');
+  }, [fetchMatches]);
 
   return (
     <div className="bg-background">
@@ -40,11 +28,17 @@ export default function LivePage() {
         </div>
 
   {/* Games List */}
+        {/* Protocol IV: Universal UI State Handling */}
         <div className="space-y-3">
           {loading ? (
             <div className="text-center py-12">
               <div className="animate-spin w-8 h-8 border-2 border-accent border-t-transparent rounded-full mx-auto mb-4"></div>
               <p className="text-muted-foreground">Loading live games...</p>
+            </div>
+          ) : error ? (
+            <div className="text-center py-12">
+              <p className="text-destructive">Error loading games</p>
+              <p className="text-sm text-muted-foreground mt-2">{error}</p>
             </div>
           ) : liveGames.length === 0 ? (
             <div className="text-center py-12">
