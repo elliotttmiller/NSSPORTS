@@ -41,11 +41,13 @@ function generateShortName(teamName: string): string {
 }
 
 /**
- * Get logo URL for a team (placeholder for now)
+ * Get logo URL for a team
  */
 function getTeamLogo(teamId: string): string {
-  // In a real implementation, this would map to actual team logos
-  return `/teams/${teamId}.svg`;
+  // Extract league and team from teamId (format: "leagueId-team-name")
+  const [leagueId, ...teamParts] = teamId.split('-');
+  const teamName = teamParts.join('-');
+  return `/logos/${leagueId}/${teamName}.svg`;
 }
 
 /**
