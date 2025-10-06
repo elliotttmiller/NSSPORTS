@@ -4,7 +4,7 @@ import "./globals.css";
 import { Toaster } from "sonner";
 import { QueryProvider } from "@/components/QueryProvider";
 import { BetSlipProvider, NavigationProvider, BetHistoryProvider } from "@/context";
-import { ThreePanelLayout } from "@/components/layouts";
+import { ConditionalLayout } from "@/components/layouts";
 import { GlobalMotionProvider } from "@/components/layouts/GlobalMotionProvider";
 import { SmoothScrollProvider } from "@/components/SmoothScrollProvider";
 import { AuthProvider } from "@/components/providers/AuthProvider";
@@ -18,24 +18,23 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "NorthStar Sports",
+  title: "NSSPORTS",
   description: "Professional sports betting platform for NFL, NBA, and NHL games",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "NorthStar Sports",
+    title: "NSSPORTS",
   },
   formatDetection: {
     telephone: false,
   },
   icons: {
     icon: [
-      { url: "/pwa-192x192.png", sizes: "192x192", type: "image/png" },
-      { url: "/pwa-512x512.png", sizes: "512x512", type: "image/png" },
+      { url: "/mn-outline.svg", sizes: "any", type: "image/svg+xml" },
     ],
     apple: [
-      { url: "/pwa-192x192.png", sizes: "192x192", type: "image/png" },
+      { url: "/mn-outline.svg", sizes: "any", type: "image/svg+xml" },
     ],
   },
 };
@@ -70,7 +69,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   <BetSlipProvider>
                     <BetHistoryProvider>
                       <GlobalMotionProvider>
-                        <ThreePanelLayout>{children}</ThreePanelLayout>
+                        <ConditionalLayout>{children}</ConditionalLayout>
                       </GlobalMotionProvider>
                       <Toaster richColors position="top-right" />
                     </BetHistoryProvider>

@@ -42,7 +42,7 @@ function LoginForm() {
   };
 
   return (
-    <div className="container mx-auto px-6 py-12 max-w-md">
+    <div className="w-full max-w-md">
       <div className="bg-card border border-border rounded-xl p-8 shadow-lg">
         <h1 className="text-3xl font-bold text-foreground mb-2">Login</h1>
         <p className="text-muted-foreground mb-6">
@@ -106,7 +106,7 @@ function LoginForm() {
 export default function LoginPage() {
   return (
     <Suspense fallback={
-      <div className="container mx-auto px-6 py-12 max-w-md">
+      <div className="w-full max-w-md">
         <div className="bg-card border border-border rounded-xl p-8 shadow-lg">
           <div className="animate-pulse">
             <div className="h-8 bg-muted rounded w-3/4 mb-4"></div>

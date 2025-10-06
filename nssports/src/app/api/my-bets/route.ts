@@ -1,7 +1,6 @@
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
-
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { z } from "zod";
@@ -242,82 +241,78 @@ export async function POST(req: Request) {
     }
 
     // Use transaction to ensure data consistency
-  type TxClient = typeof prisma;
-  const result = await prisma.$transaction(async (tx: TxClient) => {
-      // For parlay bets
-      if (data.betType === "parlay") {
-        logger.info('Creating parlay bet', { legs: data.legs.length });
-        
-        const parlayBet = await tx.bet.create({
-          data: {
-            betType: "parlay",
-            stake: data.stake,
-            potentialPayout: data.potentialPayout,
-            status: data.status || "pending",
-            placedAt: new Date(),
-            userId,
-            selection: "parlay",
-            odds: data.odds ?? 0,
-            line: null,
-            gameId: null,
-            legs: data.legs ?? null,
-            idempotencyKey,
-          },
-        });
-        
-        logger.info('Parlay bet created', { betId: parlayBet.id });
-        return parlayBet;
-      }
-      
-      // For single bets
-      if (!data.gameId || !data.selection || !data.odds) {
-        throw new Error("Missing required single bet fields");
-      }
-      
-      // Verify game exists
-      const game = await tx.game.findUnique({
-        where: { id: data.gameId },
-        select: { id: true, status: true },
-      });
-      
-      if (!game) {
-        throw new Error(`Game not found: ${data.gameId}`);
-      }
-      
-      if (game.status === "finished") {
-        throw new Error("Cannot place bet on finished game");
-      }
-      
-      logger.info('Creating single bet', { gameId: data.gameId, betType: data.betType });
-      
-      const bet = await tx.bet.create({
+    const result = await prisma.$transaction(async (tx) => {
+    // For parlay bets
+    if (data.betType === "parlay") {
+      logger.info('Creating parlay bet', { legs: data.legs.length });
+      const parlayBet = await tx.bet.create({
         data: {
-          gameId: data.gameId,
-          betType: data.betType,
-          selection: data.selection,
-          odds: data.odds,
-          line: data.line ?? null,
+          betType: "parlay",
           stake: data.stake,
-          potentialPayout: data.potentialPayout ?? 0,
+          potentialPayout: data.potentialPayout,
           status: data.status || "pending",
           placedAt: new Date(),
           userId,
+          selection: "parlay",
+          odds: data.odds ?? 0,
+          line: null,
+          gameId: null,
+          legs: data.legs ?? null,
           idempotencyKey,
         },
-        include: {
-          game: {
-            include: {
-              homeTeam: true,
-              awayTeam: true,
-              league: true,
-            },
+      });
+      logger.info('Parlay bet created', { betId: parlayBet.id });
+      return parlayBet;
+    }
+
+    // For single bets
+    if (!data.gameId || !data.selection || !data.odds) {
+      throw new Error("Missing required single bet fields");
+    }
+
+    // Verify game exists
+    const game = await tx.game.findUnique({
+      where: { id: data.gameId },
+      select: { id: true, status: true },
+    });
+
+    if (!game) {
+      throw new Error(`Game not found: ${data.gameId}`);
+    }
+
+    if (game.status === "finished") {
+      throw new Error("Cannot place bet on finished game");
+    }
+
+    logger.info('Creating single bet', { gameId: data.gameId, betType: data.betType });
+
+    const bet = await tx.bet.create({
+      data: {
+        gameId: data.gameId,
+        betType: data.betType,
+        selection: data.selection,
+        odds: data.odds,
+        line: data.line ?? null,
+        stake: data.stake,
+        potentialPayout: data.potentialPayout ?? 0,
+        status: data.status || "pending",
+        placedAt: new Date(),
+        userId,
+        idempotencyKey,
+      },
+      include: {
+        game: {
+          include: {
+            homeTeam: true,
+            awayTeam: true,
+            league: true,
           },
         },
-      });
-      
-      logger.info('Single bet created', { betId: bet.id });
-      return bet;
+      },
     });
+    logger.info('Single bet created', { betId: bet.id });
+    return bet;
+  });
 
     // Validate response before sending
     try {
