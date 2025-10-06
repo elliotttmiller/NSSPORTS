@@ -42,12 +42,99 @@ function generateShortName(teamName: string): string {
 
 /**
  * Get logo URL for a team
+ * Maps team names to correct logo file names based on actual file system
  */
-function getTeamLogo(teamId: string): string {
-  // Extract league and team from teamId (format: "leagueId-team-name")
-  const [leagueId, ...teamParts] = teamId.split('-');
-  const teamName = teamParts.join('-');
-  return `/logos/${leagueId}/${teamName}.svg`;
+function getTeamLogo(teamName: string, leagueId: string): string {
+  // Complete mapping for NFL teams (API name -> actual file name)
+  const nflTeamMappings: Record<string, string> = {
+    "Arizona Cardinals": "arizona-cardinals.svg",
+    "Atlanta Falcons": "atlanta-falcons.svg",
+    "Baltimore Ravens": "baltimore-ravens.svg",
+    "Buffalo Bills": "buffalo-bills.svg",
+    "Carolina Panthers": "carolina-panthers.svg",
+    "Chicago Bears": "chicago-bears.svg",
+    "Cincinnati Bengals": "cincinnati-bengals.svg",
+    "Cleveland Browns": "cleveland-browns.svg",
+    "Dallas Cowboys": "dallas-cowboys.svg",
+    "Denver Broncos": "denver-broncos.svg",
+    "Detroit Lions": "detroit-lions.svg",
+    "Green Bay Packers": "green-bay-packers.svg",
+    "Houston Texans": "houston-texans.svg",
+    "Indianapolis Colts": "indianapolis-colts.svg",
+    "Jacksonville Jaguars": "jacksonville-jaguars.svg",
+    "Kansas City Chiefs": "kansas-city-chiefs.svg",
+    "Las Vegas Raiders": "las-vegas-raiders.svg",
+    "Los Angeles Chargers": "los-angeles-chargers.svg",
+    "Los Angeles Rams": "los-angeles-rams.svg",
+    "Miami Dolphins": "miami-dolphins.svg",
+    "Minnesota Vikings": "minnesota-vikings.svg",
+    "New England Patriots": "new-england-patriots.svg",
+    "New Orleans Saints": "new-orleans-saints.svg",
+    "New York Giants": "new-york-giants.svg",
+    "New York Jets": "new-york-jets.svg",
+    "Philadelphia Eagles": "philadelphia-eagles.svg",
+    "Pittsburgh Steelers": "pittsburgh-steelers.svg",
+    "San Francisco 49ers": "san-francisco-49ers.svg",
+    "Seattle Seahawks": "seattle-seahawks.svg",
+    "Tampa Bay Buccaneers": "tampa-bay-buccaneers.svg",
+    "Tennessee Titans": "tennessee-titans.svg",
+    "Washington Commanders": "washington-commanders.svg",
+  };
+
+  // Complete mapping for NBA teams (API name -> actual file name)
+  const nbaTeamMappings: Record<string, string> = {
+    "Atlanta Hawks": "atlanta-hawks.svg",
+    "Boston Celtics": "boston-celtics.svg",
+    "Brooklyn Nets": "brooklyn-nets.svg",
+    "Charlotte Hornets": "charlotte-hornets.svg",
+    "Chicago Bulls": "chicago-bulls.svg",
+    "Cleveland Cavaliers": "cleveland-cavaliers.svg",
+    "Dallas Mavericks": "dallas-mavericks.svg",
+    "Denver Nuggets": "denver-nuggets.svg",
+    "Detroit Pistons": "detroit-pistons.svg",
+    "Golden State Warriors": "golden-state-warriors.svg",
+    "Houston Rockets": "houston-rockets.svg",
+    "Indiana Pacers": "indiana-pacers.svg",
+    "Los Angeles Clippers": "los-angeles-clippers.svg",
+    "Los Angeles Lakers": "los-angeles-lakers.svg",
+    "Memphis Grizzlies": "memphis-grizzlies.svg",
+    "Miami Heat": "miami-heat.svg",
+    "Milwaukee Bucks": "milwaukee-bucks.svg",
+    "Minnesota Timberwolves": "minnesota-timberwolves.svg",
+    "New Orleans Pelicans": "new-orleans-pelicans.svg",
+    "New York Knicks": "new-york-knicks.svg",
+    "Oklahoma City Thunder": "oklahoma-city-thunder.svg",
+    "Orlando Magic": "orlando-magic.svg",
+    "Philadelphia 76ers": "philadelphia-76ers.svg",
+    "Phoenix Suns": "phoenix-suns.svg",
+    "Portland Trail Blazers": "portland-trail-blazers.svg",
+    "Sacramento Kings": "sacramento-kings.svg",
+    "San Antonio Spurs": "san-antonio-spurs.svg",
+    "Toronto Raptors": "toronto-raptors.svg",
+    "Utah Jazz": "utah-jazz.svg",
+    "Washington Wizards": "washington-wizards.svg",
+  };
+
+  // League-specific mappings
+  switch (leagueId) {
+    case "nfl":
+      return `/logos/${leagueId}/${nflTeamMappings[teamName] || teamName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + ".svg"}`;
+      
+    case "nba":
+      return `/logos/${leagueId}/${nbaTeamMappings[teamName] || teamName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + ".svg"}`;
+      
+    case "nhl":
+      // NHL files use Title Case (same as API team names)
+      return `/logos/${leagueId}/${teamName}.svg`;
+      
+    default:
+      // Fallback to kebab-case
+      const fallbackKebab = teamName
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "");
+      return `/logos/${leagueId}/${fallbackKebab}.svg`;
+  }
 }
 
 /**
@@ -180,14 +267,14 @@ export function transformOddsApiEvent(event: OddsApiEvent): GamePayload | null {
         id: homeTeamId,
         name: event.home_team,
         shortName: generateShortName(event.home_team),
-        logo: getTeamLogo(homeTeamId),
+        logo: getTeamLogo(event.home_team, leagueId),
         record: undefined,
       },
       awayTeam: {
         id: awayTeamId,
         name: event.away_team,
         shortName: generateShortName(event.away_team),
-        logo: getTeamLogo(awayTeamId),
+        logo: getTeamLogo(event.away_team, leagueId),
         record: undefined,
       },
       startTime: commenceTime,
