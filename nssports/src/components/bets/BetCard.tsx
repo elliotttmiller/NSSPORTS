@@ -94,18 +94,26 @@ export function formatSelectionLabel(
 ) {
   const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
   const isSide = selection === 'home' || selection === 'away';
+  const isTotal = selection === 'over' || selection === 'under';
 
-  if (betType === 'total') {
-    return `${cap(selection)} ${typeof line === 'number' ? `${line}` : ''}`.trim();
+  // Handle total/over-under bets explicitly
+  if (betType === 'total' || isTotal) {
+    return `${cap(selection)} ${typeof line === 'number' ? Math.abs(line) : ''}`.trim();
   }
   // Treat as moneyline if explicitly moneyline OR side pick with no line provided
   if (betType === 'moneyline' || (isSide && (line === undefined || line === null))) {
     const team = selection === 'home' ? game?.homeTeam?.shortName : game?.awayTeam?.shortName;
     return `${team ?? cap(selection)} WIN`;
   }
-  // spread
-  const sign = typeof line === 'number' && line > 0 ? '+' : '';
-  return `${cap(selection)} ${typeof line === 'number' ? `${sign}${line}` : ''}`.trim();
+  // spread - show team abbreviation instead of home/away (only for side bets)
+  if (isSide) {
+    const team = selection === 'home' ? game?.homeTeam?.shortName : game?.awayTeam?.shortName;
+    const sign = typeof line === 'number' && line > 0 ? '+' : '';
+    return `${team ?? cap(selection)} ${typeof line === 'number' ? `${sign}${line}` : ''}`.trim();
+  }
+  
+  // Fallback
+  return `${cap(selection)} ${typeof line === 'number' ? line : ''}`.trim();
 }
 
 export type BetCardSingleProps = BetCardBaseProps & {
