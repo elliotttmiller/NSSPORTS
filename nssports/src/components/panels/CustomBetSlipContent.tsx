@@ -7,6 +7,9 @@ import { formatOdds, formatCurrency } from "@/lib/formatters";
 import { BetCardSingle } from "@/components/bets/BetCard";
 import type { Bet } from "@/types";
 import { calculatePayout } from "@/services/api";
+import { useBetHistory } from "@/context";
+import { useState, useCallback } from "react";
+import { toast } from "sonner";
 
 export function CustomBetSlipContent() {
   const { 
@@ -14,8 +17,11 @@ export function CustomBetSlipContent() {
     removeBet, 
     toggleCustomStraight, 
     toggleCustomParlay, 
-    updateCustomStake 
+    updateCustomStake,
+    clearBetSlip 
   } = useBetSlip();
+  const { addPlacedBet } = useBetHistory();
+  const [placing, setPlacing] = useState(false);
 
   const customStraightBets = betSlip.customStraightBets || [];
   const customParlayBets = betSlip.customParlayBets || [];
@@ -63,10 +69,210 @@ export function CustomBetSlipContent() {
     return parlayStake * combinedOdds;
   };
 
+  // Validation functions
+  const MIN_STAKE = 1;
+  const MAX_STAKE = 10000;
+
+  const hasValidStraightBets = () => {
+    return customStraightBets.some(betId => {
+      const stake = customStakes[betId] || 0;
+      return stake >= MIN_STAKE && stake <= MAX_STAKE;
+    });
+  };
+
+  const hasValidParlayBet = () => {
+    const parlayStake = customStakes["parlay"] || 0;
+    return customParlayBets.length >= 2 && parlayStake >= MIN_STAKE && parlayStake <= MAX_STAKE;
+  };
+
+  const isReadyToPlace = () => {
+    return hasValidStraightBets() || hasValidParlayBet();
+  };
+
+  const getValidationMessage = () => {
+    if (customStraightBets.length === 0 && customParlayBets.length === 0) {
+      return "Select bets using the checkboxes above";
+    }
+    
+    const invalidStraightBets = customStraightBets.filter(betId => {
+      const stake = customStakes[betId] || 0;
+      return stake < MIN_STAKE || stake > MAX_STAKE;
+    });
+    
+    const invalidParlay = customParlayBets.length > 0 && customParlayBets.length < 2;
+    const invalidParlayStake = customParlayBets.length >= 2 && ((customStakes["parlay"] || 0) < MIN_STAKE || (customStakes["parlay"] || 0) > MAX_STAKE);
+    
+    const messages = [];
+    
+    if (invalidStraightBets.length > 0) {
+      messages.push(`Enter stakes ($${MIN_STAKE}-$${MAX_STAKE}) for straight bets`);
+    }
+    
+    if (invalidParlay) {
+      messages.push("Parlays need at least 2 bets");
+    }
+    
+    if (invalidParlayStake) {
+      messages.push(`Enter parlay stake ($${MIN_STAKE}-$${MAX_STAKE})`);
+    }
+    
+    return messages.length > 0 ? messages.join(" • ") : "Ready to place bets";
+  };
+
+  const getTotalStake = () => {
+    let total = 0;
+    
+    // Add straight bet stakes
+    customStraightBets.forEach(betId => {
+      total += customStakes[betId] || 0;
+    });
+    
+    // Add parlay stake
+    if (customParlayBets.length > 0) {
+      total += customStakes["parlay"] || 0;
+    }
+    
+    return total;
+  };
+
+  const getTotalPayout = () => {
+    let total = 0;
+    
+    // Add straight bet payouts
+    customStraightBets.forEach(betId => {
+      const stake = customStakes[betId] || 0;
+      if (stake > 0) {
+        const bet = betSlip.bets.find(b => b.id === betId);
+        if (bet) {
+          total += calculatePayout(stake, bet.odds) + stake;
+        }
+      }
+    });
+    
+    // Add parlay payout
+    total += calculateParlayPayout();
+    
+    return total;
+  };
+
+  const handlePlaceBets = useCallback(async () => {
+    if (!isReadyToPlace()) {
+      toast.error("Invalid bet configuration", {
+        description: getValidationMessage(),
+      });
+      return;
+    }
+
+    setPlacing(true);
+    
+    try {
+      let successCount = 0;
+      let failCount = 0;
+      const errors: string[] = [];
+
+      // Place straight bets
+      for (const betId of customStraightBets) {
+        const bet = betSlip.bets.find((b) => b.id === betId);
+        const stake = customStakes[betId] || 0;
+        
+        if (bet && stake > 0) {
+          try {
+            // Calculate potential payout
+            const potentialPayout = calculatePayout(stake, bet.odds) + stake;
+            
+            // Create updated bet object with correct stake and payout
+            const betWithStake = {
+              ...bet,
+              stake,
+              potentialPayout
+            };
+            
+            await addPlacedBet(
+              [betWithStake],
+              "single",
+              stake,
+              potentialPayout,
+              bet.odds
+            );
+            successCount++;
+          } catch (error) {
+            failCount++;
+            errors.push(`Failed to place bet on ${bet.game.awayTeam.shortName} @ ${bet.game.homeTeam.shortName}`);
+          }
+        }
+      }
+
+      // Place parlay bet
+      if (customParlayBets.length > 0) {
+        const parlayStake = customStakes["parlay"] || 0;
+        if (parlayStake > 0) {
+          const parlayBets = betSlip.bets.filter((b) => customParlayBets.includes(b.id));
+          
+          // Calculate parlay odds
+          let combinedOdds = 1;
+          parlayBets.forEach((bet) => {
+            const decimalOdds = bet.odds > 0 
+              ? (bet.odds / 100) + 1 
+              : (100 / Math.abs(bet.odds)) + 1;
+            combinedOdds *= decimalOdds;
+          });
+          
+          const americanOdds = combinedOdds >= 2 
+            ? Math.round((combinedOdds - 1) * 100)
+            : Math.round(-100 / (combinedOdds - 1));
+          
+          try {
+            await addPlacedBet(
+              parlayBets,
+              "parlay",
+              parlayStake,
+              parlayStake * combinedOdds,
+              americanOdds
+            );
+            successCount++;
+          } catch (error) {
+            failCount++;
+            errors.push("Failed to place parlay bet");
+          }
+        }
+      }
+
+      if (failCount === 0) {
+        clearBetSlip();
+        toast.success(
+          `All bets placed successfully! (${successCount} bet${successCount > 1 ? 's' : ''})`,
+          {
+            description: `Total Stake: ${formatCurrency(getTotalStake())} • Potential Win: ${formatCurrency(getTotalPayout() - getTotalStake())}`,
+          }
+        );
+      } else if (successCount > 0) {
+        clearBetSlip();
+        toast.warning(
+          `${successCount} bet${successCount > 1 ? 's' : ''} placed, ${failCount} failed`,
+          {
+            description: errors.length > 0 ? errors.join(", ") : undefined,
+          }
+        );
+      } else {
+        toast.error("Failed to place bets", {
+          description: errors.length > 0 ? errors.join(", ") : "Please try again",
+        });
+      }
+    } catch (error) {
+      toast.error("Failed to place bets. Please try again.");
+    } finally {
+      setPlacing(false);
+    }
+  }, [betSlip, customStraightBets, customParlayBets, customStakes, addPlacedBet, clearBetSlip]);
+
   return (
     <div className="space-y-3">
-      <div className="text-xs text-muted-foreground px-1">
-        Select which bets to place as straight bets or combine into a parlay
+      <div className="bg-accent/5 border border-accent/20 rounded-lg p-3 space-y-2">
+        <div className="text-sm font-medium text-accent">Custom Bet Mode</div>
+        <div className="text-xs text-muted-foreground">
+          Configure multiple bets at once. Use checkboxes to mark bets as straight bets or combine them into a parlay. 
+          Enter individual stakes for straight bets, or a single stake for the parlay group.
+        </div>
       </div>
 
       {betSlip.bets.map((bet) => {
@@ -75,7 +281,11 @@ export function CustomBetSlipContent() {
         const stake = customStakes[bet.id] || 0;
 
         return (
-          <div key={bet.id} className="border border-border rounded-lg p-3 space-y-3">
+          <div key={bet.id} className={`border rounded-lg p-3 space-y-3 transition-all ${
+            isStraight || isParlay 
+              ? 'border-accent/30 bg-accent/5' 
+              : 'border-border hover:border-border/60'
+          }`}>
             <BetCardSingle
               id={bet.id}
               betType={bet.betType}
@@ -106,7 +316,7 @@ export function CustomBetSlipContent() {
 
             {/* Bet Assignment Controls */}
             <div className="flex items-center gap-4 pt-2 border-t border-border">
-              <div className="flex items-center gap-2">
+              <div className={`flex items-center gap-2 p-2 rounded ${isStraight ? 'bg-green-50 border border-green-200' : 'hover:bg-muted/30'} transition-colors`}>
                 <Checkbox
                   id={`straight-${bet.id}`}
                   checked={isStraight}
@@ -114,12 +324,12 @@ export function CustomBetSlipContent() {
                 />
                 <label
                   htmlFor={`straight-${bet.id}`}
-                  className="text-sm font-medium cursor-pointer"
+                  className="text-sm font-medium cursor-pointer select-none"
                 >
-                  Straight
+                  Straight Bet
                 </label>
               </div>
-              <div className="flex items-center gap-2">
+              <div className={`flex items-center gap-2 p-2 rounded ${isParlay ? 'bg-blue-50 border border-blue-200' : 'hover:bg-muted/30'} transition-colors`}>
                 <Checkbox
                   id={`parlay-${bet.id}`}
                   checked={isParlay}
@@ -127,7 +337,7 @@ export function CustomBetSlipContent() {
                 />
                 <label
                   htmlFor={`parlay-${bet.id}`}
-                  className="text-sm font-medium cursor-pointer"
+                  className="text-sm font-medium cursor-pointer select-none"
                 >
                   Add to Parlay
                 </label>
@@ -144,10 +354,11 @@ export function CustomBetSlipContent() {
                     type="number"
                     value={stake}
                     onChange={(e) => updateCustomStake(bet.id, parseFloat(e.target.value) || 0)}
-                    className="h-8 text-sm"
-                    min="0"
-                    max="10000"
+                    className={`h-8 text-sm ${stake > 0 && (stake < MIN_STAKE || stake > MAX_STAKE) ? 'border-destructive' : ''}`}
+                    min={MIN_STAKE}
+                    max={MAX_STAKE}
                     step="1"
+                    placeholder={`$${MIN_STAKE}-$${MAX_STAKE}`}
                   />
                 </div>
                 <div className="text-xs text-muted-foreground mt-1">
@@ -202,15 +413,70 @@ export function CustomBetSlipContent() {
                 type="number"
                 value={customStakes["parlay"] || 0}
                 onChange={(e) => updateCustomStake("parlay", parseFloat(e.target.value) || 0)}
-                className="h-8 text-sm"
-                min="0"
-                max="10000"
+                className={`h-8 text-sm ${(customStakes["parlay"] || 0) > 0 && ((customStakes["parlay"] || 0) < MIN_STAKE || (customStakes["parlay"] || 0) > MAX_STAKE) ? 'border-destructive' : ''}`}
+                min={MIN_STAKE}
+                max={MAX_STAKE}
                 step="1"
+                placeholder={`$${MIN_STAKE}-$${MAX_STAKE}`}
               />
             </div>
             <div className="text-xs text-muted-foreground mt-1">
               Potential payout: {formatCurrency(calculateParlayPayout())}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Place Bets Footer */}
+      {(customStraightBets.length > 0 || customParlayBets.length > 0) && (
+        <div className="border-t border-border pt-4 mt-4 space-y-3 bg-muted/20 -mx-3 px-3 pb-3">
+          <div className="text-sm font-medium mb-2">
+            Summary: {customStraightBets.length} straight bet{customStraightBets.length !== 1 ? 's' : ''} 
+            {customParlayBets.length > 0 && ` + 1 parlay (${customParlayBets.length} legs)`}
+          </div>
+          
+          <div className="space-y-1">
+            <div className="flex justify-between text-sm">
+              <span>Total Stake:</span>
+              <span className="font-semibold">{formatCurrency(getTotalStake())}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span>Potential Payout:</span>
+              <span className="font-semibold text-accent">{formatCurrency(getTotalPayout())}</span>
+            </div>
+            <div className="flex justify-between text-sm text-muted-foreground">
+              <span>Potential Win:</span>
+              <span className={getTotalPayout() > getTotalStake() ? 'text-green-600 font-medium' : ''}>{formatCurrency(getTotalPayout() - getTotalStake())}</span>
+            </div>
+          </div>
+          
+          <Button
+            onClick={handlePlaceBets}
+            disabled={placing || !isReadyToPlace()}
+            className="w-full"
+            size="lg"
+          >
+            {placing ? "Placing Bets..." : `Place ${customStraightBets.length + (customParlayBets.length > 0 ? 1 : 0)} Bet${(customStraightBets.length + (customParlayBets.length > 0 ? 1 : 0)) > 1 ? 's' : ''}`}
+          </Button>
+          
+          <div className={`text-xs text-center transition-colors ${
+            isReadyToPlace() 
+              ? 'text-green-600 font-medium' 
+              : 'text-muted-foreground'
+          }`}>
+            {getValidationMessage()}
+          </div>
+        </div>
+      )}
+
+      {/* Empty State */}
+      {customStraightBets.length === 0 && customParlayBets.length === 0 && betSlip.bets.length > 0 && (
+        <div className="text-center py-6 border border-dashed border-border rounded-lg">
+          <div className="text-sm text-muted-foreground mb-2">
+            Use the checkboxes above to configure your bets
+          </div>
+          <div className="text-xs text-muted-foreground">
+            Mark bets as "Straight" for individual wagers or "Add to Parlay" to combine them
           </div>
         </div>
       )}

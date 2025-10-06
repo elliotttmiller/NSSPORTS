@@ -100,6 +100,33 @@ export async function GET() {
       );
     }
 
+    // Helper: compute human-friendly selection label to match BetCard
+    const computeSelectionLabel = (
+      betType: string | undefined,
+      selection: string | undefined,
+      line: number | string | null | undefined,
+      game: any | undefined
+    ): string => {
+      const cap = (s?: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "");
+      const isTotal = betType === 'total' || selection === 'over' || selection === 'under';
+      const isSide = selection === 'home' || selection === 'away';
+      const numLine = typeof line === 'number' ? line : typeof line === 'string' ? Number(line) : undefined;
+      if (isTotal) {
+        const l = typeof numLine === 'number' ? Math.abs(numLine) : undefined;
+        return `${(selection || '').toUpperCase()} ${l ?? ''}`.trim();
+      }
+      if (betType === 'moneyline' || (isSide && (numLine === undefined || numLine === null))) {
+        const team = selection === 'home' ? game?.homeTeam?.shortName : game?.awayTeam?.shortName;
+        return `${team ?? cap(selection)} WIN`;
+      }
+      if (isSide) {
+        const team = selection === 'home' ? game?.homeTeam?.shortName : game?.awayTeam?.shortName;
+        const sign = typeof numLine === 'number' && numLine > 0 ? '+' : '';
+        return `${team ?? cap(selection)} ${typeof numLine === 'number' ? `${sign}${numLine}` : ''}`.trim();
+      }
+      return `${cap(selection)} ${typeof numLine === 'number' ? numLine : ''}`.trim();
+    };
+
     const normalized = bets.map((bet: any) => {
       if (bet.betType !== "parlay") return bet as any;
       const legsRaw = toLegArray(bet.legs);
@@ -112,18 +139,21 @@ export async function GET() {
               const hasOdds = typeof leg?.odds === 'number' && !Number.isNaN(leg.odds);
               return hasSelection && hasOdds;
             })
-            .map((leg) => ({
-              ...leg,
-              line:
-                typeof leg.line === 'number'
-                  ? leg.line
-                  : typeof leg.line === 'string'
-                  ? Number(leg.line)
-                  : undefined,
-              game: leg?.gameId
-                ? (legGamesById[leg.gameId] as unknown) ?? undefined
-                : undefined,
-            }))
+      .map((leg) => {
+              const gameData = leg?.gameId ? legGamesById[leg.gameId] : undefined;
+              return {
+                ...leg,
+                line:
+                  typeof leg.line === 'number'
+                    ? leg.line
+                    : typeof leg.line === 'string'
+                    ? Number(leg.line)
+                    : undefined,
+                game: gameData ? JSON.parse(JSON.stringify(gameData)) : undefined,
+        betType: leg.betType, // Ensure betType is preserved
+        displaySelection: computeSelectionLabel(leg.betType, leg.selection, leg.line ?? undefined, gameData as any),
+              };
+            })
         : null;
   return { ...bet, legs } as any;
     });
@@ -141,12 +171,58 @@ export async function GET() {
       }
       return 0;
     };
+
+    // Transform game data to match BetCard expectations
+    const transformGameForBetCard = (game: any) => {
+      if (!game) return undefined;
+      const fallbackShort = (name?: string) => {
+        if (!name || typeof name !== 'string') return undefined;
+        const parts = name.trim().split(/\s+/);
+        return parts[parts.length - 1];
+      };
+      return {
+        id: game.id,
+        homeTeam: {
+          id: game.homeTeam?.id,
+          name: game.homeTeam?.name,
+          shortName: game.homeTeam?.shortName ?? fallbackShort(game.homeTeam?.name),
+          logo: game.homeTeam?.logo,
+        },
+        awayTeam: {
+          id: game.awayTeam?.id,
+          name: game.awayTeam?.name,
+          shortName: game.awayTeam?.shortName ?? fallbackShort(game.awayTeam?.name),
+          logo: game.awayTeam?.logo,
+        },
+        league: {
+          id: game.league?.id,
+          name: game.league?.name,
+          logo: game.league?.logo,
+        },
+      };
+    };
     
-  const serialized = normalized.map((b: any) => ({
-      ...(b as Record<string, unknown>),
-      stake: toNum((b as Record<string, unknown>).stake),
-      potentialPayout: toNum((b as Record<string, unknown>).potentialPayout),
-    }));
+    const serialized = normalized.map((b: any) => {
+      const gameForCard = transformGameForBetCard(b.game);
+      return {
+        ...(b as Record<string, unknown>),
+        stake: toNum((b as Record<string, unknown>).stake),
+        potentialPayout: toNum((b as Record<string, unknown>).potentialPayout),
+        // Transform game data for BetCard compatibility
+        game: gameForCard,
+        // Provide a server-side label for singles too
+        displaySelection: b.betType !== 'parlay'
+          ? computeSelectionLabel(b.betType, b.selection, (b as any).line, gameForCard)
+          : undefined,
+        // Transform parlay legs game data
+        legs: Array.isArray(b.legs)
+          ? b.legs.map((leg: any) => ({
+              ...leg,
+              game: transformGameForBetCard(leg.game),
+            }))
+          : b.legs,
+      };
+    });
     
     logger.info('Bet history fetched successfully', { count: serialized.length });
     
@@ -193,6 +269,20 @@ export async function POST(req: Request) {
     logger.info('Placing bet', { betType: body?.betType });
 
     const userId = await getAuthUser();
+    logger.info('Got user ID from auth', { userId });
+
+    // Check if user exists in database
+    const userExists = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, username: true }
+    });
+    
+    if (!userExists) {
+      logger.error('User not found in database', { userId });
+      throw new Error(`User ${userId} not found in database`);
+    }
+    
+    logger.info('User exists in database', { user: userExists });
 
     // Idempotency key support for preventing duplicate bet placements
     const idempotencyKey = req.headers.get("Idempotency-Key") || undefined;

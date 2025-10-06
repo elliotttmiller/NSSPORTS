@@ -7,7 +7,7 @@ import { Button, Input, Separator } from "@/components/ui";
 import { X, Stack, Target } from "@phosphor-icons/react/dist/ssr";
 import { formatOdds, formatCurrency } from "@/lib/formatters";
 import { toast } from "sonner";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { BetCardSingle, BetCardParlay } from "@/components/bets/BetCard";
 import { CustomBetSlipContent } from "./CustomBetSlipContent";
 
@@ -30,6 +30,7 @@ export function BetSlipPanel() {
   }
   const { betSlip, removeBet, updateStake, setBetType, clearBetSlip } = useBetSlip();
   const { addPlacedBet } = useBetHistory();
+  const [placing, setPlacing] = useState(false);
   
   // Initialize Lenis smooth scrolling for bet slip content
   const { containerRef } = useLenisScroll({
@@ -49,6 +50,8 @@ export function BetSlipPanel() {
       toast.error("Please enter a stake amount");
       return;
     }
+
+    setPlacing(true);
 
     try {
       if (betSlip.betType === "custom") {
@@ -158,6 +161,8 @@ export function BetSlipPanel() {
       }
     } catch {
       toast.error("Failed to place bet. Please try again.");
+    } finally {
+      setPlacing(false);
     }
   }, [betSlip, addPlacedBet, clearBetSlip]);
 
@@ -372,12 +377,13 @@ export function BetSlipPanel() {
           size="lg"
           onClick={handlePlaceBet}
           disabled={
+            placing ||
             betSlip.bets.length === 0 ||
             betSlip.totalStake <= 0 ||
             (betSlip.betType === "parlay" && !isParlayValid(betSlip.bets))
           }
         >
-          Place {betSlip.betType === "parlay" ? "Parlay" : betSlip.betType === "custom" ? "Bets" : "Bets"}
+          {placing ? "Placing..." : `Place ${betSlip.betType === "parlay" ? "Parlay" : betSlip.betType === "custom" ? "Bets" : "Bets"}`}
         </Button>
       </div>
     </div>

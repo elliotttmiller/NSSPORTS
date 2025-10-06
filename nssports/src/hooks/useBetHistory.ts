@@ -96,8 +96,8 @@ export function usePlaceBet() {
               selection: bet.selection,
               odds: bet.odds,
               line: bet.line ?? null,
-              stake: bet.stake,
-              potentialPayout: bet.potentialPayout,
+              stake: bet.stake || totalStake,
+              potentialPayout: bet.potentialPayout || totalPayout,
               status: "pending",
             }),
           });
@@ -170,8 +170,8 @@ export function usePlaceBet() {
               selection: bet.selection,
               odds: bet.odds,
               line: bet.line,
-              stake: bet.stake,
-              potentialPayout: bet.potentialPayout,
+              stake: bet.stake || variables.totalStake,
+              potentialPayout: bet.potentialPayout || variables.totalPayout,
               status: "pending",
               placedAt: new Date().toISOString(),
               game: bet.game && bet.game.homeTeam && bet.game.awayTeam

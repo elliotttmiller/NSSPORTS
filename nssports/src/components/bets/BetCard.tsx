@@ -172,7 +172,9 @@ export function BetCardSingle({
           <div className="flex items-start justify-between">
             <div className="flex-1 min-w-0 pr-3">
               <div className="font-semibold text-base md:text-lg leading-tight text-white truncate mb-1">
-                {formatSelectionLabel(betType, selection, line, game)}
+                {selection as any && (selection as any).displaySelection
+                  ? (selection as any).displaySelection
+                  : formatSelectionLabel(betType, selection, line, game)}
               </div>
               <div className="text-sm text-muted-foreground leading-tight">
                 {game?.awayTeam?.shortName} @ {game?.homeTeam?.shortName}
@@ -236,9 +238,11 @@ export function BetCardParlay({
                 <div className="text-sm font-medium leading-tight truncate mb-1">
                   {formatSelectionLabel(leg.betType, leg.selection, leg.line, leg.game)}
                 </div>
-                <div className="text-xs text-muted-foreground leading-tight">
-                  {leg.game?.awayTeam?.shortName} @ {leg.game?.homeTeam?.shortName}
-                </div>
+                {(leg.game?.awayTeam?.shortName || leg.game?.homeTeam?.shortName) && (
+                  <div className="text-xs text-muted-foreground leading-tight">
+                    {leg.game?.awayTeam?.shortName ?? "AWAY"} @ {leg.game?.homeTeam?.shortName ?? "HOME"}
+                  </div>
+                )}
               </div>
               <Badge variant="outline" className="text-base md:text-lg px-3 py-1 font-light">{formatOdds(leg.odds)}</Badge>
             </div>

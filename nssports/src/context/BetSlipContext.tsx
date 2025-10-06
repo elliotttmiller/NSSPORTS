@@ -107,7 +107,7 @@ export function BetSlipProvider({ children }: BetSlipProviderProps) {
       customStraightBets?.forEach((betId) => {
         const stake = customStakes?.[betId] || 0;
         const bet = bets.find((b) => b.id === betId);
-        if (bet && stake > 0) {
+        if (bet && stake >= 1) { // Only count valid stakes
           totalStake += stake;
           const payout = calculatePayout(stake, bet.odds) + stake;
           totalPayout += payout;
@@ -115,9 +115,9 @@ export function BetSlipProvider({ children }: BetSlipProviderProps) {
       });
       
       // Calculate parlay if there are any parlay bets
-      if (customParlayBets && customParlayBets.length > 0) {
+      if (customParlayBets && customParlayBets.length >= 2) {
         const parlayStake = customStakes?.["parlay"] || 0;
-        if (parlayStake > 0) {
+        if (parlayStake >= 1) { // Only count valid stakes
           totalStake += parlayStake;
           let combinedOdds = 1;
           

@@ -2,13 +2,32 @@
 import { useBetHistory } from "@/context";
 import type { PlacedBet } from "@/context/BetHistoryContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
+import { Button } from "@/components/ui/button";
 import { BetCardParlay, BetCardSingle } from "@/components/bets/BetCard";
 import type { BetLeg } from "@/components/bets/BetCard";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 export default function MyBetsPage() {
   // Mobile detection (reuse hook if available)
   const isMobile = typeof window !== "undefined" && window.matchMedia && window.matchMedia("(max-width: 768px)").matches;
-  const { placedBets, loading } = useBetHistory();
+  const { placedBets, loading, refreshBetHistory } = useBetHistory();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
+  useEffect(() => {
+    // mark last updated whenever data changes
+    if (Array.isArray(placedBets)) setLastUpdated(new Date());
+  }, [placedBets]);
+
+  const doRefresh = useCallback(async () => {
+    try {
+      setIsRefreshing(true);
+      await refreshBetHistory();
+      setLastUpdated(new Date());
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [refreshBetHistory]);
   
   // Ensure all bets are API-driven, no fallback/hardcoded data
   const betHistory: PlacedBet[] = Array.isArray(placedBets) ? placedBets : [];
@@ -50,11 +69,19 @@ export default function MyBetsPage() {
   return (
     <div className="bg-background min-h-screen">
       <div className="container mx-auto px-6 md:px-8 xl:px-12 pt-12 pb-6 max-w-screen-2xl">
-        <div className={isMobile ? "space-y-6 pointer-events-none" : "space-y-6"}>
+        <div className={"space-y-6"}>
           {/* Active Bets Section - Using shared BetCard */}
           <Card>
-            <CardHeader className="pb-4">
+            <CardHeader className="pb-4 flex items-center justify-between">
               <CardTitle className="text-xl font-semibold">Active Bets</CardTitle>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-muted-foreground hidden sm:inline">
+                  {lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString()}` : ""}
+                </span>
+                <Button size="sm" variant="outline" onClick={doRefresh} disabled={isRefreshing} aria-busy={isRefreshing} aria-live="polite">
+                  {isRefreshing ? "Refreshing…" : "Refresh"}
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="pt-0">
               {activeBets.length === 0 ? (
@@ -100,8 +127,16 @@ export default function MyBetsPage() {
 
           {/* Bet History Section - Using shared BetCard */}
           <Card>
-            <CardHeader className="pb-4">
+            <CardHeader className="pb-4 flex items-center justify-between">
               <CardTitle className="text-xl font-semibold">My Bet History</CardTitle>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-muted-foreground hidden sm:inline">
+                  {lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString()}` : ""}
+                </span>
+                <Button size="sm" variant="outline" onClick={doRefresh} disabled={isRefreshing} aria-busy={isRefreshing}>
+                  {isRefreshing ? "Refreshing…" : "Refresh"}
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="pt-0">
               {settledBets.length === 0 ? (
@@ -145,6 +180,13 @@ export default function MyBetsPage() {
             </CardContent>
           </Card>
         </div>
+      </div>
+
+      {/* Mobile floating refresh button */}
+      <div className="md:hidden fixed bottom-4 right-4 z-50">
+        <Button size="lg" variant="default" onClick={doRefresh} disabled={isRefreshing} className="shadow-lg">
+          {isRefreshing ? "Refreshing…" : "Refresh"}
+        </Button>
       </div>
     </div>
   );
