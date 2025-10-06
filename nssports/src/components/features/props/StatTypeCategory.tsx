@@ -29,20 +29,20 @@ interface StatTypeCategoryProps {
   defaultOpen?: boolean;
 }
 
-// Stat type metadata with icons and display names
-const statTypeMetadata: Record<string, { displayName: string; icon: string }> = {
-  Points: { displayName: "Points", icon: "🏀" },
-  Rebounds: { displayName: "Rebounds", icon: "🔄" },
-  Assists: { displayName: "Assists", icon: "🤝" },
-  Steals: { displayName: "Steals", icon: "🛡️" },
-  Blocks: { displayName: "Blocks", icon: "🚫" },
-  "Three-Pointers Made": { displayName: "Three-Pointers Made", icon: "🎯" },
-  "Receiving Yards": { displayName: "Receiving Yards", icon: "🏈" },
-  Receptions: { displayName: "Receptions", icon: "🙌" },
-  "Rushing Yards": { displayName: "Rushing Yards", icon: "🏃" },
-  "Passing Yards": { displayName: "Passing Yards", icon: "📡" },
-  "Passing TDs": { displayName: "Passing TDs", icon: "🎯" },
-  Touchdowns: { displayName: "Touchdowns", icon: "⚡" },
+// Stat type metadata with display names (no emoji icons)
+const statTypeMetadata: Record<string, { displayName: string }> = {
+  Points: { displayName: "Points" },
+  Rebounds: { displayName: "Rebounds" },
+  Assists: { displayName: "Assists" },
+  Steals: { displayName: "Steals" },
+  Blocks: { displayName: "Blocks" },
+  "Three-Pointers Made": { displayName: "Three-Pointers Made" },
+  "Receiving Yards": { displayName: "Receiving Yards" },
+  Receptions: { displayName: "Receptions" },
+  "Rushing Yards": { displayName: "Rushing Yards" },
+  "Passing Yards": { displayName: "Passing Yards" },
+  "Passing TDs": { displayName: "Passing TDs" },
+  Touchdowns: { displayName: "Touchdowns" },
 };
 
 export function StatTypeCategory({ statType, game, defaultOpen = false }: StatTypeCategoryProps) {
@@ -50,11 +50,10 @@ export function StatTypeCategory({ statType, game, defaultOpen = false }: StatTy
   
   const metadata = statTypeMetadata[statType.name] || {
     displayName: statType.name,
-    icon: "📊",
   };
 
   return (
-    <div className="border border-border rounded-lg overflow-hidden bg-card shadow-sm hover:shadow-md transition-shadow">
+    <div className="border border-border rounded-lg overflow-hidden bg-card/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-all duration-200">
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
@@ -64,9 +63,7 @@ export function StatTypeCategory({ statType, game, defaultOpen = false }: StatTy
         )}
       >
         <div className="flex items-center gap-3">
-          {metadata.icon && (
-            <span className="text-xl">{metadata.icon}</span>
-          )}
+          <div className="w-2 h-2 rounded-full bg-accent flex-shrink-0"></div>
           <div className="text-left">
             <h3 className="text-sm md:text-base font-semibold text-foreground">
               {metadata.displayName}
@@ -97,11 +94,18 @@ export function StatTypeCategory({ statType, game, defaultOpen = false }: StatTy
             transition={{ duration: 0.2, ease: "easeInOut" }}
             className="overflow-hidden"
           >
-            <div className="px-2 md:px-4 py-3 bg-muted/10 border-t border-border">
-              <div className="space-y-1">
-                {statType.props.map((prop) => (
-                  <PlayerPropRow key={prop.id} prop={prop} game={game} />
-                ))}
+            <div className="bg-muted/10 backdrop-blur-sm border-t border-border/30">
+              <div 
+                className="max-h-[300px] overflow-y-auto seamless-scroll px-2 md:px-4 py-3"
+                onWheel={(e) => e.stopPropagation()}
+                onTouchMove={(e) => e.stopPropagation()}
+                style={{ overscrollBehavior: 'contain' }}
+              >
+                <div className="space-y-1">
+                  {statType.props.map((prop) => (
+                    <PlayerPropRow key={prop.id} prop={prop} game={game} />
+                  ))}
+                </div>
               </div>
             </div>
           </motion.div>

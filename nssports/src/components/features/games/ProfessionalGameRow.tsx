@@ -370,18 +370,25 @@ export function ProfessionalGameRow({
       <AnimatePresence initial={false}>
         {expanded && (
           <motion.div
-            initial={{ maxHeight: 0, opacity: 0 }}
-            animate={{ maxHeight: 800, opacity: 1 }}
-            exit={{ maxHeight: 0, opacity: 0 }}
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="overflow-hidden bg-muted/20 border-t border-border px-4 py-4 rounded-b-lg shadow-md"
+            className="overflow-hidden bg-muted/20 border-t border-border rounded-b-lg shadow-md"
           >
             {propsLoading ? (
               <div className="text-center py-8 text-sm text-muted-foreground">
                 Loading props...
               </div>
             ) : (
-              <PropsDisplay game={game} playerProps={playerProps} gameProps={gameProps} />
+              <div 
+                className="h-[500px] overflow-y-auto seamless-scroll px-4 py-4"
+                onWheel={(e) => e.stopPropagation()}
+                onTouchMove={(e) => e.stopPropagation()}
+                style={{ overscrollBehavior: 'contain' }}
+              >
+                <PropsDisplay game={game} playerProps={playerProps} gameProps={gameProps} />
+              </div>
             )}
           </motion.div>
         )}

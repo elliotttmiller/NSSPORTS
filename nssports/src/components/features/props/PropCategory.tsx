@@ -43,7 +43,7 @@ export function PropCategory({ category, game, defaultOpen = false }: PropCatego
   const statTypes = Object.keys(propsByStatType);
 
   return (
-    <div className="border border-border rounded-lg overflow-hidden bg-card shadow-sm">
+    <div className="border border-border rounded-lg overflow-hidden bg-card/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-all duration-200">
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
@@ -53,9 +53,7 @@ export function PropCategory({ category, game, defaultOpen = false }: PropCatego
         )}
       >
         <div className="flex items-center gap-3">
-          {category.icon && (
-            <span className="text-lg">{category.icon}</span>
-          )}
+          <div className="w-2 h-2 rounded-full bg-accent flex-shrink-0"></div>
           <div className="text-left">
             <h3 className="text-sm font-semibold text-foreground">
               {category.name}
@@ -86,28 +84,35 @@ export function PropCategory({ category, game, defaultOpen = false }: PropCatego
             transition={{ duration: 0.2, ease: "easeInOut" }}
             className="overflow-hidden"
           >
-            <div className="px-4 py-3 bg-muted/10 border-t border-border">
-              {statTypes.map((statType, idx) => (
-                <div
-                  key={statType}
-                  className={cn(
-                    "space-y-1",
-                    idx > 0 && "mt-6 pt-6 border-t border-border/50"
-                  )}
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                      {statType}
-                    </h4>
-                    <span className="text-xs text-muted-foreground">
-                      {propsByStatType[statType].length} {propsByStatType[statType].length === 1 ? 'player' : 'players'}
-                    </span>
+            <div className="bg-muted/10 backdrop-blur-sm border-t border-border/30">
+              <div 
+                className="max-h-[400px] overflow-y-auto seamless-scroll px-4 py-3"
+                onWheel={(e) => e.stopPropagation()}
+                onTouchMove={(e) => e.stopPropagation()}
+                style={{ overscrollBehavior: 'contain' }}
+              >
+                {statTypes.map((statType, idx) => (
+                  <div
+                    key={statType}
+                    className={cn(
+                      "space-y-1",
+                      idx > 0 && "mt-6 pt-6 border-t border-border/50"
+                    )}
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                        {statType}
+                      </h4>
+                      <span className="text-xs text-muted-foreground">
+                        {propsByStatType[statType].length} {propsByStatType[statType].length === 1 ? 'player' : 'players'}
+                      </span>
+                    </div>
+                    {propsByStatType[statType].map((prop) => (
+                      <PlayerPropRow key={prop.id} prop={prop} game={game} />
+                    ))}
                   </div>
-                  {propsByStatType[statType].map((prop) => (
-                    <PlayerPropRow key={prop.id} prop={prop} game={game} />
-                  ))}
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </motion.div>
         )}

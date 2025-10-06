@@ -9,6 +9,7 @@ import { useBetHistory } from "@/context";
 import { useBetSlip, useNavigation } from "@/context";
 import { useIsMobile } from "@/hooks";
 import { formatOdds } from "@/lib/formatters";
+import { formatSelectionLabel } from "@/components/bets/BetCard";
 import { toast } from "sonner";
 import type { Bet } from "@/types";
 
@@ -45,15 +46,12 @@ export function MobileBetSlipPanel() {
     }
   };
 
+  // Format bet description for display using the same logic as desktop
   const formatBetDescription = (bet: Bet) => {
-    if (bet.betType === "spread") {
-      const line = bet.line ? (bet.line > 0 ? `+${bet.line}` : bet.line) : "";
-      return `${bet.selection === "away" ? bet.game.awayTeam.name : bet.game.homeTeam.name} ${line}`;
-    } else if (bet.betType === "total") {
-      return `${bet.selection === "over" ? "Over" : "Under"} ${bet.line}`;
-    } else {
-      return bet.selection === "away" ? bet.game.awayTeam.name : bet.game.homeTeam.name;
-    }
+    return formatSelectionLabel(bet.betType, bet.selection, bet.line, {
+      homeTeam: { shortName: bet.game.homeTeam.shortName },
+      awayTeam: { shortName: bet.game.awayTeam.shortName }
+    });
   };
 
   const formatMatchup = (bet: Bet) => {

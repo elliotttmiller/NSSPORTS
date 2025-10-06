@@ -1,13 +1,52 @@
 "use client";
 
-import { useState, useCallback, memo } from "react";
+import { useState, useCallback, memo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { TeamLogo } from "./TeamLogo";
 import { Button } from "@/components/ui";
 import { useBetSlip } from "@/context";
 import { formatOdds, formatSpreadLine } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
+import { PlayerPropsList, GamePropsList } from "@/components/features/props";
 import type { Game } from "@/types";
+
+// Helper component for displaying props with tabs - same as desktop
+function PropsDisplay({ game, playerProps, gameProps }: any) {
+  const [activeTab, setActiveTab] = useState<'player' | 'game'>('player');
+
+  return (
+    <div className="w-full">
+      <div className="inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground mb-4">
+        <button
+          onClick={() => setActiveTab('player')}
+          className={cn(
+            "inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium transition-all",
+            activeTab === 'player' && "bg-background text-foreground shadow-sm"
+          )}
+        >
+          Player Props
+        </button>
+        <button
+          onClick={() => setActiveTab('game')}
+          className={cn(
+            "inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium transition-all",
+            activeTab === 'game' && "bg-background text-foreground shadow-sm"
+          )}
+        >
+          Game Props
+        </button>
+      </div>
+
+      {activeTab === 'player' && (
+        <PlayerPropsList game={game} playerProps={playerProps} />
+      )}
+
+      {activeTab === 'game' && (
+        <GamePropsList game={game} gameProps={gameProps} />
+      )}
+    </div>
+  );
+}
 
 interface Props {
   game: Game;
@@ -17,6 +56,33 @@ export const CompactMobileGameRow = memo(({ game }: Props) => {
   const { betSlip, addBet, removeBet } = useBetSlip();
   const [expanded, setExpanded] = useState(false);
   const [shouldRenderDropdown, setShouldRenderDropdown] = useState(false);
+  const [playerProps, setPlayerProps] = useState<any[]>([]);
+  const [gameProps, setGameProps] = useState<any>({});
+  const [propsLoading, setPropsLoading] = useState(false);
+
+  // Fetch props when expanded - same logic as desktop
+  useEffect(() => {
+    if (expanded && playerProps.length === 0) {
+      setPropsLoading(true);
+      
+      // Fetch player props
+      fetch(`/api/player-props?gameId=${game.id}`)
+        .then((res) => res.json())
+        .then((data) => {
+          setPlayerProps(data.data || []);
+        })
+        .catch((err) => console.error("Error fetching player props:", err));
+
+      // Fetch game props
+      fetch(`/api/game-props?gameId=${game.id}`)
+        .then((res) => res.json())
+        .then((data) => {
+          setGameProps(data.data || {});
+        })
+        .catch((err) => console.error("Error fetching game props:", err))
+        .finally(() => setPropsLoading(false));
+    }
+  }, [expanded, game.id, playerProps.length]);
 
   const gameDate = new Date(game.startTime);
   const timeString = gameDate.toLocaleTimeString("en-US", {
@@ -307,32 +373,29 @@ export const CompactMobileGameRow = memo(({ game }: Props) => {
       <AnimatePresence initial={false}>
         {shouldRenderDropdown && (
           <motion.div
-            initial={{ maxHeight: 0, opacity: 0 }}
-            animate={{ maxHeight: expanded ? 500 : 0, opacity: expanded ? 1 : 0 }}
-            exit={{ maxHeight: 0, opacity: 0 }}
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: expanded ? "auto" : 0, opacity: expanded ? 1 : 0 }}
+            exit={{ height: 0, opacity: 0 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="overflow-hidden bg-muted/20 border-t border-border px-4 py-4 rounded-b-lg shadow-sm"
+            className="overflow-hidden bg-muted/20 border-t border-border rounded-b-lg shadow-md"
             onAnimationComplete={() => {
               if (!expanded) setShouldRenderDropdown(false);
             }}
           >
-            {/* Future: Player/Game Prop Bets UI goes here */}
-            <div className="mb-3 text-center text-xs text-muted-foreground">
-              Game props and player props coming soon...
-            </div>
-            <div className="mb-2 text-sm font-semibold text-accent">Game Info</div>
-            <div className="mb-2 text-xs text-muted-foreground">Start Time: {timeString}</div>
-            <div className="mb-2 text-xs text-muted-foreground">Teams: {game.awayTeam.name} vs {game.homeTeam.name}</div>
-            <div className="mb-2 text-xs text-muted-foreground">League: {game.leagueId}</div>
-            <div className="mt-4">
-              <div className="text-xs font-semibold mb-1 text-muted-foreground">Upcoming Features:</div>
-              <ul className="list-disc pl-5 text-xs text-muted-foreground space-y-1">
-                <li>Player prop bets</li>
-                <li>Live stats</li>
-                <li>Team analytics</li>
-                <li>Bet recommendations</li>
-              </ul>
-            </div>
+            {propsLoading ? (
+              <div className="text-center py-8 text-sm text-muted-foreground">
+                Loading props...
+              </div>
+            ) : (
+              <div 
+                className="h-[400px] overflow-y-auto seamless-scroll px-4 py-4"
+                onWheel={(e) => e.stopPropagation()}
+                onTouchMove={(e) => e.stopPropagation()}
+                style={{ overscrollBehavior: 'contain' }}
+              >
+                <PropsDisplay game={game} playerProps={playerProps} gameProps={gameProps} />
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

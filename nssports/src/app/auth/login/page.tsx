@@ -28,17 +28,17 @@ function LoginForm() {
 
       if (result?.error) {
         toast.error("Invalid email or password");
+        setLoading(false);
       } else {
         toast.success("Logged in successfully!");
-        // Use the callback URL from middleware or default to home
-        router.push(callbackUrl);
-        router.refresh();
+        // Use window.location.href for a full page reload to ensure proper session handling
+        window.location.href = callbackUrl;
       }
     } catch (error) {
       toast.error("An error occurred during login");
-    } finally {
       setLoading(false);
     }
+    // Don't set loading to false here since we're redirecting
   };
 
   return (
