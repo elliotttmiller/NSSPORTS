@@ -17,7 +17,7 @@ import { z } from "zod";
  */
 
 const loginSchema = z.object({
-  email: z.string().email(),
+  username: z.string().min(3),
   password: z.string().min(6),
 });
 
@@ -31,15 +31,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
     Credentials({
       credentials: {
-        email: { label: "Email", type: "email" },
+        username: { label: "Username", type: "text" },
         password: { label: "Password", type: "password" },
       },
       authorize: async (credentials) => {
         try {
-          const { email, password } = loginSchema.parse(credentials);
+          const { username, password } = loginSchema.parse(credentials);
 
           const user = await prisma.user.findUnique({
-            where: { email },
+            where: { username },
           });
 
           if (!user || !user.password) return null;
@@ -49,7 +49,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
           return {
             id: user.id,
-            email: user.email,
+            username: user.username,
             name: user.name,
             image: user.image,
           };
@@ -72,11 +72,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         // Could refresh user data from DB here if needed
         const refreshedUser = await prisma.user.findUnique({
           where: { id: token.id as string },
-          select: { id: true, email: true, name: true, image: true },
+          select: { id: true, username: true, name: true, image: true },
         });
         
         if (refreshedUser) {
-          token.email = refreshedUser.email;
+          token.username = refreshedUser.username;
           token.name = refreshedUser.name;
           token.picture = refreshedUser.image;
         }

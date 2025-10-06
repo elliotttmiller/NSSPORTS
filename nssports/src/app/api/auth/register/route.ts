@@ -5,7 +5,7 @@ import { z } from "zod";
 import { withErrorHandling, successResponse, ApiErrors } from "@/lib/apiResponse";
 
 const registerSchema = z.object({
-  email: z.string().email("Invalid email address"),
+  username: z.string().min(3, "Username must be at least 3 characters"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   name: z.string().optional(),
 });
@@ -25,15 +25,15 @@ export async function POST(req: Request) {
       throw error;
     }
 
-    const { email, password, name } = validatedData;
+    const { username, password, name } = validatedData;
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
-      where: { email },
+      where: { username },
     });
 
     if (existingUser) {
-      return ApiErrors.conflict("User with this email already exists");
+      return ApiErrors.conflict("User with this username already exists");
     }
 
     // Hash password
@@ -43,13 +43,13 @@ export async function POST(req: Request) {
     const user = await prisma.$transaction(async (tx) => {
       const newUser = await tx.user.create({
         data: {
-          email,
+          username,
           password: hashedPassword,
           name: name || null,
         },
         select: {
           id: true,
-          email: true,
+          username: true,
           name: true,
           createdAt: true,
         },
@@ -70,7 +70,7 @@ export async function POST(req: Request) {
       {
         user: {
           id: user.id,
-          email: user.email,
+          username: user.username,
           name: user.name,
         },
       },

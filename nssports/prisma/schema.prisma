@@ -9,18 +9,17 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  password      String
-  name          String?
-  emailVerified DateTime?
-  image         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  account       Account?
-  bets          Bet[]
+  id        String    @id @default(cuid())
+  username  String    @unique
+  password  String
+  name      String?
+  image     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  account   Account?
+  bets      Bet[]
 
-  @@index([email])
+  @@index([username])
   @@map("users")
 }
 

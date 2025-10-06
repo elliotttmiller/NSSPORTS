@@ -219,9 +219,6 @@ export function BetCardParlay({
           <div className="flex items-center gap-1.5">
             <Badge variant={isWon ? "default" : "outline"} className={cn(isWon ? "bg-green-100 text-green-800 border-green-200" : "", "flex items-center gap-0.5 px-3 py-1")}>
               PARLAY
-              <span className="text-[0.7em] font-semibold ml-0.5 text-accent-foreground align-top">
-                ({legs.length}-Leg)
-              </span>
             </Badge>
             <Badge variant={isWon ? "default" : status === "lost" ? "destructive" : "outline"} className={cn(isWon ? "bg-green-600 text-white" : status === "lost" ? "bg-red-600 text-white" : "bg-yellow-50 text-yellow-700 border-yellow-200", "ml-1")}>
               {status.toUpperCase()}

@@ -213,7 +213,7 @@ export function MobileBetSlipPanel() {
                   {/* Parlay header */}
                   <div className="flex items-center justify-between">
                     <div className="font-semibold text-base">
-                      Parlay ({betSlip.bets.length} legs)
+                      Parlay
                     </div>
                     <Badge className="bg-accent/10 text-accent border-accent/20 font-mono px-3 py-1 text-sm font-bold">
                       {formatOdds(betSlip.totalOdds)}

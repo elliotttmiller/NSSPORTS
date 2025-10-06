@@ -578,21 +578,21 @@ async function main() {
   // Create demo user and account
   console.log('Creating demo user...');
   const bcrypt = await import('bcryptjs');
-  const demoEmail = 'admin@ns.com';
-  const demoPasswordHash = await bcrypt.hash('admin', 10);
-  let demoUser = await prisma.user.findUnique({ where: { email: demoEmail } });
+  const demoUsername = 'slime';
+  const demoPasswordHash = await bcrypt.hash('wells123', 10);
+  let demoUser = await prisma.user.findUnique({ where: { username: demoUsername } });
   if (!demoUser) {
     demoUser = await prisma.user.create({
       data: {
-        email: demoEmail,
+        username: demoUsername,
         password: demoPasswordHash,
-        name: 'Admin',
+        name: 'Slime',
       },
     });
     await prisma.account.create({ data: { userId: demoUser.id, balance: 2500 } });
-    console.log('Demo user created:', demoEmail);
+    console.log('Demo user created:', demoUsername);
   } else {
-    console.log('Demo user already exists:', demoEmail);
+    console.log('Demo user already exists:', demoUsername);
   }
 
   // Optional: add a couple of demo bets for the user
