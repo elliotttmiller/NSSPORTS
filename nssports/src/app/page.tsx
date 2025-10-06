@@ -9,6 +9,8 @@ import type { Game } from "@/types";
 import { ProfessionalGameRow, CompactMobileGameRow, MobileGameTableHeader, DesktopGameTableHeader } from "@/components/features/games";
 import { useSession } from "next-auth/react";
 import { useBetHistory } from "@/context";
+import { useAccount } from "@/hooks/useAccount";
+import { formatCurrency } from "@/lib/formatters";
 
 export default function Home() {
   const { data: session } = useSession();
@@ -16,6 +18,12 @@ export default function Home() {
   const activeBetsCount = (placedBets || []).filter(b => b.status === 'pending').length;
   const [trendingGames, setTrendingGames] = useState<Game[]>([]);
   const [loadingTrending, setLoadingTrending] = useState(true);
+  
+  // API-driven account stats (same as Header component)
+  const { data: account } = useAccount();
+  const balance = account?.balance ?? 0;
+  const available = account?.available ?? 0;
+  const risk = account?.risk ?? 0;
 
   useEffect(() => {
     let mounted = true;
@@ -53,9 +61,9 @@ export default function Home() {
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8 md:mt-12">
             {[ 
-              { label: "Balance", value: "$1,250.00", color: "text-foreground" },
-              { label: "Available", value: "$1,000.00", color: "text-foreground" },
-              { label: "Risk", value: "$250.00", color: "text-destructive" },
+              { label: "Balance", value: formatCurrency(balance), color: "text-foreground" },
+              { label: "Available", value: formatCurrency(available), color: "text-foreground" },
+              { label: "Risk", value: formatCurrency(risk), color: "text-destructive" },
               { label: "Active Bets", value: activeBetsCount, color: "text-foreground" },
             ].map((stat) => {
               const content = (
