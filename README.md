@@ -156,6 +156,7 @@ NSSPORTS/
    - `DIRECT_URL`: Direct database connection (non-pooled)
    - `NEXTAUTH_SECRET`: Generate with `openssl rand -base64 32`
    - `NEXTAUTH_URL`: Your app URL (http://localhost:3000 for development)
+   - `THE_ODDS_API_KEY`: Your API key from [The Odds API](https://the-odds-api.com/) (required for live odds data)
 
 4. **Set up the database**
    ```bash
@@ -234,6 +235,7 @@ const userId = await getAuthUser(); // Throws if not authenticated
 
 Comprehensive documentation is available in the `/docs` directory:
 
+- **[The Odds API Integration](./nssports/docs/THE_ODDS_API_INTEGRATION.md)** - Live sports odds integration guide
 - **[Backend Setup Guide](./docs/BACKEND_SETUP.md)** - Database and API configuration
 - **[Environment Variables](./docs/ENVIRONMENT.md)** - Configuration guide
 - **[Migration Guide](./docs/MIGRATION_COMPLETE.md)** - Migration documentation
