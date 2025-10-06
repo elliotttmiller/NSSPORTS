@@ -98,7 +98,7 @@ export function formatSelectionLabel(
 
   // Handle total/over-under bets explicitly
   if (betType === 'total' || isTotal) {
-    return `${cap(selection)} ${typeof line === 'number' ? Math.abs(line) : ''}`.trim();
+    return `${selection.toUpperCase()} ${typeof line === 'number' ? Math.abs(line) : ''}`.trim();
   }
   // Treat as moneyline if explicitly moneyline OR side pick with no line provided
   if (betType === 'moneyline' || (isSide && (line === undefined || line === null))) {
