@@ -126,6 +126,8 @@ export const getTrendingGames = async (): Promise<Game[]> => {
 };
 
 // Get live games
+// NOTE: This function is deprecated in favor of using the centralized liveDataStore
+// For new code, use: useLiveDataStore(selectLiveMatches)
 export const getLiveGames = async (): Promise<Game[]> => {
   const json = await fetchAPI<unknown>('/games/live');
   const payload = (json && typeof json === 'object' && 'data' in (json as any)) ? (json as any).data : json;
@@ -133,6 +135,8 @@ export const getLiveGames = async (): Promise<Game[]> => {
 };
 
 // Get upcoming games
+// NOTE: This function is deprecated in favor of using the centralized liveDataStore
+// For new code, use: useLiveDataStore(selectUpcomingMatches)
 export const getUpcomingGames = async (): Promise<Game[]> => {
   const json = await fetchAPI<unknown>('/games/upcoming');
   const payload = (json && typeof json === 'object' && 'data' in (json as any)) ? (json as any).data : json;

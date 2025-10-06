@@ -3,21 +3,24 @@
 import { TrendUp, Trophy } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { getLiveGames } from "@/services/api";
-import type { Game } from "@/types";
+import { useEffect } from "react";
 import { ProfessionalGameRow, CompactMobileGameRow, MobileGameTableHeader, DesktopGameTableHeader } from "@/components/features/games";
 import { useSession } from "next-auth/react";
 import { useBetHistory } from "@/context";
 import { useAccount } from "@/hooks/useAccount";
 import { formatCurrency } from "@/lib/formatters";
+import { useLiveDataStore, selectLiveMatches, selectIsLoading, selectError } from "@/store";
 
 export default function Home() {
   const { data: session } = useSession();
   const { placedBets } = useBetHistory();
   const activeBetsCount = (placedBets || []).filter(b => b.status === 'pending').length;
-  const [trendingGames, setTrendingGames] = useState<Game[]>([]);
-  const [loadingTrending, setLoadingTrending] = useState(true);
+  
+  // Subscribe to live data store - Protocol I: Single Source of Truth
+  const fetchMatches = useLiveDataStore((state) => state.fetchMatches);
+  const liveMatches = useLiveDataStore(selectLiveMatches);
+  const isLoading = useLiveDataStore(selectIsLoading);
+  const error = useLiveDataStore(selectError);
   
   // API-driven account stats (same as Header component)
   const { data: account } = useAccount();
@@ -25,26 +28,13 @@ export default function Home() {
   const available = account?.available ?? 0;
   const risk = account?.risk ?? 0;
 
+  // Protocol II: Efficient State Hydration - fetch once on mount
   useEffect(() => {
-    let mounted = true;
-    const load = async () => {
-      try {
-        setLoadingTrending(true);
-        const games = await getLiveGames();
-        if (!mounted) return;
-        setTrendingGames(games.slice(0, 5));
-      } catch (e) {
-        if (!mounted) return;
-        setTrendingGames([]);
-      } finally {
-        if (mounted) setLoadingTrending(false);
-      }
-    };
-    load();
-    return () => {
-      mounted = false;
-    };
-  }, []);
+    fetchMatches('basketball_nba');
+  }, [fetchMatches]);
+  
+  // Display first 5 live matches as trending
+  const trendingGames = liveMatches.slice(0, 5);
 
   const displayName = session?.user?.email || session?.user?.name || 'NorthStar User';
 
@@ -109,11 +99,17 @@ export default function Home() {
             </div>
             
             {/* Games List - Responsive like /live page */}
+            {/* Protocol IV: Universal UI State Handling */}
             <div className="space-y-3">
-              {loadingTrending ? (
+              {isLoading ? (
                 <div className="text-center py-12">
                   <div className="animate-spin w-8 h-8 border-2 border-accent border-t-transparent rounded-full mx-auto mb-4"></div>
                   <p className="text-muted-foreground">Loading games...</p>
+                </div>
+              ) : error ? (
+                <div className="text-center py-12">
+                  <p className="text-destructive">Error loading games</p>
+                  <p className="text-sm text-muted-foreground mt-2">{error}</p>
                 </div>
               ) : trendingGames.length === 0 ? (
                 <div className="text-center py-12">
