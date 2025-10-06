@@ -36,26 +36,27 @@ NorthStar Sports is a comprehensive sports betting platform that provides real-t
 
 ### Core Functionality
 
-- 🎮 **Multi-Sport Support**: NFL, NBA, NHL coverage
-- 📊 **Live Game Tracking**: Real-time scores and game status powered by The Odds API
+- 🎮 **Multi-Sport Support**: NFL, NBA, NHL coverage with live odds
+- 📊 **Live Game Tracking**: Real-time scores and game status via The Odds API
 - 💰 **Comprehensive Betting**: Spread, Moneyline, and Totals
-- 📱 **Responsive Design**: Optimized for mobile, tablet, and desktop
-- 🎯 **Bet Slip Management**: Single and parlay betting support
-- 📈 **Betting History**: Track wins, losses, and performance
-- ⚡ **Fast Performance**: Static generation and optimized bundles
-- 🔄 **Centralized State**: Zustand-powered live data store for efficient state management
+- 📱 **Responsive Design**: Mobile-first, optimized for all devices
+- 🎯 **Bet Slip Management**: Single and parlay betting with custom stakes
+- 📈 **Betting History**: Track wins, losses, and performance metrics
+- ⚡ **Fast Performance**: Server Components, optimized bundles, multi-layer caching
+- 🔄 **Real-time Updates**: Zustand-powered live data store with automatic syncing
 
 ### Technical Features
 
-- Server-side rendering and static generation
-- **Secure authentication with NextAuth.js**
-- **Protected API routes with session management**
-- API route handlers with CORS protection
-- Database connection pooling
-- Type-safe API contracts with Zod validation
-- Environment-based configuration
-- Comprehensive error handling
-- Pre-commit hooks for code quality
+- ✅ **Next.js 15.5.4 App Router** - Modern server/client component architecture
+- ✅ **Secure Authentication** - NextAuth.js with JWT tokens and middleware protection
+- ✅ **Type Safety** - Full TypeScript coverage with strict mode
+- ✅ **API Routes** - Backend for Frontend (BFF) pattern with CORS protection
+- ✅ **Database** - Prisma ORM with PostgreSQL and connection pooling
+- ✅ **Validation** - Zod schemas for type-safe API contracts
+- ✅ **Error Handling** - Comprehensive error boundaries and logging
+- ✅ **Testing** - Jest with 21/21 tests passing
+- ✅ **PWA Support** - Progressive Web App with manifest
+- ✅ **Production Ready** - Zero TypeScript errors, build succeeds
 
 ## 🏗️ Architecture
 
@@ -129,48 +130,42 @@ NSSPORTS/
 
 ### Data Flow Architecture
 
-NSSPORTS implements a centralized state management architecture following **The Ubiquitous Data Doctrine**:
+NSSPORTS implements a modern Backend for Frontend (BFF) architecture with centralized state management:
 
 ```
-┌─────────────────────────────────────────────────┐
-│      The Odds API (External)                    │
-│      - Live sports data                         │
-│      - Real-time odds                           │
-└──────────────────┬──────────────────────────────┘
-                   │ Secure API key
-                   ▼
-┌─────────────────────────────────────────────────┐
-│      Backend for Frontend (BFF) Layer          │
-│      /api/matches?sport={sportKey}              │
-│      - Server-side caching (60s)                │
-│      - Data transformation                      │
-│      - Error handling                           │
-└──────────────────┬──────────────────────────────┘
-                   │ Internal API
-                   ▼
-┌─────────────────────────────────────────────────┐
-│      Live Data Store (Zustand)                  │
-│      - Single source of truth                   │
-│      - State management                         │
-│      - Loading/error states                     │
-└──────────────────┬──────────────────────────────┘
-                   │ Selectors
-                   ▼
-┌─────────────────────────────────────────────────┐
-│      React Components                           │
-│      - Homepage, /live, Betslip, etc.          │
-│      - Granular state subscription              │
-│      - Optimized re-rendering                   │
-└─────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                     NSSPORTS Data Flow                       │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│  External Data Sources                                       │
+│  ├── The Odds API (live sports data)                        │
+│  └── PostgreSQL Database (user data, bets)                  │
+│                           ▼                                  │
+│  Next.js API Routes (BFF Pattern)                           │
+│  ├── /api/matches         (cached 60s)                      │
+│  ├── /api/games           (cached 30s)                      │
+│  ├── /api/my-bets         (authenticated)                   │
+│  └── /api/account         (authenticated)                   │
+│                           ▼                                  │
+│  State Management Layer                                      │
+│  ├── React Query          (server state, caching)           │
+│  ├── Zustand Store        (global live data)                │
+│  └── React Context        (bet slip, navigation)            │
+│                           ▼                                  │
+│  UI Components                                               │
+│  ├── Server Components    (static, SSR)                     │
+│  └── Client Components    (interactive)                     │
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-**Key Principles:**
-- **Protocol I**: Single Source of Truth - All live data flows through the centralized store
-- **Protocol II**: Efficient State Hydration - Data fetched once at high level, shared across components
-- **Protocol III**: Granular State Consumption - Components subscribe only to data they need
-- **Protocol IV**: Universal UI State Handling - All components handle loading, error, and empty states
+**Architecture Highlights:**
+- **BFF Pattern**: All external APIs accessed via Next.js API routes
+- **Multi-layer Caching**: Server-side (`unstable_cache`) + Client-side (React Query)
+- **Type Safety**: Full TypeScript coverage with Zod validation
+- **Security**: Middleware-based authentication and CORS
 
-See [LIVE_DATA_STORE_ARCHITECTURE.md](./nssports/docs/LIVE_DATA_STORE_ARCHITECTURE.md) for detailed documentation.
+See [ARCHITECTURE.md](./nssports/docs/ARCHITECTURE.md) for detailed documentation.
 
 ## 🚀 Getting Started
 
@@ -282,16 +277,21 @@ const userId = await getAuthUser(); // Throws if not authenticated
 
 ## 📚 Documentation
 
-Comprehensive documentation is available in the `/docs` directory:
+**📖 Complete documentation is available in the `/nssports/docs` directory:**
 
-- **[Live Data Store Architecture](./nssports/docs/LIVE_DATA_STORE_ARCHITECTURE.md)** - Centralized state management guide
-- **[The Odds API Integration](./nssports/docs/THE_ODDS_API_INTEGRATION.md)** - Live sports odds integration guide
-- **[Integration Complete](./nssports/docs/INTEGRATION_COMPLETE.md)** - Full integration documentation
-- **[Backend Setup Guide](./docs/BACKEND_SETUP.md)** - Database and API configuration
-- **[Environment Variables](./docs/ENVIRONMENT.md)** - Configuration guide
-- **[Migration Guide](./docs/MIGRATION_COMPLETE.md)** - Migration documentation
-- **[Contributing Guide](./CONTRIBUTING.md)** - How to contribute
-- **[Security Policy](./SECURITY.md)** - Security guidelines
+- **[Absolute Zero Report](./nssports/docs/ABSOLUTE_ZERO_REPORT.md)** - Comprehensive transformation report and compliance verification
+- **[Architecture](./nssports/docs/ARCHITECTURE.md)** - Complete system architecture, data flow, and technical decisions
+- **[Quick Reference](./nssports/docs/GOLD_STANDARD_QUICK_REFERENCE.md)** - Development quick reference guide
+- **[Documentation Index](./nssports/docs/README.md)** - Complete documentation index
+
+### Legacy Documentation
+
+Historical implementation reports are archived in `/nssports/docs/archive/` for reference.
+
+### Additional Resources
+
+- **[Contributing Guide](./CONTRIBUTING.md)** - How to contribute to the project
+- **[Security Policy](./SECURITY.md)** - Security guidelines and reporting
 
 ### API Documentation
 
