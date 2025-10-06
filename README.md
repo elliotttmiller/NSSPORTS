@@ -37,12 +37,13 @@ NorthStar Sports is a comprehensive sports betting platform that provides real-t
 ### Core Functionality
 
 - 🎮 **Multi-Sport Support**: NFL, NBA, NHL coverage
-- 📊 **Live Game Tracking**: Real-time scores and game status
+- 📊 **Live Game Tracking**: Real-time scores and game status powered by The Odds API
 - 💰 **Comprehensive Betting**: Spread, Moneyline, and Totals
 - 📱 **Responsive Design**: Optimized for mobile, tablet, and desktop
 - 🎯 **Bet Slip Management**: Single and parlay betting support
 - 📈 **Betting History**: Track wins, losses, and performance
 - ⚡ **Fast Performance**: Static generation and optimized bundles
+- 🔄 **Centralized State**: Zustand-powered live data store for efficient state management
 
 ### Technical Features
 
@@ -85,8 +86,9 @@ NSSPORTS/
 │       │   ├── features/games/ # ProfessionalGameRow, CompactMobileGameRow
 │       │   └── ui/             # Card, Button, Badge, etc.
 │       ├── context/            # BetSlip, Navigation, etc.
-│       ├── hooks/              # usePaginatedGames, queries
-│       ├── lib/                # formatters, prisma client, utils
+│       ├── store/              # Zustand stores (liveDataStore)
+│       ├── hooks/              # usePaginatedGames, useLiveMatch, queries
+│       ├── lib/                # formatters, prisma client, utils, the-odds-api
 │       ├── services/           # api.ts (client adapters)
 │       └── types/              # Game, Bet, User models
 ├── scripts/                    # Utility scripts
@@ -108,6 +110,7 @@ NSSPORTS/
 - TypeScript 5.x
 - Tailwind CSS v4
 - Framer Motion for animations
+- Zustand for state management
 
 **Backend**
 - Next.js API Routes
@@ -115,6 +118,7 @@ NSSPORTS/
 - Prisma ORM 6.x
 - PostgreSQL (Supabase)
 - Server-side rendering
+- The Odds API integration
 
 **Development Tools**
 - ESLint for code quality
@@ -122,6 +126,51 @@ NSSPORTS/
 - EditorConfig for consistency
 - Husky for pre-commit hooks
 - Vitest for testing
+
+### Data Flow Architecture
+
+NSSPORTS implements a centralized state management architecture following **The Ubiquitous Data Doctrine**:
+
+```
+┌─────────────────────────────────────────────────┐
+│      The Odds API (External)                    │
+│      - Live sports data                         │
+│      - Real-time odds                           │
+└──────────────────┬──────────────────────────────┘
+                   │ Secure API key
+                   ▼
+┌─────────────────────────────────────────────────┐
+│      Backend for Frontend (BFF) Layer          │
+│      /api/matches?sport={sportKey}              │
+│      - Server-side caching (60s)                │
+│      - Data transformation                      │
+│      - Error handling                           │
+└──────────────────┬──────────────────────────────┘
+                   │ Internal API
+                   ▼
+┌─────────────────────────────────────────────────┐
+│      Live Data Store (Zustand)                  │
+│      - Single source of truth                   │
+│      - State management                         │
+│      - Loading/error states                     │
+└──────────────────┬──────────────────────────────┘
+                   │ Selectors
+                   ▼
+┌─────────────────────────────────────────────────┐
+│      React Components                           │
+│      - Homepage, /live, Betslip, etc.          │
+│      - Granular state subscription              │
+│      - Optimized re-rendering                   │
+└─────────────────────────────────────────────────┘
+```
+
+**Key Principles:**
+- **Protocol I**: Single Source of Truth - All live data flows through the centralized store
+- **Protocol II**: Efficient State Hydration - Data fetched once at high level, shared across components
+- **Protocol III**: Granular State Consumption - Components subscribe only to data they need
+- **Protocol IV**: Universal UI State Handling - All components handle loading, error, and empty states
+
+See [LIVE_DATA_STORE_ARCHITECTURE.md](./nssports/docs/LIVE_DATA_STORE_ARCHITECTURE.md) for detailed documentation.
 
 ## 🚀 Getting Started
 
@@ -235,7 +284,9 @@ const userId = await getAuthUser(); // Throws if not authenticated
 
 Comprehensive documentation is available in the `/docs` directory:
 
+- **[Live Data Store Architecture](./nssports/docs/LIVE_DATA_STORE_ARCHITECTURE.md)** - Centralized state management guide
 - **[The Odds API Integration](./nssports/docs/THE_ODDS_API_INTEGRATION.md)** - Live sports odds integration guide
+- **[Integration Complete](./nssports/docs/INTEGRATION_COMPLETE.md)** - Full integration documentation
 - **[Backend Setup Guide](./docs/BACKEND_SETUP.md)** - Database and API configuration
 - **[Environment Variables](./docs/ENVIRONMENT.md)** - Configuration guide
 - **[Migration Guide](./docs/MIGRATION_COMPLETE.md)** - Migration documentation
@@ -249,9 +300,10 @@ RESTful API endpoints are available at `/api`:
 **Public Endpoints:**
 - `GET /api/sports` - Get all sports with leagues
 - `GET /api/games` - Get games (paginated)
-- `GET /api/games/upcoming` - Get upcoming games
-- `GET /api/games/live` - Get live games
+- `GET /api/games/upcoming` - Get upcoming games (deprecated, use store)
+- `GET /api/games/live` - Get live games (deprecated, use store)
 - `GET /api/games/league/:leagueId` - Get games by league
+- `GET /api/matches?sport={sportKey}` - Get live matches for a sport (new, powers the store)
 
 **Protected Endpoints (require authentication):**
 - `GET /api/account` - Get user account balance and stats
