@@ -132,25 +132,25 @@ export function MobileBetSlipPanel() {
                 betSlip.bets.map((bet) => (
                   <div
                     key={bet.id}
-                    className="bg-card border border-border rounded-xl p-3 space-y-3"
+                    className="bg-card border border-border rounded-xl p-4 space-y-4"
                   >
                     {/* Bet header */}
                     <div className="flex items-start justify-between">
-                      <div className="flex-1 min-w-0 pr-3">
-                        <div className="font-semibold text-sm leading-tight mb-1">
+                      <div className="flex-1 min-w-0 pr-4">
+                        <div className="font-semibold text-base leading-tight mb-2">
                           {formatBetDescription(bet)}
                         </div>
-                        <div className="text-xs text-muted-foreground leading-tight">
+                        <div className="text-sm text-muted-foreground leading-tight">
                           {formatMatchup(bet)}
                         </div>
                       </div>
-                      <Badge className="bg-accent/10 text-accent border-accent/20 font-mono px-3 py-1 text-sm font-bold">
+                      <Badge className="bg-accent/10 text-accent border-accent/20 font-mono px-3 py-1 text-sm font-normal">
                         {formatOdds(bet.odds)}
                       </Badge>
                     </div>
 
                     {/* Well-Spaced Professional Summary */}
-                    <div className="flex items-center justify-between pt-3 border-t border-border/20 mt-3">
+                    <div className="flex items-center justify-between pt-4 border-t border-border/20">
                       <div className="flex items-end gap-4 flex-1">
                         {/* Stake Input - Well Proportioned */}
                         <div className="flex-1 min-w-0">
