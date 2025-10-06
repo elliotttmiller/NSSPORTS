@@ -12,6 +12,7 @@ import { formatOdds } from "@/lib/formatters";
 import { formatSelectionLabel } from "@/components/bets/BetCard";
 import { toast } from "sonner";
 import type { Bet } from "@/types";
+import { MobileCustomBetSlipContent } from "./MobileCustomBetSlipContent";
 
 // Minimal mobile betslip panel
 export function MobileBetSlipPanel() {
@@ -27,18 +28,97 @@ export function MobileBetSlipPanel() {
     setPlacing(true);
 
     try {
-      await addPlacedBet(
-        betSlip.bets,
-        betSlip.betType,
-        betSlip.totalStake,
-        betSlip.totalPayout,
-        betSlip.totalOdds
-      );
-      toast.success("Bet(s) placed successfully!");
-      clearBetSlip();
-      setTimeout(() => {
-        setIsBetSlipOpen(false);
-      }, 1500);
+      if (betSlip.betType === "custom") {
+        // Handle custom mode: place multiple bets
+        const customStraightBets = betSlip.customStraightBets || [];
+        const customParlayBets = betSlip.customParlayBets || [];
+        const customStakes = betSlip.customStakes || {};
+        
+        let successCount = 0;
+        let failCount = 0;
+
+        // Place straight bets
+        for (const betId of customStraightBets) {
+          const bet = betSlip.bets.find((b) => b.id === betId);
+          const stake = customStakes[betId] || 0;
+          
+          if (bet && stake > 0) {
+            try {
+              await addPlacedBet(
+                [bet],
+                "single",
+                stake,
+                stake * ((bet.odds > 0 ? bet.odds / 100 : 100 / Math.abs(bet.odds)) + 1),
+                bet.odds
+              );
+              successCount++;
+            } catch (error) {
+              failCount++;
+            }
+          }
+        }
+
+        // Place parlay bet
+        if (customParlayBets.length > 0) {
+          const parlayStake = customStakes["parlay"] || 0;
+          if (parlayStake > 0) {
+            const parlayBets = betSlip.bets.filter((b) => customParlayBets.includes(b.id));
+            
+            // Calculate parlay odds
+            let combinedOdds = 1;
+            parlayBets.forEach((bet) => {
+              const decimalOdds = bet.odds > 0 
+                ? (bet.odds / 100) + 1 
+                : (100 / Math.abs(bet.odds)) + 1;
+              combinedOdds *= decimalOdds;
+            });
+            
+            const americanOdds = combinedOdds >= 2 
+              ? Math.round((combinedOdds - 1) * 100)
+              : Math.round(-100 / (combinedOdds - 1));
+            
+            try {
+              await addPlacedBet(
+                parlayBets,
+                "parlay",
+                parlayStake,
+                parlayStake * combinedOdds,
+                americanOdds
+              );
+              successCount++;
+            } catch (error) {
+              failCount++;
+            }
+          }
+        }
+
+        if (failCount === 0) {
+          toast.success(`All bets placed! (${successCount} bet${successCount > 1 ? 's' : ''})`);
+        } else if (successCount > 0) {
+          toast.warning(`${successCount} bet${successCount > 1 ? 's' : ''} placed, ${failCount} failed`);
+        } else {
+          toast.error("Failed to place bets");
+        }
+        
+        clearBetSlip();
+        setTimeout(() => {
+          setIsBetSlipOpen(false);
+        }, 1500);
+      } else {
+        // Handle single or parlay mode
+        await addPlacedBet(
+          betSlip.bets,
+          betSlip.betType,
+          betSlip.totalStake,
+          betSlip.totalPayout,
+          betSlip.totalOdds
+        );
+        toast.success("Bet(s) placed successfully!");
+        clearBetSlip();
+        setTimeout(() => {
+          setIsBetSlipOpen(false);
+        }, 1500);
+      }
     } catch {
       toast.error("Failed to place bets. Please try again.");
     } finally {
@@ -95,7 +175,7 @@ export function MobileBetSlipPanel() {
           {betSlip.bets.length > 0 && (
             <div className="px-4 py-2">
               <Tabs className="w-full">
-                <TabsList className="grid w-full grid-cols-2 h-9">
+                <TabsList className="grid w-full grid-cols-3 h-9">
                   <TabsTrigger
                     value="single"
                     className={`text-sm ${betSlip.betType === "single" ? "bg-background text-foreground shadow-sm" : ""}`}
@@ -109,7 +189,14 @@ export function MobileBetSlipPanel() {
                     disabled={betSlip.bets.length < 2}
                     onClick={() => setBetType("parlay")}
                   >
-                    Parlay {betSlip.bets.length < 2 && "(2+ bets)"}
+                    Parlay {betSlip.bets.length < 2 && "(2+)"}
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="custom"
+                    className={`text-sm ${betSlip.betType === "custom" ? "bg-background text-foreground shadow-sm" : ""}`}
+                    onClick={() => setBetType("custom")}
+                  >
+                    Custom
                   </TabsTrigger>
                 </TabsList>
               </Tabs>
@@ -128,6 +215,8 @@ export function MobileBetSlipPanel() {
                     Tap odds on games to add bets
                   </div>
                 </div>
+              ) : betSlip.betType === "custom" ? (
+                <MobileCustomBetSlipContent />
               ) : betSlip.betType === "single" ? (
                 betSlip.bets.map((bet) => (
                   <div
