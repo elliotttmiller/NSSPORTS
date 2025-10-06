@@ -17,7 +17,7 @@ import { auth } from '@/lib/auth';
  */
 
 // Protected routes that require authentication
-const PROTECTED_ROUTES = ['/', '/my-bets', '/account', '/games', '/live'];
+const PROTECTED_ROUTES = ['/', '/my-bets', '/account'];
 const PROTECTED_API_ROUTES = ['/api/my-bets', '/api/account'];
 
 // Get allowed origins from environment variable
@@ -39,10 +39,13 @@ function getAllowedOrigins(): string[] {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
-  // Skip NextAuth routes and public pages explicitly
+  // Skip NextAuth routes, public API routes, and public pages explicitly
   if (pathname.startsWith('/api/auth') || 
       pathname.startsWith('/auth/') || 
-      pathname === '/welcome') {
+      pathname === '/welcome' ||
+      pathname.startsWith('/api/games') ||
+      pathname.startsWith('/api/live') ||
+      pathname.startsWith('/api/matches')) {
     return NextResponse.next();
   }
 
@@ -133,7 +136,5 @@ export const config = {
     '/',
     '/my-bets/:path*',
     '/account/:path*',
-    '/games/:path*',
-    '/live/:path*',
   ],
 };

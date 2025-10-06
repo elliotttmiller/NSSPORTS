@@ -1,20 +1,18 @@
 "use client";
 
-import { useEffect } from "react";
 import { ProfessionalGameRow, CompactMobileGameRow, MobileGameTableHeader, DesktopGameTableHeader } from "@/components/features/games";
-import { useLiveDataStore, selectLiveMatches, selectIsLoading, selectError } from "@/store";
+import { useLiveMatches, useIsLoading, useError } from "@/hooks/useStableLiveData";
+import { Game } from "@/types";
 
 export default function LivePage() {
   // Protocol I: Single Source of Truth - consume from centralized store
-  const fetchMatches = useLiveDataStore((state) => state.fetchMatches);
-  const liveGames = useLiveDataStore(selectLiveMatches);
-  const loading = useLiveDataStore(selectIsLoading);
-  const error = useLiveDataStore(selectError);
+  // Using stable hooks to prevent infinite loops
+  const liveGames = useLiveMatches();
+  const loading = useIsLoading();
+  const error = useError();
 
-  // Protocol II: Efficient State Hydration - fetch once on mount
-  useEffect(() => {
-    fetchMatches('basketball_nba');
-  }, [fetchMatches]);
+  // Data is now fetched by LiveDataProvider at the app level
+  // No need to fetch here - Protocol II: Efficient State Hydration
 
   return (
     <div className="bg-background">

@@ -159,7 +159,9 @@ export const getGamesPaginated = async (
   }
 
   const json = await fetchAPI<unknown>(`/games?${params.toString()}`);
+  // Unwrap the success envelope to get the actual data
+  const payload = (json && typeof json === 'object' && 'data' in (json as any)) ? (json as any).data : json;
   const Schema = paginatedResponseSchema(GameSchema);
-  const parsed = Schema.parse(json) as PaginatedResponse<Game>;
+  const parsed = Schema.parse(payload) as PaginatedResponse<Game>;
   return parsed;
 };

@@ -3,13 +3,13 @@
 import { TrendUp, Trophy } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { ProfessionalGameRow, CompactMobileGameRow, MobileGameTableHeader, DesktopGameTableHeader } from "@/components/features/games";
 import { useSession } from "next-auth/react";
 import { useBetHistory } from "@/context";
 import { useAccount } from "@/hooks/useAccount";
 import { formatCurrency } from "@/lib/formatters";
-import { useLiveDataStore, selectLiveMatches, selectIsLoading, selectError } from "@/store";
+import { useLiveMatches, useIsLoading, useError } from "@/hooks/useStableLiveData";
 
 export default function Home() {
   const { data: session } = useSession();
@@ -17,10 +17,10 @@ export default function Home() {
   const activeBetsCount = (placedBets || []).filter(b => b.status === 'pending').length;
   
   // Subscribe to live data store - Protocol I: Single Source of Truth
-  const fetchMatches = useLiveDataStore((state) => state.fetchMatches);
-  const liveMatches = useLiveDataStore(selectLiveMatches);
-  const isLoading = useLiveDataStore(selectIsLoading);
-  const error = useLiveDataStore(selectError);
+  // Using stable hooks to prevent infinite loops
+  const liveMatches = useLiveMatches();
+  const isLoading = useIsLoading();
+  const error = useError();
   
   // API-driven account stats (same as Header component)
   const { data: account } = useAccount();
@@ -28,10 +28,8 @@ export default function Home() {
   const available = account?.available ?? 0;
   const risk = account?.risk ?? 0;
 
-  // Protocol II: Efficient State Hydration - fetch once on mount
-  useEffect(() => {
-    fetchMatches('basketball_nba');
-  }, [fetchMatches]);
+  // Data is now fetched by LiveDataProvider at the app level
+  // No need to fetch here - Protocol II: Efficient State Hydration
   
   // Display first 5 live matches as trending
   const trendingGames = liveMatches.slice(0, 5);

@@ -7,7 +7,7 @@ import { BetSlipProvider, NavigationProvider, BetHistoryProvider } from "@/conte
 import { ConditionalLayout } from "@/components/layouts";
 import { GlobalMotionProvider } from "@/components/layouts/GlobalMotionProvider";
 import { SmoothScrollProvider } from "@/components/SmoothScrollProvider";
-import { AuthProvider } from "@/components/providers/AuthProvider";
+import { AuthProvider, LiveDataProvider } from "@/components/providers";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
@@ -64,18 +64,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ErrorBoundary>
           <AuthProvider>
             <QueryProvider>
-              <SmoothScrollProvider>
-                <NavigationProvider>
-                  <BetSlipProvider>
-                    <BetHistoryProvider>
-                      <GlobalMotionProvider>
-                        <ConditionalLayout>{children}</ConditionalLayout>
-                      </GlobalMotionProvider>
-                      <Toaster richColors position="top-right" />
-                    </BetHistoryProvider>
-                  </BetSlipProvider>
-                </NavigationProvider>
-              </SmoothScrollProvider>
+              <LiveDataProvider>
+                <SmoothScrollProvider>
+                  <NavigationProvider>
+                    <BetSlipProvider>
+                      <BetHistoryProvider>
+                        <GlobalMotionProvider>
+                          <ConditionalLayout>{children}</ConditionalLayout>
+                        </GlobalMotionProvider>
+                        <Toaster richColors position="top-right" />
+                      </BetHistoryProvider>
+                    </BetSlipProvider>
+                  </NavigationProvider>
+                </SmoothScrollProvider>
+              </LiveDataProvider>
             </QueryProvider>
           </AuthProvider>
         </ErrorBoundary>

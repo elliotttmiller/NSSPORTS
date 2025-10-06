@@ -10,6 +10,7 @@
  */
 
 import { create } from 'zustand';
+import { createJSONStorage, persist } from 'zustand/middleware';
 import { Game } from '@/types';
 
 /**
@@ -43,14 +44,12 @@ const initialState = {
 };
 
 /**
- * Live Data Store
- * 
- * This is the single source of truth for all live sports data.
- * Components should NEVER make direct API calls for match/odds data.
- * Instead, they should read from this store using selectors.
+ * Create the store with proper SSR support
  */
-export const useLiveDataStore = create<LiveDataState>((set, get) => ({
-  ...initialState,
+const createLiveDataStore = () => create<LiveDataState>()(
+  persist(
+    (set, get) => ({
+      ...initialState,
   
   /**
    * Fetch matches from the internal BFF API
@@ -120,11 +119,42 @@ export const useLiveDataStore = create<LiveDataState>((set, get) => ({
   reset: () => {
     set(initialState);
   },
-}));
+}),
+{
+  name: 'live-data-store',
+  storage: createJSONStorage(() => 
+    typeof window !== 'undefined' ? localStorage : {
+      getItem: () => null,
+      setItem: () => {},
+      removeItem: () => {},
+    }
+  ),
+  partialize: (state) => ({ 
+    matches: state.matches,
+    lastFetch: state.lastFetch 
+  }),
+}
+));
+
+/**
+ * Store instance - created once and reused
+ */
+let store: ReturnType<typeof createLiveDataStore> | undefined;
+
+/**
+ * Get or create the store instance
+ */
+export const useLiveDataStore = (() => {
+  if (!store) {
+    store = createLiveDataStore();
+  }
+  return store;
+})();
 
 /**
  * Selectors for granular state consumption
  * Components should use these to subscribe only to the data they need
+ * These are stable references to prevent infinite loops
  */
 
 /**
@@ -179,3 +209,13 @@ export const selectLiveMatches = (state: LiveDataState) =>
  */
 export const selectUpcomingMatches = (state: LiveDataState) => 
   state.matches.filter((match) => match.status === 'upcoming');
+
+/**
+ * Select fetchMatches function
+ */
+export const selectFetchMatches = (state: LiveDataState) => state.fetchMatches;
+
+/**
+ * Select all matches (alias for selectAllMatches)
+ */
+export const selectMatches = (state: LiveDataState) => state.matches;
