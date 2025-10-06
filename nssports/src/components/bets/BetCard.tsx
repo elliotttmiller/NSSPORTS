@@ -163,12 +163,12 @@ export function BetCardSingle({
         <div className="mb-4">
           <div className="grid grid-cols-[1fr_auto] grid-rows-[auto_auto] gap-x-4">
             <div className="font-semibold text-base md:text-lg leading-6 text-white truncate row-start-1 col-start-1">
-              {game?.awayTeam?.shortName} @ {game?.homeTeam?.shortName}
-            </div>
-            <div className="text-sm text-muted-foreground mt-3 md:mt-1 row-start-2 col-start-1">
               {formatSelectionLabel(betType, selection, line, game)}
             </div>
-            <div className="row-start-2 col-start-2 self-center">
+            <div className="text-sm text-muted-foreground mt-3 md:mt-1 row-start-2 col-start-1">
+              {game?.awayTeam?.shortName} @ {game?.homeTeam?.shortName}
+            </div>
+            <div className="row-start-1 col-start-2 self-center">
               <Badge variant="outline" className="text-base md:text-lg px-3 py-1 font-semibold">{formatOdds(odds)}</Badge>
             </div>
           </div>
@@ -227,13 +227,13 @@ export function BetCardParlay({
         <div className="space-y-2 mb-4 bg-background/50 rounded-lg p-3">
           {legs.map((leg, idx) => (
             <div key={idx} className="grid grid-cols-[1fr_auto] grid-rows-[auto_auto] py-1 gap-x-3">
-              <div className="text-xs text-muted-foreground row-start-1 col-start-1">
-                {leg.game?.awayTeam?.shortName} @ {leg.game?.homeTeam?.shortName}
-              </div>
-              <div className="text-sm font-medium leading-5 truncate row-start-2 col-start-1">
+              <div className="text-sm font-medium leading-5 truncate row-start-1 col-start-1">
                 {formatSelectionLabel(leg.betType, leg.selection, leg.line, leg.game)}
               </div>
-              <div className="row-start-2 col-start-2 self-center">
+              <div className="text-xs text-muted-foreground row-start-2 col-start-1">
+                {leg.game?.awayTeam?.shortName} @ {leg.game?.homeTeam?.shortName}
+              </div>
+              <div className="row-start-1 col-start-2 self-center">
                 <Badge variant="outline" className="text-base md:text-lg px-3 py-1 font-semibold">{formatOdds(leg.odds)}</Badge>
               </div>
             </div>
