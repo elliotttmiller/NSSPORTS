@@ -273,7 +273,7 @@ export function BetSlipProvider({ children }: BetSlipProviderProps) {
         : customParlayBets.filter((id) => id !== betId);
       
       // Initialize stake for new straight bet if not exists
-      const customStakes = prev.customStakes || {};
+      const customStakes = { ...(prev.customStakes || {}) };
       if (!isCurrentlyStraight && !customStakes[betId]) {
         customStakes[betId] = 10; // Default stake
       }
@@ -317,7 +317,7 @@ export function BetSlipProvider({ children }: BetSlipProviderProps) {
         : customStraightBets.filter((id) => id !== betId);
       
       // Initialize parlay stake if not exists
-      const customStakes = prev.customStakes || {};
+      const customStakes = { ...(prev.customStakes || {}) };
       if (!isCurrentlyInParlay && newParlayBets.length === 1 && !customStakes["parlay"]) {
         customStakes["parlay"] = 10; // Default stake for parlay
       }
