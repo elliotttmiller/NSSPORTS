@@ -7,7 +7,8 @@ import {
   useEffect,
 } from "react";
 import { Bet } from "@/types";
-import { useBetHistoryQuery, usePlaceBet } from "@/hooks/useBetHistory";
+import { useBetHistoryQuery } from "@/hooks/useBetHistory";
+import { usePlaceBetWithActions } from "@/hooks/useBetActions";
 import { toast } from "sonner";
 
 export interface PlacedBet {
@@ -103,7 +104,7 @@ interface BetHistoryProviderProps {
 export function BetHistoryProvider({ children }: BetHistoryProviderProps) {
   // Use React Query for data fetching
   const { data: placedBets = [], isLoading, refetch, error } = useBetHistoryQuery();
-  const placeBetMutation = usePlaceBet();
+  const placeBetMutation = usePlaceBetWithActions();
 
   // Global error handling: Show toast notification for fetch errors
   useEffect(() => {
