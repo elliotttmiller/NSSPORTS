@@ -80,7 +80,7 @@ export async function loginAction(
 
     // Attempt to sign in using NextAuth
     try {
-      const result = await signIn("credentials", {
+      await signIn("credentials", {
         username,
         password,
         redirect: false,
@@ -189,7 +189,7 @@ export async function registerAction(
         success: true,
         message: "Account created successfully!",
       };
-    } catch (error) {
+    } catch (_error) {
       // Registration succeeded but auto-login failed
       return {
         success: true,

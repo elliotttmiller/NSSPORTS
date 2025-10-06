@@ -9,7 +9,6 @@ import { useBetSlip } from "@/context";
 import { useCallback, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PlayerPropsList, GamePropsList } from "@/components/features/props";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui";
 
 // Helper component for displaying props with tabs
 function PropsDisplay({ game, playerProps, gameProps }: any) {

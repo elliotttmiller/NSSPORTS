@@ -5,11 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
 import { Button } from "@/components/ui/button";
 import { BetCardParlay, BetCardSingle } from "@/components/bets/BetCard";
 import type { BetLeg } from "@/components/bets/BetCard";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 export default function MyBetsPage() {
-  // Mobile detection (reuse hook if available)
-  const isMobile = typeof window !== "undefined" && window.matchMedia && window.matchMedia("(max-width: 768px)").matches;
   const { placedBets, loading, refreshBetHistory } = useBetHistory();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);

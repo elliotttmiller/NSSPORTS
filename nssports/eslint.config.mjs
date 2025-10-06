@@ -5,12 +5,12 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const compat = new FlatCompat({
+const config = new FlatCompat({
   baseDirectory: __dirname,
 });
 
 export default [
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
+  ...config.extends("next/core-web-vitals", "next/typescript"),
   {
     ignores: [
       "node_modules/**",
@@ -23,7 +23,13 @@ export default [
   {
     rules: {
       "@typescript-eslint/no-explicit-any": "warn",
-      "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
+      "@typescript-eslint/no-unused-vars": [
+        "warn", 
+        { 
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+        }
+      ],
     },
   },
 ];

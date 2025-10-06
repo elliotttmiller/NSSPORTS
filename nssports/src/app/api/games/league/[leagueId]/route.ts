@@ -1,6 +1,4 @@
-import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import type { GameWithRelations, OddsMap } from '@/lib/apiTypes';
 import { z } from 'zod';
 import { GameSchema } from '@/lib/schemas/game';
 import { withErrorHandling, successResponse } from '@/lib/apiResponse';

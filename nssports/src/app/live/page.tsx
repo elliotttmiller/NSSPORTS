@@ -2,7 +2,6 @@
 
 import { ProfessionalGameRow, CompactMobileGameRow, MobileGameTableHeader, DesktopGameTableHeader } from "@/components/features/games";
 import { useLiveMatches, useIsLoading, useError } from "@/hooks/useStableLiveData";
-import { Game } from "@/types";
 
 export default function LivePage() {
   // Protocol I: Single Source of Truth - consume from centralized store

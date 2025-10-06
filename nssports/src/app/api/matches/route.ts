@@ -12,7 +12,7 @@
  * Protocol IV: Resilient Error Handling - Graceful degradation
  */
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { z } from "zod";
 import { unstable_cache } from "next/cache";
 import {

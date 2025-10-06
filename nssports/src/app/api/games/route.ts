@@ -1,6 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { z } from 'zod';
-import { Prisma } from '@prisma/client';
 import { GameSchema } from '@/lib/schemas/game';
 import { paginatedResponseSchema } from '@/lib/schemas/pagination';
 import { withErrorHandling, ApiErrors, successResponse } from '@/lib/apiResponse';

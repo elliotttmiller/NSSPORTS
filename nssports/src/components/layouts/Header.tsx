@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRef, useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
-import { User, X, SignOut, SignIn } from "@phosphor-icons/react/dist/ssr";
+import { User, X, SignIn } from "@phosphor-icons/react/dist/ssr";
 import { Button } from "@/components/ui";
 import { useAccount } from "@/hooks/useAccount";
 import Image from "next/image";

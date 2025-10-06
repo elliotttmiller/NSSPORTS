@@ -56,7 +56,7 @@ export class ErrorBoundary extends React.Component<
               Something went wrong
             </h1>
             <p className="text-muted-foreground mb-6">
-              We're sorry, but something unexpected happened. Please try refreshing
+              We&apos;re sorry, but something unexpected happened. Please try refreshing
               the page.
             </p>
             <button
