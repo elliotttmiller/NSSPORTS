@@ -9,6 +9,7 @@ import { formatOdds, formatCurrency } from "@/lib/formatters";
 import { toast } from "sonner";
 import { useCallback } from "react";
 import { BetCardSingle, BetCardParlay } from "@/components/bets/BetCard";
+import { CustomBetSlipContent } from "./CustomBetSlipContent";
 
 export function BetSlipPanel() {
   // Restriction: Cannot parlay both team moneylines from the same game
@@ -50,20 +51,111 @@ export function BetSlipPanel() {
     }
 
     try {
-      await addPlacedBet(
-        betSlip.bets,
-        betSlip.betType,
-        betSlip.totalStake,
-        betSlip.totalPayout,
-        betSlip.totalOdds
-      );
-      clearBetSlip();
-      toast.success(
-        `${betSlip.betType === "parlay" ? "Parlay" : "Bet"} placed successfully!`,
-        {
-          description: `Stake: ${formatCurrency(betSlip.totalStake)} • Potential Win: ${formatCurrency(betSlip.totalPayout - betSlip.totalStake)}`,
-        },
-      );
+      if (betSlip.betType === "custom") {
+        // Handle custom mode: place multiple bets
+        const customStraightBets = betSlip.customStraightBets || [];
+        const customParlayBets = betSlip.customParlayBets || [];
+        const customStakes = betSlip.customStakes || {};
+        
+        let successCount = 0;
+        let failCount = 0;
+        const errors: string[] = [];
+
+        // Place straight bets
+        for (const betId of customStraightBets) {
+          const bet = betSlip.bets.find((b) => b.id === betId);
+          const stake = customStakes[betId] || 0;
+          
+          if (bet && stake > 0) {
+            try {
+              await addPlacedBet(
+                [bet],
+                "single",
+                stake,
+                stake * ((bet.odds > 0 ? bet.odds / 100 : 100 / Math.abs(bet.odds)) + 1),
+                bet.odds
+              );
+              successCount++;
+            } catch (error) {
+              failCount++;
+              errors.push(`Failed to place bet on ${bet.game.awayTeam.shortName} @ ${bet.game.homeTeam.shortName}`);
+            }
+          }
+        }
+
+        // Place parlay bet
+        if (customParlayBets.length > 0) {
+          const parlayStake = customStakes["parlay"] || 0;
+          if (parlayStake > 0) {
+            const parlayBets = betSlip.bets.filter((b) => customParlayBets.includes(b.id));
+            
+            // Calculate parlay odds
+            let combinedOdds = 1;
+            parlayBets.forEach((bet) => {
+              const decimalOdds = bet.odds > 0 
+                ? (bet.odds / 100) + 1 
+                : (100 / Math.abs(bet.odds)) + 1;
+              combinedOdds *= decimalOdds;
+            });
+            
+            const americanOdds = combinedOdds >= 2 
+              ? Math.round((combinedOdds - 1) * 100)
+              : Math.round(-100 / (combinedOdds - 1));
+            
+            try {
+              await addPlacedBet(
+                parlayBets,
+                "parlay",
+                parlayStake,
+                parlayStake * combinedOdds,
+                americanOdds
+              );
+              successCount++;
+            } catch (error) {
+              failCount++;
+              errors.push("Failed to place parlay bet");
+            }
+          }
+        }
+
+        if (failCount === 0) {
+          clearBetSlip();
+          toast.success(
+            `All bets placed successfully! (${successCount} bet${successCount > 1 ? 's' : ''})`,
+            {
+              description: `Total Stake: ${formatCurrency(betSlip.totalStake)}`,
+            }
+          );
+        } else if (successCount > 0) {
+          clearBetSlip();
+          toast.warning(
+            `${successCount} bet${successCount > 1 ? 's' : ''} placed, ${failCount} failed`,
+            {
+              description: errors.join(", "),
+            }
+          );
+        } else {
+          toast.error("Failed to place bets", {
+            description: errors.join(", "),
+          });
+        }
+      } else {
+        // Handle single or parlay mode
+        await addPlacedBet(
+          betSlip.bets,
+          betSlip.betType,
+          betSlip.totalStake,
+          betSlip.totalPayout,
+          betSlip.totalOdds
+        );
+        clearBetSlip();
+        toast.success(
+          `${betSlip.betType === "parlay" ? "Parlay" : "Bet"} placed successfully!`,
+          {
+            description: `Stake: ${formatCurrency(betSlip.totalStake)} • Potential Win: ${formatCurrency(betSlip.totalPayout - betSlip.totalStake)}`,
+          },
+        );
+      }
     } catch {
       toast.error("Failed to place bet. Please try again.");
     }
@@ -132,6 +224,14 @@ export function BetSlipPanel() {
           >
             Parlay ({betSlip.bets.length})
           </Button>
+          <Button
+            variant={betSlip.betType === "custom" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setBetType("custom")}
+            className="flex-1"
+          >
+            Custom
+          </Button>
         </div>
         
         {betSlip.betType === "parlay" && betSlip.bets.length > 0 && (
@@ -149,7 +249,9 @@ export function BetSlipPanel() {
       {/* Bets List - Lenis Smooth Scrolling */}
       <div ref={containerRef} className="flex-1 overflow-hidden">
         <div className="p-4 space-y-3">
-          {betSlip.betType === "single" && betSlip.bets.map((bet) => (
+          {betSlip.betType === "custom" ? (
+            <CustomBetSlipContent />
+          ) : betSlip.betType === "single" && betSlip.bets.map((bet) => (
             <BetCardSingle
               key={bet.id}
               id={bet.id}
@@ -275,7 +377,7 @@ export function BetSlipPanel() {
             (betSlip.betType === "parlay" && !isParlayValid(betSlip.bets))
           }
         >
-          Place {betSlip.betType === "parlay" ? "Parlay" : "Bets"}
+          Place {betSlip.betType === "parlay" ? "Parlay" : betSlip.betType === "custom" ? "Bets" : "Bets"}
         </Button>
       </div>
     </div>

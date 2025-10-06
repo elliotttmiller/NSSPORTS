@@ -21,8 +21,12 @@ interface BetSlipContextType {
   ) => void;
   removeBet: (betId: string) => void;
   updateStake: (betId: string, stake: number) => void;
-  setBetType: (betType: "single" | "parlay") => void;
+  setBetType: (betType: "single" | "parlay" | "custom") => void;
   clearBetSlip: () => void;
+  // Custom mode specific actions
+  toggleCustomStraight: (betId: string) => void;
+  toggleCustomParlay: (betId: string) => void;
+  updateCustomStake: (betId: string, stake: number) => void;
 }
 
 export const BetSlipContext = createContext<BetSlipContextType | undefined>(
@@ -49,6 +53,9 @@ const defaultBetSlip: BetSlip = {
   totalStake: 0,
   totalPayout: 0,
   totalOdds: 0,
+  customStraightBets: [],
+  customParlayBets: [],
+  customStakes: {},
 };
 
 export function BetSlipProvider({ children }: BetSlipProviderProps) {
@@ -56,7 +63,10 @@ export function BetSlipProvider({ children }: BetSlipProviderProps) {
 
   const calculateBetSlipTotals = (
     bets: Bet[],
-    betType: "single" | "parlay",
+    betType: "single" | "parlay" | "custom",
+    customStraightBets?: string[],
+    customParlayBets?: string[],
+    customStakes?: { [betId: string]: number },
   ) => {
     if (bets.length === 0) {
       return { totalStake: 0, totalPayout: 0, totalOdds: 0 };
@@ -69,7 +79,7 @@ export function BetSlipProvider({ children }: BetSlipProviderProps) {
         0,
       );
       return { totalStake, totalPayout, totalOdds: 0 };
-    } else {
+    } else if (betType === "parlay") {
       // Parlay calculation
       const totalStake = bets[0]?.stake || 0;
       let combinedOdds = 1;
@@ -88,6 +98,45 @@ export function BetSlipProvider({ children }: BetSlipProviderProps) {
       const totalPayout = totalStake * combinedOdds;
       
       return { totalStake, totalPayout, totalOdds: americanOdds };
+    } else {
+      // Custom mode calculation
+      let totalStake = 0;
+      let totalPayout = 0;
+      
+      // Calculate straight bets
+      customStraightBets?.forEach((betId) => {
+        const stake = customStakes?.[betId] || 0;
+        const bet = bets.find((b) => b.id === betId);
+        if (bet && stake > 0) {
+          totalStake += stake;
+          const payout = calculatePayout(stake, bet.odds) + stake;
+          totalPayout += payout;
+        }
+      });
+      
+      // Calculate parlay if there are any parlay bets
+      if (customParlayBets && customParlayBets.length > 0) {
+        const parlayStake = customStakes?.["parlay"] || 0;
+        if (parlayStake > 0) {
+          totalStake += parlayStake;
+          let combinedOdds = 1;
+          
+          customParlayBets.forEach((betId) => {
+            const bet = bets.find((b) => b.id === betId);
+            if (bet) {
+              const decimalOdds = bet.odds > 0 
+                ? (bet.odds / 100) + 1 
+                : (100 / Math.abs(bet.odds)) + 1;
+              combinedOdds *= decimalOdds;
+            }
+          });
+          
+          const parlayPayout = parlayStake * combinedOdds;
+          totalPayout += parlayPayout;
+        }
+      }
+      
+      return { totalStake, totalPayout, totalOdds: 0 };
     }
   };
 
@@ -122,7 +171,7 @@ export function BetSlipProvider({ children }: BetSlipProviderProps) {
         };
 
         const newBets = [...prev.bets, newBet];
-        const totals = calculateBetSlipTotals(newBets, prev.betType);
+        const totals = calculateBetSlipTotals(newBets, prev.betType, prev.customStraightBets, prev.customParlayBets, prev.customStakes);
 
         return {
           ...prev,
@@ -137,11 +186,21 @@ export function BetSlipProvider({ children }: BetSlipProviderProps) {
   const removeBet = useCallback((betId: string) => {
     setBetSlip((prev) => {
       const newBets = prev.bets.filter((b) => b.id !== betId);
-      const totals = calculateBetSlipTotals(newBets, prev.betType);
+      
+      // Also remove from custom mode arrays if present
+      const customStraightBets = prev.customStraightBets?.filter((id) => id !== betId) || [];
+      const customParlayBets = prev.customParlayBets?.filter((id) => id !== betId) || [];
+      const customStakes = { ...(prev.customStakes || {}) };
+      delete customStakes[betId];
+      
+      const totals = calculateBetSlipTotals(newBets, prev.betType, customStraightBets, customParlayBets, customStakes);
       
       return {
         ...prev,
         bets: newBets,
+        customStraightBets,
+        customParlayBets,
+        customStakes,
         ...totals,
       };
     });
@@ -168,7 +227,7 @@ export function BetSlipProvider({ children }: BetSlipProviderProps) {
         });
       }
 
-      const totals = calculateBetSlipTotals(newBets, prev.betType);
+      const totals = calculateBetSlipTotals(newBets, prev.betType, prev.customStraightBets, prev.customParlayBets, prev.customStakes);
 
       return {
         ...prev,
@@ -178,9 +237,9 @@ export function BetSlipProvider({ children }: BetSlipProviderProps) {
     });
   }, []);
 
-  const setBetType = useCallback((betType: "single" | "parlay") => {
+  const setBetType = useCallback((betType: "single" | "parlay" | "custom") => {
     setBetSlip((prev) => {
-      const totals = calculateBetSlipTotals(prev.bets, betType);
+      const totals = calculateBetSlipTotals(prev.bets, betType, prev.customStraightBets, prev.customParlayBets, prev.customStakes);
       return {
         ...prev,
         betType,
@@ -193,6 +252,113 @@ export function BetSlipProvider({ children }: BetSlipProviderProps) {
     setBetSlip(defaultBetSlip);
   }, []);
 
+  const toggleCustomStraight = useCallback((betId: string) => {
+    setBetSlip((prev) => {
+      const customStraightBets = prev.customStraightBets || [];
+      const isCurrentlyStraight = customStraightBets.includes(betId);
+      
+      let newStraightBets: string[];
+      if (isCurrentlyStraight) {
+        // Remove from straight bets
+        newStraightBets = customStraightBets.filter((id) => id !== betId);
+      } else {
+        // Add to straight bets and remove from parlay if present
+        newStraightBets = [...customStraightBets, betId];
+      }
+      
+      // Remove from parlay if being added to straight
+      const customParlayBets = prev.customParlayBets || [];
+      const newParlayBets = isCurrentlyStraight 
+        ? customParlayBets 
+        : customParlayBets.filter((id) => id !== betId);
+      
+      // Initialize stake for new straight bet if not exists
+      const customStakes = prev.customStakes || {};
+      if (!isCurrentlyStraight && !customStakes[betId]) {
+        customStakes[betId] = 10; // Default stake
+      }
+      
+      const totals = calculateBetSlipTotals(
+        prev.bets, 
+        prev.betType, 
+        newStraightBets, 
+        newParlayBets, 
+        customStakes
+      );
+      
+      return {
+        ...prev,
+        customStraightBets: newStraightBets,
+        customParlayBets: newParlayBets,
+        customStakes,
+        ...totals,
+      };
+    });
+  }, []);
+
+  const toggleCustomParlay = useCallback((betId: string) => {
+    setBetSlip((prev) => {
+      const customParlayBets = prev.customParlayBets || [];
+      const isCurrentlyInParlay = customParlayBets.includes(betId);
+      
+      let newParlayBets: string[];
+      if (isCurrentlyInParlay) {
+        // Remove from parlay
+        newParlayBets = customParlayBets.filter((id) => id !== betId);
+      } else {
+        // Add to parlay and remove from straight if present
+        newParlayBets = [...customParlayBets, betId];
+      }
+      
+      // Remove from straight if being added to parlay
+      const customStraightBets = prev.customStraightBets || [];
+      const newStraightBets = isCurrentlyInParlay 
+        ? customStraightBets 
+        : customStraightBets.filter((id) => id !== betId);
+      
+      // Initialize parlay stake if not exists
+      const customStakes = prev.customStakes || {};
+      if (!isCurrentlyInParlay && newParlayBets.length === 1 && !customStakes["parlay"]) {
+        customStakes["parlay"] = 10; // Default stake for parlay
+      }
+      
+      const totals = calculateBetSlipTotals(
+        prev.bets, 
+        prev.betType, 
+        newStraightBets, 
+        newParlayBets, 
+        customStakes
+      );
+      
+      return {
+        ...prev,
+        customStraightBets: newStraightBets,
+        customParlayBets: newParlayBets,
+        customStakes,
+        ...totals,
+      };
+    });
+  }, []);
+
+  const updateCustomStake = useCallback((betId: string, stake: number) => {
+    setBetSlip((prev) => {
+      const customStakes = { ...(prev.customStakes || {}), [betId]: stake };
+      const totals = calculateBetSlipTotals(
+        prev.bets, 
+        prev.betType, 
+        prev.customStraightBets, 
+        prev.customParlayBets, 
+        customStakes
+      );
+      
+      return {
+        ...prev,
+        customStakes,
+        ...totals,
+      };
+    });
+  }, []);
+
   return (
     <BetSlipContext.Provider
       value={{
@@ -202,6 +368,9 @@ export function BetSlipProvider({ children }: BetSlipProviderProps) {
         updateStake,
         setBetType,
         clearBetSlip,
+        toggleCustomStraight,
+        toggleCustomParlay,
+        updateCustomStake,
       }}
     >
       {children}

@@ -4,3 +4,4 @@ export { Input } from "./input";
 export { Badge } from "./badge";
 export { Separator } from "./separator";
 export { Tabs, TabsList, TabsTrigger, TabsContent } from "./tabs";
+export { Checkbox } from "./checkbox";

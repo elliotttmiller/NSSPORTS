@@ -125,10 +125,14 @@ export interface Bet {
 
 export interface BetSlip {
   bets: Bet[];
-  betType: "single" | "parlay";
+  betType: "single" | "parlay" | "custom";
   totalStake: number;
   totalPayout: number;
   totalOdds: number;
+  // Custom mode specific state
+  customStraightBets?: string[]; // Array of bet IDs designated as straight bets
+  customParlayBets?: string[]; // Array of bet IDs included in the parlay
+  customStakes?: { [betId: string]: number }; // Individual stakes for custom mode
 }
 
 export interface NavigationState {
