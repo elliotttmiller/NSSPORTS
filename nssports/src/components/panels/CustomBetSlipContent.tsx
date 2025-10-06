@@ -5,7 +5,6 @@ import { Button, Input, Separator, Checkbox } from "@/components/ui";
 import { X } from "@phosphor-icons/react/dist/ssr";
 import { formatOdds, formatCurrency } from "@/lib/formatters";
 import { BetCardSingle } from "@/components/bets/BetCard";
-import type { Bet } from "@/types";
 import { calculatePayout } from "@/services/api";
 import { useBetHistory } from "@/context";
 import { useState, useCallback } from "react";
@@ -195,7 +194,7 @@ export function CustomBetSlipContent() {
               bet.odds
             );
             successCount++;
-          } catch (error) {
+          } catch (_error) {
             failCount++;
             errors.push(`Failed to place bet on ${bet.game.awayTeam.shortName} @ ${bet.game.homeTeam.shortName}`);
           }
@@ -230,7 +229,7 @@ export function CustomBetSlipContent() {
               americanOdds
             );
             successCount++;
-          } catch (error) {
+          } catch (_error) {
             failCount++;
             errors.push("Failed to place parlay bet");
           }
@@ -258,7 +257,7 @@ export function CustomBetSlipContent() {
           description: errors.length > 0 ? errors.join(", ") : "Please try again",
         });
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to place bets. Please try again.");
     } finally {
       setPlacing(false);

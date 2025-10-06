@@ -1,6 +1,6 @@
 import Lenis from '@studio-freight/lenis';
 
-export const initLenis = (isMobile: boolean = false) => {
+export const initLenis = (_isMobile: boolean = false) => {
   if (typeof window === 'undefined') return null;
 
   const lenis = new Lenis({
@@ -44,9 +44,9 @@ export const initLenis = (isMobile: boolean = false) => {
   let rafId: number;
   const raf = (time: number) => {
     lenis.raf(time);
-    rafId = requestAnimationFrame(raf);
+    requestAnimationFrame(raf);
   };
-  rafId = requestAnimationFrame(raf);
+  requestAnimationFrame(raf);
 
   return lenis;
 };

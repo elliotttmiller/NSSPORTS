@@ -1,5 +1,4 @@
 import { auth } from "@/lib/auth";
-import { ApiErrors } from "@/lib/apiResponse";
 import { UnauthorizedError } from "@/lib/errors";
 
 /**

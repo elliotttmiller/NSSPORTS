@@ -3,7 +3,6 @@
 import { TrendUp, Trophy } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { useEffect, useMemo } from "react";
 import { ProfessionalGameRow, CompactMobileGameRow, MobileGameTableHeader, DesktopGameTableHeader } from "@/components/features/games";
 import { useSession } from "next-auth/react";
 import { useBetHistory } from "@/context";

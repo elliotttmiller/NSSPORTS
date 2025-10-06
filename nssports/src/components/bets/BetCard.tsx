@@ -4,7 +4,7 @@ import { Badge, Card, CardContent } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
-import { formatCurrency, formatCurrencyNoCents, formatOdds } from "@/lib/formatters";
+import { formatCurrencyNoCents, formatOdds } from "@/lib/formatters";
 
 export type BetStatus = "pending" | "won" | "lost";
 
@@ -34,7 +34,6 @@ function BetSummary({ stake, payout, status }: { stake: number; payout: number; 
   const profitSpanRef = useRef<HTMLSpanElement | null>(null);
   const payoutWrapRef = useRef<HTMLDivElement | null>(null);
   const payoutSpanRef = useRef<HTMLSpanElement | null>(null);
-  const [scale, setScale] = useState(1);
 
   useEffect(() => {
     // You can add responsive scaling logic here if needed
