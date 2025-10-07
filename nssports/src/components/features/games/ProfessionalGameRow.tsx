@@ -9,7 +9,6 @@ import { useBetSlip } from "@/context";
 import { useCallback, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PlayerPropsList, GamePropsList } from "@/components/features/props";
-import { useLiveOdds } from "@/hooks/useLiveOdds";
 
 // Helper component for displaying props with tabs
 type GameProp = {
@@ -74,9 +73,6 @@ export function ProfessionalGameRow({
 }: ProfessionalGameRowProps) {
   const timeString = formatGameTime(game.startTime);
   const { addBet, removeBet, betSlip } = useBetSlip();
-  // Live odds updates only for live games; keep time/score static
-  const { data: liveData } = useLiveOdds(game.status === 'live' ? game.id : undefined);
-  const oddsSource = liveData?.game?.odds ?? game.odds;
   const [expanded, setExpanded] = useState(false);
   const [playerProps, setPlayerProps] = useState<PlayerProp[]>([]);
   const [gameProps, setGameProps] = useState<GamePropsMap>({});
@@ -142,28 +138,28 @@ export function ProfessionalGameRow({
       case "spread":
         odds =
           selection === "away"
-            ? oddsSource.spread.away.odds
-            : oddsSource.spread.home.odds;
+            ? game.odds.spread.away.odds
+            : game.odds.spread.home.odds;
         line =
           selection === "away"
-            ? (oddsSource.spread.away.line ?? undefined)
-            : (oddsSource.spread.home.line ?? undefined);
+            ? (game.odds.spread.away.line ?? undefined)
+            : (game.odds.spread.home.line ?? undefined);
         break;
       case "total":
         odds =
           selection === "over"
-            ? oddsSource.total.over?.odds || 0
-            : oddsSource.total.under?.odds || 0;
+            ? game.odds.total.over?.odds || 0
+            : game.odds.total.under?.odds || 0;
         line =
           selection === "over"
-            ? (oddsSource.total.over?.line ?? undefined)
-            : (oddsSource.total.under?.line ?? undefined);
+            ? (game.odds.total.over?.line ?? undefined)
+            : (game.odds.total.under?.line ?? undefined);
         break;
       case "moneyline":
         odds =
           selection === "away"
-            ? oddsSource.moneyline.away.odds
-            : oddsSource.moneyline.home.odds;
+            ? game.odds.moneyline.away.odds
+            : game.odds.moneyline.home.odds;
         line = undefined;
         break;
       default:
@@ -278,10 +274,10 @@ export function ProfessionalGameRow({
                 )}
               >
                 <span className="text-xs xl:text-sm font-medium leading-none tracking-wide">
-                  {formatSpreadLine(oddsSource.spread.away.line || 0)}
+                  {formatSpreadLine(game.odds.spread.away.line || 0)}
                 </span>
                 <span className="text-[10px] xl:text-[11px] text-foreground/90 font-semibold leading-none">
-                  {formatOdds(oddsSource.spread.away.odds)}
+                  {formatOdds(game.odds.spread.away.odds)}
                 </span>
               </Button>
               <Button
@@ -296,10 +292,10 @@ export function ProfessionalGameRow({
                 )}
               >
                 <span className="text-xs xl:text-sm font-medium leading-none tracking-wide">
-                  {formatSpreadLine(oddsSource.spread.home.line || 0)}
+                  {formatSpreadLine(game.odds.spread.home.line || 0)}
                 </span>
                 <span className="text-[10px] xl:text-[11px] text-foreground/90 font-semibold leading-none">
-                  {formatOdds(oddsSource.spread.home.odds)}
+                  {formatOdds(game.odds.spread.home.odds)}
                 </span>
               </Button>
             </div>
@@ -318,10 +314,10 @@ export function ProfessionalGameRow({
               )}
             >
               <span className="text-xs xl:text-sm font-medium leading-none tracking-wide">
-                O<span className="mx-1">{oddsSource.total.over?.line}</span>
+                O<span className="mx-1">{game.odds.total.over?.line}</span>
               </span>
               <span className="text-[10px] xl:text-[11px] text-foreground/90 font-semibold leading-none">
-                {formatOdds(oddsSource.total.over?.odds || 0)}
+                {formatOdds(game.odds.total.over?.odds || 0)}
               </span>
             </Button>
             <Button
@@ -336,10 +332,10 @@ export function ProfessionalGameRow({
               )}
             >
               <span className="text-xs xl:text-sm font-medium leading-none tracking-wide">
-                U<span className="mx-1">{oddsSource.total.under?.line}</span>
+                U<span className="mx-1">{game.odds.total.under?.line}</span>
               </span>
               <span className="text-[10px] xl:text-[11px] text-foreground/90 font-semibold leading-none">
-                {formatOdds(oddsSource.total.under?.odds || 0)}
+                {formatOdds(game.odds.total.under?.odds || 0)}
               </span>
             </Button>
           </div>
@@ -358,7 +354,7 @@ export function ProfessionalGameRow({
               )}
             >
               <span className="text-xs xl:text-sm font-medium leading-none tracking-wide">
-                {formatOdds(oddsSource.moneyline.away.odds)}
+                {formatOdds(game.odds.moneyline.away.odds)}
               </span>
             </Button>
             <Button
@@ -373,7 +369,7 @@ export function ProfessionalGameRow({
               )}
             >
               <span className="text-xs xl:text-sm font-medium leading-none tracking-wide">
-                {formatOdds(oddsSource.moneyline.home.odds)}
+                {formatOdds(game.odds.moneyline.home.odds)}
               </span>
             </Button>
           </div>

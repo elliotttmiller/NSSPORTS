@@ -37,8 +37,8 @@ export interface Game {
   venue?: string | null;
   homeScore?: number | null;
   awayScore?: number | null;
-  period?: string | null;
-  timeRemaining?: string | null;
+  period?: string;
+  timeRemaining?: string;
 }
 
 export interface Team {

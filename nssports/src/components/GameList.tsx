@@ -65,19 +65,6 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange }: G
     return () => observer.disconnect();
   }, [onIntersect]);
 
-  // Ensure passive scroll handlers
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const noop = () => {};
-    el.addEventListener('wheel', noop, { passive: true });
-    el.addEventListener('touchmove', noop, { passive: true });
-    return () => {
-      el.removeEventListener('wheel', noop as EventListener);
-      el.removeEventListener('touchmove', noop as EventListener);
-    };
-  }, []);
-
   const groupGamesByLeagueAndDate = (games: Game[]) => {
     const leagueGroups: { [leagueId: string]: { [date: string]: Game[] } } = {};
     games.forEach((game) => {
@@ -93,11 +80,7 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange }: G
     return leagueGroups;
   };
 
-  const visibleGames = useMemo(() => {
-    return status ? allGames.filter(g => g.status === status) : allGames;
-  }, [allGames, status]);
-
-  const groupedByLeague = useMemo(() => groupGamesByLeagueAndDate(visibleGames), [visibleGames]);
+  const groupedByLeague = useMemo(() => groupGamesByLeagueAndDate(allGames), [allGames]);
   const leagueOrder = useMemo(() => ['nba', 'nfl', 'nhl'], []);
   const leagueNames: Record<string, string> = {
     nba: 'NBA',
@@ -127,8 +110,7 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange }: G
 
   // Build a flat list of items for virtualization for the selected date
   type Item =
-  | { kind: 'league-header'; key: string; leagueId: string }
-  | { kind: 'table-header'; key: string; leagueId: string }
+    | { kind: 'league-header'; key: string; leagueId: string }
     | { kind: 'game'; key: string; leagueId: string; game: Game };
 
   const items: Item[] = useMemo(() => {
@@ -139,8 +121,6 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange }: G
       const gamesForDate = groupedByLeague[lid]?.[selectedDate];
       if (!gamesForDate || gamesForDate.length === 0) return;
       out.push({ kind: 'league-header', key: `lh-${lid}`, leagueId: lid });
-      // Insert a table header right below the league header
-      out.push({ kind: 'table-header', key: `th-${lid}`, leagueId: lid });
       const sorted = [...gamesForDate].sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
       for (let i = 0; i < sorted.length; i++) {
         out.push({ kind: 'game', key: `g-${lid}-${sorted[i].id}`, leagueId: lid, game: sorted[i] });
@@ -159,23 +139,13 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange }: G
     count: items.length,
     estimateSize: (index) => {
       const it = items[index];
-      if (!it) return 80;
-      if (it.kind === 'league-header') {
-        // Add extra top spacing before non-first league headers for visual separation
-        const isFirstHeader = index === 0;
-        return isFirstHeader ? 44 : 68; // 44 + ~24px gap
-      }
-  if (it.kind === 'table-header') return 44;
-  return 88; // game rows
+      return it?.kind === 'league-header' ? 44 : 88; // rough estimates
     },
-    overscan: 4, // smaller overscan for smoother scrolling on mobile/low-end devices
-    getItemKey: (index) => items[index]?.key ?? `item-${index}`,
-  // Allow dynamic measurement so expanded game cards adjust layout automatically
-  measureElement: (el) => el.getBoundingClientRect().height,
+    overscan: 8,
   });
 
   return (
-  <div className="space-y-6" ref={containerRef} style={{ scrollBehavior: 'smooth', overscrollBehavior: 'contain' }}>
+    <div className="space-y-6" ref={containerRef}>
       {isLoading && allGames.length === 0 ? (
         <div className="text-center py-12">
           <div className="animate-spin w-8 h-8 border-2 border-accent border-t-transparent rounded-full mx-auto mb-4"></div>
@@ -203,14 +173,19 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange }: G
               </button>
             ))}
           </div>
-          {/* Date header for selected date */}
+          {/* Single table header for all games */}
+          <DesktopGameTableHeader />
+          <div className="lg:hidden">
+            <MobileGameTableHeader />
+          </div>
+          {/* Single date header for all games below */}
           {selectedDate && (
             <div className="py-2 px-4 bg-muted/10 border-b border-border text-lg font-semibold text-accent sticky top-0 z-10 mb-2">
               {selectedDate}
             </div>
           )}
           {/* Virtualized list of league headers + games for selected date */}
-          <div style={{ height: virtualizer.getTotalSize(), position: 'relative', contain: 'layout paint size', willChange: 'transform' }}>
+          <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
             {virtualizer.getVirtualItems().map((vi) => {
               const it = (items as Item[])[vi.index];
               if (!it) return null;
@@ -222,24 +197,14 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange }: G
                     top: 0,
                     left: 0,
                     width: '100%',
-                    transform: `translate3d(0, ${vi.start}px, 0)`,
-                    willChange: 'transform',
+                    transform: `translateY(${vi.start}px)`,
                   }}
                   data-index={vi.index}
-                  // Attach the measure ref so the virtualizer remeasures on size changes
-                  ref={virtualizer.measureElement as unknown as React.Ref<HTMLDivElement>}
                 >
                   {it.kind === 'league-header' ? (
-                    <div className={`py-2 px-4 bg-muted/20 border-b border-border text-base font-semibold text-accent rounded shadow-sm mb-2 ${vi.index === 0 ? '' : 'mt-6'}`}>
+                    <div className="py-2 px-4 bg-muted/20 border-b border-border text-base font-semibold text-accent rounded shadow-sm mb-2">
                       {leagueNames[it.leagueId] || it.leagueId}
                     </div>
-                  ) : it.kind === 'table-header' ? (
-                    <>
-                      <DesktopGameTableHeader />
-                      <div className="lg:hidden">
-                        <MobileGameTableHeader />
-                      </div>
-                    </>
                   ) : (
                     <div>
                       <div className="hidden lg:block">
