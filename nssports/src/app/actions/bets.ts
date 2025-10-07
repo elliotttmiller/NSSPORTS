@@ -165,25 +165,38 @@ export async function placeParlayBetAction(
   parlayData: z.infer<typeof parlayBetSchema>
 ): Promise<PlaceBetsState> {
   try {
+    console.log("[placeParlayBetAction] Received parlay data:", JSON.stringify(parlayData, null, 2));
+    
     // Get authenticated user
     const session = await auth();
     if (!session?.user?.id) {
+      console.error("[placeParlayBetAction] No authenticated user");
       return {
         success: false,
         error: "You must be logged in to place bets",
       };
     }
 
+    console.log("[placeParlayBetAction] User authenticated:", session.user.id);
+
     // Validate input
     const validatedData = parlayBetSchema.safeParse(parlayData);
     if (!validatedData.success) {
+      console.error("[placeParlayBetAction] Validation failed:", validatedData.error.errors);
       return {
         success: false,
-        error: "Invalid parlay data",
+        error: `Invalid parlay data: ${validatedData.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
       };
     }
 
     const { legs, stake, potentialPayout, odds } = validatedData.data;
+
+    console.log("[placeParlayBetAction] Validated data:", { legs: legs.length, stake, potentialPayout, odds });
+
+    // Ensure odds is an integer as required by Prisma schema
+    const oddsInt = Math.round(odds);
+
+    console.log("[placeParlayBetAction] Creating parlay bet in database...");
 
     // Create parlay bet
     const createdBet = await prisma.bet.create({
@@ -195,12 +208,14 @@ export async function placeParlayBetAction(
         placedAt: new Date(),
         userId: session.user.id,
         selection: "parlay",
-        odds,
+        odds: oddsInt,
         line: null,
         gameId: null,
         legs: legs,
       },
     });
+
+    console.log("[placeParlayBetAction] Parlay bet created successfully:", createdBet.id);
 
     // Revalidate bet history cache - this triggers React Query refetch
     revalidatePath("/my-bets");
@@ -212,10 +227,11 @@ export async function placeParlayBetAction(
       betIds: [createdBet.id],
     };
   } catch (error) {
-    console.error("Place parlay bet error:", error);
+    console.error("[placeParlayBetAction] Error:", error);
+    console.error("[placeParlayBetAction] Parlay data:", JSON.stringify(parlayData, null, 2));
     return {
       success: false,
-      error: "Failed to place parlay bet. Please try again.",
+      error: `Failed to place parlay bet: ${error instanceof Error ? error.message : 'Unknown error'}`,
     };
   }
 }
