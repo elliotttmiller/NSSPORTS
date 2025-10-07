@@ -1,6 +1,7 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { usePaginatedGames, UsePaginatedGamesParams } from '@/hooks/usePaginatedGames';
 import { DesktopGameTableHeader } from '@/components/features/games/DesktopGameTableHeader';
 import { MobileGameTableHeader } from '@/components/features/games/MobileGameTableHeader';
@@ -8,7 +9,7 @@ import { ProfessionalGameRow } from '@/components/features/games/ProfessionalGam
 import { CompactMobileGameRow } from '@/components/features/games/CompactMobileGameRow';
 import type { Game, PaginatedResponse } from '@/types';
 
-type GameListProps = Partial<UsePaginatedGamesParams> & {
+export type GameListProps = Partial<UsePaginatedGamesParams> & {
   limit?: number;
   onTotalGamesChange?: (total: number) => void;
 };
@@ -18,22 +19,20 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange }: G
   const [allGames, setAllGames] = useState<Game[]>([]);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
-  // Track selected date, default to first available date on initial load
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const { data, isLoading, isError } = usePaginatedGames({ leagueId, status, page, limit });
-  let pagination: PaginatedResponse<Game>["pagination"] | undefined = undefined;
+
   let games: Game[] = [];
+  let pagination: PaginatedResponse<Game>["pagination"] | undefined = undefined;
   if (data && typeof data === 'object' && data !== null) {
     games = (data as { data?: Game[] }).data ?? [];
     pagination = (data as { pagination?: PaginatedResponse<Game>["pagination"] }).pagination;
   }
 
-  // On data change, append new games
   useEffect(() => {
     if (games.length > 0) {
       setAllGames((prev) => {
-        // Avoid duplicates
         const ids = new Set(prev.map((g) => g.id));
         return [...prev, ...games.filter((g) => !ids.has(g.id))];
       });
@@ -42,10 +41,8 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange }: G
     if (onTotalGamesChange && pagination?.total !== undefined) {
       onTotalGamesChange(pagination.total);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(games), pagination, onTotalGamesChange]);
 
-  // Infinite scroll: load more when near bottom
   useEffect(() => {
     const handleScroll = () => {
       if (!containerRef.current || loadingMore || !hasMore) return;
@@ -66,13 +63,10 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange }: G
     };
   }, [loadingMore, hasMore]);
 
-  // Reset loadingMore when new data arrives
   useEffect(() => {
     if (loadingMore) setLoadingMore(false);
   }, [allGames, loadingMore]);
 
-
-  // Helper: Group games by league, then by date
   const groupGamesByLeagueAndDate = (games: Game[]) => {
     const leagueGroups: { [leagueId: string]: { [date: string]: Game[] } } = {};
     games.forEach((game) => {
@@ -88,9 +82,8 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange }: G
     return leagueGroups;
   };
 
-  // Group games by league and date
-  const groupedByLeague = groupGamesByLeagueAndDate(allGames);
-  const leagueOrder = ['nba', 'nfl', 'nhl']; // Display order
+  const groupedByLeague = useMemo(() => groupGamesByLeagueAndDate(allGames), [allGames]);
+  const leagueOrder = ['nba', 'nfl', 'nhl'];
   const leagueNames: Record<string, string> = {
     nba: 'NBA',
     nfl: 'NFL',
@@ -98,10 +91,8 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange }: G
     other: 'Other',
   };
 
-  // Set initial selectedDate to first available date after games load
   useEffect(() => {
     if (!selectedDate && allGames.length > 0) {
-      // Find first date from all leagues
       const allDates: string[] = [];
       Object.values(groupGamesByLeagueAndDate(allGames)).forEach(dateGroups => {
         allDates.push(...Object.keys(dateGroups));
@@ -111,15 +102,16 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange }: G
     }
   }, [allGames, selectedDate]);
 
-  // Collect all unique dates from all leagues
-  const allDates: string[] = [];
-  Object.values(groupedByLeague).forEach(dateGroups => {
-    allDates.push(...Object.keys(dateGroups));
-  });
-  const uniqueSortedDates = Array.from(new Set(allDates)).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+  const uniqueSortedDates = useMemo(() => {
+    const dates: string[] = [];
+    Object.values(groupedByLeague).forEach(dateGroups => {
+      dates.push(...Object.keys(dateGroups));
+    });
+    return Array.from(new Set(dates)).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+  }, [groupedByLeague]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" ref={containerRef}>
       {isLoading && allGames.length === 0 ? (
         <div className="text-center py-12">
           <div className="animate-spin w-8 h-8 border-2 border-accent border-t-transparent rounded-full mx-auto mb-4"></div>
@@ -146,79 +138,65 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange }: G
                 {dateStr}
               </button>
             ))}
-            {selectedDate && (
-              <button
-                className="px-3 py-2 rounded-full text-xs font-medium bg-muted/10 text-muted-foreground ml-2"
-                onClick={() => setSelectedDate(null)}
-              >
-                Show All
-              </button>
-            )}
           </div>
           {/* Single table header for all games */}
           <DesktopGameTableHeader />
           <div className="lg:hidden">
             <MobileGameTableHeader />
           </div>
+          {/* Single date header for all games below */}
+          {selectedDate && (
+            <div className="py-2 px-4 bg-muted/10 border-b border-border text-lg font-semibold text-accent sticky top-0 z-10 mb-2">
+              {selectedDate}
+            </div>
+          )}
           {/* Render league dividers, but only games for selectedDate */}
           {leagueOrder.map((leagueId) => (
-            groupedByLeague[leagueId] ? (
+            (selectedDate && groupedByLeague[leagueId]?.[selectedDate]?.length) ? (
               <div key={leagueId} className="space-y-4">
                 {/* League divider */}
                 <div className="py-2 px-4 bg-muted/20 border-b border-border text-base font-semibold text-accent rounded shadow-sm mb-2">
                   {leagueNames[leagueId]}
                 </div>
                 {/* Only render games for selectedDate */}
-                {selectedDate && groupedByLeague[leagueId][selectedDate] ? (
-                  <div className="space-y-2">
-                    {/* Date divider/header */}
-                    <div className="py-2 px-4 bg-muted/10 border-b border-border text-lg font-semibold text-accent sticky top-0 z-10">
-                      {selectedDate}
+                {groupedByLeague[leagueId][selectedDate]
+                  .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
+                  .map((game, index) => (
+                    <div key={game.id}>
+                      <div className="hidden lg:block">
+                        <ProfessionalGameRow game={game} isFirstInGroup={index === 0} isLastInGroup={index === groupedByLeague[leagueId][selectedDate].length - 1} />
+                      </div>
+                      <div className="lg:hidden">
+                        <CompactMobileGameRow game={game} />
+                      </div>
                     </div>
-                    {groupedByLeague[leagueId][selectedDate]
-                      .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
-                      .map((game, index) => (
-                        <div key={game.id}>
-                          <div className="hidden lg:block">
-                            <ProfessionalGameRow game={game} isFirstInGroup={index === 0} isLastInGroup={index === groupedByLeague[leagueId][selectedDate].length - 1} />
-                          </div>
-                          <div className="lg:hidden">
-                            <CompactMobileGameRow game={game} />
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-                ) : null}
+                  ))}
               </div>
             ) : null
           ))}
           {/* Other leagues if present */}
-          {Object.keys(groupedByLeague).filter(lid => !leagueOrder.includes(lid)).map((leagueId) => (
-            <div key={leagueId} className="space-y-4">
-              <div className="py-2 px-4 bg-muted/20 border-b border-border text-base font-semibold text-accent rounded shadow-sm mb-2">
-                {leagueNames[leagueId] || leagueId}
-              </div>
-              {selectedDate && groupedByLeague[leagueId][selectedDate] ? (
-                <div className="space-y-2">
-                  <div className="py-2 px-4 bg-muted/10 border-b border-border text-lg font-semibold text-accent sticky top-0 z-10">
-                    {selectedDate}
-                  </div>
-                  {groupedByLeague[leagueId][selectedDate]
-                    .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
-                    .map((game, index) => (
-                      <div key={game.id}>
-                        <div className="hidden lg:block">
-                          <ProfessionalGameRow game={game} isFirstInGroup={index === 0} isLastInGroup={index === groupedByLeague[leagueId][selectedDate].length - 1} />
-                        </div>
-                        <div className="lg:hidden">
-                          <CompactMobileGameRow game={game} />
-                        </div>
-                      </div>
-                    ))}
+          {Object.keys(groupedByLeague)
+            .filter(lid => !leagueOrder.includes(lid))
+            .filter(lid => selectedDate && groupedByLeague[lid]?.[selectedDate]?.length)
+            .map((leagueId) => (
+              <div key={leagueId} className="space-y-4">
+                <div className="py-2 px-4 bg-muted/20 border-b border-border text-base font-semibold text-accent rounded shadow-sm mb-2">
+                  {leagueNames[leagueId] || leagueId}
                 </div>
-              ) : null}
-            </div>
-          ))}
+                {groupedByLeague[leagueId][selectedDate!]
+                  .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
+                  .map((game, index) => (
+                    <div key={game.id}>
+                      <div className="hidden lg:block">
+                        <ProfessionalGameRow game={game} isFirstInGroup={index === 0} isLastInGroup={index === groupedByLeague[leagueId][selectedDate!].length - 1} />
+                      </div>
+                      <div className="lg:hidden">
+                        <CompactMobileGameRow game={game} />
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            ))}
           {loadingMore && (
             <div className="text-center py-6">
               <div className="animate-spin w-6 h-6 border-2 border-accent border-t-transparent rounded-full mx-auto mb-2"></div>
