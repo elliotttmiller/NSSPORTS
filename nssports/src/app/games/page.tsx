@@ -10,6 +10,7 @@ import { useState } from "react";
 
 export default function GamesPage() {
   const [totalGames, setTotalGames] = useState<number | null>(null);
+  // No leagueId passed: fetch all games from all leagues
   return (
     <div className="bg-background h-full">
       <div className="container mx-auto px-6 md:px-8 xl:px-12 pt-12 pb-6 max-w-screen-2xl">
@@ -21,8 +22,8 @@ export default function GamesPage() {
           </p>
         </div>
 
-        {/* Games List */}
-  <GameList limit={11} leagueId={undefined} status={undefined} onTotalGamesChange={setTotalGames} />
+        {/* Unified Games List: all leagues */}
+        <GameList limit={100} leagueId={undefined} status={undefined} onTotalGamesChange={setTotalGames} />
       </div>
     </div>
   );

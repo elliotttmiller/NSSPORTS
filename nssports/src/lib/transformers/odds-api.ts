@@ -414,12 +414,14 @@ export function transformOddsApiEvent(event: OddsApiEvent): GamePayload | null {
  * Transform multiple events, filtering out any that fail transformation
  */
 export function transformOddsApiEvents(events: OddsApiEvent[]): GamePayload[] {
+  // Include both upcoming and live games (commence_time >= now - 4 hours)
   const now = new Date();
+  const fourHoursAgo = new Date(now.getTime() - 4 * 60 * 60 * 1000);
   return events
     .filter(e => {
-      // Only include games with commence_time in the future
       const commence = new Date(e.commence_time);
-      return commence > now;
+      // Include games that are upcoming or started within the last 4 hours
+      return commence > fourHoursAgo;
     })
     .map(transformOddsApiEvent)
     .filter((game): game is GamePayload => game !== null);
