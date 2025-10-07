@@ -1,6 +1,6 @@
 "use client";
 
-import { Game } from "@/types";
+import { Game, PlayerProp } from "@/types";
 import { TeamLogo } from "./TeamLogo";
 import { formatOdds, formatSpreadLine, formatGameTime } from "@/lib/formatters";
 import { Button } from "@/components/ui";
@@ -9,9 +9,20 @@ import { useBetSlip } from "@/context";
 import { useCallback, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PlayerPropsList, GamePropsList } from "@/components/features/props";
+import { useLiveOdds } from "@/hooks/useLiveOdds";
 
 // Helper component for displaying props with tabs
-function PropsDisplay({ game, playerProps, gameProps }: any) {
+type GameProp = {
+  id: string;
+  propType: string;
+  description: string;
+  selection: string | null;
+  odds: number;
+  line: number | null;
+};
+type GamePropsMap = Record<string, GameProp[]>;
+
+function PropsDisplay({ game, playerProps, gameProps }: { game: Game; playerProps: PlayerProp[]; gameProps: GamePropsMap }) {
   const [activeTab, setActiveTab] = useState<'player' | 'game'>('player');
 
   return (
@@ -63,9 +74,12 @@ export function ProfessionalGameRow({
 }: ProfessionalGameRowProps) {
   const timeString = formatGameTime(game.startTime);
   const { addBet, removeBet, betSlip } = useBetSlip();
+  // Live odds updates only for live games; keep time/score static
+  const { data: liveData } = useLiveOdds(game.status === 'live' ? game.id : undefined);
+  const oddsSource = liveData?.game?.odds ?? game.odds;
   const [expanded, setExpanded] = useState(false);
-  const [playerProps, setPlayerProps] = useState<any[]>([]);
-  const [gameProps, setGameProps] = useState<any>({});
+  const [playerProps, setPlayerProps] = useState<PlayerProp[]>([]);
+  const [gameProps, setGameProps] = useState<GamePropsMap>({});
   const [propsLoading, setPropsLoading] = useState(false);
 
   // Fetch props when expanded
@@ -121,35 +135,35 @@ export function ProfessionalGameRow({
       return;
     }
 
-    let odds: number;
-    let line: number | undefined;
+  let odds: number;
+  let line: number | undefined;
 
     switch (betType) {
       case "spread":
         odds =
           selection === "away"
-            ? game.odds.spread.away.odds
-            : game.odds.spread.home.odds;
+            ? oddsSource.spread.away.odds
+            : oddsSource.spread.home.odds;
         line =
           selection === "away"
-            ? game.odds.spread.away.line
-            : game.odds.spread.home.line;
+            ? (oddsSource.spread.away.line ?? undefined)
+            : (oddsSource.spread.home.line ?? undefined);
         break;
       case "total":
         odds =
           selection === "over"
-            ? game.odds.total.over?.odds || 0
-            : game.odds.total.under?.odds || 0;
+            ? oddsSource.total.over?.odds || 0
+            : oddsSource.total.under?.odds || 0;
         line =
           selection === "over"
-            ? game.odds.total.over?.line
-            : game.odds.total.under?.line;
+            ? (oddsSource.total.over?.line ?? undefined)
+            : (oddsSource.total.under?.line ?? undefined);
         break;
       case "moneyline":
         odds =
           selection === "away"
-            ? game.odds.moneyline.away.odds
-            : game.odds.moneyline.home.odds;
+            ? oddsSource.moneyline.away.odds
+            : oddsSource.moneyline.home.odds;
         line = undefined;
         break;
       default:
@@ -264,10 +278,10 @@ export function ProfessionalGameRow({
                 )}
               >
                 <span className="text-xs xl:text-sm font-medium leading-none tracking-wide">
-                  {formatSpreadLine(game.odds.spread.away.line || 0)}
+                  {formatSpreadLine(oddsSource.spread.away.line || 0)}
                 </span>
                 <span className="text-[10px] xl:text-[11px] text-foreground/90 font-semibold leading-none">
-                  {formatOdds(game.odds.spread.away.odds)}
+                  {formatOdds(oddsSource.spread.away.odds)}
                 </span>
               </Button>
               <Button
@@ -282,10 +296,10 @@ export function ProfessionalGameRow({
                 )}
               >
                 <span className="text-xs xl:text-sm font-medium leading-none tracking-wide">
-                  {formatSpreadLine(game.odds.spread.home.line || 0)}
+                  {formatSpreadLine(oddsSource.spread.home.line || 0)}
                 </span>
                 <span className="text-[10px] xl:text-[11px] text-foreground/90 font-semibold leading-none">
-                  {formatOdds(game.odds.spread.home.odds)}
+                  {formatOdds(oddsSource.spread.home.odds)}
                 </span>
               </Button>
             </div>
@@ -304,10 +318,10 @@ export function ProfessionalGameRow({
               )}
             >
               <span className="text-xs xl:text-sm font-medium leading-none tracking-wide">
-                O<span className="mx-1">{game.odds.total.over?.line}</span>
+                O<span className="mx-1">{oddsSource.total.over?.line}</span>
               </span>
               <span className="text-[10px] xl:text-[11px] text-foreground/90 font-semibold leading-none">
-                {formatOdds(game.odds.total.over?.odds || 0)}
+                {formatOdds(oddsSource.total.over?.odds || 0)}
               </span>
             </Button>
             <Button
@@ -322,10 +336,10 @@ export function ProfessionalGameRow({
               )}
             >
               <span className="text-xs xl:text-sm font-medium leading-none tracking-wide">
-                U<span className="mx-1">{game.odds.total.under?.line}</span>
+                U<span className="mx-1">{oddsSource.total.under?.line}</span>
               </span>
               <span className="text-[10px] xl:text-[11px] text-foreground/90 font-semibold leading-none">
-                {formatOdds(game.odds.total.under?.odds || 0)}
+                {formatOdds(oddsSource.total.under?.odds || 0)}
               </span>
             </Button>
           </div>
@@ -344,7 +358,7 @@ export function ProfessionalGameRow({
               )}
             >
               <span className="text-xs xl:text-sm font-medium leading-none tracking-wide">
-                {formatOdds(game.odds.moneyline.away.odds)}
+                {formatOdds(oddsSource.moneyline.away.odds)}
               </span>
             </Button>
             <Button
@@ -359,7 +373,7 @@ export function ProfessionalGameRow({
               )}
             >
               <span className="text-xs xl:text-sm font-medium leading-none tracking-wide">
-                {formatOdds(game.odds.moneyline.home.odds)}
+                {formatOdds(oddsSource.moneyline.home.odds)}
               </span>
             </Button>
           </div>

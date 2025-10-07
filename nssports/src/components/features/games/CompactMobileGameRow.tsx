@@ -8,10 +8,21 @@ import { useBetSlip } from "@/context";
 import { formatOdds, formatSpreadLine } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import { PlayerPropsList, GamePropsList } from "@/components/features/props";
-import type { Game } from "@/types";
+import { useLiveOdds } from "@/hooks/useLiveOdds";
+import type { Game, PlayerProp } from "@/types";
 
 // Helper component for displaying props with tabs - same as desktop
-function PropsDisplay({ game, playerProps, gameProps }: any) {
+type GameProp = {
+  id: string;
+  propType: string;
+  description: string;
+  selection: string | null;
+  odds: number;
+  line: number | null;
+};
+type GamePropsMap = Record<string, GameProp[]>;
+
+function PropsDisplay({ game, playerProps, gameProps }: { game: Game; playerProps: PlayerProp[]; gameProps: GamePropsMap }) {
   const [activeTab, setActiveTab] = useState<'player' | 'game'>('player');
 
   return (
@@ -56,9 +67,11 @@ export const CompactMobileGameRow = memo(({ game }: Props) => {
   const { betSlip, addBet, removeBet } = useBetSlip();
   const [expanded, setExpanded] = useState(false);
   const [shouldRenderDropdown, setShouldRenderDropdown] = useState(false);
-  const [playerProps, setPlayerProps] = useState<any[]>([]);
-  const [gameProps, setGameProps] = useState<any>({});
+  const [playerProps, setPlayerProps] = useState<PlayerProp[]>([]);
+  const [gameProps, setGameProps] = useState<GamePropsMap>({});
   const [propsLoading, setPropsLoading] = useState(false);
+  const { data: liveData } = useLiveOdds(game.status === 'live' ? game.id : undefined);
+  const oddsSource = liveData?.game?.odds ?? game.odds;
 
   // Fetch props when expanded - same logic as desktop
   useEffect(() => {
@@ -124,35 +137,35 @@ export const CompactMobileGameRow = memo(({ game }: Props) => {
       return;
     }
 
-    let odds: number;
-    let line: number | undefined;
+  let odds: number;
+  let line: number | undefined;
 
     switch (betType) {
       case "spread":
         odds =
           selection === "away"
-            ? game.odds.spread.away.odds
-            : game.odds.spread.home.odds;
+            ? oddsSource.spread.away.odds
+            : oddsSource.spread.home.odds;
         line =
           selection === "away"
-            ? game.odds.spread.away.line
-            : game.odds.spread.home.line;
+            ? (oddsSource.spread.away.line ?? undefined)
+            : (oddsSource.spread.home.line ?? undefined);
         break;
       case "total":
         odds =
           selection === "over"
-            ? game.odds.total.over?.odds || 0
-            : game.odds.total.under?.odds || 0;
+            ? oddsSource.total.over?.odds || 0
+            : oddsSource.total.under?.odds || 0;
         line =
           selection === "over"
-            ? game.odds.total.over?.line
-            : game.odds.total.under?.line;
+            ? (oddsSource.total.over?.line ?? undefined)
+            : (oddsSource.total.under?.line ?? undefined);
         break;
       case "moneyline":
         odds =
           selection === "away"
-            ? game.odds.moneyline.away.odds
-            : game.odds.moneyline.home.odds;
+            ? oddsSource.moneyline.away.odds
+            : oddsSource.moneyline.home.odds;
         line = undefined;
         break;
       default:
@@ -253,10 +266,10 @@ export const CompactMobileGameRow = memo(({ game }: Props) => {
                 )}
               >
                 <span className="text-xs leading-none font-semibold">
-                  {formatSpreadLine(game.odds.spread.away.line || 0)}
+                  {formatSpreadLine(oddsSource.spread.away.line || 0)}
                 </span>
                 <span className="text-xs text-foreground/90 font-semibold block w-full text-center leading-none">
-                  {formatOdds(game.odds.spread.away.odds)}
+                  {formatOdds(oddsSource.spread.away.odds)}
                 </span>
               </Button>
             </motion.div>
@@ -274,10 +287,10 @@ export const CompactMobileGameRow = memo(({ game }: Props) => {
                 )}
               >
                 <span className="text-xs leading-none font-semibold">
-                  {formatSpreadLine(game.odds.spread.home.line || 0)}
+                  {formatSpreadLine(oddsSource.spread.home.line || 0)}
                 </span>
                 <span className="text-xs text-foreground/90 font-semibold block w-full text-center leading-none">
-                  {formatOdds(game.odds.spread.home.odds)}
+                  {formatOdds(oddsSource.spread.home.odds)}
                 </span>
               </Button>
             </motion.div>
@@ -299,10 +312,10 @@ export const CompactMobileGameRow = memo(({ game }: Props) => {
                 )}
               >
                 <span className="text-xs leading-none font-semibold">
-                  O<span className="mx-1">{formatTotalLine(game.odds.total.over?.line || 0)}</span>
+                  O<span className="mx-1">{formatTotalLine(oddsSource.total.over?.line || 0)}</span>
                 </span>
                 <span className="text-xs text-foreground/90 font-semibold block w-full text-center leading-none">
-                  {formatOdds(game.odds.total.over?.odds || 0)}
+                  {formatOdds(oddsSource.total.over?.odds || 0)}
                 </span>
               </Button>
             </motion.div>
@@ -320,10 +333,10 @@ export const CompactMobileGameRow = memo(({ game }: Props) => {
                 )}
               >
                 <span className="text-xs leading-none font-semibold">
-                  U<span className="mx-1">{formatTotalLine(game.odds.total.under?.line || 0)}</span>
+                  U<span className="mx-1">{formatTotalLine(oddsSource.total.under?.line || 0)}</span>
                 </span>
                 <span className="text-xs text-foreground/90 font-semibold block w-full text-center leading-none">
-                  {formatOdds(game.odds.total.under?.odds || 0)}
+                  {formatOdds(oddsSource.total.under?.odds || 0)}
                 </span>
               </Button>
             </motion.div>
@@ -345,7 +358,7 @@ export const CompactMobileGameRow = memo(({ game }: Props) => {
                 )}
               >
                 <span className="text-xs font-semibold">
-                  <span className="tracking-wide text-xs font-semibold leading-none">{formatOdds(game.odds.moneyline.away.odds)}</span>
+                  <span className="tracking-wide text-xs font-semibold leading-none">{formatOdds(oddsSource.moneyline.away.odds)}</span>
                 </span>
               </Button>
             </motion.div>
@@ -363,7 +376,7 @@ export const CompactMobileGameRow = memo(({ game }: Props) => {
                 )}
               >
                 <span className="text-xs font-semibold">
-                  <span className="tracking-wide text-xs font-semibold leading-none">{formatOdds(game.odds.moneyline.home.odds)}</span>
+                  <span className="tracking-wide text-xs font-semibold leading-none">{formatOdds(oddsSource.moneyline.home.odds)}</span>
                 </span>
               </Button>
             </motion.div>

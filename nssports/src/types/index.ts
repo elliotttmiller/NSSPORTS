@@ -34,11 +34,11 @@ export interface Game {
   startTime: Date;
   status: "upcoming" | "live" | "finished";
   odds: GameOdds;
-  venue?: string;
-  homeScore?: number;
-  awayScore?: number;
-  period?: string;
-  timeRemaining?: string;
+  venue?: string | null;
+  homeScore?: number | null;
+  awayScore?: number | null;
+  period?: string | null;
+  timeRemaining?: string | null;
 }
 
 export interface Team {
@@ -46,7 +46,7 @@ export interface Team {
   name: string;
   shortName: string;
   logo: string;
-  record?: string;
+  record?: string | null;
 }
 
 export interface GameOdds {
@@ -91,7 +91,7 @@ export interface BetOption {
 
 export interface OddsData {
   odds: number; // American odds format
-  line?: number; // spread or total line
+  line?: number | null; // spread or total line
   lastUpdated: Date;
 }
 

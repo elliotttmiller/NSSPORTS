@@ -15,8 +15,10 @@ export function QueryProvider({ children }: { children: ReactNode }) {
             staleTime: 30 * 1000,
             // Keep data in cache for 5 minutes
             gcTime: 5 * 60 * 1000,
-            // Refetch on window focus for live games
-            refetchOnWindowFocus: true,
+            // Do not refetch automatically; we'll trigger manually when needed
+            refetchOnWindowFocus: false,
+            refetchOnReconnect: false,
+            refetchInterval: false,
             // Retry failed requests
             retry: 1,
             // Retry delay with exponential backoff
