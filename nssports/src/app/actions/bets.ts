@@ -94,18 +94,43 @@ export async function placeSingleBetAction(
     // Ensure odds is an integer as required by Prisma schema
     const oddsInt = Math.round(odds);
 
-    // Verify game exists and is not finished
-    const game = await prisma.game.findUnique({
+    // Verify game exists in database, if not try to fetch and create it
+    let game = await prisma.game.findUnique({
       where: { id: gameId },
       select: { id: true, status: true },
     });
 
     if (!game) {
-      console.error("[placeSingleBetAction] Game not found:", gameId);
-      return {
-        success: false,
-        error: "Game not found",
-      };
+      console.log("[placeSingleBetAction] Game not in database, fetching from API:", gameId);
+      
+      // Try to fetch the game from the live API and persist it
+      const { fetchGameFromAPI, ensureGameExists } = await import("@/lib/gameHelpers");
+      const gameData = await fetchGameFromAPI(gameId);
+      
+      if (!gameData) {
+        console.error("[placeSingleBetAction] Game not found in API:", gameId);
+        return {
+          success: false,
+          error: "Game not found. Please refresh the page and try again.",
+        };
+      }
+      
+      // Persist the game to the database
+      await ensureGameExists(gameData);
+      
+      // Fetch again to get the game record
+      game = await prisma.game.findUnique({
+        where: { id: gameId },
+        select: { id: true, status: true },
+      });
+      
+      if (!game) {
+        console.error("[placeSingleBetAction] Failed to create game:", gameId);
+        return {
+          success: false,
+          error: "Failed to process game data. Please try again.",
+        };
+      }
     }
 
     if (game.status === "finished") {
@@ -195,6 +220,47 @@ export async function placeParlayBetAction(
 
     // Ensure odds is an integer as required by Prisma schema
     const oddsInt = Math.round(odds);
+
+    // Ensure all games in the parlay exist in the database
+    const { fetchGameFromAPI, ensureGameExists } = await import("@/lib/gameHelpers");
+    
+    for (const leg of legs) {
+      if (!leg.gameId) continue;
+      
+      let game = await prisma.game.findUnique({
+        where: { id: leg.gameId },
+        select: { id: true, status: true },
+      });
+      
+      if (!game) {
+        console.log("[placeParlayBetAction] Game not in database, fetching from API:", leg.gameId);
+        
+        const gameData = await fetchGameFromAPI(leg.gameId);
+        
+        if (!gameData) {
+          console.error("[placeParlayBetAction] Game not found in API:", leg.gameId);
+          return {
+            success: false,
+            error: `Game not found: ${leg.gameId}. Please refresh and try again.`,
+          };
+        }
+        
+        await ensureGameExists(gameData);
+        
+        game = await prisma.game.findUnique({
+          where: { id: leg.gameId },
+          select: { id: true, status: true },
+        });
+      }
+      
+      if (game?.status === "finished") {
+        console.error("[placeParlayBetAction] Game already finished:", leg.gameId);
+        return {
+          success: false,
+          error: "Cannot place bet on finished game",
+        };
+      }
+    }
 
     console.log("[placeParlayBetAction] Creating parlay bet in database...");
 
