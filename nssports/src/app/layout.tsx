@@ -5,7 +5,6 @@ import { Toaster } from "sonner";
 import { QueryProvider } from "@/components/QueryProvider";
 import { BetSlipProvider, NavigationProvider, BetHistoryProvider } from "@/context";
 import { ConditionalLayout } from "@/components/layouts";
-import { GlobalMotionProvider } from "@/components/layouts/GlobalMotionProvider";
 import { SmoothScrollProvider } from "@/components/SmoothScrollProvider";
 import { AuthProvider, LiveDataProvider } from "@/components/providers";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
@@ -69,9 +68,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   <NavigationProvider>
                     <BetSlipProvider>
                       <BetHistoryProvider>
-                        <GlobalMotionProvider>
-                          <ConditionalLayout>{children}</ConditionalLayout>
-                        </GlobalMotionProvider>
+                        <ConditionalLayout>{children}</ConditionalLayout>
                         <Toaster richColors position="top-right" />
                       </BetHistoryProvider>
                     </BetSlipProvider>
