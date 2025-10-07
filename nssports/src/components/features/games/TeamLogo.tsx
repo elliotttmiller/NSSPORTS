@@ -9,18 +9,18 @@ interface TeamLogoProps {
 }
 
 export function TeamLogo({ src, alt, size = 32, className }: TeamLogoProps) {
-  // Normalize NHL logo path to match actual filenames
+  // Normalize NHL logo path to match actual filenames, restoring punctuation
   let normalizedSrc = src;
   if (src.startsWith("/logos/nhl/")) {
     // Extract team name from path
     const file = src.replace("/logos/nhl/", "").replace(".svg", "");
-    // Convert to Title Case and add spaces
-    normalizedSrc = `/logos/nhl/${file
-      .split("-")
-      .map(
-        (word) => word.charAt(0).toUpperCase() + word.slice(1)
-      )
-      .join(" ")}.svg`;
+    // Attempt to restore correct punctuation (periods, spaces)
+    // Replace hyphens with spaces, then capitalize each word
+    let teamName = file.replace(/-/g, " ");
+    teamName = teamName.replace(/\b([a-z])/g, (m) => m.toUpperCase());
+    // Special case: restore period for 'St Louis Blues' and similar
+    teamName = teamName.replace(/^St /, "St. ");
+    normalizedSrc = `/logos/nhl/${teamName}.svg`;
   }
   return (
     <div
