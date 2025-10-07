@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Image from "next/image";
 import { ProfessionalGameRow, CompactMobileGameRow, MobileGameTableHeader, DesktopGameTableHeader } from "@/components/features/games";
-import { getGamesByLeague, getLeague } from "@/services/api";
+import { getGamesPaginated, getLeague } from "@/services/api";
 import type { Game, League } from "@/types";
 
 export default function LeaguePage() {
@@ -19,12 +19,13 @@ export default function LeaguePage() {
     const loadLeagueData = async () => {
       setLoading(true);
       try {
-        const [leagueData, gamesData] = await Promise.all([
+        const [leagueData, gamesResponse] = await Promise.all([
           getLeague(leagueId),
-          getGamesByLeague(leagueId)
+          // Use the live API endpoint with league filter instead of database query
+          getGamesPaginated(leagueId, 1, 1000)
         ]);
         setLeague(leagueData || null);
-        setGames(gamesData);
+        setGames(gamesResponse.data);
       } catch (error) {
         console.error("Failed to load league data:", error);
       } finally {
