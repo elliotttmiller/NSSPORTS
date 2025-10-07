@@ -18,6 +18,7 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange }: G
   const [allGames, setAllGames] = useState<Game[]>([]);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const { data, isLoading, isError } = usePaginatedGames({ leagueId, status, page, limit });
   let pagination: PaginatedResponse<Game>["pagination"] | undefined = undefined;
@@ -70,8 +71,32 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange }: G
   }, [allGames, loadingMore]);
 
 
+  // Helper: Group games by date string (e.g., 'Tuesday, Oct 7')
+  const groupGamesByDate = (games: Game[]) => {
+    const groups: { [date: string]: Game[] } = {};
+    games.forEach((game) => {
+      const dateObj = new Date(game.startTime);
+      const dateStr = dateObj.toLocaleDateString(undefined, {
+        weekday: 'long', month: 'short', day: 'numeric', year: 'numeric'
+      });
+      if (!groups[dateStr]) groups[dateStr] = [];
+      groups[dateStr].push(game);
+    });
+    return groups;
+  };
+
+  // Group and sort games
+  const groupedGames = groupGamesByDate(allGames);
+  const sortedDates = Object.keys(groupedGames).sort((a, b) => {
+    // Sort by actual date value
+    return new Date(groupedGames[a][0].startTime).getTime() - new Date(groupedGames[b][0].startTime).getTime();
+  });
+
+  // Filter games by selected date
+  const filteredDates = selectedDate ? [selectedDate] : sortedDates;
+
   return (
-  <div className="space-y-3">
+    <div className="space-y-3">
       {isLoading && allGames.length === 0 ? (
         <div className="text-center py-12">
           <div className="animate-spin w-8 h-8 border-2 border-accent border-t-transparent rounded-full mx-auto mb-4"></div>
@@ -87,18 +112,50 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange }: G
         </div>
       ) : (
         <>
+          {/* Horizontal date tabs bar */}
+          <div className="flex gap-2 overflow-x-auto py-2 px-1 bg-background border-b border-border sticky top-0 z-20">
+            {sortedDates.map((dateStr) => (
+              <button
+                key={dateStr}
+                className={`px-4 py-2 rounded-full font-medium whitespace-nowrap transition-colors ${selectedDate === dateStr ? 'bg-accent text-accent-foreground shadow' : 'bg-muted/10 text-muted-foreground hover:bg-accent/10'}`}
+                onClick={() => setSelectedDate(dateStr)}
+              >
+                {dateStr}
+              </button>
+            ))}
+            {selectedDate && (
+              <button
+                className="px-3 py-2 rounded-full text-xs font-medium bg-muted/10 text-muted-foreground ml-2"
+                onClick={() => setSelectedDate(null)}
+              >
+                Show All
+              </button>
+            )}
+          </div>
+
           <DesktopGameTableHeader />
           <div className="lg:hidden">
             <MobileGameTableHeader />
           </div>
-          {allGames.map((game: Game, index: number) => (
-            <div key={game.id}>
-              <div className="hidden lg:block">
-                <ProfessionalGameRow game={game} isFirstInGroup={index === 0} isLastInGroup={index === allGames.length - 1} />
+          {filteredDates.map((dateStr) => (
+            <div key={dateStr} className="space-y-2">
+              {/* Date divider/header */}
+              <div className="py-2 px-4 bg-muted/10 border-b border-border text-lg font-semibold text-accent sticky top-0 z-10">
+                {dateStr}
               </div>
-              <div className="lg:hidden">
-                <CompactMobileGameRow game={game} />
-              </div>
+              {/* Games for this date, sorted by time */}
+              {groupedGames[dateStr]
+                .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
+                .map((game, index) => (
+                  <div key={game.id}>
+                    <div className="hidden lg:block">
+                      <ProfessionalGameRow game={game} isFirstInGroup={index === 0} isLastInGroup={index === groupedGames[dateStr].length - 1} />
+                    </div>
+                    <div className="lg:hidden">
+                      <CompactMobileGameRow game={game} />
+                    </div>
+                  </div>
+                ))}
             </div>
           ))}
           {loadingMore && (

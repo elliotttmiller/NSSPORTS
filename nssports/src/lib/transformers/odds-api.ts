@@ -414,7 +414,13 @@ export function transformOddsApiEvent(event: OddsApiEvent): GamePayload | null {
  * Transform multiple events, filtering out any that fail transformation
  */
 export function transformOddsApiEvents(events: OddsApiEvent[]): GamePayload[] {
+  const now = new Date();
   return events
+    .filter(e => {
+      // Only include games with commence_time in the future
+      const commence = new Date(e.commence_time);
+      return commence > now;
+    })
     .map(transformOddsApiEvent)
     .filter((game): game is GamePayload => game !== null);
 }

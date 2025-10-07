@@ -10,6 +10,8 @@ import { useBetHistory } from "@/context";
 import { useState, useCallback } from "react";
 import { toast } from "sonner";
 
+import type { Bet } from "../../types";
+
 export function CustomBetSlipContent() {
   const { 
     betSlip, 
@@ -92,29 +94,42 @@ export function CustomBetSlipContent() {
     if (customStraightBets.length === 0 && customParlayBets.length === 0) {
       return "Select bets using the checkboxes above";
     }
-    
+
+    // Check for missing/finished games
+    const now = new Date();
+    const isValidGame = (bet: Bet) => bet && bet.game && bet.game.status !== "finished" && new Date(bet.game.startTime) > now;
+    const invalidStraight = customStraightBets.filter(betId => {
+      const bet = betSlip.bets.find((b) => b.id === betId);
+      return !bet || !isValidGame(bet);
+    });
+    const parlayBets = betSlip.bets.filter((b) => customParlayBets.includes(b.id));
+    const invalidParlay = parlayBets.filter(bet => !isValidGame(bet));
+    if (invalidStraight.length > 0 || invalidParlay.length > 0) {
+      return `Some bets reference missing or finished games. Please remove or update: ${[...invalidStraight, ...invalidParlay.map(b => b.id)].join(", ")}`;
+    }
+
     const invalidStraightBets = customStraightBets.filter(betId => {
       const stake = customStakes[betId] || 0;
       return stake < MIN_STAKE || stake > MAX_STAKE;
     });
-    
-    const invalidParlay = customParlayBets.length > 0 && customParlayBets.length < 2;
+
+    const invalidParlayCount = customParlayBets.length > 0 && customParlayBets.length < 2;
     const invalidParlayStake = customParlayBets.length >= 2 && ((customStakes["parlay"] || 0) < MIN_STAKE || (customStakes["parlay"] || 0) > MAX_STAKE);
-    
+
     const messages = [];
-    
+
     if (invalidStraightBets.length > 0) {
       messages.push(`Enter stakes ($${MIN_STAKE}-$${MAX_STAKE}) for straight bets`);
     }
-    
-    if (invalidParlay) {
+
+    if (invalidParlayCount) {
       messages.push("Parlays need at least 2 bets");
     }
-    
+
     if (invalidParlayStake) {
       messages.push(`Enter parlay stake ($${MIN_STAKE}-$${MAX_STAKE})`);
     }
-    
+
     return messages.length > 0 ? messages.join(" • ") : "Ready to place bets";
   };
 
@@ -154,7 +169,12 @@ export function CustomBetSlipContent() {
     return total;
   };
 
+
   const handlePlaceBets = useCallback(async () => {
+    // Validate all bets reference a valid, upcoming game
+    const now = new Date();
+    const isValidGame = (bet: Bet) => bet && bet.game && bet.game.status !== "finished" && new Date(bet.game.startTime) > now;
+
     if (!isReadyToPlace()) {
       toast.error("Invalid bet configuration", {
         description: getValidationMessage(),
@@ -162,8 +182,21 @@ export function CustomBetSlipContent() {
       return;
     }
 
+    // Check for missing/finished games
+    const invalidStraight = customStraightBets.filter(betId => {
+      const bet = betSlip.bets.find((b) => b.id === betId);
+      return !bet || !isValidGame(bet);
+    });
+    const parlayBets = betSlip.bets.filter((b) => customParlayBets.includes(b.id));
+    const invalidParlay = parlayBets.filter(bet => !isValidGame(bet));
+    if (invalidStraight.length > 0 || invalidParlay.length > 0) {
+      toast.error("Some bets reference missing or finished games", {
+        description: `Invalid bets: ${[...invalidStraight, ...invalidParlay].join(", ")}`,
+      });
+      return;
+    }
+
     setPlacing(true);
-    
     try {
       let successCount = 0;
       let failCount = 0;
@@ -173,19 +206,14 @@ export function CustomBetSlipContent() {
       for (const betId of customStraightBets) {
         const bet = betSlip.bets.find((b) => b.id === betId);
         const stake = customStakes[betId] || 0;
-        
         if (bet && stake > 0) {
           try {
-            // Calculate potential payout
             const potentialPayout = calculatePayout(stake, bet.odds) + stake;
-            
-            // Create updated bet object with correct stake and payout
             const betWithStake = {
               ...bet,
               stake,
               potentialPayout
             };
-            
             await addPlacedBet(
               [betWithStake],
               "single",
@@ -205,9 +233,6 @@ export function CustomBetSlipContent() {
       if (customParlayBets.length > 0) {
         const parlayStake = customStakes["parlay"] || 0;
         if (parlayStake > 0) {
-          const parlayBets = betSlip.bets.filter((b) => customParlayBets.includes(b.id));
-          
-          // Calculate parlay odds
           let combinedOdds = 1;
           parlayBets.forEach((bet) => {
             const decimalOdds = bet.odds > 0 
@@ -215,11 +240,9 @@ export function CustomBetSlipContent() {
               : (100 / Math.abs(bet.odds)) + 1;
             combinedOdds *= decimalOdds;
           });
-          
           const americanOdds = combinedOdds >= 2 
             ? Math.round((combinedOdds - 1) * 100)
             : Math.round(-100 / (combinedOdds - 1));
-          
           try {
             await addPlacedBet(
               parlayBets,
@@ -451,7 +474,7 @@ export function CustomBetSlipContent() {
           
           <Button
             onClick={handlePlaceBets}
-            disabled={placing || !isReadyToPlace()}
+            disabled={placing || !isReadyToPlace() || getValidationMessage().includes("missing or finished games")}
             className="w-full"
             size="lg"
           >
