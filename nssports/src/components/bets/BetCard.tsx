@@ -176,7 +176,9 @@ export function BetCardSingle({
                   : formatSelectionLabel(betType, selection, line, game)}
               </div>
               <div className="text-sm text-muted-foreground leading-tight">
-                {game?.awayTeam?.shortName} @ {game?.homeTeam?.shortName}
+                {game?.awayTeam?.shortName && game?.homeTeam?.shortName
+                  ? `${game.awayTeam.shortName} @ ${game.homeTeam.shortName}`
+                  : "Game details unavailable"}
               </div>
             </div>
             <Badge variant="outline" className="text-base md:text-lg px-3 py-1 font-light">{formatOdds(odds)}</Badge>
@@ -237,11 +239,11 @@ export function BetCardParlay({
                 <div className="text-sm font-medium leading-tight truncate mb-1">
                   {formatSelectionLabel(leg.betType, leg.selection, leg.line, leg.game)}
                 </div>
-                {(leg.game?.awayTeam?.shortName || leg.game?.homeTeam?.shortName) && (
+                {(leg.game?.awayTeam?.shortName && leg.game?.homeTeam?.shortName) ? (
                   <div className="text-xs text-muted-foreground leading-tight">
-                    {leg.game?.awayTeam?.shortName ?? "AWAY"} @ {leg.game?.homeTeam?.shortName ?? "HOME"}
+                    {leg.game.awayTeam.shortName} @ {leg.game.homeTeam.shortName}
                   </div>
-                )}
+                ) : null}
               </div>
               <Badge variant="outline" className="text-base md:text-lg px-3 py-1 font-light">{formatOdds(leg.odds)}</Badge>
             </div>

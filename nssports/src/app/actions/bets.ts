@@ -63,25 +63,36 @@ export async function placeSingleBetAction(
   bet: z.infer<typeof singleBetSchema>
 ): Promise<PlaceBetsState> {
   try {
+    console.log("[placeSingleBetAction] Received bet data:", JSON.stringify(bet, null, 2));
+    
     // Get authenticated user
     const session = await auth();
     if (!session?.user?.id) {
+      console.error("[placeSingleBetAction] No authenticated user");
       return {
         success: false,
         error: "You must be logged in to place bets",
       };
     }
 
+    console.log("[placeSingleBetAction] User authenticated:", session.user.id);
+
     // Validate input
     const validatedData = singleBetSchema.safeParse(bet);
     if (!validatedData.success) {
+      console.error("[placeSingleBetAction] Validation failed:", validatedData.error.errors);
       return {
         success: false,
-        error: "Invalid bet data",
+        error: `Invalid bet data: ${validatedData.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
       };
     }
 
     const { gameId, betType, selection, odds, line, stake, potentialPayout } = validatedData.data;
+    
+    console.log("[placeSingleBetAction] Validated data:", { gameId, betType, selection, odds, line, stake, potentialPayout });
+    
+    // Ensure odds is an integer as required by Prisma schema
+    const oddsInt = Math.round(odds);
 
     // Verify game exists and is not finished
     const game = await prisma.game.findUnique({
@@ -90,6 +101,7 @@ export async function placeSingleBetAction(
     });
 
     if (!game) {
+      console.error("[placeSingleBetAction] Game not found:", gameId);
       return {
         success: false,
         error: "Game not found",
@@ -97,11 +109,14 @@ export async function placeSingleBetAction(
     }
 
     if (game.status === "finished") {
+      console.error("[placeSingleBetAction] Game already finished:", gameId);
       return {
         success: false,
         error: "Cannot place bet on finished game",
       };
     }
+
+    console.log("[placeSingleBetAction] Creating bet in database...");
 
     // Create bet
     const createdBet = await prisma.bet.create({
@@ -109,7 +124,7 @@ export async function placeSingleBetAction(
         gameId,
         betType,
         selection,
-        odds,
+        odds: oddsInt,
         line: line ?? null,
         stake,
         potentialPayout,
@@ -118,6 +133,8 @@ export async function placeSingleBetAction(
         userId: session.user.id,
       },
     });
+
+    console.log("[placeSingleBetAction] Bet created successfully:", createdBet.id);
 
     // Revalidate bet history cache - this triggers React Query refetch
     revalidatePath("/my-bets");
@@ -129,10 +146,11 @@ export async function placeSingleBetAction(
       betIds: [createdBet.id],
     };
   } catch (error) {
-    console.error("Place single bet error:", error);
+    console.error("[placeSingleBetAction] Error:", error);
+    console.error("[placeSingleBetAction] Bet data:", JSON.stringify(bet, null, 2));
     return {
       success: false,
-      error: "Failed to place bet. Please try again.",
+      error: `Failed to place bet: ${error instanceof Error ? error.message : 'Unknown error'}`,
     };
   }
 }
@@ -147,25 +165,38 @@ export async function placeParlayBetAction(
   parlayData: z.infer<typeof parlayBetSchema>
 ): Promise<PlaceBetsState> {
   try {
+    console.log("[placeParlayBetAction] Received parlay data:", JSON.stringify(parlayData, null, 2));
+    
     // Get authenticated user
     const session = await auth();
     if (!session?.user?.id) {
+      console.error("[placeParlayBetAction] No authenticated user");
       return {
         success: false,
         error: "You must be logged in to place bets",
       };
     }
 
+    console.log("[placeParlayBetAction] User authenticated:", session.user.id);
+
     // Validate input
     const validatedData = parlayBetSchema.safeParse(parlayData);
     if (!validatedData.success) {
+      console.error("[placeParlayBetAction] Validation failed:", validatedData.error.errors);
       return {
         success: false,
-        error: "Invalid parlay data",
+        error: `Invalid parlay data: ${validatedData.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
       };
     }
 
     const { legs, stake, potentialPayout, odds } = validatedData.data;
+
+    console.log("[placeParlayBetAction] Validated data:", { legs: legs.length, stake, potentialPayout, odds });
+
+    // Ensure odds is an integer as required by Prisma schema
+    const oddsInt = Math.round(odds);
+
+    console.log("[placeParlayBetAction] Creating parlay bet in database...");
 
     // Create parlay bet
     const createdBet = await prisma.bet.create({
@@ -177,12 +208,14 @@ export async function placeParlayBetAction(
         placedAt: new Date(),
         userId: session.user.id,
         selection: "parlay",
-        odds,
+        odds: oddsInt,
         line: null,
         gameId: null,
         legs: legs,
       },
     });
+
+    console.log("[placeParlayBetAction] Parlay bet created successfully:", createdBet.id);
 
     // Revalidate bet history cache - this triggers React Query refetch
     revalidatePath("/my-bets");
@@ -194,10 +227,11 @@ export async function placeParlayBetAction(
       betIds: [createdBet.id],
     };
   } catch (error) {
-    console.error("Place parlay bet error:", error);
+    console.error("[placeParlayBetAction] Error:", error);
+    console.error("[placeParlayBetAction] Parlay data:", JSON.stringify(parlayData, null, 2));
     return {
       success: false,
-      error: "Failed to place parlay bet. Please try again.",
+      error: `Failed to place parlay bet: ${error instanceof Error ? error.message : 'Unknown error'}`,
     };
   }
 }

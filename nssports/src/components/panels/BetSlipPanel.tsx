@@ -159,8 +159,9 @@ export function BetSlipPanel() {
           },
         );
       }
-    } catch {
-      toast.error("Failed to place bet. Please try again.");
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to place bet. Please try again.";
+      toast.error(errorMessage);
     } finally {
       setPlacing(false);
     }
