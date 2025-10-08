@@ -62,6 +62,12 @@ export async function GET() {
       if (error instanceof OddsApiError) {
         logger.error('The Odds API error in live games', error);
         
+        if (error.statusCode === 429) {
+          return ApiErrors.serviceUnavailable(
+            'The Odds API usage quota has been exceeded. Please contact support or try again later.'
+          );
+        }
+        
         if (error.statusCode === 401 || error.statusCode === 403) {
           return ApiErrors.serviceUnavailable(
             'Sports data service is temporarily unavailable. Please check API configuration.'

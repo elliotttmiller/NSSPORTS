@@ -130,6 +130,26 @@ async function fetchOddsApi<T>(
 
     const data = await response.json();
     
+    // Check for error messages in the response body (TheOdds API returns 200 with error messages)
+    if (data && typeof data === 'object' && 'error_code' in data) {
+      const errorData = data as { message?: string; error_code: string; details_url?: string };
+      logger.error("The Odds API error in response body", errorData);
+      
+      if (errorData.error_code === 'OUT_OF_USAGE_CREDITS') {
+        throw new OddsApiError(
+          "The Odds API usage quota has been exceeded. Please upgrade your plan or wait for the quota to reset.",
+          429,
+          errorData
+        );
+      }
+      
+      throw new OddsApiError(
+        errorData.message || `The Odds API returned error: ${errorData.error_code}`,
+        400,
+        errorData
+      );
+    }
+    
     // Validate response with Zod
     const validated = schema.parse(data);
     
