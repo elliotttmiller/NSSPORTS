@@ -35,9 +35,9 @@ export interface Game {
     record?: string;
     logo?: string;
   };
-  homeScore?: number;
-  awayScore?: number;
-  period?: string;
-  timeRemaining?: string;
+  homeScore?: number | null;
+  awayScore?: number | null;
+  period?: string | null;
+  timeRemaining?: string | null;
   // Add more fields as needed
 }
