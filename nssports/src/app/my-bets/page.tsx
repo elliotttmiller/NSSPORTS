@@ -66,7 +66,7 @@ export default function MyBetsPage() {
 
   return (
     <div className="bg-background min-h-screen">
-      <div className="container mx-auto px-6 md:px-8 xl:px-12 pt-12 pb-6 max-w-screen-2xl">
+      <div className="container mx-auto px-2 md:px-8 xl:px-12 pt-12 pb-6 max-w-screen-2xl"> {/* px-2 for mobile, wider cards */}
         <div className={"space-y-6"}>
           {/* Active Bets Section - Using shared BetCard */}
           <Card>

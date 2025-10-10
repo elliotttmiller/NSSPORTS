@@ -44,10 +44,7 @@ export function BottomNav() {
   };
 
   return (
-    <nav
-      className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-sm border-t border-border h-20 flex items-center justify-center px-2 w-full z-40"
-      style={{ paddingTop: "2px" }}
-    >
+    <nav className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-sm border-t border-border h-20 flex items-center justify-center px-2 w-full z-40 pt-0.5">
       {/* Sports - Text Only */}
       <motion.button
         onClick={handleSportsClick}

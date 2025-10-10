@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, Input, Button, Separator } from "@/components/ui";
 import { formatCurrency } from "@/lib/formatters";
+import Link from "next/link";
+import { useBetHistory } from "@/context";
 
 export default function AccountPage() {
   const [profile] = useState({
@@ -22,6 +24,9 @@ export default function AccountPage() {
     defaultStake: 10,
   });
 
+  const { placedBets } = useBetHistory();
+  const activeBetsCount = (placedBets || []).filter(b => b.status === 'pending').length;
+
   return (
     <div className="bg-background">
       <div className="container mx-auto px-4 py-6 max-w-screen-2xl">
@@ -34,22 +39,42 @@ export default function AccountPage() {
           </p>
         </div>
 
-        {/* Balance Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Account Balance</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-4xl font-bold text-accent">
-              {formatCurrency(profile.accountBalance)}
-            </div>
-            <div className="flex gap-2 mt-4">
-              <Button>Deposit</Button>
-              <Button variant="outline">Withdraw</Button>
-            </div>
-          </CardContent>
-        </Card>
-
+        {/* Summary Stats Grid - Desktop & Mobile */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2 mb-8">
+          {[ 
+            { label: "Balance", value: formatCurrency(profile.accountBalance), color: "text-foreground" },
+            { label: "Available", value: formatCurrency(profile.accountBalance), color: "text-foreground" },
+            { label: "Risk", value: formatCurrency(0), color: "text-destructive" },
+            { label: "Active Bets", value: activeBetsCount, color: "text-foreground" },
+          ].map((stat) => {
+            const content = (
+              <>
+                <p className="text-sm md:text-base text-foreground font-normal">{stat.label}</p>
+                <p className={`font-semibold text-base ${stat.color}`}>{stat.value}</p>
+              </>
+            );
+            if (stat.label === "Active Bets") {
+              return (
+                <Link
+                  key={stat.label}
+                  href="/my-bets"
+                  aria-label="View my active bets"
+                  className="bg-card/50 backdrop-blur-sm border border-border/30 ring-1 ring-white/10 rounded-lg shadow-sm min-h-[48px] md:min-h-[56px] p-2 md:p-3 flex flex-col items-center justify-center gap-0.5 hover:bg-accent/5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 transition-colors"
+                >
+                  {content}
+                </Link>
+              );
+            }
+            return (
+              <div
+                key={stat.label}
+                className="bg-card/50 backdrop-blur-sm border border-border/30 ring-1 ring-white/10 rounded-lg shadow-sm min-h-[48px] md:min-h-[56px] p-2 md:p-3 flex flex-col items-center justify-center gap-0.5"
+              >
+                {content}
+              </div>
+            );
+          })}
+        </div>
 
         {/* Betting Preferences */}
         <Card>
@@ -74,6 +99,8 @@ export default function AccountPage() {
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                   settings.notifications ? "bg-accent" : "bg-muted"
                 }`}
+                title="Toggle notifications"
+                aria-label="Toggle notifications"
               >
                 <span
                   className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
@@ -100,6 +127,8 @@ export default function AccountPage() {
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                   settings.autoAcceptOddsChanges ? "bg-accent" : "bg-muted"
                 }`}
+                title="Toggle auto-accept odds changes"
+                aria-label="Toggle auto-accept odds changes"
               >
                 <span
                   className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${

@@ -1,25 +1,29 @@
 "use client";
 
-import { useBetSlip } from "@/context";
+import { useBetSlip, useBetHistory } from "@/context";
 import { Button, Input, Badge, Checkbox } from "@/components/ui";
 import { Trash } from "@phosphor-icons/react";
 import { formatOdds } from "@/lib/formatters";
 import { formatSelectionLabel } from "@/components/bets/BetCard";
 import type { Bet } from "@/types";
 import { calculatePayout } from "@/services/api";
+import { toast } from "sonner";
+import { useState } from "react";
 
 export function MobileCustomBetSlipContent() {
-  const { 
-    betSlip, 
-    removeBet, 
-    toggleCustomStraight, 
-    toggleCustomParlay, 
-    updateCustomStake 
+  const {
+    betSlip,
+    removeBet,
+    toggleCustomStraight,
+    toggleCustomParlay,
+    updateCustomStake,
   } = useBetSlip();
+  const { addPlacedBet } = useBetHistory();
+  const [placingIds, setPlacingIds] = useState<string[]>([]);
 
-  const customStraightBets = betSlip.customStraightBets || [];
-  const customParlayBets = betSlip.customParlayBets || [];
-  const customStakes = betSlip.customStakes || {};
+  const customStraightBets = betSlip.customStraightBets ?? [];
+  const customParlayBets = betSlip.customParlayBets ?? [];
+  const customStakes = betSlip.customStakes ?? {};
 
   const formatBetDescription = (bet: Bet) => {
     return formatSelectionLabel(bet.betType, bet.selection, bet.line, {
@@ -71,6 +75,62 @@ export function MobileCustomBetSlipContent() {
     });
     
     return parlayStake * combinedOdds;
+  };
+
+  const handlePlaceStraightBet = async (betId: string) => {
+    const bet = betSlip.bets.find((b) => b.id === betId);
+    const stake = customStakes[betId] || 0;
+    if (!bet || stake <= 0) return;
+    setPlacingIds((ids) => [...ids, betId]);
+    try {
+      await addPlacedBet(
+        [bet],
+        "single",
+        stake,
+        stake * ((bet.odds > 0 ? bet.odds / 100 : 100 / Math.abs(bet.odds)) + 1),
+        bet.odds
+      );
+      toast.success("Bet placed!");
+      removeBet(betId);
+    } catch {
+      toast.error("Failed to place bet");
+    } finally {
+      setPlacingIds((ids) => ids.filter((id) => id !== betId));
+    }
+  };
+
+  const handlePlaceParlayBet = async () => {
+    const parlayStake = customStakes["parlay"] || 0;
+    if (customParlayBets.length === 0 || parlayStake <= 0) return;
+    setPlacingIds((ids) => [...ids, "parlay"]);
+    const parlayBets = betSlip.bets.filter((b) => customParlayBets.includes(b.id));
+    let combinedOdds = 1;
+    parlayBets.forEach((bet) => {
+      const decimalOdds = bet.odds > 0 ? (bet.odds / 100) + 1 : (100 / Math.abs(bet.odds)) + 1;
+      combinedOdds *= decimalOdds;
+    });
+    const americanOdds = combinedOdds >= 2 ? Math.round((combinedOdds - 1) * 100) : Math.round(-100 / (combinedOdds - 1));
+    try {
+      await addPlacedBet(
+        parlayBets,
+        "parlay",
+        parlayStake,
+        parlayStake * combinedOdds,
+        americanOdds
+      );
+      toast.success("Parlay placed!");
+      // Remove only parlay bets from betslip's parlay array, but keep straight bets
+      parlayBets.forEach((bet) => {
+        // Only remove if not also in straight bets
+        if (!((betSlip.customStraightBets ?? []).includes(bet.id))) {
+          removeBet(bet.id);
+        }
+      });
+    } catch {
+      toast.error("Failed to place parlay");
+    } finally {
+      setPlacingIds((ids) => ids.filter((id) => id !== "parlay"));
+    }
   };
 
   return (
@@ -181,6 +241,17 @@ export function MobileCustomBetSlipContent() {
                 >
                   <Trash size={16} />
                 </Button>
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={() => handlePlaceStraightBet(bet.id)}
+                  disabled={placingIds.includes(bet.id) || (stake <= 0)}
+                  className="ml-2 h-9 px-4"
+                  aria-label="Place Straight Bet"
+                  title="Place Straight Bet"
+                >
+                  {placingIds.includes(bet.id) ? "Placing..." : "Place"}
+                </Button>
               </div>
             )}
 
@@ -289,6 +360,18 @@ export function MobileCustomBetSlipContent() {
               </div>
             </div>
           </div>
+
+          <Button
+            variant="default"
+            size="sm"
+            onClick={handlePlaceParlayBet}
+            disabled={placingIds.includes("parlay") || (customStakes["parlay"] <= 0)}
+            className="ml-2 h-9 px-4"
+            aria-label="Place Parlay Bet"
+            title="Place Parlay Bet"
+          >
+            {placingIds.includes("parlay") ? "Placing..." : "Place Parlay"}
+          </Button>
         </div>
       )}
     </div>

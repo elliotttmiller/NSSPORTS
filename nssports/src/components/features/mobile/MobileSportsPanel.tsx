@@ -80,6 +80,8 @@ export function MobileSportsPanel() {
               <button
                 onClick={handleClose}
                 className="p-2 hover:bg-accent/10 rounded-md transition-colors"
+                aria-label="Close sports panel"
+                title="Close sports panel"
               >
                 <X size={20} />
               </button>
@@ -87,6 +89,21 @@ export function MobileSportsPanel() {
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto">
+              {/* All Games Button */}
+              <div className="px-4 pt-2 pb-1">
+                <button
+                  onClick={() => {
+                    setMobilePanel(null);
+                    router.push("/games");
+                  }}
+                  title="View all games"
+                  aria-label="View all games"
+                  className="w-full flex items-center justify-center py-3 rounded-lg bg-accent/10 text-accent font-semibold hover:bg-accent/20 transition-colors text-base shadow-sm"
+                >
+                  <span className="block">All Games</span>
+                </button>
+              </div>
+
               {loading ? (
                 <div className="flex items-center justify-center py-12">
                   <div className="animate-spin w-8 h-8 border-2 border-accent border-t-transparent rounded-full"></div>

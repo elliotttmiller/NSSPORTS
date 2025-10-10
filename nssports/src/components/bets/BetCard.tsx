@@ -3,7 +3,7 @@
 import { Badge, Card, CardContent } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { formatCurrencyNoCents, formatOdds } from "@/lib/formatters";
 
 export type BetStatus = "pending" | "won" | "lost";
@@ -145,14 +145,14 @@ export function BetCardSingle({
   const isWon = status === "won";
   return (
     <Card className={cn(
-      "w-full max-w-[95vw] mx-auto",
+      "w-full max-w-[99vw] mx-auto px-2", // widened for mobile, more edge spacing
       isWon
         ? "border-border/30 ring-1 ring-white/10"
         : status === "lost"
         ? "border-destructive/50 ring-1 ring-white/10"
         : "border-accent/20 ring-1 ring-accent/10"
     )}>
-      <CardContent className="p-5">
+      <CardContent className="p-4"> {/* slightly reduced padding for edge fit */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <Badge variant={isWon ? "default" : "outline"} className={isWon ? "bg-accent/10 text-accent border-accent/30" : ""}>
@@ -171,8 +171,8 @@ export function BetCardSingle({
           <div className="flex items-start justify-between">
             <div className="flex-1 min-w-0 pr-3">
               <div className="font-semibold text-base md:text-lg leading-tight text-white truncate mb-1">
-                {selection as any && (selection as any).displaySelection
-                  ? (selection as any).displaySelection
+                {typeof selection === "object" && selection !== null && "displaySelection" in selection
+                  ? (selection as unknown as { displaySelection: string }).displaySelection
                   : formatSelectionLabel(betType, selection, line, game)}
               </div>
               <div className="text-sm text-muted-foreground leading-tight">
@@ -214,10 +214,10 @@ export function BetCardParlay({
   const isWon = status === "won";
   return (
     <Card className={cn(
-      "w-full max-w-[95vw] mx-auto border-accent/20",
+      "w-full max-w-[99vw] mx-auto px-2", // widened for mobile, more edge spacing
       isWon ? "border-green-200/50 ring-2 ring-green-100" : status === "lost" ? "border-red-200/50 ring-2 ring-red-100" : "ring-1 ring-accent/10",
     )}>
-      <CardContent className="p-5">
+      <CardContent className="p-4"> {/* slightly reduced padding for edge fit */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-1.5">
             <Badge variant={isWon ? "default" : "outline"} className={cn(isWon ? "bg-green-100 text-green-800 border-green-200" : "", "flex items-center gap-0.5 px-3 py-1")}>

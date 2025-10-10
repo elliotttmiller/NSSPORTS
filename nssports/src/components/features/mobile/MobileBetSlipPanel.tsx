@@ -295,6 +295,43 @@ export function MobileBetSlipPanel() {
                         <Trash size={16} />
                       </Button>
                     </div>
+
+                    {/* Place Button - Well Positioned */}
+                    <div className="flex items-center justify-between pt-4 border-t border-border/20">
+                      <div className="flex items-end gap-4 flex-1">
+                        {/* Additional space or content can go here */}
+                      </div>
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={async () => {
+                          if (bet.stake > 0) {
+                            setPlacing(true);
+                            try {
+                              await addPlacedBet(
+                                [bet],
+                                "single",
+                                bet.stake,
+                                bet.potentialPayout,
+                                bet.odds
+                              );
+                              toast.success("Bet placed!");
+                              removeBet(bet.id);
+                            } catch {
+                              toast.error("Failed to place bet");
+                            } finally {
+                              setPlacing(false);
+                            }
+                          }
+                        }}
+                        disabled={placing || bet.stake <= 0}
+                        className="ml-2 h-9 px-4"
+                        aria-label="Place Single Bet"
+                        title="Place Single Bet"
+                      >
+                        {placing ? "Placing..." : "Place"}
+                      </Button>
+                    </div>
                   </div>
                 ))
               ) : (
@@ -433,7 +470,24 @@ export function MobileBetSlipPanel() {
                   disabled={placing || betSlip.totalStake === 0}
                   className="flex-[2] h-10"
                 >
-                  {placing ? "Placing..." : "Place Bet"}
+                  {placing
+                    ? "Placing..."
+                    : betSlip.betType === "parlay"
+                      ? "Place Bet"
+                      : betSlip.betType === "single"
+                        ? (betSlip.bets.length === 1
+                            ? "Place Bet"
+                            : `Place ${betSlip.bets.length} Bets`)
+                        : (() => {
+                            // Custom mode: count single bets + parlay (if selected)
+                            const customStraightBets = betSlip.customStraightBets ?? [];
+                            const customParlayBets = betSlip.customParlayBets ?? [];
+                            const numBetSlips = customStraightBets.length + (customParlayBets.length > 0 ? 1 : 0);
+                            return numBetSlips === 1
+                              ? "Place Bet"
+                              : `Place ${numBetSlips} Bets`;
+                          })()
+                  }
                 </Button>
               </div>
             </div>
