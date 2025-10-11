@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import type { PaginatedResponse, Game } from '@/types';
 import { getGamesPaginated } from '@/services/api';
-// ...existing code...
 
 export interface UsePaginatedGamesParams {
   leagueId?: string;

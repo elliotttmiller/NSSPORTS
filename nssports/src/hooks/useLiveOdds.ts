@@ -11,7 +11,6 @@ export function useLiveOdds(gameId: string | undefined) {
     queryKey: ['live-odds', gameId],
     enabled: Boolean(gameId),
     queryFn: async () => ({ game: await getGame(gameId as string) }),
-    refetchInterval: 7_500,
     refetchOnWindowFocus: true,
     staleTime: 5_000,
   });

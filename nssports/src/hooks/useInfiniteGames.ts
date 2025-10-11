@@ -20,9 +20,7 @@ export function useInfiniteGames({ leagueId, status, limit = 10 }: UseInfiniteGa
         ? lastPage.pagination.page + 1
         : undefined;
     },
-  staleTime: 30 * 1000,
-  // Auto-refresh upcoming lists to detect status changes (move to live)
-  refetchInterval: status === 'upcoming' ? 30_000 : undefined,
-  refetchOnWindowFocus: true,
+    staleTime: 30 * 1000,
+    refetchOnWindowFocus: true,
   });
 }

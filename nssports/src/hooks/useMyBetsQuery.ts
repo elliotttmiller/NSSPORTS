@@ -14,7 +14,6 @@ export function useMyBetsQuery(options?: UseQueryOptions<PlacedBet[], Error, Pla
     refetchOnReconnect: true,
     staleTime: 30_000, // 30s
     gcTime: 10 * 60 * 1000, // 10m
-    refetchInterval: 15_000, // 15s auto-refresh
     ...options,
   });
 }

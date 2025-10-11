@@ -16,7 +16,6 @@ export function useAccount() {
 			return AccountSchema.parse(payload) as Account;
 		},
 		refetchOnWindowFocus: true,
-		refetchInterval: 30_000,
 		staleTime: 15_000,
 	});
 }
