@@ -1,6 +1,6 @@
 {
-  "name": "NorthStar Sports - Professional Sports Betting",
-  "short_name": "NorthStar",
+  "name": "NSSPORTSCLUB",
+  "short_name": "NSSPORTS",
   "description": "Professional sports betting platform for NFL, NBA, and NHL games",
   "theme_color": "#0f172a",
   "background_color": "#0a0a0a",
@@ -11,14 +11,19 @@
   "categories": ["sports", "entertainment", "lifestyle"],
   "icons": [
     {
-      "src": "/pwa-192x192.png",
-      "sizes": "192x192",
-      "type": "image/png",
+      "src": "/app/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
       "purpose": "any maskable"
     },
     {
-      "src": "/pwa-512x512.png",
-      "sizes": "512x512",
+      "src": "/app/favicon.ico",
+      "sizes": "any",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/app/apple-icon.png",
+      "sizes": "180x180",
       "type": "image/png",
       "purpose": "any maskable"
     }
@@ -32,8 +37,8 @@
       "url": "/live",
       "icons": [
         {
-          "src": "/pwa-192x192.png",
-          "sizes": "192x192"
+          "src": "/app/icon.svg",
+          "sizes": "any"
         }
       ]
     },
@@ -44,8 +49,8 @@
       "url": "/my-bets",
       "icons": [
         {
-          "src": "/pwa-192x192.png",
-          "sizes": "192x192"
+          "src": "/app/icon.svg",
+          "sizes": "any"
         }
       ]
     }

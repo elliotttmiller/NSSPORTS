@@ -52,7 +52,7 @@ export function MobileBetSlipPanel() {
                 bet.odds
               );
               successCount++;
-            } catch (error) {
+            } catch {
               failCount++;
             }
           }
@@ -86,7 +86,7 @@ export function MobileBetSlipPanel() {
                 americanOdds
               );
               successCount++;
-            } catch (error) {
+            } catch {
               failCount++;
             }
           }
