@@ -1,29 +1,31 @@
 "use client";
 
-import { useState, useCallback, memo, useEffect } from "react";
+import { useState, useCallback, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { TeamLogo } from "./TeamLogo";
 import { Button } from "@/components/ui";
 import { useBetSlip } from "@/context";
 import { formatOdds, formatSpreadLine } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
-import { PlayerPropsList, GamePropsList } from "@/components/features/props";
+import { PlayerPropsView, GamePropsView } from "@/components/features/props";
 import { useLiveOdds } from "@/hooks/useLiveOdds";
-import type { Game, PlayerProp } from "@/types";
+import { usePlayerProps, useGameProps } from "@/hooks";
+import type { Game } from "@/types";
 
 // Helper component for displaying props with tabs - same as desktop
-type GameProp = {
-  id: string;
-  propType: string;
-  description: string;
-  selection: string | null;
-  odds: number;
-  line: number | null;
-};
-type GamePropsMap = Record<string, GameProp[]>;
-
-function PropsDisplay({ game, playerProps, gameProps }: { game: Game; playerProps: PlayerProp[]; gameProps: GamePropsMap }) {
+function PropsDisplay({ game }: { game: Game }) {
   const [activeTab, setActiveTab] = useState<'player' | 'game'>('player');
+  
+  // On-demand fetching: only fetch when tab is active
+  const { data: playerProps = [], isLoading: playerPropsLoading } = usePlayerProps(
+    game.id,
+    activeTab === 'player'
+  );
+  
+  const { data: gameProps = {}, isLoading: gamePropsLoading } = useGameProps(
+    game.id,
+    activeTab === 'game'
+  );
 
   return (
     <div className="w-full">
@@ -49,11 +51,23 @@ function PropsDisplay({ game, playerProps, gameProps }: { game: Game; playerProp
       </div>
 
       {activeTab === 'player' && (
-        <PlayerPropsList game={game} playerProps={playerProps} />
+        playerPropsLoading ? (
+          <div className="text-center py-8 text-sm text-muted-foreground">
+            Loading player props...
+          </div>
+        ) : (
+          <PlayerPropsView game={game} playerProps={playerProps} />
+        )
       )}
 
       {activeTab === 'game' && (
-        <GamePropsList game={game} gameProps={gameProps} />
+        gamePropsLoading ? (
+          <div className="text-center py-8 text-sm text-muted-foreground">
+            Loading game props...
+          </div>
+        ) : (
+          <GamePropsView game={game} gameProps={gameProps} />
+        )
       )}
     </div>
   );
@@ -67,35 +81,8 @@ export const CompactMobileGameRow = memo(({ game }: Props) => {
   const { betSlip, addBet, removeBet } = useBetSlip();
   const [expanded, setExpanded] = useState(false);
   const [shouldRenderDropdown, setShouldRenderDropdown] = useState(false);
-  const [playerProps, setPlayerProps] = useState<PlayerProp[]>([]);
-  const [gameProps, setGameProps] = useState<GamePropsMap>({});
-  const [propsLoading, setPropsLoading] = useState(false);
   const { data: liveData } = useLiveOdds(game.status === 'live' ? game.id : undefined);
   const oddsSource = liveData?.game?.odds ?? game.odds;
-
-  // Fetch props when expanded - same logic as desktop
-  useEffect(() => {
-    if (expanded && playerProps.length === 0) {
-      setPropsLoading(true);
-      
-      // Fetch player props
-      fetch(`/api/player-props?gameId=${game.id}`)
-        .then((res) => res.json())
-        .then((data) => {
-          setPlayerProps(data.data || []);
-        })
-        .catch((err) => console.error("Error fetching player props:", err));
-
-      // Fetch game props
-      fetch(`/api/game-props?gameId=${game.id}`)
-        .then((res) => res.json())
-        .then((data) => {
-          setGameProps(data.data || {});
-        })
-        .catch((err) => console.error("Error fetching game props:", err))
-        .finally(() => setPropsLoading(false));
-    }
-  }, [expanded, game.id, playerProps.length]);
 
   const gameDate = new Date(game.startTime);
   const timeString = gameDate.toLocaleTimeString("en-US", {
@@ -395,20 +382,14 @@ export const CompactMobileGameRow = memo(({ game }: Props) => {
               if (!expanded) setShouldRenderDropdown(false);
             }}
           >
-            {propsLoading ? (
-              <div className="text-center py-8 text-sm text-muted-foreground">
-                Loading props...
-              </div>
-            ) : (
-              <div 
-                className="h-[400px] overflow-y-auto seamless-scroll px-4 py-4"
-                onWheel={(e) => e.stopPropagation()}
-                onTouchMove={(e) => e.stopPropagation()}
-                style={{ overscrollBehavior: 'contain' }}
-              >
-                <PropsDisplay game={game} playerProps={playerProps} gameProps={gameProps} />
-              </div>
-            )}
+            <div 
+              className="h-[400px] overflow-y-auto seamless-scroll px-4 py-4"
+              onWheel={(e) => e.stopPropagation()}
+              onTouchMove={(e) => e.stopPropagation()}
+              style={{ overscrollBehavior: 'contain' }}
+            >
+              <PropsDisplay game={game} />
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

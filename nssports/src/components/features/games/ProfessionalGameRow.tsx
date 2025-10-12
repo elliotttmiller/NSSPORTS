@@ -1,29 +1,31 @@
 "use client";
 
-import { Game, PlayerProp } from "@/types";
+import { Game } from "@/types";
 import { TeamLogo } from "./TeamLogo";
 import { formatOdds, formatSpreadLine, formatGameTime } from "@/lib/formatters";
 import { Button } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import { useBetSlip } from "@/context";
-import { useCallback, useState, useEffect } from "react";
+import { useCallback, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { PlayerPropsList, GamePropsList } from "@/components/features/props";
+import { PlayerPropsView, GamePropsView } from "@/components/features/props";
 import { useLiveOdds } from "@/hooks/useLiveOdds";
+import { usePlayerProps, useGameProps } from "@/hooks";
 
 // Helper component for displaying props with tabs
-type GameProp = {
-  id: string;
-  propType: string;
-  description: string;
-  selection: string | null;
-  odds: number;
-  line: number | null;
-};
-type GamePropsMap = Record<string, GameProp[]>;
-
-function PropsDisplay({ game, playerProps, gameProps }: { game: Game; playerProps: PlayerProp[]; gameProps: GamePropsMap }) {
+function PropsDisplay({ game }: { game: Game }) {
   const [activeTab, setActiveTab] = useState<'player' | 'game'>('player');
+  
+  // On-demand fetching: only fetch when tab is active
+  const { data: playerProps = [], isLoading: playerPropsLoading } = usePlayerProps(
+    game.id,
+    activeTab === 'player' // Only enabled when player tab is active
+  );
+  
+  const { data: gameProps = {}, isLoading: gamePropsLoading } = useGameProps(
+    game.id,
+    activeTab === 'game' // Only enabled when game tab is active
+  );
 
   return (
     <div className="w-full">
@@ -49,11 +51,23 @@ function PropsDisplay({ game, playerProps, gameProps }: { game: Game; playerProp
       </div>
 
       {activeTab === 'player' && (
-        <PlayerPropsList game={game} playerProps={playerProps} />
+        playerPropsLoading ? (
+          <div className="text-center py-8 text-sm text-muted-foreground">
+            Loading player props...
+          </div>
+        ) : (
+          <PlayerPropsView game={game} playerProps={playerProps} />
+        )
       )}
 
       {activeTab === 'game' && (
-        <GamePropsList game={game} gameProps={gameProps} />
+        gamePropsLoading ? (
+          <div className="text-center py-8 text-sm text-muted-foreground">
+            Loading game props...
+          </div>
+        ) : (
+          <GamePropsView game={game} gameProps={gameProps} />
+        )
       )}
     </div>
   );
@@ -78,33 +92,6 @@ export function ProfessionalGameRow({
   const { data: liveData } = useLiveOdds(game.status === 'live' ? game.id : undefined);
   const oddsSource = liveData?.game?.odds ?? game.odds;
   const [expanded, setExpanded] = useState(false);
-  const [playerProps, setPlayerProps] = useState<PlayerProp[]>([]);
-  const [gameProps, setGameProps] = useState<GamePropsMap>({});
-  const [propsLoading, setPropsLoading] = useState(false);
-
-  // Fetch props when expanded
-  useEffect(() => {
-    if (expanded && playerProps.length === 0) {
-      setPropsLoading(true);
-      
-      // Fetch player props
-      fetch(`/api/player-props?gameId=${game.id}`)
-        .then((res) => res.json())
-        .then((data) => {
-          setPlayerProps(data.data || []);
-        })
-        .catch((err) => console.error("Error fetching player props:", err));
-
-      // Fetch game props
-      fetch(`/api/game-props?gameId=${game.id}`)
-        .then((res) => res.json())
-        .then((data) => {
-          setGameProps(data.data || {});
-        })
-        .catch((err) => console.error("Error fetching game props:", err))
-        .finally(() => setPropsLoading(false));
-    }
-  }, [expanded, game.id, playerProps.length]);
 
   const getBetId = useCallback(
     (betType: string, selection: string) => {
@@ -389,20 +376,14 @@ export function ProfessionalGameRow({
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
             className="overflow-hidden bg-muted/20 border-t border-border rounded-b-lg shadow-md"
           >
-            {propsLoading ? (
-              <div className="text-center py-8 text-sm text-muted-foreground">
-                Loading props...
-              </div>
-            ) : (
-              <div 
-                className="h-[500px] overflow-y-auto seamless-scroll px-4 py-4"
-                onWheel={(e) => e.stopPropagation()}
-                onTouchMove={(e) => e.stopPropagation()}
-                style={{ overscrollBehavior: 'contain' }}
-              >
-                <PropsDisplay game={game} playerProps={playerProps} gameProps={gameProps} />
-              </div>
-            )}
+            <div 
+              className="h-[500px] overflow-y-auto seamless-scroll px-4 py-4"
+              onWheel={(e) => e.stopPropagation()}
+              onTouchMove={(e) => e.stopPropagation()}
+              style={{ overscrollBehavior: 'contain' }}
+            >
+              <PropsDisplay game={game} />
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
