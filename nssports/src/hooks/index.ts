@@ -6,3 +6,5 @@ export { useKV } from "./useKV";
 export { useLenisScroll } from "./useLenisScroll";
 export * from "./useLiveMatch";
 export * from "./useStableLiveData";
+export * from "./usePlayerProps";
+export * from "./useGameProps";

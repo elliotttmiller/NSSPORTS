@@ -24,6 +24,7 @@ import { getOdds, OddsApiError } from "@/lib/the-odds-api";
 import { transformOddsApiEvents } from "@/lib/transformers/odds-api";
 import { GameSchema } from "@/lib/schemas/game";
 import { logger } from "@/lib/logger";
+import { applySingleLeagueLimit } from "@/lib/devDataLimit";
 
 // Cache duration: 60 seconds for live odds data
 // This balances data freshness with API quota usage
@@ -88,7 +89,10 @@ export async function GET(request: NextRequest) {
       const events = await getCachedOdds(sport);
 
       // Transform to our internal format
-      const games = transformOddsApiEvents(events);
+      let games = transformOddsApiEvents(events);
+      
+      // Apply single league limit in development (Protocol I-IV)
+      games = applySingleLeagueLimit(games);
 
       // Validate transformed data
       const validatedGames = games.map((game) => GameSchema.parse(game));

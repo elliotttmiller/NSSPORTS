@@ -5,6 +5,7 @@ import { getOdds, OddsApiError } from '@/lib/the-odds-api';
 import { transformOddsApiEvents } from '@/lib/transformers/odds-api';
 import { logger } from '@/lib/logger';
 import { unstable_cache } from 'next/cache';
+import { applyStratifiedSampling } from '@/lib/devDataLimit';
 
 export const revalidate = 60;
 export const runtime = 'nodejs';
@@ -56,7 +57,11 @@ export async function GET() {
   return withErrorHandling(async () => {
     try {
       const events = await getCachedUpcomingGames();
-      const games = transformOddsApiEvents(events);
+      let games = transformOddsApiEvents(events);
+      
+      // Apply stratified sampling in development (Protocol I-IV)
+      games = applyStratifiedSampling(games, 'leagueId');
+      
       const parsed = z.array(GameSchema).parse(games);
       
       logger.info(`Returning ${parsed.length} upcoming games`);
