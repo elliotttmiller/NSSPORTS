@@ -22,7 +22,7 @@
       "type": "image/x-icon"
     },
     {
-      "src": "/app/apple-icon.png",
+  "src": "/app/apple-touch-icon.png",
       "sizes": "180x180",
       "type": "image/png",
       "purpose": "any maskable"

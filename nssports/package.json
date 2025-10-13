@@ -70,6 +70,8 @@
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.0.0",
     "@types/jest": "^30.0.0",
+    "@types/react": "19.2.2",
+    "@types/react-dom": "^19.2.1",
     "babel-jest": "^30.0.0",
     "eslint": "^9",
     "eslint-config-next": "15.5.4",

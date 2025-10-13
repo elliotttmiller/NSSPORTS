@@ -33,7 +33,7 @@ export default function Home() {
   // Display first 5 live matches as trending
   const trendingGames = liveMatches.slice(0, 5);
 
-  const displayName = session?.user?.email || session?.user?.name || 'NorthStar User';
+  const displayName = session?.user?.name || 'NorthStar User';
 
   return (
     <div className="bg-background text-foreground">

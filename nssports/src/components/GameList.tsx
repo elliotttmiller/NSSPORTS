@@ -93,8 +93,13 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange }: G
     return leagueGroups;
   };
 
+  // Always filter out finished games unless status is explicitly 'finished'
   const visibleGames = useMemo(() => {
-    return status ? allGames.filter(g => g.status === status) : allGames;
+    if (status === 'finished') {
+      return allGames.filter(g => g.status === 'finished');
+    }
+    // Default: exclude finished games
+    return allGames.filter(g => g.status !== 'finished');
   }, [allGames, status]);
 
   const groupedByLeague = useMemo(() => groupGamesByLeagueAndDate(visibleGames), [visibleGames]);

@@ -19,6 +19,9 @@ interface MobileAccountDropdownProps {
 }
 
 function MobileAccountDropdown({ balance, available, risk, isAuthenticated, userEmail, onLogout }: MobileAccountDropdownProps) {
+  // Sync username for display, matching homepage logic
+  const { data: session } = useSession();
+  const displayName = session?.user?.name;
   const [showDropdown, setShowDropdown] = useState(false);
 
   return (
@@ -47,7 +50,12 @@ function MobileAccountDropdown({ balance, available, risk, isAuthenticated, user
           <div className="fixed top-20 right-4 w-64 bg-card border border-border rounded-xl shadow-2xl z-50 max-w-[calc(100vw-32px)]">
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-border">
-              <h3 className="font-semibold text-foreground">Account</h3>
+              <div>
+                <h3 className="font-semibold text-foreground">Account</h3>
+                  {isAuthenticated && displayName && (
+                    <p className="text-xs text-muted-foreground mt-1">{displayName}</p>
+                  )}
+              </div>
               <Button
                 variant="ghost"
                 size="sm"
@@ -244,9 +252,9 @@ export function Header() {
                 onMouseEnter={() => setShowDropdown(true)}
                 onMouseLeave={() => setShowDropdown(false)}
               >
-                {session?.user?.email && (
+                {session?.user?.name && (
                   <div className="px-4 pt-4 pb-2 border-b border-border">
-                    <p className="text-xs text-muted-foreground truncate">{session.user.email}</p>
+                    <p className="text-xs text-muted-foreground truncate">{session.user.name}</p>
                   </div>
                 )}
                 <div className="p-4 space-y-2">

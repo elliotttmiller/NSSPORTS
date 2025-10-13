@@ -18,7 +18,7 @@ export default function LeaguePage() {
   const { data, isLoading } = usePaginatedGames({ leagueId, page, limit });
   let games: Game[] = [];
   if (data && typeof data === 'object' && data !== null) {
-    games = (data as { data?: Game[] }).data ?? [];
+    games = ((data as { data?: Game[] }).data ?? []).filter(g => g.status !== 'finished');
   }
   useEffect(() => {
     getLeague(leagueId).then((leagueData) => setLeague(leagueData || null));
