@@ -180,7 +180,7 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange }: G
   });
 
   return (
-  <div className="space-y-6 [scroll-behavior:smooth] [overscroll-behavior:contain]" ref={containerRef}>
+  <div className="space-y-6" ref={containerRef} style={{ scrollBehavior: 'smooth', overscrollBehavior: 'contain' }}>
       {isLoading && allGames.length === 0 ? (
         <div className="text-center py-12">
           <div className="animate-spin w-8 h-8 border-2 border-accent border-t-transparent rounded-full mx-auto mb-4"></div>
@@ -197,11 +197,11 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange }: G
       ) : (
         <>
           {/* Single date filter bar for all leagues */}
-          <div className="flex gap-2 overflow-x-auto py-2 px-1 bg-background border-b border-border sticky top-0 z-20">
+          <div className="flex gap-2 overflow-x-auto py-2 px-1 bg-background border-b border-border sticky top-0 z-20" style={{ willChange: 'scroll-position', WebkitOverflowScrolling: 'touch' }}>
             {uniqueSortedDates.map((dateStr) => (
               <button
                 key={dateStr}
-                className={`px-4 py-2 rounded-full font-medium whitespace-nowrap transition-colors ${selectedDate === dateStr ? 'bg-accent text-accent-foreground shadow' : 'bg-muted/10 text-muted-foreground hover:bg-accent/10'}`}
+                className={`px-4 py-2 rounded-full font-medium whitespace-nowrap transition-all duration-150 ${selectedDate === dateStr ? 'bg-accent text-accent-foreground shadow' : 'bg-muted/10 text-muted-foreground hover:bg-accent/10'}`}
                 onClick={() => setSelectedDate(dateStr)}
               >
                 {dateStr}
@@ -215,18 +215,20 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange }: G
             </div>
           )}
           {/* Virtualized list of league headers + games for selected date */}
-          {/* Virtual scrolling requires dynamic height calculation */}
-          <div className="relative [contain:layout_paint_size] [will-change:transform]" style={{ height: virtualizer.getTotalSize() }}>
+          <div style={{ height: virtualizer.getTotalSize(), position: 'relative', contain: 'layout paint size', willChange: 'transform' }}>
             {virtualizer.getVirtualItems().map((vi) => {
               const it = (items as Item[])[vi.index];
               if (!it) return null;
               return (
-                // Virtual item positioning requires dynamic transform
                 <div
                   key={it.key}
-                  className="absolute top-0 left-0 w-full [will-change:transform]"
                   style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
                     transform: `translate3d(0, ${vi.start}px, 0)`,
+                    willChange: 'transform',
                   }}
                   data-index={vi.index}
                   // Attach the measure ref so the virtualizer remeasures on size changes

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -310,7 +311,7 @@ export async function POST(req: Request) {
           } else {
             SingleBetResponseSchema.parse(existingBet as any);
           }
-        } catch (_) {
+        } catch {
           // If validation fails, still return the raw existing bet for idempotency contract
         }
         return successResponse(JSON.parse(JSON.stringify(existingBet)), 200);
@@ -331,6 +332,33 @@ export async function POST(req: Request) {
 
     // Use transaction to ensure data consistency
     const result = await prisma.$transaction(async (tx) => {
+      // Check if user has sufficient balance
+      const account = await tx.account.findUnique({
+        where: { userId },
+        select: { balance: true },
+      });
+
+      if (!account) {
+        throw new Error("Account not found");
+      }
+
+      const currentBalance = Number(account.balance);
+      const stakeAmount = Number(data.stake);
+
+      if (currentBalance < stakeAmount) {
+        throw new Error(`Insufficient balance. Available: $${currentBalance.toFixed(2)}, Required: $${stakeAmount.toFixed(2)}`);
+      }
+
+      // Deduct stake from account balance
+      await tx.account.update({
+        where: { userId },
+        data: {
+          balance: {
+            decrement: stakeAmount,
+          },
+        },
+      });
+
     // For parlay bets
     if (data.betType === "parlay") {
       logger.info('Creating parlay bet', { legs: data.legs.length });

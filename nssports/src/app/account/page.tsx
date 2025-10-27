@@ -5,18 +5,17 @@ import { Card, CardContent, CardHeader, CardTitle, Input, Button, Separator } fr
 import { formatCurrency } from "@/lib/formatters";
 import Link from "next/link";
 import { useBetHistory } from "@/context";
+import { useAccount } from "@/hooks/useAccount";
 
 export default function AccountPage() {
-  const [profile] = useState({
-    username: 'JohnDoe123',
-    email: 'john.doe@example.com',
-    phoneNumber: '+1 (555) 123-4567',
-    dateJoined: '2023-01-15',
-    accountBalance: 1250.75,
-    totalWagered: 15000.00,
-    totalWon: 12500.00,
-    winRate: 68.5
-  });
+  const { data: account, isLoading: accountLoading, error: accountError, refetch: refetchAccount } = useAccount();
+  const { placedBets } = useBetHistory();
+  
+  // Real-time account data from API
+  const balance = account?.balance ?? 0;
+  const available = account?.available ?? 0;
+  const risk = account?.risk ?? 0;
+  const activeBetsCount = (placedBets || []).filter(b => b.status === 'pending').length;
 
   const [settings, setSettings] = useState({
     notifications: true,
@@ -24,27 +23,71 @@ export default function AccountPage() {
     defaultStake: 10,
   });
 
-  const { placedBets } = useBetHistory();
-  const activeBetsCount = (placedBets || []).filter(b => b.status === 'pending').length;
+  // Show loading state
+  if (accountLoading) {
+    return (
+      <div className="bg-background min-h-screen">
+        <div className="container mx-auto px-4 py-6 max-w-screen-2xl">
+          <div className="space-y-6">
+            <div className="text-center py-12">
+              <div className="animate-spin w-8 h-8 border-2 border-accent border-t-transparent rounded-full mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Loading account...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state with retry
+  if (accountError) {
+    return (
+      <div className="bg-background min-h-screen">
+        <div className="container mx-auto px-4 py-6 max-w-screen-2xl">
+          <Card>
+            <CardContent className="text-center py-12">
+              <p className="text-destructive mb-2">Failed to load account data</p>
+              <p className="text-sm text-muted-foreground mb-4">
+                {accountError instanceof Error ? accountError.message : 'Please check your connection and try again.'}
+              </p>
+              <Button onClick={() => refetchAccount()} variant="outline">
+                Retry
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-background">
       <div className="container mx-auto px-4 py-6 max-w-screen-2xl">
         <div className="space-y-6">
         {/* Page Header */}
-        <div>
-          <h1 className="text-3xl font-bold">Account Settings</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage your profile and preferences
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Account Settings</h1>
+            <p className="text-muted-foreground mt-1">
+              Manage your profile and preferences
+            </p>
+          </div>
+          <Button 
+            onClick={() => refetchAccount()} 
+            variant="outline" 
+            size="sm"
+            className="transition-all duration-150"
+          >
+            Refresh Balance
+          </Button>
         </div>
 
         {/* Summary Stats Grid - Desktop & Mobile */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2 mb-8">
           {[ 
-            { label: "Balance", value: formatCurrency(profile.accountBalance), color: "text-foreground" },
-            { label: "Available", value: formatCurrency(profile.accountBalance), color: "text-foreground" },
-            { label: "Risk", value: formatCurrency(0), color: "text-destructive" },
+            { label: "Balance", value: formatCurrency(balance), color: "text-foreground" },
+            { label: "Available", value: formatCurrency(available), color: "text-foreground" },
+            { label: "Risk", value: formatCurrency(risk), color: "text-destructive" },
             { label: "Active Bets", value: activeBetsCount, color: "text-foreground" },
           ].map((stat) => {
             const content = (

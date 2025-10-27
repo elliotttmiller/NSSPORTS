@@ -10,6 +10,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { placeSingleBetAction, placeParlayBetAction, placeBetsAction } from "@/app/actions/bets";
 import type { Bet } from "@/types";
 import { betQueryKeys } from "./useBetHistory";
+import { ACCOUNT_QUERY_KEY } from "./useAccount";
 
 /**
  * Hook to place bets using Server Actions
@@ -86,8 +87,11 @@ export function usePlaceBetWithActions() {
       // The revalidatePath in Server Actions handles cache invalidation,
       // but we also manually invalidate React Query cache for immediate UI update
       queryClient.invalidateQueries({ queryKey: betQueryKeys.history() });
+      
+      // Invalidate account data to update balance/available/risk immediately
+      queryClient.invalidateQueries({ queryKey: ACCOUNT_QUERY_KEY });
     },
-    onError: (err) => {
+    onError: (err: Error) => {
       console.error("Failed to place bet:", err);
     },
   });
@@ -143,8 +147,11 @@ export function usePlaceMultipleBetsWithActions() {
     onSuccess: () => {
       // Invalidate queries to trigger refetch
       queryClient.invalidateQueries({ queryKey: betQueryKeys.history() });
+      
+      // Invalidate account data to update balance/available/risk immediately
+      queryClient.invalidateQueries({ queryKey: ACCOUNT_QUERY_KEY });
     },
-    onError: (err) => {
+    onError: (err: Error) => {
       console.error("Failed to place bets:", err);
     },
   });
