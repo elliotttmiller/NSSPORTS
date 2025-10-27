@@ -42,13 +42,14 @@ export async function GET(
       const startsBefore = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
       
       // Use hybrid cache (Prisma + SDK)
-      // CRITICAL: Must include oddID parameter to get betting lines!
+      // Use main lines with proper oddID format for 50-90% payload reduction
       const response = await getEventsWithCache({
         leagueID: apiLeagueId,
         startsAfter: startsAfter.toISOString(),
         startsBefore: startsBefore.toISOString(),
         oddsAvailable: true,
-        oddID: 'ml,sp,ou', // Abbreviated format: moneyline, spread, over/under
+        oddID: 'game-ml,game-ats,game-ou', // Main lines: moneyline, spread, total
+        includeOpposingOdds: true, // Get both sides of each market
         limit: 100,
       });
       

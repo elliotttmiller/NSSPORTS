@@ -11,13 +11,16 @@
  * 
  * Key Official SDK Patterns:
  * 1. Odds Filtering: oddID parameter for 50-90% payload reduction
+ *    - Main lines: "game-ml,game-ats,game-ou" (moneyline, spread, total)
+ *    - Player props: "points-PLAYER_ID-game-ou" (wildcard for all players)
  * 2. Streaming: client.stream.events({ feed: 'events:live' }) for real-time odds
  * 3. Markets: Fetch specific bet types (moneyline, spread, total, props)
  * 4. Bookmakers: Multi-sportsbook odds aggregation
+ * 5. includeOpposingOdds: Get both sides of markets (home/away, over/under)
  * 
  * Documentation:
  * - SDK: https://sportsgameodds.com/docs/sdk
- * - Odds Filtering: https://sportsgameodds.com/docs/guides/odds-filtering
+ * - Odds Filtering: https://sportsgameodds.com/docs/guides/response-speed
  * - Streaming: https://sportsgameodds.com/docs/guides/realtime-streaming-api
  * - Markets: https://sportsgameodds.com/docs/data-types/markets
  * 
@@ -91,9 +94,9 @@ export async function getEvents(options: {
   leagueID?: string; // NBA, NFL, NHL (uppercase)
   eventIDs?: string | string[];
   oddsAvailable?: boolean; // TRUE = only events with active odds
-  oddID?: string; // Filter specific markets (e.g., "ml,sp,ou" for main lines)
+  oddID?: string; // Filter specific markets (e.g., "game-ml,game-ats,game-ou" for main lines)
   bookmakerID?: string; // Filter specific sportsbooks
-  includeOpposingOdds?: boolean; // Get both sides of markets
+  includeOpposingOdds?: boolean; // Get both sides of markets (recommended: true)
   live?: boolean; // Live games with changing odds
   finalized?: boolean; // FALSE = upcoming/live games only
   limit?: number;

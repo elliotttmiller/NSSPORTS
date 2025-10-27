@@ -29,14 +29,16 @@ async function getCachedAllGames() {
   const fetchLimit = isDevelopment ? 5 : 100; // Only fetch 5 games per league in dev mode
   
   // Fetch from multiple leagues in parallel
-  // Get ALL available odds (will filter specific markets in transformer)
+  // Use MAIN_LINES preset for optimal performance (50-90% payload reduction)
+  // Fetches: moneyline, spread, total - the core betting markets
   const [nbaResult, nflResult, nhlResult] = await Promise.allSettled([
     getEventsWithCache({ 
       leagueID: 'NBA',
       startsAfter: startsAfter.toISOString(),
       startsBefore: startsBefore.toISOString(),
       oddsAvailable: true,
-      // Removed oddID to get all available odds
+      oddID: 'game-ml,game-ats,game-ou', // Main lines only (moneyline, spread, total)
+      includeOpposingOdds: true, // Get both sides of each market
       limit: fetchLimit,
     }),
     getEventsWithCache({ 
@@ -44,7 +46,8 @@ async function getCachedAllGames() {
       startsAfter: startsAfter.toISOString(),
       startsBefore: startsBefore.toISOString(),
       oddsAvailable: true,
-      // Removed oddID to get all available odds
+      oddID: 'game-ml,game-ats,game-ou', // Main lines only
+      includeOpposingOdds: true,
       limit: fetchLimit,
     }),
     getEventsWithCache({ 
@@ -52,7 +55,8 @@ async function getCachedAllGames() {
       startsAfter: startsAfter.toISOString(),
       startsBefore: startsBefore.toISOString(),
       oddsAvailable: true,
-      // Removed oddID to get all available odds
+      oddID: 'game-ml,game-ats,game-ou', // Main lines only
+      includeOpposingOdds: true,
       limit: fetchLimit,
     }),
   ]);
