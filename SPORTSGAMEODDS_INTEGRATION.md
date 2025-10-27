@@ -161,8 +161,9 @@ const { data: events } = await getEvents({
 ```typescript
 import { getPlayerProps } from '@/lib/sportsgameodds-sdk';
 
-const props = await getPlayerProps('event-id-123', {
-  propType: 'points',
+// Get the event ID from the events response or database
+const props = await getPlayerProps('actual-event-id-from-api', {
+  propType: 'points', // Optional: filter by prop type
 });
 ```
 
@@ -301,13 +302,19 @@ Expected: Grouped game props by type
 
 ## Legacy Code
 
-### Deprecated Files (Can be removed)
-- `src/lib/the-odds-api.ts` - Old API integration
-- `src/lib/transformers/odds-api.ts` - Old data transformer
-- `src/lib/the-odds-api.test.ts` - Old tests
-- `src/lib/transformers/odds-api.test.ts` - Old transformer tests
+### Deprecated Files (Still in codebase for reference)
+The following files are no longer used in the application but remain in the codebase for reference:
+- `src/lib/the-odds-api.ts` - Old API integration (not imported anywhere except tests)
+- `src/lib/transformers/odds-api.ts` - Old data transformer (not used in production code)
+- `src/lib/the-odds-api.test.ts` - Tests for old API
+- `src/lib/transformers/odds-api.test.ts` - Tests for old transformer
 
-These files are no longer used but kept for reference. They can be safely deleted in a cleanup PR.
+**Status**: These files can be safely deleted in a future cleanup PR, but are kept for now to:
+1. Provide reference for the migration
+2. Maintain git history for comparison
+3. Allow easy rollback if needed during transition period
+
+**Note**: No production code imports from these files. All active routes and components use the sportsgameodds SDK.
 
 ## Conclusion
 
