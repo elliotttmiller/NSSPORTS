@@ -26,7 +26,7 @@ if (!API_KEY) {
   process.exit(1);
 }
 
-console.log('🔑 API Key found:', API_KEY.substring(0, 8) + '...');
+console.log('🔑 API Key configured: ✓');
 console.log('');
 
 async function testLeaguesEndpoint() {
