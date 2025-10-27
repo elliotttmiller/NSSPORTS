@@ -45,15 +45,26 @@ const statTypeMetadata: Record<string, { displayName: string }> = {
   Touchdowns: { displayName: "Touchdowns" },
 };
 
+// Helper function to format category names for display (capitalize first letter of each word)
+const formatCategoryName = (category: string): string => {
+  return category
+    .split(/([+-])/) // Split on + or - while keeping the separators
+    .map(part => {
+      if (part === '+' || part === '-') return part;
+      return part.charAt(0).toUpperCase() + part.slice(1);
+    })
+    .join('');
+};
+
 export function StatTypeCategory({ statType, game, defaultOpen = false }: StatTypeCategoryProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
   
   const metadata = statTypeMetadata[statType.name] || {
-    displayName: statType.name,
+    displayName: formatCategoryName(statType.name),
   };
 
   return (
-    <div className="border border-border rounded-lg overflow-hidden bg-card/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-all duration-200">
+    <div className="relative z-0 border border-border rounded-lg overflow-hidden bg-card/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-all duration-200">
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={cn(

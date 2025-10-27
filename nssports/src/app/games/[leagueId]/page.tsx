@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Image from "next/image";
 import { ProfessionalGameRow, CompactMobileGameRow, MobileGameTableHeader, DesktopGameTableHeader } from "@/components/features/games";
 import { getLeague } from "@/services/api";
 import { usePaginatedGames } from "@/hooks/usePaginatedGames";
+import { RefreshCw } from "lucide-react";
 import type { Game, League } from "@/types";
 
 export default function LeaguePage() {
@@ -13,13 +14,22 @@ export default function LeaguePage() {
   const leagueId = params.leagueId as string;
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [league, setLeague] = useState<League | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const page = 1;
   const limit = 100;
-  const { data, isLoading } = usePaginatedGames({ leagueId, page, limit });
+  const { data, isLoading, refetch } = usePaginatedGames({ leagueId, page, limit });
   let games: Game[] = [];
   if (data && typeof data === 'object' && data !== null) {
     games = ((data as { data?: Game[] }).data ?? []).filter(g => g.status !== 'finished');
   }
+  
+  // Manual refresh handler
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    await refetch();
+    setIsRefreshing(false);
+  }, [refetch]);
+  
   useEffect(() => {
     getLeague(leagueId).then((leagueData) => setLeague(leagueData || null));
   }, [leagueId]);
@@ -71,9 +81,20 @@ export default function LeaguePage() {
           </div>
         </div>
 
-        {/* Horizontal date tabs bar */}
+        {/* Horizontal date tabs bar with refresh button */}
         {games.length > 0 && (
-          <div className="flex gap-2 overflow-x-auto py-2 px-1 bg-background border-b border-border sticky top-0 z-20">
+          <div className="flex items-center gap-2 overflow-x-auto py-2 px-1 bg-background border-b border-border sticky top-0 z-20">
+            {/* Refresh Button */}
+            <button
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="flex items-center gap-2 px-4 py-2 rounded-full font-medium whitespace-nowrap transition-all duration-150 bg-accent/10 text-accent hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Refresh odds and games"
+            >
+              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">Refresh</span>
+            </button>
+            {/* Date Filters */}
             {sortedDates.map((dateStr) => (
               <button
                 key={dateStr}

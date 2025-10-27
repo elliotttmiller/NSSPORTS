@@ -7,11 +7,26 @@ import { GamePropRow } from "./GamePropRow";
 import { Game } from "@/types";
 import { motion, AnimatePresence } from "framer-motion";
 
+// Define the prop structure that matches the actual API data
+export interface GamePropData {
+  marketID: string;
+  marketCategory: string;
+  propType: string;
+  outcomes: Array<{
+    id: string;
+    description: string;
+    selection: string;
+    odds: number;
+    line?: number;
+    sideID: string;
+  }>;
+}
+
 interface GamePropCategoryProps {
   category: {
     name: string;
     displayName: string;
-    props: Record<string, any[]>;
+    props: Record<string, GamePropData[]>;
   };
   game: Game;
   defaultOpen?: boolean;
@@ -27,7 +42,7 @@ export function GamePropCategory({ category, game, defaultOpen = false }: GamePr
   );
 
   return (
-    <div className="border border-border rounded-lg overflow-hidden bg-card/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-all duration-200">
+    <div className="relative z-0 border border-border rounded-lg overflow-hidden bg-card/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-all duration-200">
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
@@ -83,7 +98,7 @@ export function GamePropCategory({ category, game, defaultOpen = false }: GamePr
                 <div className="space-y-2">
                   {Object.entries(category.props).map(([propType, props]) => (
                     <div key={propType} className="space-y-1">
-                      {props.map((prop: any) => (
+                      {props.map((prop) => (
                         <GamePropRow key={prop.marketID} prop={prop} game={game} />
                       ))}
                     </div>

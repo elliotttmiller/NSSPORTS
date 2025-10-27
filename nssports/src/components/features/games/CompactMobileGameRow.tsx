@@ -377,13 +377,13 @@ export const CompactMobileGameRow = memo(({ game }: Props) => {
             animate={{ height: expanded ? "auto" : 0, opacity: expanded ? 1 : 0 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="overflow-hidden bg-muted/20 border-t border-border rounded-b-lg shadow-md"
+            className="overflow-hidden bg-muted/20 border-t border-border rounded-b-lg shadow-lg"
             onAnimationComplete={() => {
               if (!expanded) setShouldRenderDropdown(false);
             }}
           >
             <div 
-              className="h-[400px] overflow-y-auto seamless-scroll px-4 py-4"
+              className="max-h-[70vh] overflow-y-auto seamless-scroll px-4 py-4"
               data-mobile-scroll
               style={{ 
                 overscrollBehavior: 'contain',

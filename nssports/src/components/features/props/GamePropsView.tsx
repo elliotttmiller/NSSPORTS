@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import { Game } from "@/types";
 import { GamePropsMap } from "@/hooks/useGameProps";
-import { GamePropCategory } from "./GamePropCategory";
+import { GamePropCategory, GamePropData } from "./GamePropCategory";
 import { cn } from "@/lib/utils";
 
 interface GamePropsViewProps {
@@ -27,11 +27,12 @@ export function GamePropsView({ game, gameProps }: GamePropsViewProps) {
   const [activeCategory, setActiveCategory] = useState<string>("all");
 
   // Group props by market category
+  // Cast gameProps to the correct structure (API returns proper structure, but hook type is simplified)
   const propsByCategory = useMemo(() => {
-    const grouped: Record<string, typeof gameProps> = {};
+    const grouped: Record<string, Record<string, GamePropData[]>> = {};
     
-    Object.entries(gameProps).forEach(([propType, props]) => {
-      props.forEach((prop: any) => {
+    Object.entries(gameProps as unknown as Record<string, GamePropData[]>).forEach(([propType, props]) => {
+      props.forEach((prop) => {
         const category = prop.marketCategory || "Other Props";
         if (!grouped[category]) {
           grouped[category] = {};
@@ -59,7 +60,7 @@ export function GamePropsView({ game, gameProps }: GamePropsViewProps) {
   // Filter props based on selected category
   const filteredProps = useMemo(() => {
     if (activeCategory === "all") {
-      return gameProps;
+      return gameProps as unknown as Record<string, GamePropData[]>;
     }
     return propsByCategory[activeCategory] || {};
   }, [activeCategory, gameProps, propsByCategory]);
@@ -78,11 +79,11 @@ export function GamePropsView({ game, gameProps }: GamePropsViewProps) {
   }
 
   return (
-    <div className="space-y-4">
-      {/* Category Tabs */}
-      <div className="border-b border-border">
+    <div className="space-y-4 isolate">
+      {/* Category Tabs - Sticky (positioned below parent tabs) */}
+      <div className="sticky top-[3.5rem] z-[15] bg-background border-b border-border pb-2 -mx-6 px-6 md:-mx-8 md:px-8 xl:-mx-12 xl:px-12 pt-2">
         <div 
-          className="flex gap-1 overflow-x-auto pb-2 scrollbar-hide"
+          className="flex gap-1 overflow-x-auto scrollbar-hide min-w-0"
           data-mobile-scroll
           style={{ 
             overscrollBehaviorX: 'contain',
@@ -125,7 +126,7 @@ export function GamePropsView({ game, gameProps }: GamePropsViewProps) {
         </div>
       ) : activeCategory === "all" ? (
         <div className="space-y-3">
-          {categories.map((category, index) => (
+          {categories.map((category) => (
             <GamePropCategory
               key={category}
               category={{
@@ -134,7 +135,7 @@ export function GamePropsView({ game, gameProps }: GamePropsViewProps) {
                 props: propsByCategory[category],
               }}
               game={game}
-              defaultOpen={index === 0}
+              defaultOpen={false}
             />
           ))}
         </div>

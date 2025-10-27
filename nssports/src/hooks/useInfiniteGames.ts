@@ -20,7 +20,8 @@ export function useInfiniteGames({ leagueId, status, limit = 10 }: UseInfiniteGa
         ? lastPage.pagination.page + 1
         : undefined;
     },
-    staleTime: 30 * 1000,
-    refetchOnWindowFocus: true,
+    staleTime: 30 * 1000, // Consider data stale after 30 seconds
+    refetchOnWindowFocus: true, // Refetch when user returns to tab
+    // No automatic polling - only refetch on mount, manual refresh, or window focus
   });
 }

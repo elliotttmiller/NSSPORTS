@@ -260,10 +260,12 @@ async function updateOddsCache(gameId: string, oddsData: any) {
       
       // Debug logging for total odds
       if (oddID.includes('-game-ou-')) {
-        logger.debug(`Total odd: ${oddID}`, {
+        const isMainTotal = oddID.includes('-all-game-ou-');
+        logger.debug(`${isMainTotal ? 'MAIN' : 'TEAM'} Total odd: ${oddID}`, {
           consensusTotal,
           actualTotal,
           oddsValue,
+          willStore: isMainTotal,
         });
       }
       
@@ -291,8 +293,10 @@ async function updateOddsCache(gameId: string, oddsData: any) {
           // Fallback to actual if consensus not available
           line = parseFloat(String(actualSpread));
         }
-      } else if (oddID.includes('-game-ou-')) {
-        // CRITICAL: Must match "-game-ou-" for main game totals only
+      } else if (oddID.includes('-all-game-ou-')) {
+        // CRITICAL: ONLY match "points-all-game-ou-" for MAIN game total
+        // Excludes team totals: "points-home-game-ou-" and "points-away-game-ou-"
+        // This ensures we only display the consensus game total, not individual team totals
         betType = 'total';
         selection = oddID.includes('-over') ? 'over' : 'under';
         

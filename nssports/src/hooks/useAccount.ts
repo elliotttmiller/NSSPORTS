@@ -15,9 +15,9 @@ export function useAccount() {
 			const payload = json?.data ?? json;
 			return AccountSchema.parse(payload) as Account;
 		},
-		refetchOnWindowFocus: true,
-		refetchInterval: 5000, // Poll every 5 seconds for real-time updates
-		staleTime: 0, // Always consider data stale to ensure fresh fetches
+		refetchOnWindowFocus: true, // Refetch when user returns to tab (if stale)
+		staleTime: 30 * 1000, // Consider data stale after 30 seconds
+		// No automatic polling - balance updates on bet placement, manual refresh, or window focus
 	});
 }
 

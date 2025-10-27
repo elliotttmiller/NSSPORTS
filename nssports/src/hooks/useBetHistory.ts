@@ -15,10 +15,10 @@ export const betQueryKeys = {
  * Hook to fetch bet history with React Query
  * 
  * Features:
- * - Automatic refetch every 30 seconds for live bet status updates
+ * - Manual refresh via refetch function for live bet status updates
  * - Returns empty array on authentication errors (graceful degradation)
  * - Retries on network errors with exponential backoff
- * - Refetches on window focus for up-to-date status
+ * - Refetches on window focus when data is stale (30s)
  */
 export function useBetHistoryQuery() {
   return useQuery({
@@ -27,14 +27,13 @@ export function useBetHistoryQuery() {
       const data = await getBetHistory();
       return data as PlacedBet[];
     },
-    // Refetch every 30 seconds for live updates
-    refetchInterval: 30 * 1000,
-    // Always refetch on window focus to ensure data is fresh
+    // Refetch when user returns to tab (if stale)
     refetchOnWindowFocus: true,
     // Keep data in cache for 5 minutes
     gcTime: 5 * 60 * 1000,
     // Consider data stale after 30 seconds
     staleTime: 30 * 1000,
+    // No automatic polling - only refetch on mount, manual refresh, or window focus
     // Retry on network errors but not on auth errors (handled in getBetHistory)
     retry: (failureCount, error) => {
       // Don't retry on auth errors - getBetHistory already handles 401

@@ -29,25 +29,28 @@ function PropsDisplay({ game }: { game: Game }) {
 
   return (
     <div className="w-full">
-      <div className="inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground mb-4">
-        <button
-          onClick={() => setActiveTab('player')}
-          className={cn(
-            "inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium transition-all",
-            activeTab === 'player' && "bg-background text-foreground shadow-sm"
-          )}
-        >
-          Player Props
-        </button>
-        <button
-          onClick={() => setActiveTab('game')}
-          className={cn(
-            "inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium transition-all",
-            activeTab === 'game' && "bg-background text-foreground shadow-sm"
-          )}
-        >
-          Game Props
-        </button>
+      {/* Sticky Header Container */}
+      <div className="sticky top-0 z-20 bg-background pb-4 -mx-6 px-6 md:-mx-8 md:px-8 xl:-mx-12 xl:px-12">
+        <div className="inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground">
+          <button
+            onClick={() => setActiveTab('player')}
+            className={cn(
+              "inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium transition-all",
+              activeTab === 'player' && "bg-background text-foreground shadow-sm"
+            )}
+          >
+            Player Props
+          </button>
+          <button
+            onClick={() => setActiveTab('game')}
+            className={cn(
+              "inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium transition-all",
+              activeTab === 'game' && "bg-background text-foreground shadow-sm"
+            )}
+          >
+            Game Props
+          </button>
+        </div>
       </div>
 
       {activeTab === 'player' && (
@@ -374,10 +377,10 @@ export function ProfessionalGameRow({
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="overflow-hidden bg-muted/20 border-t border-border rounded-b-lg shadow-md"
+            className="overflow-hidden bg-muted/20 border-t border-border rounded-b-lg shadow-lg"
           >
             <div 
-              className="h-[500px] overflow-y-auto seamless-scroll px-4 py-4 [overscroll-behavior:contain]"
+              className="max-h-[70vh] md:max-h-[75vh] lg:max-h-[80vh] overflow-y-auto seamless-scroll px-6 py-6 md:px-8 md:py-6 xl:px-12 xl:py-8 [overscroll-behavior:contain]"
               onWheel={(e) => e.stopPropagation()}
               onTouchMove={(e) => e.stopPropagation()}
             >
