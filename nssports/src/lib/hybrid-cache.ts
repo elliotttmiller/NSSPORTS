@@ -45,6 +45,9 @@ export async function getEventsWithCache(options: {
   leagueID?: string;
   eventIDs?: string | string[];
   oddsAvailable?: boolean;
+  oddID?: string; // Filter specific markets (e.g., "moneyline,spread,total")
+  bookmakerID?: string; // Filter specific sportsbooks
+  includeOpposingOdds?: boolean; // Get both sides of markets
   live?: boolean;
   finalized?: boolean;
   limit?: number;

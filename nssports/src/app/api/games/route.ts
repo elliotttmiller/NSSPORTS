@@ -24,28 +24,36 @@ async function getCachedAllGames() {
   const startsAfter = new Date(now.getTime() - 4 * 60 * 60 * 1000); // 4 hours ago
   const startsBefore = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
   
+  // Development-friendly limits: fetch only what we need (3-5 games per league)
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  const fetchLimit = isDevelopment ? 5 : 100; // Only fetch 5 games per league in dev mode
+  
   // Fetch from multiple leagues in parallel
+  // CRITICAL: Must include oddID parameter to get betting lines!
   const [nbaResult, nflResult, nhlResult] = await Promise.allSettled([
     getEventsWithCache({ 
       leagueID: 'NBA',
       startsAfter: startsAfter.toISOString(),
       startsBefore: startsBefore.toISOString(),
       oddsAvailable: true,
-      limit: 100,
+      oddID: 'moneyline,spread,total', // Fetch main betting lines
+      limit: fetchLimit,
     }),
     getEventsWithCache({ 
       leagueID: 'NFL',
       startsAfter: startsAfter.toISOString(),
       startsBefore: startsBefore.toISOString(),
       oddsAvailable: true,
-      limit: 100,
+      oddID: 'moneyline,spread,total', // Fetch main betting lines
+      limit: fetchLimit,
     }),
     getEventsWithCache({ 
       leagueID: 'NHL',
       startsAfter: startsAfter.toISOString(),
       startsBefore: startsBefore.toISOString(),
       oddsAvailable: true,
-      limit: 100,
+      oddID: 'moneyline,spread,total', // Fetch main betting lines
+      limit: fetchLimit,
     }),
   ]);
   

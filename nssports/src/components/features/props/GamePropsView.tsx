@@ -58,8 +58,13 @@ export function GamePropsView({ game, gameProps }: GamePropsViewProps) {
 
   if (propTypes.length === 0) {
     return (
-      <div className="text-center py-8 text-sm text-muted-foreground">
-        No game props available for this game.
+      <div className="text-center py-8 px-4">
+        <div className="text-sm text-muted-foreground mb-2">
+          No game props available yet.
+        </div>
+        <div className="text-xs text-muted-foreground/70">
+          Game props typically become available 1-2 hours before game time.
+        </div>
       </div>
     );
   }

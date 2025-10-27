@@ -42,11 +42,13 @@ export async function GET(
       const startsBefore = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
       
       // Use hybrid cache (Prisma + SDK)
+      // CRITICAL: Must include oddID parameter to get betting lines!
       const response = await getEventsWithCache({
         leagueID: apiLeagueId,
         startsAfter: startsAfter.toISOString(),
         startsBefore: startsBefore.toISOString(),
         oddsAvailable: true,
+        oddID: 'moneyline,spread,total', // Fetch main betting lines
         limit: 100,
       });
       
