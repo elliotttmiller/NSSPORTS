@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { withErrorHandling, successResponse, ApiErrors } from '@/lib/apiResponse';
-import { getPlayerProps, SportsGameOddsApiError } from '@/lib/sportsgameodds-api';
+import { getPlayerProps, SportsGameOddsApiError } from '@/lib/sportsgameodds-sdk';
 import { logger } from '@/lib/logger';
 import { unstable_cache } from 'next/cache';
 
@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic';
  */
 const getCachedPlayerProps = unstable_cache(
   async (eventId: string) => {
-    logger.info(`Fetching player props for event ${eventId}`);
+    logger.info(`Fetching player props for event ${eventId} from SDK`);
     
     try {
       const props = await getPlayerProps(eventId);
@@ -24,7 +24,7 @@ const getCachedPlayerProps = unstable_cache(
       throw error;
     }
   },
-  ['sportsgameodds-player-props'],
+  ['sportsgameodds-sdk-player-props'],
   {
     revalidate: 30,
     tags: ['player-props'],

@@ -203,6 +203,191 @@ export function calculateConsensusOdds(event: any) {
 }
 
 /**
+ * Extract player props from SDK event
+ * Handles all market types and properly structures prop data
+ */
+export function extractPlayerProps(event: any): any[] {
+  const props: any[] = [];
+  
+  if (!event.odds) return props;
+  
+  // Look for player prop markets
+  Object.entries(event.odds).forEach(([marketType, bookmakerOdds]: [string, any]) => {
+    // Player props typically have market types like 'player_points', 'player_rebounds', etc.
+    if (!marketType.startsWith('player_')) return;
+    
+    if (!Array.isArray(bookmakerOdds)) return;
+    
+    const propType = marketType.replace('player_', '');
+    
+    bookmakerOdds.forEach((bookmaker: any) => {
+      if (!bookmaker.outcomes) return;
+      
+      // Group outcomes by player
+      const playerGroups: Record<string, any[]> = {};
+      
+      bookmaker.outcomes.forEach((outcome: any) => {
+        const playerName = outcome.player?.name || outcome.name;
+        if (!playerGroups[playerName]) {
+          playerGroups[playerName] = [];
+        }
+        playerGroups[playerName].push(outcome);
+      });
+      
+      // Create props for each player
+      Object.entries(playerGroups).forEach(([playerName, outcomes]) => {
+        // Find over and under outcomes
+        const overOutcome = outcomes.find((o: any) => o.type === 'over' || o.name.includes('Over'));
+        const underOutcome = outcomes.find((o: any) => o.type === 'under' || o.name.includes('Under'));
+        
+        // Get line from either outcome
+        const line = overOutcome?.point || underOutcome?.point;
+        
+        props.push({
+          propID: `${event.eventID}_${marketType}_${playerName}_${bookmaker.bookmakerID}`,
+          eventID: event.eventID,
+          marketType,
+          propType,
+          player: {
+            playerID: overOutcome?.player?.playerID || underOutcome?.player?.playerID || playerName,
+            name: playerName,
+            teamID: overOutcome?.player?.teamID || underOutcome?.player?.teamID,
+            position: overOutcome?.player?.position || underOutcome?.player?.position,
+          },
+          line,
+          overOdds: overOutcome?.price,
+          underOdds: underOutcome?.price,
+          bookmakerID: bookmaker.bookmakerID,
+          bookmakerName: bookmaker.bookmakerName,
+          lastUpdated: bookmaker.lastUpdated || new Date().toISOString(),
+        });
+      });
+    });
+  });
+  
+  return props;
+}
+
+/**
+ * Extract game props from SDK event
+ * Handles all non-player-specific markets
+ */
+export function extractGameProps(event: any): any[] {
+  const props: any[] = [];
+  
+  if (!event.odds) return props;
+  
+  // Game props are markets that aren't player-specific or main markets
+  Object.entries(event.odds).forEach(([marketType, bookmakerOdds]: [string, any]) => {
+    // Skip player props and main markets
+    if (marketType.startsWith('player_')) return;
+    if (['moneyline', 'spread', 'total'].includes(marketType)) return;
+    
+    if (!Array.isArray(bookmakerOdds)) return;
+    
+    bookmakerOdds.forEach((bookmaker: any) => {
+      if (!bookmaker.outcomes) return;
+      
+      props.push({
+        marketID: `${event.eventID}_${marketType}_${bookmaker.bookmakerID}`,
+        eventID: event.eventID,
+        marketType,
+        bookmakerID: bookmaker.bookmakerID,
+        bookmakerName: bookmaker.bookmakerName,
+        outcomes: bookmaker.outcomes.map((outcome: any) => ({
+          name: outcome.name,
+          price: outcome.price,
+          point: outcome.point,
+          type: outcome.type,
+        })),
+        lastUpdated: bookmaker.lastUpdated || new Date().toISOString(),
+      });
+    });
+  });
+  
+  return props;
+}
+
+/**
+ * Fetch player props for a specific event using SDK
+ */
+export async function getPlayerProps(
+  eventID: string,
+  options: {
+    playerID?: string;
+    propType?: string;
+  } = {}
+) {
+  try {
+    logger.info(`Fetching player props for event ${eventID}`);
+    
+    const { data: events } = await getEvents({
+      eventIDs: eventID,
+      oddsAvailable: true,
+    });
+    
+    if (events.length === 0) {
+      return [];
+    }
+    
+    const event = events[0];
+    let playerProps = extractPlayerProps(event);
+    
+    // Apply filters
+    if (options.playerID) {
+      playerProps = playerProps.filter(p => p.player.playerID === options.playerID);
+    }
+    
+    if (options.propType) {
+      playerProps = playerProps.filter(p => p.propType === options.propType);
+    }
+    
+    logger.info(`Fetched ${playerProps.length} player props`);
+    return playerProps;
+  } catch (error) {
+    logger.error('Error fetching player props', error);
+    throw error;
+  }
+}
+
+/**
+ * Fetch game props for a specific event using SDK
+ */
+export async function getGameProps(
+  eventID: string,
+  options: {
+    propType?: string;
+  } = {}
+) {
+  try {
+    logger.info(`Fetching game props for event ${eventID}`);
+    
+    const { data: events } = await getEvents({
+      eventIDs: eventID,
+      oddsAvailable: true,
+    });
+    
+    if (events.length === 0) {
+      return [];
+    }
+    
+    const event = events[0];
+    let gameProps = extractGameProps(event);
+    
+    // Apply filters
+    if (options.propType) {
+      gameProps = gameProps.filter(p => p.marketType === options.propType);
+    }
+    
+    logger.info(`Fetched ${gameProps.length} game props`);
+    return gameProps;
+  } catch (error) {
+    logger.error('Error fetching game props', error);
+    throw error;
+  }
+}
+
+/**
  * Legacy compatibility exports
  */
 export { getSportsGameOddsClient as getClient };

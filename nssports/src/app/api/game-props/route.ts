@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { withErrorHandling, successResponse, ApiErrors } from '@/lib/apiResponse';
-import { getGameProps, SportsGameOddsApiError } from '@/lib/sportsgameodds-api';
+import { getGameProps, SportsGameOddsApiError } from '@/lib/sportsgameodds-sdk';
 import { logger } from '@/lib/logger';
 import { unstable_cache } from 'next/cache';
 
@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic';
  */
 const getCachedGameProps = unstable_cache(
   async (eventId: string) => {
-    logger.info(`Fetching game props for event ${eventId}`);
+    logger.info(`Fetching game props for event ${eventId} from SDK`);
     
     try {
       const props = await getGameProps(eventId);
@@ -24,7 +24,7 @@ const getCachedGameProps = unstable_cache(
       throw error;
     }
   },
-  ['sportsgameodds-game-props'],
+  ['sportsgameodds-sdk-game-props'],
   {
     revalidate: 30,
     tags: ['game-props'],
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
         }
         
         // Add each outcome as a separate prop
-        market.outcomes.forEach(outcome => {
+        market.outcomes.forEach((outcome: any) => {
           acc[propType].push({
             id: market.marketID,
             propType: market.marketType,
