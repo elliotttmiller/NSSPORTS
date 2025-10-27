@@ -13,6 +13,15 @@ export interface PlayerProp {
   category: string;
 }
 
+/**
+ * Fetch player props for a specific game
+ * 
+ * Optimized caching strategy:
+ * - 2-minute stale time (props don't change frequently)
+ * - 10-minute garbage collection (keep in memory longer)
+ * - No refetch on window focus (prevent unnecessary requests)
+ * - Only enabled when explicitly requested (lazy loading)
+ */
 export function usePlayerProps(gameId: string, enabled: boolean = true) {
   return useQuery({
     queryKey: ['playerProps', gameId],
@@ -25,7 +34,9 @@ export function usePlayerProps(gameId: string, enabled: boolean = true) {
       return data.data as PlayerProp[];
     },
     enabled,
-    staleTime: 60 * 1000, // Consider data fresh for 1 minute
-    gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
+    staleTime: 2 * 60 * 1000,     // 2 minutes (increased from 1 min)
+    gcTime: 10 * 60 * 1000,       // 10 minutes (increased from 5 min)
+    refetchOnWindowFocus: false,  // Prevent spam on tab switching
+    refetchOnReconnect: false,    // Props rarely change, no need to refetch
   });
 }

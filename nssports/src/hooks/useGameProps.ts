@@ -11,6 +11,15 @@ export interface GameProp {
 
 export type GamePropsMap = Record<string, GameProp[]>;
 
+/**
+ * Fetch game props for a specific game
+ * 
+ * Optimized caching strategy:
+ * - 2-minute stale time (game props don't change frequently)
+ * - 10-minute garbage collection (keep in memory longer)
+ * - No refetch on window focus (prevent unnecessary requests)
+ * - Only enabled when explicitly requested (lazy loading)
+ */
 export function useGameProps(gameId: string, enabled: boolean = true) {
   return useQuery({
     queryKey: ['gameProps', gameId],
@@ -23,7 +32,9 @@ export function useGameProps(gameId: string, enabled: boolean = true) {
       return data.data as GamePropsMap;
     },
     enabled,
-    staleTime: 60 * 1000, // Consider data fresh for 1 minute
-    gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
+    staleTime: 2 * 60 * 1000,     // 2 minutes (increased from 1 min)
+    gcTime: 10 * 60 * 1000,       // 10 minutes (increased from 5 min)
+    refetchOnWindowFocus: false,  // Prevent spam on tab switching
+    refetchOnReconnect: false,    // Props rarely change, no need to refetch
   });
 }

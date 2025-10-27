@@ -13,7 +13,7 @@ interface PlayerPropRowProps {
     playerId: string;
     playerName: string;
     position: string;
-    team: "home" | "away";
+    team: string; // Team abbreviation (e.g., "DET", "CLE")
     statType: string;
     line: number;
     overOdds: number;
@@ -54,6 +54,7 @@ export function PlayerPropRow({ prop, game }: PlayerPropRowProps) {
     } else {
       // Use the standard addBet API - for props we'll use the same signature
       // but the line will represent the prop line
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       addBet(game, "total", selection as any, odds, prop.line);
     }
   };
@@ -69,8 +70,8 @@ export function PlayerPropRow({ prop, game }: PlayerPropRowProps) {
             {prop.position}
           </span>
         </div>
-        <div className="text-xs text-muted-foreground mt-0.5 hidden md:block">
-          {prop.statType}
+        <div className="text-xs text-muted-foreground mt-0.5">
+          {prop.team}
         </div>
       </div>
 

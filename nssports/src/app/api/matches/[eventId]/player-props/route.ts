@@ -7,6 +7,25 @@ export const revalidate = 30;
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+/**
+ * Helper to convert teamID to full team name
+ * e.g., "DETROIT_PISTONS_NBA" -> "Detroit Pistons"
+ */
+function getTeamName(teamID: string | undefined): string {
+  if (!teamID) return 'N/A';
+  
+  const parts = teamID.split('_');
+  if (parts.length < 2) return teamID;
+  
+  // Remove the league suffix (NBA, NFL, NHL, etc.)
+  const nameParts = parts.slice(0, -1);
+  
+  // Convert to title case
+  return nameParts
+    .map(part => part.charAt(0) + part.slice(1).toLowerCase())
+    .join(' ');
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ eventId: string }> }
@@ -34,7 +53,8 @@ export async function GET(
         playerId: prop.player.playerID,
         playerName: prop.player.name,
         position: prop.player.position || 'N/A',
-        team: prop.player.teamID || 'unknown',
+        team: getTeamName(prop.player.teamID), // Convert to full name (e.g., "Detroit Pistons")
+        teamFull: prop.player.teamID || 'unknown', // Keep full teamID for reference
         statType: prop.propType,
         line: prop.line,
         overOdds: prop.overOdds,

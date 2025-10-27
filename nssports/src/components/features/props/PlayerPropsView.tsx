@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { Game } from "@/types";
 import { PlayerProp } from "@/hooks/usePlayerProps";
 import { StatTypeCategory } from "./StatTypeCategory";
 import { cn } from "@/lib/utils";
+import { ChevronDown } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface PlayerPropsViewProps {
   game: Game;
@@ -30,6 +32,8 @@ const statTypePriority: Record<string, number> = {
 export function PlayerPropsView({ game, playerProps }: PlayerPropsViewProps) {
   const [selectedPlayer, setSelectedPlayer] = useState<string>("all");
   const [activeStatType, setActiveStatType] = useState<string>("all");
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Get unique players for filter
   const players = useMemo(() => {
@@ -43,6 +47,24 @@ export function PlayerPropsView({ game, playerProps }: PlayerPropsViewProps) {
     );
     return uniquePlayers.sort((a, b) => a.name.localeCompare(b.name));
   }, [playerProps]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Get selected player display text
+  const selectedPlayerText = useMemo(() => {
+    if (selectedPlayer === "all") return "All Players";
+    const player = players.find(p => p.id === selectedPlayer);
+    return player ? player.name : "All Players";
+  }, [selectedPlayer, players]);
 
   // Filter props based on selected player and stat type
   const filteredProps = useMemo(() => {
@@ -95,24 +117,101 @@ export function PlayerPropsView({ game, playerProps }: PlayerPropsViewProps) {
 
   return (
     <div className="space-y-4">
-      {/* Player Filter */}
-      <div className="flex items-center gap-2">
-        <label htmlFor="player-filter" className="text-sm font-medium text-muted-foreground">
-          Player Filter (Optional)
+      {/* Player Filter - Styled Dropdown */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+        <label className="text-sm font-medium text-muted-foreground">
+          Filter by Player
         </label>
-        <select
-          id="player-filter"
-          value={selectedPlayer}
-          onChange={(e) => setSelectedPlayer(e.target.value)}
-          className="flex h-10 w-[200px] items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          <option value="all">All Players</option>
-          {players.map((player) => (
-            <option key={player.id} value={player.id}>
-              {player.name}
-            </option>
-          ))}
-        </select>
+        <div className="relative" ref={dropdownRef}>
+          <button
+            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            className={cn(
+              "flex h-10 w-full sm:w-[240px] items-center justify-between rounded-lg",
+              "border border-border bg-background/80 px-3 py-2 text-sm",
+              "shadow-xs transition-all duration-200",
+              "hover:bg-accent/10 hover:border-accent/50",
+              "focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent",
+              isDropdownOpen && "ring-2 ring-accent/50 border-accent"
+            )}
+          >
+            <span className={cn(
+              "truncate",
+              selectedPlayer === "all" ? "text-muted-foreground" : "text-foreground font-medium"
+            )}>
+              {selectedPlayerText}
+            </span>
+            <ChevronDown className={cn(
+              "h-4 w-4 text-muted-foreground transition-transform duration-200",
+              isDropdownOpen && "rotate-180"
+            )} />
+          </button>
+
+          <AnimatePresence>
+            {isDropdownOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.15 }}
+                className={cn(
+                  "absolute z-50 mt-2 w-full sm:w-[240px]",
+                  "max-h-[300px] overflow-y-auto",
+                  "rounded-lg border border-border bg-card/95 backdrop-blur-sm shadow-lg",
+                  "seamless-scroll"
+                )}
+              >
+                <div className="p-1">
+                  {/* All Players Option */}
+                  <button
+                    onClick={() => {
+                      setSelectedPlayer("all");
+                      setIsDropdownOpen(false);
+                    }}
+                    className={cn(
+                      "w-full flex items-center gap-2 px-3 py-2.5 rounded-md text-sm transition-colors",
+                      selectedPlayer === "all"
+                        ? "bg-accent text-accent-foreground font-medium"
+                        : "text-foreground hover:bg-muted"
+                    )}
+                  >
+                    <span className="flex-1 text-left">All Players</span>
+                    {selectedPlayer === "all" && (
+                      <span className="text-xs text-muted-foreground">✓</span>
+                    )}
+                  </button>
+
+                  {/* Divider */}
+                  <div className="my-1 border-t border-border" />
+
+                  {/* Player List */}
+                  {players.map((player) => (
+                    <button
+                      key={player.id}
+                      onClick={() => {
+                        setSelectedPlayer(player.id);
+                        setIsDropdownOpen(false);
+                      }}
+                      className={cn(
+                        "w-full flex flex-col items-start gap-0.5 px-3 py-2.5 rounded-md text-sm transition-colors",
+                        selectedPlayer === player.id
+                          ? "bg-accent text-accent-foreground font-medium"
+                          : "text-foreground hover:bg-muted"
+                      )}
+                    >
+                      <div className="flex items-center justify-between w-full">
+                        <span className="font-medium">{player.name}</span>
+                        {selectedPlayer === player.id && (
+                          <span className="text-xs text-muted-foreground">✓</span>
+                        )}
+                      </div>
+                      <span className="text-xs text-muted-foreground">{player.team}</span>
+                    </button>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
 
       {/* Category Tabs */}
