@@ -223,11 +223,8 @@ export function ProfessionalGameRow({
                 <span className="font-medium text-foreground text-sm xl:text-base truncate">
                   {game.awayTeam.name}
                 </span>
-                <span className="text-xs xl:text-sm text-muted-foreground hidden lg:inline">
-                  ({game.awayTeam.shortName})
-                </span>
                 {game.awayTeam.record && (
-                  <span className="text-xs text-muted-foreground ml-auto hidden xl:inline">
+                  <span className="text-xs text-muted-foreground ml-auto">
                     {game.awayTeam.record}
                   </span>
                 )}
@@ -243,11 +240,8 @@ export function ProfessionalGameRow({
                 <span className="font-medium text-foreground text-sm xl:text-base truncate">
                   {game.homeTeam.name}
                 </span>
-                <span className="text-xs xl:text-sm text-muted-foreground hidden lg:inline">
-                  ({game.homeTeam.shortName})
-                </span>
                 {game.homeTeam.record && (
-                  <span className="text-xs text-muted-foreground ml-auto hidden xl:inline">
+                  <span className="text-xs text-muted-foreground ml-auto">
                     {game.homeTeam.record}
                   </span>
                 )}

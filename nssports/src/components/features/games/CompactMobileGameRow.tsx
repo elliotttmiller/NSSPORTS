@@ -215,6 +215,11 @@ export const CompactMobileGameRow = memo(({ game }: Props) => {
                 <span className="text-xs font-medium text-foreground truncate leading-tight">
                   {game.awayTeam.shortName}
                 </span>
+                {game.awayTeam.record && (
+                  <span className="text-[10px] text-muted-foreground ml-auto">
+                    {game.awayTeam.record}
+                  </span>
+                )}
               </motion.div>
             </div>
 
@@ -233,6 +238,11 @@ export const CompactMobileGameRow = memo(({ game }: Props) => {
                 <span className="text-xs font-medium text-foreground truncate leading-tight">
                   {game.homeTeam.shortName}
                 </span>
+                {game.homeTeam.record && (
+                  <span className="text-[10px] text-muted-foreground ml-auto">
+                    {game.homeTeam.record}
+                  </span>
+                )}
               </motion.div>
             </div>
           </div>

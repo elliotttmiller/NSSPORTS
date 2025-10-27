@@ -132,6 +132,7 @@ async function updateEventsCache(events: any[]) {
           name: homeTeam.names.long,
           shortName: homeTeam.names.short,
           logo: `/logos/${logoFolder}/${homeTeamSlug}.svg`,
+          record: homeTeam.standings?.record || null,
         },
         create: {
           id: homeTeam.teamID,
@@ -139,6 +140,7 @@ async function updateEventsCache(events: any[]) {
           shortName: homeTeam.names.short,
           logo: `/logos/${logoFolder}/${homeTeamSlug}.svg`,
           leagueId: leagueId,
+          record: homeTeam.standings?.record || null,
         },
       });
       
@@ -148,6 +150,7 @@ async function updateEventsCache(events: any[]) {
           name: awayTeam.names.long,
           shortName: awayTeam.names.short,
           logo: `/logos/${logoFolder}/${awayTeamSlug}.svg`,
+          record: awayTeam.standings?.record || null,
         },
         create: {
           id: awayTeam.teamID,
@@ -155,6 +158,7 @@ async function updateEventsCache(events: any[]) {
           shortName: awayTeam.names.short,
           logo: `/logos/${logoFolder}/${awayTeamSlug}.svg`,
           leagueId: leagueId,
+          record: awayTeam.standings?.record || null,
         },
       });
       
