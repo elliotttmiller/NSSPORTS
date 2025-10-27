@@ -67,7 +67,7 @@ export default function LeaguePage() {
                 alt={(league.name ?? "League") + ' logo'}
                 width={48}
                 height={48}
-                className="w-12 h-12 md:w-14 md:h-14 rounded-full object-contain bg-white border border-border shadow"
+                className="w-12 h-12 md:w-14 md:h-14 object-contain"
                 style={{ minWidth: 48, minHeight: 48 }}
                 priority
               />
