@@ -265,6 +265,69 @@ export async function getTeams(options: {
 }
 
 /**
+ * Fetch players by playerID or teamID
+ * Returns player data including teamID, position, name, etc.
+ * 
+ * @param options - Query parameters (playerID, teamID, or eventID)
+ * @returns Array of player objects with teamID field
+ */
+export async function getPlayers(options: {
+  playerID?: string;
+  teamID?: string;
+  eventID?: string;
+} = {}) {
+  const client = getSportsGameOddsClient();
+  
+  try {
+    logger.info('Fetching players from SportsGameOdds SDK', { options });
+    
+    const page = await client.players.get(options as any);
+    const players = page.data || [];
+    
+    logger.info(`Fetched ${players.length} players`);
+    return players;
+  } catch (error) {
+    logger.error('Error fetching players', error);
+    throw error;
+  }
+}
+
+/**
+ * Batch fetch player data for multiple playerIDs
+ * More efficient than individual calls for large prop lists
+ * 
+ * @param playerIDs - Array of playerIDs to fetch
+ * @returns Map of playerID to player data
+ */
+export async function getPlayersBatch(playerIDs: string[]): Promise<Map<string, any>> {
+  const playerMap = new Map<string, any>();
+  
+  if (playerIDs.length === 0) return playerMap;
+  
+  try {
+    // SDK supports comma-separated playerIDs
+    const playerIDsParam = playerIDs.join(',');
+    
+    logger.info(`Batch fetching ${playerIDs.length} players`);
+    const players = await getPlayers({ playerID: playerIDsParam });
+    
+    // Map by playerID for quick lookup
+    players.forEach((player: any) => {
+      if (player.playerID) {
+        playerMap.set(player.playerID, player);
+      }
+    });
+    
+    logger.info(`Mapped ${playerMap.size} players from batch fetch`);
+    return playerMap;
+  } catch (error) {
+    logger.error('Error in batch player fetch', error);
+    // Return empty map on error - player props will work but without team info
+    return playerMap;
+  }
+}
+
+/**
  * Get real-time streaming connection details
  * Requires AllStar or custom plan subscription
  * 
@@ -350,8 +413,12 @@ export function calculateConsensusOdds(event: any) {
 /**
  * Extract player props from SDK event
  * Handles all market types and properly structures prop data
+ * 
+ * @param event - SDK event with odds data
+ * @param playerDataMap - Optional map of playerID to player data (includes teamID, position, etc.)
+ * @returns Array of player prop objects
  */
-export function extractPlayerProps(event: any): any[] {
+export function extractPlayerProps(event: any, playerDataMap?: Map<string, any>): any[] {
   const props: any[] = [];
   
   if (!event.odds) return props;
@@ -429,12 +496,15 @@ export function extractPlayerProps(event: any): any[] {
         ? playerNameParts.map(part => part.charAt(0) + part.slice(1).toLowerCase()).join(' ')
         : playerID; // Fallback to raw playerID if parsing fails
       
+      // Get player data from provided map if available
+      const playerData = playerDataMap?.get(playerID);
+      
       playerPropGroups[groupKey] = {
         player: {
           playerID,
-          name: playerName,
-          teamID: oddData.teamID,
-          position: oddData.position,
+          name: playerData?.names?.display || playerName,
+          teamID: playerData?.teamID,
+          position: playerData?.position,
         },
         statType,
       };
@@ -535,7 +605,23 @@ export async function getPlayerProps(
     }
     
     const event = events[0];
-    let playerProps = extractPlayerProps(event);
+    
+    // First pass: extract props to get list of playerIDs
+    const preliminaryProps = extractPlayerProps(event);
+    
+    // Get unique playerIDs from props
+    const playerIDs = Array.from(new Set(preliminaryProps.map(p => p.player.playerID)));
+    
+    // Batch fetch player data to get teamID, position, etc.
+    let playerDataMap: Map<string, any> | undefined;
+    if (playerIDs.length > 0) {
+      logger.info(`Fetching data for ${playerIDs.length} players`);
+      playerDataMap = await getPlayersBatch(playerIDs);
+      logger.info(`Retrieved data for ${playerDataMap.size} players with teamID`);
+    }
+    
+    // Second pass: extract props with player data
+    let playerProps = extractPlayerProps(event, playerDataMap);
     
     // Apply filters
     if (options.playerID) {
