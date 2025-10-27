@@ -219,15 +219,53 @@ async function updateOddsCache(gameId: string, oddsData: any) {
       // Skip if not an object or if it's player/game props
       if (!oddData || typeof oddData !== 'object') return;
       
-      // CRITICAL: Only process main game odds (moneyline, spread, total)
-      // Skip quarter odds, half odds, player props, etc.
+      // CRITICAL: Only process MAIN GAME ODDS (moneyline, spread, total)
+      // Must match EXACTLY these patterns to exclude player props, quarter/half odds:
+      // - "points-home-game-ml-home" or "points-away-game-ml-away" (moneyline)
+      // - "points-home-game-sp-home" or "points-away-game-sp-away" (spread / ATS)
+      // - "points-all-game-ou-over" or "points-all-game-ou-under" (game totals)
+      // 
+      // EXCLUDES:
+      // - Player props: "points-PLAYER_ID-game-ou-over" (has player ID instead of home/away/all)
+      // - Quarter odds: "points-home-1q-ml-home" (has period ID like 1q, 2q, 1h, 2h)
+      // - Half odds: "points-away-1h-sp-away"
+      //
       // Official format per docs: https://sportsgameodds.com/docs/data-types/odds
       if (!oddID.includes('-game-')) return;
       
-      // Extract consensus odds (fairOdds recommended per API docs)
+      // Additional check: Must start with "points-home-", "points-away-", or "points-all-"
+      // This excludes player props which have player IDs
+      const isTeamOdd = oddID.startsWith('points-home-') || 
+                        oddID.startsWith('points-away-') || 
+                        oddID.startsWith('points-all-');
+      
+      if (!isTeamOdd) {
+        logger.debug(`Skipping non-team odd: ${oddID}`);
+        return;
+      }
+      
+      // Extract CONSENSUS odds - SDK has already done sophisticated calculation!
+      // Per official docs: https://sportsgameodds.com/docs/info/consensus-odds
+      // - fairOdds: Most fair odds via linear regression + juice removal
+      // - fairSpread/fairOverUnder: Most balanced line across all bookmakers
+      // - bookOdds: Most common line (highest data points)
       const oddsValue = oddData.fairOdds || oddData.bookOdds;
-      const spreadValue = oddData.fairSpread || oddData.bookSpread;
-      const totalValue = oddData.fairOverUnder || oddData.bookOverUnder;
+      const consensusSpread = oddData.fairSpread || oddData.bookSpread;
+      const consensusTotal = oddData.fairOverUnder || oddData.bookOverUnder;
+      
+      // CRITICAL: Get the ACTUAL line value from the oddData (what bookmakers are offering)
+      // This distinguishes main lines from alternate lines
+      const actualSpread = oddData.spread;
+      const actualTotal = oddData.overUnder;
+      
+      // Debug logging for total odds
+      if (oddID.includes('-game-ou-')) {
+        logger.debug(`Total odd: ${oddID}`, {
+          consensusTotal,
+          actualTotal,
+          oddsValue,
+        });
+      }
       
       if (!oddsValue) return; // Skip if no odds available
       
@@ -240,15 +278,33 @@ async function updateOddsCache(gameId: string, oddsData: any) {
       if (oddID.includes('-game-ml-')) {
         betType = 'moneyline';
         selection = oddID.includes('-home') ? 'home' : 'away';
+        line = undefined; // Moneyline has no line
       } else if (oddID.includes('-game-sp-')) {
         betType = 'spread';
         selection = oddID.includes('-home') ? 'home' : 'away';
-        line = spreadValue ? parseFloat(String(spreadValue)) : undefined;
+        
+        // Store the CONSENSUS spread line (SDK's calculated optimal line)
+        // Per official docs, fairSpread is the most balanced line via linear regression
+        if (consensusSpread !== undefined) {
+          line = parseFloat(String(consensusSpread));
+        } else if (actualSpread !== undefined) {
+          // Fallback to actual if consensus not available
+          line = parseFloat(String(actualSpread));
+        }
       } else if (oddID.includes('-game-ou-')) {
         // CRITICAL: Must match "-game-ou-" for main game totals only
         betType = 'total';
         selection = oddID.includes('-over') ? 'over' : 'under';
-        line = totalValue ? parseFloat(String(totalValue)) : undefined;
+        
+        // Store the CONSENSUS total line (SDK's calculated optimal line)
+        // Per official docs: fairOverUnder is the most balanced line via linear regression
+        // This gives us the TRUE main line (e.g., 226) not alternates (115, 117)
+        if (consensusTotal !== undefined) {
+          line = parseFloat(String(consensusTotal));
+        } else if (actualTotal !== undefined) {
+          // Fallback to actual if consensus not available
+          line = parseFloat(String(actualTotal));
+        }
       } else {
         return; // Skip other market types
       }
