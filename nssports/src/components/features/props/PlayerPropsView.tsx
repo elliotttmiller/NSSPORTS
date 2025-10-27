@@ -66,33 +66,37 @@ export function PlayerPropsView({ game, playerProps }: PlayerPropsViewProps) {
     return player ? player.name : "All Players";
   }, [selectedPlayer, players]);
 
-  // Filter props based on selected player and stat type
-  const filteredProps = useMemo(() => {
-    let filtered = playerProps;
-
-    if (selectedPlayer !== "all") {
-      filtered = filtered.filter((prop) => prop.playerId === selectedPlayer);
+  // Filter props based on selected player only (for generating available stat types)
+  const playerFilteredProps = useMemo(() => {
+    if (selectedPlayer === "all") {
+      return playerProps;
     }
+    return playerProps.filter((prop) => prop.playerId === selectedPlayer);
+  }, [playerProps, selectedPlayer]);
+
+  // Filter props based on selected player and stat type (for display)
+  const filteredProps = useMemo(() => {
+    let filtered = playerFilteredProps;
 
     if (activeStatType !== "all") {
       filtered = filtered.filter((prop) => prop.statType === activeStatType);
     }
 
     return filtered;
-  }, [playerProps, selectedPlayer, activeStatType]);
+  }, [playerFilteredProps, activeStatType]);
 
-  // Group props by stat type
+  // Group props by stat type (using player-filtered props to keep all tabs visible)
   const propsByStatType = useMemo(() => {
-    return filteredProps.reduce((acc, prop) => {
+    return playerFilteredProps.reduce((acc, prop) => {
       if (!acc[prop.statType]) {
         acc[prop.statType] = [];
       }
       acc[prop.statType].push(prop);
       return acc;
-    }, {} as Record<string, typeof filteredProps>);
-  }, [filteredProps]);
+    }, {} as Record<string, typeof playerFilteredProps>);
+  }, [playerFilteredProps]);
 
-  // Get sorted stat types for tabs
+  // Get sorted stat types for tabs (based on available props for selected player)
   const statTypes = useMemo(() => {
     const types = Object.keys(propsByStatType).sort((a, b) => {
       const priorityA = statTypePriority[a] || 999;
