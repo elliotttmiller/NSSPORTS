@@ -3,8 +3,8 @@ import { z } from 'zod';
 import { GameSchema } from '@/lib/schemas/game';
 import { paginatedResponseSchema } from '@/lib/schemas/pagination';
 import { withErrorHandling, ApiErrors, successResponse } from '@/lib/apiResponse';
-import { getOdds, OddsApiError } from '@/lib/the-odds-api';
-import { transformOddsApiEvents } from '@/lib/transformers/odds-api';
+import { getEventsWithCache } from '@/lib/hybrid-cache';
+import { transformSDKEvents } from '@/lib/transformers/sportsgameodds-sdk';
 import { logger } from '@/lib/logger';
 import { unstable_cache } from 'next/cache';
 import { applyStratifiedSampling } from '@/lib/devDataLimit';
@@ -14,38 +14,52 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 /**
- * Map league IDs to sport keys
- */
-const LEAGUE_ID_TO_SPORT_KEY: Record<string, string> = {
-  nba: 'basketball_nba',
-  nfl: 'americanfootball_nfl',
-  nhl: 'icehockey_nhl',
-};
-
-/**
- * Cached function to fetch all games from The Odds API
+ * Cached function to fetch all games using hybrid SDK + Prisma cache
  */
 const getCachedAllGames = unstable_cache(
   async () => {
-    logger.info('Fetching all games from The Odds API');
+    logger.info('Fetching all games from hybrid cache');
     
-    // Fetch from multiple sports in parallel
-    const [nbaEvents, nflEvents, nhlEvents] = await Promise.allSettled([
-      getOdds('basketball_nba', { regions: 'us', markets: 'h2h,spreads,totals', oddsFormat: 'american' }),
-      getOdds('americanfootball_nfl', { regions: 'us', markets: 'h2h,spreads,totals', oddsFormat: 'american' }),
-      getOdds('icehockey_nhl', { regions: 'us', markets: 'h2h,spreads,totals', oddsFormat: 'american' }),
+    // Define time range
+    const now = new Date();
+    const startsAfter = new Date(now.getTime() - 4 * 60 * 60 * 1000); // 4 hours ago
+    const startsBefore = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
+    
+    // Fetch from multiple leagues in parallel
+    const [nbaResult, nflResult, nhlResult] = await Promise.allSettled([
+      getEventsWithCache({ 
+        leagueID: 'NBA',
+        startsAfter: startsAfter.toISOString(),
+        startsBefore: startsBefore.toISOString(),
+        oddsAvailable: true,
+        limit: 100,
+      }),
+      getEventsWithCache({ 
+        leagueID: 'NFL',
+        startsAfter: startsAfter.toISOString(),
+        startsBefore: startsBefore.toISOString(),
+        oddsAvailable: true,
+        limit: 100,
+      }),
+      getEventsWithCache({ 
+        leagueID: 'NHL',
+        startsAfter: startsAfter.toISOString(),
+        startsBefore: startsBefore.toISOString(),
+        oddsAvailable: true,
+        limit: 100,
+      }),
     ]);
     
     const allEvents = [
-      ...(nbaEvents.status === 'fulfilled' ? nbaEvents.value : []),
-      ...(nflEvents.status === 'fulfilled' ? nflEvents.value : []),
-      ...(nhlEvents.status === 'fulfilled' ? nhlEvents.value : []),
+      ...(nbaResult.status === 'fulfilled' ? nbaResult.value.data : []),
+      ...(nflResult.status === 'fulfilled' ? nflResult.value.data : []),
+      ...(nhlResult.status === 'fulfilled' ? nhlResult.value.data : []),
     ];
     
-    logger.info(`Fetched ${allEvents.length} total events from The Odds API`);
+    logger.info(`Fetched ${allEvents.length} total events from hybrid cache`);
     return allEvents;
   },
-  ['odds-api-all-games'],
+  ['hybrid-cache-all-games'],
   {
     revalidate: 30,
     tags: ['all-games'],
@@ -84,7 +98,7 @@ export async function GET(request: NextRequest) {
       const events = await getCachedAllGames();
       
       // Transform to internal format
-      let games = transformOddsApiEvents(events);
+      let games = transformSDKEvents(events);
       
       // Apply stratified sampling in development (Protocol I-IV)
       games = applyStratifiedSampling(games, 'leagueId');
@@ -105,8 +119,8 @@ export async function GET(request: NextRequest) {
             const startTime = new Date(game.startTime);
             return startTime >= fourHoursAgo && startTime <= now;
           } else if (status === 'finished') {
-            // The Odds API doesn't provide finished games, return empty
-            return false;
+            // Filter for finished games
+            return game.status === 'finished';
           }
           return true;
         });
@@ -145,21 +159,11 @@ export async function GET(request: NextRequest) {
       logger.info(`Returning page ${page} with ${validatedGames.length} games (total: ${total})`);
       return successResponse(parsed, 200, undefined);
     } catch (error) {
-      if (error instanceof OddsApiError) {
-        logger.error('The Odds API error in games', error);
-        
-        if (error.statusCode === 401 || error.statusCode === 403) {
-          return ApiErrors.serviceUnavailable(
-            'Sports data service is temporarily unavailable. Please check API configuration.'
-          );
-        }
-        
-        return ApiErrors.serviceUnavailable(
-          'Unable to fetch sports data at this time. Please try again later.'
-        );
-      }
+      logger.error('Error in games route', error);
       
-      throw error;
+      return ApiErrors.serviceUnavailable(
+        'Unable to fetch sports data at this time. Please try again later.'
+      );
     }
   });
 }

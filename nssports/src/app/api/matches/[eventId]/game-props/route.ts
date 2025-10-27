@@ -1,10 +1,35 @@
 import { NextRequest } from 'next/server';
-import prisma from '@/lib/prisma';
 import { withErrorHandling, successResponse, ApiErrors } from '@/lib/apiResponse';
+import { getGamePropsWithCache } from '@/lib/hybrid-cache';
+import { logger } from '@/lib/logger';
+import { unstable_cache } from 'next/cache';
 
 export const revalidate = 30;
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+
+/**
+ * Cached function to fetch game props using hybrid SDK + Prisma cache
+ */
+const getCachedGameProps = unstable_cache(
+  async (eventId: string) => {
+    logger.info(`Fetching game props for event ${eventId} from hybrid cache`);
+    
+    try {
+      const { data: props, source } = await getGamePropsWithCache(eventId);
+      logger.info(`Fetched ${props.length} game props for event ${eventId} from ${source}`);
+      return props;
+    } catch (error) {
+      logger.error(`Error fetching game props for event ${eventId}`, error);
+      throw error;
+    }
+  },
+  ['hybrid-cache-event-game-props'],
+  {
+    revalidate: 30,
+    tags: ['event-game-props'],
+  }
+);
 
 export async function GET(
   request: NextRequest,
@@ -17,30 +42,39 @@ export async function GET(
       return ApiErrors.badRequest('eventId parameter is required');
     }
 
-    const gameProps = await prisma.gameProp.findMany({
-      where: { gameId: eventId },
-      orderBy: [
-        { propType: 'asc' },
-        { description: 'asc' },
-      ],
-    });
+    try {
+      const gameProps = await getCachedGameProps(eventId);
 
-    // Group by propType for easier display
-    const grouped = gameProps.reduce((acc, prop) => {
-      if (!acc[prop.propType]) {
-        acc[prop.propType] = [];
-      }
-      acc[prop.propType].push({
-        id: prop.id,
-        propType: prop.propType,
-        description: prop.description,
-        selection: prop.selection,
-        odds: prop.odds,
-        line: prop.line,
-      });
-      return acc;
-    }, {} as Record<string, any[]>);
+      // Group by propType for easier display - ensuring real-time SDK data
+      const grouped = gameProps.reduce((acc: Record<string, any[]>, market) => {
+        const propType = market.marketType;
+        if (!acc[propType]) {
+          acc[propType] = [];
+        }
+        
+        // Add each outcome as a separate prop
+        market.outcomes.forEach((outcome: any) => {
+          acc[propType].push({
+            id: market.marketID,
+            propType: market.marketType,
+            description: outcome.name,
+            selection: outcome.name,
+            odds: outcome.price,
+            line: outcome.point,
+            bookmaker: market.bookmakerName,
+          });
+        });
+        
+        return acc;
+      }, {} as Record<string, any[]>);
 
-    return successResponse(grouped);
+      return successResponse(grouped);
+    } catch (error) {
+      logger.error('Error fetching event game props', error);
+      
+      return ApiErrors.serviceUnavailable(
+        'Unable to fetch game props at this time. Please try again later.'
+      );
+    }
   });
 }

@@ -37,8 +37,8 @@ NorthStar Sports is a comprehensive sports betting platform that provides real-t
 ### Core Functionality
 
 - 🎮 **Multi-Sport Support**: NFL, NBA, NHL coverage with live odds
-- 📊 **Live Game Tracking**: Real-time scores and game status via The Odds API
-- 💰 **Comprehensive Betting**: Spread, Moneyline, and Totals
+- 📊 **Live Game Tracking**: Real-time scores and game status via SportsGameOdds API
+- 💰 **Comprehensive Betting**: Spread, Moneyline, Totals, Player Props, and Game Props
 - 📱 **Responsive Design**: Mobile-first, optimized for all devices
 - 🎯 **Bet Slip Management**: Single and parlay betting with custom stakes
 - 📈 **Betting History**: Track wins, losses, and performance metrics
@@ -119,7 +119,7 @@ NSSPORTS/
 - Prisma ORM 6.x
 - PostgreSQL (Supabase)
 - Server-side rendering
-- The Odds API integration
+- SportsGameOdds API integration
 
 **Development Tools**
 - ESLint for code quality
@@ -138,7 +138,7 @@ NSSPORTS implements a modern Backend for Frontend (BFF) architecture with centra
 ├─────────────────────────────────────────────────────────────┤
 │                                                              │
 │  External Data Sources                                       │
-│  ├── The Odds API (live sports data)                        │
+│  ├── SportsGameOdds API (live sports data, odds, props)     │
 │  └── PostgreSQL Database (user data, bets)                  │
 │                           ▼                                  │
 │  Next.js API Routes (BFF Pattern)                           │
@@ -200,7 +200,8 @@ See [ARCHITECTURE.md](./nssports/docs/ARCHITECTURE.md) for detailed documentatio
    - `DIRECT_URL`: Direct database connection (non-pooled)
    - `NEXTAUTH_SECRET`: Generate with `openssl rand -base64 32`
    - `NEXTAUTH_URL`: Your app URL (http://localhost:3000 for development)
-   - `THE_ODDS_API_KEY`: Your API key from [The Odds API](https://the-odds-api.com/) (required for live odds data)
+   - `SPORTSGAMEODDS_API_KEY`: Your API key from [SportsGameOdds](https://sportsgameodds.com/) (required for live odds data)
+   - `THE_ODDS_API_KEY`: (DEPRECATED - Optional fallback, replaced by SportsGameOdds)
 
 4. **Set up the database**
    ```bash
