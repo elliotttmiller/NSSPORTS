@@ -135,7 +135,7 @@ export function PlayerPropsView({ game, playerProps }: PlayerPropsViewProps) {
       {/* Sticky Filters & Categories Container - positioned below parent tabs */}
       <div className="sticky top-[3.5rem] z-[15] bg-background border-b border-border pb-2 pt-2">
         {/* Inner wrapper with proper padding that respects parent container */}
-        <div className="-mx-6 px-6 md:-mx-8 md:px-8 xl:-mx-12 xl:px-12 space-y-4 overflow-x-clip">
+        <div className="space-y-4">
         {/* Player Filter - Styled Dropdown */}
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 min-w-0 w-full">
           <label className="text-sm font-medium text-muted-foreground">
@@ -241,7 +241,7 @@ export function PlayerPropsView({ game, playerProps }: PlayerPropsViewProps) {
 
         {/* Category Tabs */}
         <div 
-          className="flex gap-1 overflow-x-auto scrollbar-hide min-w-0"
+          className="flex gap-1 overflow-x-auto scrollbar-hide w-full max-w-full"
           data-mobile-scroll
           style={{ 
             overscrollBehaviorX: 'contain',
@@ -275,8 +275,9 @@ export function PlayerPropsView({ game, playerProps }: PlayerPropsViewProps) {
           </button>
         ))}
       </div>
+      {/* End of Category Tabs */}
       </div>
-      {/* End of inner wrapper */}
+      {/* End of space-y-4 wrapper */}
       </div>
       {/* End of Sticky Container */}
 
