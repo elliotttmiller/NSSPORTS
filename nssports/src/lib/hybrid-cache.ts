@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Hybrid SDK + Prisma Caching Service
  * 
@@ -6,6 +7,9 @@
  * - Prisma provides intelligent performance caching ONLY
  * - Database stores user-specific data (bets, preferences, history)
  * - NO fallback logic - if SDK fails, request fails (no mock/stale data)
+ * 
+ * Note: Using `any` types for SDK responses as the sports-odds-api package
+ * doesn't export proper TypeScript types. This is acceptable for external API data.
  * 
  * Flow:
  * 1. Check cache (Prisma) - if fresh, return from cache
@@ -79,31 +83,103 @@ export async function getEventsWithCache(options: {
 async function updateEventsCache(events: any[]) {
   try {
     for (const event of events) {
+      // SDK v2 structure: start time in status.startsAt
+      const startTimeValue = event.status?.startsAt;
+      
+      // Skip events without valid data - NO FALLBACKS
+      if (!startTimeValue) {
+        logger.warn(`Skipping event ${event.eventID} - missing status.startsAt`);
+        continue;
+      }
+      
+      if (!event.teams?.home?.teamID || !event.teams?.away?.teamID) {
+        logger.warn(`Skipping event ${event.eventID} - missing team data`);
+        continue;
+      }
+      
+      const startTime = new Date(startTimeValue);
+      
+      // Validate the date is valid
+      if (isNaN(startTime.getTime())) {
+        logger.warn(`Skipping event ${event.eventID} - invalid start time: ${startTimeValue}`);
+        continue;
+      }
+      
+      // Extract team data from SDK v2 structure
+      const homeTeam = event.teams.home;
+      const awayTeam = event.teams.away;
+      const leagueId = event.leagueID; // Keep uppercase to match SDK (NBA, NFL, NHL)
+      
+      // Generate logo paths based on team names (kebab-case)
+      // Logo folder is lowercase: /logos/nba/, /logos/nfl/, /logos/nhl/
+      const logoFolder = leagueId.toLowerCase();
+      const homeTeamSlug = homeTeam.names.long
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '');
+      const awayTeamSlug = awayTeam.names.long
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '');
+      
+      // Ensure teams exist in database first
+      await prisma.team.upsert({
+        where: { id: homeTeam.teamID },
+        update: {
+          name: homeTeam.names.long,
+          shortName: homeTeam.names.short,
+          logo: `/logos/${logoFolder}/${homeTeamSlug}.svg`,
+        },
+        create: {
+          id: homeTeam.teamID,
+          name: homeTeam.names.long,
+          shortName: homeTeam.names.short,
+          logo: `/logos/${logoFolder}/${homeTeamSlug}.svg`,
+          leagueId: leagueId,
+        },
+      });
+      
+      await prisma.team.upsert({
+        where: { id: awayTeam.teamID },
+        update: {
+          name: awayTeam.names.long,
+          shortName: awayTeam.names.short,
+          logo: `/logos/${logoFolder}/${awayTeamSlug}.svg`,
+        },
+        create: {
+          id: awayTeam.teamID,
+          name: awayTeam.names.long,
+          shortName: awayTeam.names.short,
+          logo: `/logos/${logoFolder}/${awayTeamSlug}.svg`,
+          leagueId: leagueId,
+        },
+      });
+      
+      // Determine game status from SDK status object
+      let gameStatus: string;
+      if (event.status.live) {
+        gameStatus = 'live';
+      } else if (event.status.completed || event.status.ended) {
+        gameStatus = 'finished';
+      } else {
+        gameStatus = 'upcoming';
+      }
+      
       // Upsert game
       await prisma.game.upsert({
         where: { id: event.eventID },
         update: {
-          startTime: new Date(event.commence || event.startTime),
-          status: event.activity === 'in_progress' ? 'live' : 
-                  event.activity === 'final' ? 'finished' : 'upcoming',
-          homeScore: event.scores?.home,
-          awayScore: event.scores?.away,
-          period: event.period,
-          timeRemaining: event.clock,
+          startTime,
+          status: gameStatus,
           updatedAt: new Date(),
         },
         create: {
           id: event.eventID,
-          leagueId: event.leagueID.toLowerCase(),
-          homeTeamId: event.teams?.home?.teamID || `${event.leagueID}-home`,
-          awayTeamId: event.teams?.away?.teamID || `${event.leagueID}-away`,
-          startTime: new Date(event.commence || event.startTime),
-          status: event.activity === 'in_progress' ? 'live' : 
-                  event.activity === 'final' ? 'finished' : 'upcoming',
-          homeScore: event.scores?.home,
-          awayScore: event.scores?.away,
-          period: event.period,
-          timeRemaining: event.clock,
+          leagueId: leagueId,
+          homeTeamId: homeTeam.teamID,
+          awayTeamId: awayTeam.teamID,
+          startTime,
+          status: gameStatus,
         },
       });
       
@@ -171,7 +247,8 @@ async function getEventsFromCache(options: {
   const where: any = {};
   
   if (options.leagueID) {
-    where.leagueId = options.leagueID.toLowerCase();
+    // Use uppercase league ID to match SDK and database (NBA, NFL, NHL)
+    where.leagueId = options.leagueID;
   }
   
   if (options.live) {

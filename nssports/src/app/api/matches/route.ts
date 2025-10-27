@@ -14,21 +14,16 @@
 
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { unstable_cache } from "next/cache";
 import {
   withErrorHandling,
   ApiErrors,
   successResponse,
 } from "@/lib/apiResponse";
-import { getEvents, SportsGameOddsApiError } from "@/lib/sportsgameodds-sdk";
+import { getEventsWithCache } from "@/lib/hybrid-cache";
 import { transformSDKEvents } from "@/lib/transformers/sportsgameodds-sdk";
 import { GameSchema } from "@/lib/schemas/game";
 import { logger } from "@/lib/logger";
 import { applySingleLeagueLimit } from "@/lib/devDataLimit";
-
-// Cache duration: 60 seconds for live odds data
-// This balances data freshness with API quota usage
-const CACHE_DURATION_SECONDS = 60;
 
 // Map sport keys to league IDs
 const SPORT_TO_LEAGUE_MAP: Record<string, string> = {
@@ -43,44 +38,6 @@ const QuerySchema = z.object({
     .enum(["basketball_nba", "americanfootball_nfl", "icehockey_nhl"])
     .default("basketball_nba"),
 });
-
-/**
- * Cached function to fetch events from SportsGameOdds SDK
- * Uses Next.js unstable_cache for server-side caching
- */
-const getCachedEvents = unstable_cache(
-  async (sportKey: string) => {
-    logger.info(`Fetching events for ${sportKey} from SportsGameOdds SDK`);
-    
-    try {
-      const leagueID = SPORT_TO_LEAGUE_MAP[sportKey] || "NBA";
-      
-      // Fetch events for the next 7 days and past 4 hours
-      const now = new Date();
-      const startsAfter = new Date(now.getTime() - 4 * 60 * 60 * 1000); // 4 hours ago
-      const startsBefore = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
-      
-      const { data: events } = await getEvents({
-        leagueID,
-        startsAfter: startsAfter.toISOString(),
-        startsBefore: startsBefore.toISOString(),
-        oddsAvailable: true,
-        limit: 100,
-      });
-      
-      logger.info(`Fetched ${events.length} events for ${sportKey}`);
-      return events;
-    } catch (error) {
-      logger.error("Error fetching events from SportsGameOdds SDK", error);
-      throw error;
-    }
-  },
-  ["sportsgameodds-sdk-matches"],
-  {
-    revalidate: CACHE_DURATION_SECONDS,
-    tags: ["matches"],
-  }
-);
 
 export async function GET(request: NextRequest) {
   return withErrorHandling(async () => {
@@ -101,8 +58,26 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-      // Fetch events with caching
-      const events = await getCachedEvents(sport);
+      const leagueID = SPORT_TO_LEAGUE_MAP[sport] || "NBA";
+      
+      // Fetch events for the next 7 days and past 4 hours using hybrid cache
+      const now = new Date();
+      const startsAfter = new Date(now.getTime() - 4 * 60 * 60 * 1000); // 4 hours ago
+      const startsBefore = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
+      
+      logger.info(`Fetching events for ${sport} using hybrid cache`);
+      
+      // Use hybrid cache (checks Prisma first, then SDK)
+      const response = await getEventsWithCache({
+        leagueID,
+        startsAfter: startsAfter.toISOString(),
+        startsBefore: startsBefore.toISOString(),
+        oddsAvailable: true,
+        limit: 100,
+      });
+      
+      const events = response.data;
+      logger.info(`Fetched ${events.length} events for ${sport} (source: ${response.source})`);
 
       // Transform to our internal format
       let games = transformSDKEvents(events);
@@ -121,30 +96,16 @@ export async function GET(request: NextRequest) {
         {
           sport,
           count: validatedGames.length,
-          cached: true,
-          cacheDuration: CACHE_DURATION_SECONDS,
+          source: response.source,
         }
       );
     } catch (error) {
-      // Handle specific API errors
-      if (error instanceof SportsGameOddsApiError) {
-        logger.error("SportsGameOdds API error", error);
-        
-        // If it's an authentication error, return 503 with helpful message
-        if (error.statusCode === 401 || error.statusCode === 403) {
-          return ApiErrors.serviceUnavailable(
-            "Sports data service is temporarily unavailable. Please check API configuration."
-          );
-        }
-        
-        // For other API errors, return 503
-        return ApiErrors.serviceUnavailable(
-          "Unable to fetch live sports data at this time. Please try again later."
-        );
-      }
-
-      // Re-throw unexpected errors to be caught by withErrorHandling
-      throw error;
+      logger.error("Error fetching matches", error);
+      
+      // Return 503 for any service errors
+      return ApiErrors.serviceUnavailable(
+        "Unable to fetch live sports data at this time. Please try again later."
+      );
     }
   });
 }
@@ -152,4 +113,4 @@ export async function GET(request: NextRequest) {
 // Export route segment config
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const revalidate = 60;
+export const revalidate = 30;

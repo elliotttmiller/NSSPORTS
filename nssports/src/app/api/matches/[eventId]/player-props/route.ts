@@ -1,35 +1,11 @@
 import { NextRequest } from 'next/server';
 import { withErrorHandling, successResponse, ApiErrors } from '@/lib/apiResponse';
-import { getPlayerProps, SportsGameOddsApiError } from '@/lib/sportsgameodds-sdk';
+import { getPlayerPropsWithCache } from '@/lib/hybrid-cache';
 import { logger } from '@/lib/logger';
-import { unstable_cache } from 'next/cache';
 
 export const revalidate = 30;
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-
-/**
- * Cached function to fetch player props for a specific event from SDK
- */
-const getCachedPlayerProps = unstable_cache(
-  async (eventId: string) => {
-    logger.info(`Fetching player props for event ${eventId} from SDK`);
-    
-    try {
-      const props = await getPlayerProps(eventId);
-      logger.info(`Fetched ${props.length} player props for event ${eventId}`);
-      return props;
-    } catch (error) {
-      logger.error(`Error fetching player props for event ${eventId}`, error);
-      throw error;
-    }
-  },
-  ['sportsgameodds-sdk-event-player-props'],
-  {
-    revalidate: 30,
-    tags: ['event-player-props'],
-  }
-);
 
 export async function GET(
   request: NextRequest,
@@ -43,10 +19,17 @@ export async function GET(
     }
 
     try {
-      const playerProps = await getCachedPlayerProps(eventId);
+      logger.info(`Fetching player props for event ${eventId} using hybrid cache`);
+      
+      // Use hybrid cache (Prisma + SDK)
+      const response = await getPlayerPropsWithCache(eventId);
+      const playerProps = response.data;
+      
+      logger.info(`Fetched ${playerProps.length} player props for event ${eventId} (source: ${response.source})`);
 
       // Transform to frontend format - ensuring real-time SDK data
-      const transformed = playerProps.map((prop) => ({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const transformed = playerProps.map((prop: any) => ({
         id: prop.propID,
         playerId: prop.player.playerID,
         playerName: prop.player.name,
@@ -60,23 +43,13 @@ export async function GET(
         bookmaker: prop.bookmakerName,
       }));
 
-      return successResponse(transformed);
+      return successResponse(transformed, 200, { source: response.source });
     } catch (error) {
-      if (error instanceof SportsGameOddsApiError) {
-        logger.error('SportsGameOdds API error in event player props', error);
-        
-        if (error.statusCode === 401 || error.statusCode === 403) {
-          return ApiErrors.serviceUnavailable(
-            'Sports data service is temporarily unavailable. Please check API configuration.'
-          );
-        }
-        
-        return ApiErrors.serviceUnavailable(
-          'Unable to fetch player props at this time. Please try again later.'
-        );
-      }
+      logger.error('Error fetching event player props', error);
       
-      throw error;
+      return ApiErrors.serviceUnavailable(
+        'Unable to fetch player props at this time. Please try again later.'
+      );
     }
   });
 }

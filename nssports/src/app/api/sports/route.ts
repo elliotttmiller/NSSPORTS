@@ -1,84 +1,57 @@
+/**
+ * Sports & Leagues API Route
+ * 
+ * Returns sports and leagues from Prisma database (seeded data)
+ * Games are fetched separately via /api/games or /api/matches
+ * 
+ * Protocol III: Use database for static/reference data (sports, leagues)
+ * Protocol III: Use SDK+cache for dynamic data (games, odds)
+ */
+
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { SportSchema } from '@/lib/schemas/sport';
-import { getLeagues, SportsGameOddsApiError } from '@/lib/sportsgameodds-sdk';
 import { logger } from '@/lib/logger';
-import { unstable_cache } from 'next/cache';
+import { prisma } from '@/lib/prisma';
 
 export const revalidate = 300; // Cache for 5 minutes (leagues don't change often)
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-/**
- * Cached function to fetch leagues from SportsGameOdds SDK
- */
-const getCachedLeagues = unstable_cache(
-  async () => {
-    logger.info('Fetching leagues from SportsGameOdds SDK');
-    
-    try {
-      const leagues = await getLeagues({ active: true });
-      logger.info(`Fetched ${leagues.length} leagues`);
-      return leagues;
-    } catch (error) {
-      logger.error('Error fetching leagues', error);
-      throw error;
-    }
-  },
-  ['sportsgameodds-sdk-leagues'],
-  {
-    revalidate: 300,
-    tags: ['leagues'],
-  }
-);
-
 export async function GET() {
   try {
-    const apiLeagues = await getCachedLeagues();
+    logger.info('Fetching sports and leagues from database');
     
-    // Group leagues by sport
-    const sportGroups: Record<string, any[]> = {};
-    
-    apiLeagues.forEach((league: any) => {
-      const sport = league.sport.toLowerCase();
-      if (!sportGroups[sport]) {
-        sportGroups[sport] = [];
-      }
-      
-      // Map to internal league format
-      sportGroups[sport].push({
-        id: league.leagueID.toLowerCase(),
-        name: league.name,
-        sportId: sport,
-        logo: `/logos/${league.leagueID.toLowerCase()}.svg`,
-        games: [], // Games will be fetched separately
-      });
+    // Fetch sports with their leagues from Prisma
+    const sports = await prisma.sport.findMany({
+      include: {
+        leagues: {
+          select: {
+            id: true,
+            name: true,
+            sportId: true,
+            logo: true,
+          },
+        },
+      },
     });
     
-    // Transform to frontend sport format
-    const transformedSports = Object.entries(sportGroups).map(([sportKey, leagues]) => ({
-      id: sportKey,
-      name: sportKey === 'basketball' ? 'Basketball' :
-            sportKey === 'americanfootball' ? 'American Football' :
-            sportKey === 'icehockey' ? 'Ice Hockey' :
-            sportKey.charAt(0).toUpperCase() + sportKey.slice(1),
-      icon: sportKey === 'basketball' ? '🏀' :
-            sportKey === 'americanfootball' ? '🏈' :
-            sportKey === 'icehockey' ? '🏒' : '⚽',
-      leagues,
+    // Transform to frontend format
+    const transformedSports = sports.map(sport => ({
+      id: sport.id,
+      name: sport.name,
+      icon: sport.icon,
+      leagues: sport.leagues.map(league => ({
+        ...league,
+        games: [], // Games fetched separately via /api/games
+      })),
     }));
-
+    
+    logger.info(`Returning ${transformedSports.length} sports with ${transformedSports.reduce((sum, s) => sum + s.leagues.length, 0)} leagues`);
+    
     const parsed = z.array(SportSchema).parse(transformedSports);
     return NextResponse.json(parsed);
   } catch (error) {
-    if (error instanceof SportsGameOddsApiError) {
-      logger.error('SportsGameOdds API error in sports', error);
-      return NextResponse.json(
-        { error: 'Unable to fetch sports data' },
-        { status: 503 }
-      );
-    }
-    
     logger.error('Error fetching sports:', error);
     return NextResponse.json(
       { error: 'Failed to fetch sports' },

@@ -69,9 +69,9 @@ export async function ensureGameExists(game: Game): Promise<string> {
       create: {
         id: game.leagueId,
         name: game.leagueId.toUpperCase(), // Fallback name
-        sportId: game.leagueId === 'nba' ? 'basketball' : 
-                 game.leagueId === 'nfl' ? 'football' : 
-                 game.leagueId === 'nhl' ? 'hockey' : 'other',
+        sportId: game.leagueId === 'NBA' ? 'basketball' : 
+                 game.leagueId === 'NFL' ? 'football' : 
+                 game.leagueId === 'NHL' ? 'hockey' : 'other',
         logo: '', // Will be populated by other means
       },
       update: {}, // No update needed if it exists

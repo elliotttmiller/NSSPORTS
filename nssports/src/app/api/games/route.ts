@@ -6,7 +6,6 @@ import { withErrorHandling, ApiErrors, successResponse } from '@/lib/apiResponse
 import { getEventsWithCache } from '@/lib/hybrid-cache';
 import { transformSDKEvents } from '@/lib/transformers/sportsgameodds-sdk';
 import { logger } from '@/lib/logger';
-import { unstable_cache } from 'next/cache';
 import { applyStratifiedSampling } from '@/lib/devDataLimit';
 
 export const revalidate = 30;
@@ -14,57 +13,51 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 /**
- * Cached function to fetch all games using hybrid SDK + Prisma cache
+ * Fetch all games using hybrid SDK + Prisma cache (no unstable_cache wrapper needed)
+ * The getEventsWithCache function already handles Prisma-level caching with TTL
  */
-const getCachedAllGames = unstable_cache(
-  async () => {
-    logger.info('Fetching all games from hybrid cache');
-    
-    // Define time range
-    const now = new Date();
-    const startsAfter = new Date(now.getTime() - 4 * 60 * 60 * 1000); // 4 hours ago
-    const startsBefore = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
-    
-    // Fetch from multiple leagues in parallel
-    const [nbaResult, nflResult, nhlResult] = await Promise.allSettled([
-      getEventsWithCache({ 
-        leagueID: 'NBA',
-        startsAfter: startsAfter.toISOString(),
-        startsBefore: startsBefore.toISOString(),
-        oddsAvailable: true,
-        limit: 100,
-      }),
-      getEventsWithCache({ 
-        leagueID: 'NFL',
-        startsAfter: startsAfter.toISOString(),
-        startsBefore: startsBefore.toISOString(),
-        oddsAvailable: true,
-        limit: 100,
-      }),
-      getEventsWithCache({ 
-        leagueID: 'NHL',
-        startsAfter: startsAfter.toISOString(),
-        startsBefore: startsBefore.toISOString(),
-        oddsAvailable: true,
-        limit: 100,
-      }),
-    ]);
-    
-    const allEvents = [
-      ...(nbaResult.status === 'fulfilled' ? nbaResult.value.data : []),
-      ...(nflResult.status === 'fulfilled' ? nflResult.value.data : []),
-      ...(nhlResult.status === 'fulfilled' ? nhlResult.value.data : []),
-    ];
-    
-    logger.info(`Fetched ${allEvents.length} total events from hybrid cache`);
-    return allEvents;
-  },
-  ['hybrid-cache-all-games'],
-  {
-    revalidate: 30,
-    tags: ['all-games'],
-  }
-);
+async function getCachedAllGames() {
+  logger.info('Fetching all games from hybrid cache');
+  
+  // Define time range
+  const now = new Date();
+  const startsAfter = new Date(now.getTime() - 4 * 60 * 60 * 1000); // 4 hours ago
+  const startsBefore = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
+  
+  // Fetch from multiple leagues in parallel
+  const [nbaResult, nflResult, nhlResult] = await Promise.allSettled([
+    getEventsWithCache({ 
+      leagueID: 'NBA',
+      startsAfter: startsAfter.toISOString(),
+      startsBefore: startsBefore.toISOString(),
+      oddsAvailable: true,
+      limit: 100,
+    }),
+    getEventsWithCache({ 
+      leagueID: 'NFL',
+      startsAfter: startsAfter.toISOString(),
+      startsBefore: startsBefore.toISOString(),
+      oddsAvailable: true,
+      limit: 100,
+    }),
+    getEventsWithCache({ 
+      leagueID: 'NHL',
+      startsAfter: startsAfter.toISOString(),
+      startsBefore: startsBefore.toISOString(),
+      oddsAvailable: true,
+      limit: 100,
+    }),
+  ]);
+  
+  const allEvents = [
+    ...(nbaResult.status === 'fulfilled' ? nbaResult.value.data : []),
+    ...(nflResult.status === 'fulfilled' ? nflResult.value.data : []),
+    ...(nhlResult.status === 'fulfilled' ? nhlResult.value.data : []),
+  ];
+  
+  logger.info(`Fetched ${allEvents.length} total events from hybrid cache`);
+  return allEvents;
+}
 
 export async function GET(request: NextRequest) {
   return withErrorHandling(async () => {

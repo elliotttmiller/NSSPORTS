@@ -2,34 +2,10 @@ import { NextRequest } from 'next/server';
 import { withErrorHandling, successResponse, ApiErrors } from '@/lib/apiResponse';
 import { getGamePropsWithCache } from '@/lib/hybrid-cache';
 import { logger } from '@/lib/logger';
-import { unstable_cache } from 'next/cache';
 
 export const revalidate = 30;
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-
-/**
- * Cached function to fetch game props using hybrid SDK + Prisma cache
- */
-const getCachedGameProps = unstable_cache(
-  async (eventId: string) => {
-    logger.info(`Fetching game props for event ${eventId} from hybrid cache`);
-    
-    try {
-      const { data: props, source } = await getGamePropsWithCache(eventId);
-      logger.info(`Fetched ${props.length} game props for event ${eventId} from ${source}`);
-      return props;
-    } catch (error) {
-      logger.error(`Error fetching game props for event ${eventId}`, error);
-      throw error;
-    }
-  },
-  ['hybrid-cache-event-game-props'],
-  {
-    revalidate: 30,
-    tags: ['event-game-props'],
-  }
-);
 
 export async function GET(
   request: NextRequest,
@@ -43,16 +19,24 @@ export async function GET(
     }
 
     try {
-      const gameProps = await getCachedGameProps(eventId);
+      logger.info(`Fetching game props for event ${eventId} using hybrid cache`);
+      
+      // Use hybrid cache (Prisma + SDK) directly
+      const response = await getGamePropsWithCache(eventId);
+      const gameProps = response.data;
+      
+      logger.info(`Fetched ${gameProps.length} game props for event ${eventId} (source: ${response.source})`);
 
       // Group by propType for easier display - ensuring real-time SDK data
-      const grouped = gameProps.reduce((acc: Record<string, any[]>, market) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const grouped = gameProps.reduce((acc: Record<string, any[]>, market: any) => {
         const propType = market.marketType;
         if (!acc[propType]) {
           acc[propType] = [];
         }
         
         // Add each outcome as a separate prop
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         market.outcomes.forEach((outcome: any) => {
           acc[propType].push({
             id: market.marketID,
@@ -66,9 +50,10 @@ export async function GET(
         });
         
         return acc;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       }, {} as Record<string, any[]>);
 
-      return successResponse(grouped);
+      return successResponse(grouped, 200, { source: response.source });
     } catch (error) {
       logger.error('Error fetching event game props', error);
       
