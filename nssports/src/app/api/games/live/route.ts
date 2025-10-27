@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { GameSchema } from '@/lib/schemas/game';
 import { withErrorHandling, successResponse, ApiErrors } from '@/lib/apiResponse';
 import { getEvents, SportsGameOddsApiError } from '@/lib/sportsgameodds-sdk';
-import { transformSportsGameOddsEvents } from '@/lib/transformers/sportsgameodds-api';
+import { transformSDKEvents } from '@/lib/transformers/sportsgameodds-sdk';
 import { logger } from '@/lib/logger';
 import { unstable_cache } from 'next/cache';
 import { applyStratifiedSampling } from '@/lib/devDataLimit';
@@ -55,8 +55,8 @@ const getCachedLiveGames = unstable_cache(
     ];
     
     // Filter to only games that are live (started but not finished)
-    const liveEvents = allEvents.filter(event => {
-      const startTime = new Date(event.startTime);
+    const liveEvents = allEvents.filter((event: any) => {
+      const startTime = new Date(event.commence || event.startTime);
       return startTime >= fourHoursAgo && startTime <= now;
     });
     
@@ -74,7 +74,7 @@ export async function GET() {
   return withErrorHandling(async () => {
     try {
       const events = await getCachedLiveGames();
-      let games = transformSportsGameOddsEvents(events);
+      let games = transformSDKEvents(events);
       
       // Apply stratified sampling in development (Protocol I-IV)
       games = applyStratifiedSampling(games, 'leagueId');

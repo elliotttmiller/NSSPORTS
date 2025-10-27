@@ -4,7 +4,7 @@ import { GameSchema } from '@/lib/schemas/game';
 import { paginatedResponseSchema } from '@/lib/schemas/pagination';
 import { withErrorHandling, ApiErrors, successResponse } from '@/lib/apiResponse';
 import { getEvents, SportsGameOddsApiError } from '@/lib/sportsgameodds-sdk';
-import { transformSportsGameOddsEvents } from '@/lib/transformers/sportsgameodds-api';
+import { transformSDKEvents } from '@/lib/transformers/sportsgameodds-sdk';
 import { logger } from '@/lib/logger';
 import { unstable_cache } from 'next/cache';
 import { applyStratifiedSampling } from '@/lib/devDataLimit';
@@ -98,7 +98,7 @@ export async function GET(request: NextRequest) {
       const events = await getCachedAllGames();
       
       // Transform to internal format
-      let games = transformSportsGameOddsEvents(events);
+      let games = transformSDKEvents(events);
       
       // Apply stratified sampling in development (Protocol I-IV)
       games = applyStratifiedSampling(games, 'leagueId');

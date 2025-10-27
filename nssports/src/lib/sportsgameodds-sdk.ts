@@ -45,8 +45,8 @@ export async function getLeagues(options: {
   try {
     logger.info('Fetching leagues from SportsGameOdds SDK');
     
-    const page = await client.leagues.get(options as any);
-    const leagues = page.data;
+    const page: any = await client.leagues.get(options as any);
+    const leagues = page.data || [];
     
     logger.info(`Fetched ${leagues.length} leagues`);
     return leagues;

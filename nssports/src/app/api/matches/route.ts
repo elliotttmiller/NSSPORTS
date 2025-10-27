@@ -21,7 +21,7 @@ import {
   successResponse,
 } from "@/lib/apiResponse";
 import { getEvents, SportsGameOddsApiError } from "@/lib/sportsgameodds-sdk";
-import { transformSportsGameOddsEvents } from "@/lib/transformers/sportsgameodds-api";
+import { transformSDKEvents } from "@/lib/transformers/sportsgameodds-sdk";
 import { GameSchema } from "@/lib/schemas/game";
 import { logger } from "@/lib/logger";
 import { applySingleLeagueLimit } from "@/lib/devDataLimit";
@@ -105,7 +105,7 @@ export async function GET(request: NextRequest) {
       const events = await getCachedEvents(sport);
 
       // Transform to our internal format
-      let games = transformSportsGameOddsEvents(events);
+      let games = transformSDKEvents(events);
       
       // Apply single league limit in development (Protocol I-IV)
       games = applySingleLeagueLimit(games);
