@@ -186,7 +186,7 @@ export const CompactMobileGameRow = memo(({ game }: Props) => {
         }}
         role="button"
         tabIndex={0}
-        aria-expanded={expanded}
+        aria-expanded={expanded ? "true" : "false"}
       >
         {/* Time Header */}
         <div className="flex justify-between items-center mb-2">
@@ -383,10 +383,9 @@ export const CompactMobileGameRow = memo(({ game }: Props) => {
             }}
           >
             <div 
-              className="h-[400px] overflow-y-auto seamless-scroll px-4 py-4"
+              className="h-[400px] overflow-y-auto seamless-scroll px-4 py-4 [overscroll-behavior:contain]"
               onWheel={(e) => e.stopPropagation()}
               onTouchMove={(e) => e.stopPropagation()}
-              style={{ overscrollBehavior: 'contain' }}
             >
               <PropsDisplay game={game} />
             </div>

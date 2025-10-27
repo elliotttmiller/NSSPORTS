@@ -180,7 +180,7 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange }: G
   });
 
   return (
-  <div className="space-y-6" ref={containerRef} style={{ scrollBehavior: 'smooth', overscrollBehavior: 'contain' }}>
+  <div className="space-y-6 [scroll-behavior:smooth] [overscroll-behavior:contain]" ref={containerRef}>
       {isLoading && allGames.length === 0 ? (
         <div className="text-center py-12">
           <div className="animate-spin w-8 h-8 border-2 border-accent border-t-transparent rounded-full mx-auto mb-4"></div>
@@ -215,20 +215,16 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange }: G
             </div>
           )}
           {/* Virtualized list of league headers + games for selected date */}
-          <div style={{ height: virtualizer.getTotalSize(), position: 'relative', contain: 'layout paint size', willChange: 'transform' }}>
+          <div className="relative [contain:layout_paint_size] [will-change:transform]" style={{ height: virtualizer.getTotalSize() }}>
             {virtualizer.getVirtualItems().map((vi) => {
               const it = (items as Item[])[vi.index];
               if (!it) return null;
               return (
                 <div
                   key={it.key}
+                  className="absolute top-0 left-0 w-full [will-change:transform]"
                   style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
                     transform: `translate3d(0, ${vi.start}px, 0)`,
-                    willChange: 'transform',
                   }}
                   data-index={vi.index}
                   // Attach the measure ref so the virtualizer remeasures on size changes
