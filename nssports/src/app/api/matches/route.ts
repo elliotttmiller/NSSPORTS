@@ -75,6 +75,7 @@ export async function GET(request: NextRequest) {
         startsAfter: startsAfter.toISOString(),
         startsBefore: startsBefore.toISOString(),
         oddsAvailable: true,
+        includeOpposingOdds: true, // CRITICAL: Get both sides of markets (over/under, home/away)
         limit: 100,
       });
       

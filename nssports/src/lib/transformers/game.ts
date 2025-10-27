@@ -60,10 +60,10 @@ export function transformGame(game: GameWithRelations): GamePayload {
         away: build(moneylineGroup, 'away'),
       },
       total: {
-        home: build(totalGroup, 'home') || build(totalGroup, 'over'),
-        away: build(totalGroup, 'away') || build(totalGroup, 'under'),
-        over: totalGroup?.over,
-        under: totalGroup?.under,
+        home: build(totalGroup, 'over'),
+        away: build(totalGroup, 'under'),
+        over: build(totalGroup, 'over'),
+        under: build(totalGroup, 'under'),
       },
     },
   };
