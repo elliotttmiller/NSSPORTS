@@ -73,7 +73,15 @@ export function GamePropsView({ game, gameProps }: GamePropsViewProps) {
     <div className="space-y-4">
       {/* Category Tabs */}
       <div className="border-b border-border">
-        <div className="flex gap-1 overflow-x-auto pb-2 scrollbar-hide">
+        <div 
+          className="flex gap-1 overflow-x-auto pb-2 scrollbar-hide"
+          data-mobile-scroll
+          style={{ 
+            overscrollBehaviorX: 'contain',
+            WebkitOverflowScrolling: 'touch',
+            touchAction: 'pan-x'
+          }}
+        >
           {sortedPropTypes.map((propType) => (
             <button
               key={propType}

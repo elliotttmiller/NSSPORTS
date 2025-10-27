@@ -383,7 +383,13 @@ export const CompactMobileGameRow = memo(({ game }: Props) => {
             }}
           >
             <div 
-              className="h-[400px] overflow-y-auto seamless-scroll px-4 py-4 [overscroll-behavior:contain]"
+              className="h-[400px] overflow-y-auto seamless-scroll px-4 py-4"
+              data-mobile-scroll
+              style={{ 
+                overscrollBehavior: 'contain',
+                WebkitOverflowScrolling: 'touch',
+                touchAction: 'pan-y'
+              }}
               onWheel={(e) => e.stopPropagation()}
               onTouchMove={(e) => e.stopPropagation()}
             >

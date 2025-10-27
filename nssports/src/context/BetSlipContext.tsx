@@ -19,6 +19,19 @@ interface BetSlipContextType {
     odds: number,
     line?: number,
   ) => void;
+  addPlayerPropBet: (
+    game: Game,
+    propId: string,
+    selection: "over" | "under",
+    odds: number,
+    line: number,
+    playerProp: {
+      playerId: string;
+      playerName: string;
+      statType: string;
+      category: string;
+    }
+  ) => void;
   removeBet: (betId: string) => void;
   updateStake: (betId: string, stake: number) => void;
   setBetType: (betType: "single" | "parlay" | "custom") => void;
@@ -168,6 +181,56 @@ export function BetSlipProvider({ children }: BetSlipProviderProps) {
           stake: 10, // Default stake
           potentialPayout: calculatePayout(10, odds) + 10,
           game,
+        };
+
+        const newBets = [...prev.bets, newBet];
+        const totals = calculateBetSlipTotals(newBets, prev.betType, prev.customStraightBets, prev.customParlayBets, prev.customStakes);
+
+        return {
+          ...prev,
+          bets: newBets,
+          ...totals,
+        };
+      });
+    },
+    [],
+  );
+
+  const addPlayerPropBet = useCallback(
+    (
+      game: Game,
+      propId: string,
+      selection: "over" | "under",
+      odds: number,
+      line: number,
+      playerProp: {
+        playerId: string;
+        playerName: string;
+        statType: string;
+        category: string;
+      }
+    ) => {
+      const betId = `${game.id}-prop-${propId}-${selection}`;
+      
+      setBetSlip((prev) => {
+        const existingBetIndex = prev.bets.findIndex((b) => b.id === betId);
+        
+        if (existingBetIndex !== -1) {
+          // Bet already exists, don't add it again
+          return prev;
+        }
+
+        const newBet: Bet = {
+          id: betId,
+          gameId: game.id,
+          betType: "player_prop",
+          selection,
+          odds,
+          line,
+          stake: 10, // Default stake
+          potentialPayout: calculatePayout(10, odds) + 10,
+          game,
+          playerProp,
         };
 
         const newBets = [...prev.bets, newBet];
@@ -364,6 +427,7 @@ export function BetSlipProvider({ children }: BetSlipProviderProps) {
       value={{
         betSlip,
         addBet,
+        addPlayerPropBet,
         removeBet,
         updateStake,
         setBetType,

@@ -222,7 +222,7 @@ export function CustomBetSlipContent() {
               bet.odds
             );
             successCount++;
-          } catch (_error) {
+          } catch {
             failCount++;
             errors.push(`Failed to place bet on ${bet.game.awayTeam.shortName} @ ${bet.game.homeTeam.shortName}`);
           }
@@ -252,7 +252,7 @@ export function CustomBetSlipContent() {
               americanOdds
             );
             successCount++;
-          } catch (_error) {
+          } catch {
             failCount++;
             errors.push("Failed to place parlay bet");
           }
@@ -280,11 +280,12 @@ export function CustomBetSlipContent() {
           description: errors.length > 0 ? errors.join(", ") : "Please try again",
         });
       }
-    } catch (_error) {
+    } catch {
       toast.error("Failed to place bets. Please try again.");
     } finally {
       setPlacing(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [betSlip, customStraightBets, customParlayBets, customStakes, addPlacedBet, clearBetSlip]);
 
   return (
@@ -303,10 +304,12 @@ export function CustomBetSlipContent() {
         const stake = customStakes[bet.id] || 0;
 
         return (
-          <div key={bet.id} className={`border rounded-lg p-3 space-y-3 transition-all ${
-            isStraight || isParlay 
-              ? 'border-accent/30 bg-accent/5' 
-              : 'border-border hover:border-border/60'
+          <div key={bet.id} className={`border rounded-lg p-3 space-y-3 ${
+            isStraight 
+              ? 'bet-selected-straight' 
+              : isParlay
+              ? 'bet-selected-parlay'
+              : 'bet-unselected'
           }`}>
             <BetCardSingle
               id={bet.id}
@@ -322,6 +325,7 @@ export function CustomBetSlipContent() {
                 homeTeam: { shortName: bet.game.homeTeam.shortName }, 
                 awayTeam: { shortName: bet.game.awayTeam.shortName } 
               }}
+              playerProp={bet.playerProp}
               showTotals={false}
               headerActions={(
                 <Button
@@ -337,8 +341,12 @@ export function CustomBetSlipContent() {
             />
 
             {/* Bet Assignment Controls */}
-            <div className="flex items-center gap-4 pt-2 border-t border-border">
-              <div className={`flex items-center gap-2 p-2 rounded ${isStraight ? 'bg-green-50 border border-green-200' : 'hover:bg-muted/30'} transition-colors`}>
+            <div className="flex items-center gap-2 sm:gap-4 pt-2 border-t border-border">
+              <div className={`flex items-center gap-2 px-3 py-2 rounded-md transition-all ${
+                isStraight 
+                  ? 'bg-accent/20 border border-accent/40 ring-1 ring-accent/20' 
+                  : 'hover:bg-muted/50 border border-transparent'
+              }`}>
                 <Checkbox
                   id={`straight-${bet.id}`}
                   checked={isStraight}
@@ -346,12 +354,16 @@ export function CustomBetSlipContent() {
                 />
                 <label
                   htmlFor={`straight-${bet.id}`}
-                  className="text-sm font-medium cursor-pointer select-none"
+                  className="text-xs sm:text-sm font-medium cursor-pointer select-none whitespace-nowrap"
                 >
-                  Straight Bet
+                  Straight
                 </label>
               </div>
-              <div className={`flex items-center gap-2 p-2 rounded ${isParlay ? 'bg-blue-50 border border-blue-200' : 'hover:bg-muted/30'} transition-colors`}>
+              <div className={`flex items-center gap-2 px-3 py-2 rounded-md transition-all ${
+                isParlay 
+                  ? 'bg-blue-500/20 border border-blue-400/40 ring-1 ring-blue-400/20' 
+                  : 'hover:bg-muted/50 border border-transparent'
+              }`}>
                 <Checkbox
                   id={`parlay-${bet.id}`}
                   checked={isParlay}
@@ -359,33 +371,62 @@ export function CustomBetSlipContent() {
                 />
                 <label
                   htmlFor={`parlay-${bet.id}`}
-                  className="text-sm font-medium cursor-pointer select-none"
+                  className="text-xs sm:text-sm font-medium cursor-pointer select-none whitespace-nowrap"
                 >
-                  Add to Parlay
+                  Parlay
                 </label>
               </div>
             </div>
 
             {/* Wager Input for Straight Bets */}
             {isStraight && (
-              <div className="pt-2">
-                <label className="text-xs text-muted-foreground mb-1 block">Stake</label>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm">$</span>
-                  <Input
-                    type="number"
-                    value={stake}
-                    onChange={(e) => updateCustomStake(bet.id, parseFloat(e.target.value) || 0)}
-                    className={`h-8 text-sm ${stake > 0 && (stake < MIN_STAKE || stake > MAX_STAKE) ? 'border-destructive' : ''}`}
-                    min={MIN_STAKE}
-                    max={MAX_STAKE}
-                    step="1"
-                    placeholder={`$${MIN_STAKE}-$${MAX_STAKE}`}
-                  />
+              <div className="pt-2 space-y-3">
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1.5 block font-medium">Stake Amount</label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium">$</span>
+                    <Input
+                      type="number"
+                      value={stake}
+                      onChange={(e) => updateCustomStake(bet.id, parseFloat(e.target.value) || 0)}
+                      className={`h-9 text-sm ${stake > 0 && (stake < MIN_STAKE || stake > MAX_STAKE) ? 'border-destructive' : ''}`}
+                      min={MIN_STAKE}
+                      max={MAX_STAKE}
+                      step="1"
+                      placeholder={`${MIN_STAKE}-${MAX_STAKE}`}
+                    />
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1.5 flex justify-between">
+                    <span>To win:</span>
+                    <span className="font-semibold text-accent">{formatCurrency(stake > 0 ? calculatePayout(stake, bet.odds) : 0)}</span>
+                  </div>
                 </div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  To win: {formatCurrency(stake > 0 ? calculatePayout(stake, bet.odds) : 0)}
-                </div>
+                
+                {/* Individual Place Bet Button */}
+                {stake >= MIN_STAKE && stake <= MAX_STAKE && (
+                  <Button
+                    size="sm"
+                    className="w-full"
+                    onClick={async () => {
+                      try {
+                        await addPlacedBet(
+                          [bet],
+                          "single",
+                          stake,
+                          calculatePayout(stake, bet.odds) + stake,
+                          bet.odds
+                        );
+                        toast.success("Bet placed successfully!");
+                        removeBet(bet.id);
+                      } catch (error) {
+                        toast.error("Failed to place bet");
+                        console.error(error);
+                      }
+                    }}
+                  >
+                    Place ${stake} Bet
+                  </Button>
+                )}
               </div>
             )}
           </div>
@@ -409,14 +450,33 @@ export function CustomBetSlipContent() {
               const bet = betSlip.bets.find((b) => b.id === betId);
               if (!bet) return null;
 
+              // Format leg display based on bet type
+              let legDisplay = '';
+              if (bet.betType === 'player_prop' && bet.playerProp) {
+                const sel = bet.selection.toUpperCase();
+                legDisplay = `${bet.playerProp.playerName} ${sel} ${typeof bet.line === 'number' ? Math.abs(bet.line) : ''} ${bet.playerProp.statType}`;
+              } else if (bet.betType === 'total' || bet.selection === 'over' || bet.selection === 'under') {
+                legDisplay = `${bet.selection.toUpperCase()} ${typeof bet.line === 'number' ? Math.abs(bet.line) : ''}`;
+              } else if (bet.betType === 'moneyline' || (bet.line === undefined || bet.line === null)) {
+                const team = bet.selection === 'home' ? bet.game.homeTeam.shortName : bet.game.awayTeam.shortName;
+                legDisplay = `${team} WIN`;
+              } else {
+                const team = bet.selection === 'home' ? bet.game.homeTeam.shortName : bet.game.awayTeam.shortName;
+                const sign = typeof bet.line === 'number' && bet.line > 0 ? '+' : '';
+                legDisplay = `${team} ${typeof bet.line === 'number' ? `${sign}${bet.line}` : ''}`;
+              }
+
               return (
                 <div key={betId} className="flex items-center gap-2 text-sm">
                   <span className="flex items-center justify-center w-5 h-5 rounded-full bg-accent/20 text-accent text-xs font-bold">
                     {index + 1}
                   </span>
-                  <span className="flex-1">
-                    {bet.game.awayTeam.shortName} @ {bet.game.homeTeam.shortName}
-                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium truncate">{legDisplay.trim()}</div>
+                    <div className="text-xs text-muted-foreground truncate">
+                      {bet.game.awayTeam.shortName} @ {bet.game.homeTeam.shortName}
+                    </div>
+                  </div>
                   <span className="text-muted-foreground text-xs">
                     {formatOdds(bet.odds)}
                   </span>
@@ -427,24 +487,73 @@ export function CustomBetSlipContent() {
 
           <Separator />
 
-          <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Parlay Stake</label>
-            <div className="flex items-center gap-2">
-              <span className="text-sm">$</span>
-              <Input
-                type="number"
-                value={customStakes["parlay"] || 0}
-                onChange={(e) => updateCustomStake("parlay", parseFloat(e.target.value) || 0)}
-                className={`h-8 text-sm ${(customStakes["parlay"] || 0) > 0 && ((customStakes["parlay"] || 0) < MIN_STAKE || (customStakes["parlay"] || 0) > MAX_STAKE) ? 'border-destructive' : ''}`}
-                min={MIN_STAKE}
-                max={MAX_STAKE}
-                step="1"
-                placeholder={`$${MIN_STAKE}-$${MAX_STAKE}`}
-              />
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs text-muted-foreground mb-1.5 block font-medium">Parlay Stake</label>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium">$</span>
+                <Input
+                  type="number"
+                  value={customStakes["parlay"] || 0}
+                  onChange={(e) => updateCustomStake("parlay", parseFloat(e.target.value) || 0)}
+                  className={`h-9 text-sm ${(customStakes["parlay"] || 0) > 0 && ((customStakes["parlay"] || 0) < MIN_STAKE || (customStakes["parlay"] || 0) > MAX_STAKE) ? 'border-destructive' : ''}`}
+                  min={MIN_STAKE}
+                  max={MAX_STAKE}
+                  step="1"
+                  placeholder={`${MIN_STAKE}-${MAX_STAKE}`}
+                />
+              </div>
+              <div className="text-xs text-muted-foreground mt-1.5 flex justify-between">
+                <span>Potential payout:</span>
+                <span className="font-semibold text-accent">{formatCurrency(calculateParlayPayout())}</span>
+              </div>
             </div>
-            <div className="text-xs text-muted-foreground mt-1">
-              Potential payout: {formatCurrency(calculateParlayPayout())}
-            </div>
+
+            {/* Individual Parlay Place Button */}
+            {customParlayBets.length >= 2 && (customStakes["parlay"] || 0) >= MIN_STAKE && (customStakes["parlay"] || 0) <= MAX_STAKE && (
+              <Button
+                size="sm"
+                className="w-full"
+                onClick={async () => {
+                  try {
+                    const parlayBetsData = betSlip.bets.filter((b) => customParlayBets.includes(b.id));
+                    const parlayStake = customStakes["parlay"] || 0;
+                    
+                    let combinedOdds = 1;
+                    parlayBetsData.forEach((bet) => {
+                      const decimalOdds = bet.odds > 0 
+                        ? (bet.odds / 100) + 1 
+                        : (100 / Math.abs(bet.odds)) + 1;
+                      combinedOdds *= decimalOdds;
+                    });
+                    
+                    const americanOdds = combinedOdds >= 2 
+                      ? Math.round((combinedOdds - 1) * 100)
+                      : Math.round(-100 / (combinedOdds - 1));
+                    
+                    await addPlacedBet(
+                      parlayBetsData,
+                      "parlay",
+                      parlayStake,
+                      parlayStake * combinedOdds,
+                      americanOdds
+                    );
+                    
+                    toast.success("Parlay placed successfully!");
+                    
+                    // Remove parlay bets from slip
+                    customParlayBets.forEach(betId => {
+                      removeBet(betId);
+                    });
+                  } catch (error) {
+                    toast.error("Failed to place parlay");
+                    console.error(error);
+                  }
+                }}
+              >
+                Place ${customStakes["parlay"] || 0} Parlay
+              </Button>
+            )}
           </div>
         </div>
       )}

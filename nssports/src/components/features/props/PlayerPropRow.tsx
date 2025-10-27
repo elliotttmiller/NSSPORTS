@@ -24,7 +24,7 @@ interface PlayerPropRowProps {
 }
 
 export function PlayerPropRow({ prop, game }: PlayerPropRowProps) {
-  const { addBet, removeBet, betSlip } = useBetSlip();
+  const { addPlayerPropBet, removeBet, betSlip } = useBetSlip();
 
   const getBetId = useCallback(
     (selection: "over" | "under") => {
@@ -52,10 +52,19 @@ export function PlayerPropRow({ prop, game }: PlayerPropRowProps) {
     if (isBetInSlip(selection)) {
       removeBet(betId);
     } else {
-      // Use the standard addBet API - for props we'll use the same signature
-      // but the line will represent the prop line
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      addBet(game, "total", selection as any, odds, prop.line);
+      addPlayerPropBet(
+        game,
+        prop.id,
+        selection,
+        odds,
+        prop.line,
+        {
+          playerId: prop.playerId,
+          playerName: prop.playerName,
+          statType: prop.statType,
+          category: prop.category,
+        }
+      );
     }
   };
 

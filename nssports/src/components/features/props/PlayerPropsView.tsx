@@ -163,6 +163,12 @@ export function PlayerPropsView({ game, playerProps }: PlayerPropsViewProps) {
                   "rounded-lg border border-border bg-card/95 backdrop-blur-sm shadow-lg",
                   "seamless-scroll"
                 )}
+                data-mobile-scroll
+                style={{ 
+                  overscrollBehavior: 'contain',
+                  WebkitOverflowScrolling: 'touch',
+                  touchAction: 'pan-y'
+                }}
               >
                 <div className="p-1">
                   {/* All Players Option */}
@@ -220,7 +226,15 @@ export function PlayerPropsView({ game, playerProps }: PlayerPropsViewProps) {
 
       {/* Category Tabs */}
       <div className="border-b border-border">
-        <div className="flex gap-1 overflow-x-auto pb-2 scrollbar-hide">
+        <div 
+          className="flex gap-1 overflow-x-auto pb-2 scrollbar-hide"
+          data-mobile-scroll
+          style={{ 
+            overscrollBehaviorX: 'contain',
+            WebkitOverflowScrolling: 'touch',
+            touchAction: 'pan-x'
+          }}
+        >
           <button
             onClick={() => setActiveStatType("all")}
             className={cn(

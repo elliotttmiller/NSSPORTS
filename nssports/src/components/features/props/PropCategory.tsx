@@ -87,9 +87,14 @@ export function PropCategory({ category, game, defaultOpen = false }: PropCatego
             <div className="bg-muted/10 backdrop-blur-sm border-t border-border/30">
               <div 
                 className="max-h-[400px] overflow-y-auto seamless-scroll px-4 py-3"
+                data-mobile-scroll
+                style={{ 
+                  overscrollBehavior: 'contain',
+                  WebkitOverflowScrolling: 'touch',
+                  touchAction: 'pan-y'
+                }}
                 onWheel={(e) => e.stopPropagation()}
                 onTouchMove={(e) => e.stopPropagation()}
-                style={{ overscrollBehavior: 'contain' }}
               >
                 {statTypes.map((statType, idx) => (
                   <div

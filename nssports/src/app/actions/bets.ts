@@ -143,23 +143,56 @@ export async function placeSingleBetAction(
 
     console.log("[placeSingleBetAction] Creating bet in database...");
 
-    // Create bet
-    const createdBet = await prisma.bet.create({
-      data: {
-        gameId,
-        betType,
-        selection,
-        odds: oddsInt,
-        line: line ?? null,
-        stake,
-        potentialPayout,
-        status: "pending",
-        placedAt: new Date(),
-        userId: session.user.id,
-      },
+    // Check if user has sufficient balance
+    const account = await prisma.account.findUnique({
+      where: { userId: session.user.id },
+      select: { balance: true },
     });
 
+    if (!account) {
+      console.error("[placeSingleBetAction] Account not found for user:", session.user.id);
+      return {
+        success: false,
+        error: "Account not found. Please contact support.",
+      };
+    }
+
+    if (account.balance < stake) {
+      console.error("[placeSingleBetAction] Insufficient balance:", { balance: account.balance, stake });
+      return {
+        success: false,
+        error: `Insufficient balance. Available: $${account.balance.toFixed(2)}, Required: $${stake.toFixed(2)}`,
+      };
+    }
+
+    // Create bet and deduct stake from account balance in a transaction
+    const [createdBet] = await prisma.$transaction([
+      prisma.bet.create({
+        data: {
+          gameId,
+          betType,
+          selection,
+          odds: oddsInt,
+          line: line ?? null,
+          stake,
+          potentialPayout,
+          status: "pending",
+          placedAt: new Date(),
+          userId: session.user.id,
+        },
+      }),
+      prisma.account.update({
+        where: { userId: session.user.id },
+        data: {
+          balance: {
+            decrement: stake,
+          },
+        },
+      }),
+    ]);
+
     console.log("[placeSingleBetAction] Bet created successfully:", createdBet.id);
+    console.log("[placeSingleBetAction] Balance deducted:", stake);
 
     // Revalidate bet history cache - this triggers React Query refetch
     revalidatePath("/my-bets");
@@ -264,24 +297,57 @@ export async function placeParlayBetAction(
 
     console.log("[placeParlayBetAction] Creating parlay bet in database...");
 
-    // Create parlay bet
-    const createdBet = await prisma.bet.create({
-      data: {
-        betType: "parlay",
-        stake,
-        potentialPayout,
-        status: "pending",
-        placedAt: new Date(),
-        userId: session.user.id,
-        selection: "parlay",
-        odds: oddsInt,
-        line: null,
-        gameId: null,
-        legs: legs,
-      },
+    // Check if user has sufficient balance
+    const account = await prisma.account.findUnique({
+      where: { userId: session.user.id },
+      select: { balance: true },
     });
 
+    if (!account) {
+      console.error("[placeParlayBetAction] Account not found for user:", session.user.id);
+      return {
+        success: false,
+        error: "Account not found. Please contact support.",
+      };
+    }
+
+    if (account.balance < stake) {
+      console.error("[placeParlayBetAction] Insufficient balance:", { balance: account.balance, stake });
+      return {
+        success: false,
+        error: `Insufficient balance. Available: $${account.balance.toFixed(2)}, Required: $${stake.toFixed(2)}`,
+      };
+    }
+
+    // Create parlay bet and deduct stake from account balance in a transaction
+    const [createdBet] = await prisma.$transaction([
+      prisma.bet.create({
+        data: {
+          betType: "parlay",
+          stake,
+          potentialPayout,
+          status: "pending",
+          placedAt: new Date(),
+          userId: session.user.id,
+          selection: "parlay",
+          odds: oddsInt,
+          line: null,
+          gameId: null,
+          legs: legs,
+        },
+      }),
+      prisma.account.update({
+        where: { userId: session.user.id },
+        data: {
+          balance: {
+            decrement: stake,
+          },
+        },
+      }),
+    ]);
+
     console.log("[placeParlayBetAction] Parlay bet created successfully:", createdBet.id);
+    console.log("[placeParlayBetAction] Balance deducted:", stake);
 
     // Revalidate bet history cache - this triggers React Query refetch
     revalidatePath("/my-bets");
@@ -298,6 +364,115 @@ export async function placeParlayBetAction(
     return {
       success: false,
       error: `Failed to place parlay bet: ${error instanceof Error ? error.message : 'Unknown error'}`,
+    };
+  }
+}
+
+/**
+ * Settle Bet Server Action
+ * 
+ * Updates bet status (won/lost/push) and processes payouts for winning bets.
+ * This would typically be called by an admin/cron job after games finish.
+ */
+export async function settleBetAction(
+  betId: string,
+  status: "won" | "lost" | "push"
+): Promise<PlaceBetsState> {
+  try {
+    console.log("[settleBetAction] Settling bet:", betId, "Status:", status);
+
+    // Get authenticated user (in production, check admin role)
+    const session = await auth();
+    if (!session?.user?.id) {
+      return {
+        success: false,
+        error: "You must be logged in to settle bets",
+      };
+    }
+
+    // Get bet details
+    const bet = await prisma.bet.findUnique({
+      where: { id: betId },
+      select: {
+        id: true,
+        userId: true,
+        status: true,
+        potentialPayout: true,
+        stake: true,
+      },
+    });
+
+    if (!bet) {
+      return {
+        success: false,
+        error: "Bet not found",
+      };
+    }
+
+    if (bet.status !== "pending") {
+      return {
+        success: false,
+        error: `Bet already settled with status: ${bet.status}`,
+      };
+    }
+
+    // Calculate payout amount
+    let payoutAmount = 0;
+    if (status === "won") {
+      payoutAmount = bet.potentialPayout; // Full payout includes original stake
+    } else if (status === "push") {
+      payoutAmount = bet.stake; // Return only the stake on push
+    }
+    // For lost bets, payoutAmount stays 0 (stake already deducted)
+
+    // Update bet status and add payout to account balance in a transaction
+    if (payoutAmount > 0) {
+      await prisma.$transaction([
+        prisma.bet.update({
+          where: { id: betId },
+          data: {
+            status,
+            settledAt: new Date(),
+          },
+        }),
+        prisma.account.update({
+          where: { userId: bet.userId },
+          data: {
+            balance: {
+              increment: payoutAmount,
+            },
+          },
+        }),
+      ]);
+
+      console.log("[settleBetAction] Bet settled, payout added:", payoutAmount);
+    } else {
+      // Just update bet status for lost bets
+      await prisma.bet.update({
+        where: { id: betId },
+        data: {
+          status,
+          settledAt: new Date(),
+        },
+      });
+
+      console.log("[settleBetAction] Bet settled as lost, no payout");
+    }
+
+    // Revalidate caches
+    revalidatePath("/my-bets");
+    revalidatePath("/");
+
+    return {
+      success: true,
+      message: `Bet settled as ${status}${payoutAmount > 0 ? ` with payout $${payoutAmount.toFixed(2)}` : ''}`,
+      betIds: [betId],
+    };
+  } catch (error) {
+    console.error("[settleBetAction] Error:", error);
+    return {
+      success: false,
+      error: `Failed to settle bet: ${error instanceof Error ? error.message : 'Unknown error'}`,
     };
   }
 }

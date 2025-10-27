@@ -16,7 +16,8 @@ export type BetLeg = {
   selection: string; // 'home' | 'away' | 'over' | 'under'
   odds: number;
   line?: number;
-  betType?: string; // optional: 'spread' | 'moneyline' | 'total'
+  betType?: string; // optional: 'spread' | 'moneyline' | 'total' | 'player_prop'
+  playerProp?: { playerName?: string; statType?: string; category?: string };
 };
 
 export type BetCardBaseProps = {
@@ -89,11 +90,18 @@ export function formatSelectionLabel(
   betType: string | undefined,
   selection: string,
   line?: number,
-  game?: { homeTeam?: { shortName?: string }; awayTeam?: { shortName?: string } }
+  game?: { homeTeam?: { shortName?: string }; awayTeam?: { shortName?: string } },
+  playerProp?: { playerName?: string; statType?: string }
 ) {
   const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
   const isSide = selection === 'home' || selection === 'away';
   const isTotal = selection === 'over' || selection === 'under';
+
+  // Handle player props
+  if (betType === 'player_prop' && playerProp) {
+    const sel = selection.toUpperCase();
+    return `${playerProp.playerName} ${sel} ${typeof line === 'number' ? Math.abs(line) : ''} ${playerProp.statType}`.trim();
+  }
 
   // Handle total/over-under bets explicitly
   if (betType === 'total' || isTotal) {
@@ -122,6 +130,7 @@ export type BetCardSingleProps = BetCardBaseProps & {
   stake: number;
   payout: number;
   game?: { homeTeam?: { shortName?: string }; awayTeam?: { shortName?: string } };
+  playerProp?: { playerName?: string; statType?: string; category?: string };
   children?: ReactNode;
   showTotals?: boolean; // default true; set false when embedding in betslip with custom controls
   headerActions?: ReactNode;
@@ -137,6 +146,7 @@ export function BetCardSingle({
   stake,
   payout,
   game,
+  playerProp,
   children,
   showTotals = true,
   headerActions,
@@ -156,7 +166,7 @@ export function BetCardSingle({
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <Badge variant={isWon ? "default" : "outline"} className={isWon ? "bg-accent/10 text-accent border-accent/30" : ""}>
-              {betType.toUpperCase()}
+              {betType === 'player_prop' ? 'PLAYER PROP' : betType.toUpperCase()}
             </Badge>
             <Badge variant={isWon ? "default" : status === "lost" ? "destructive" : "outline"} className={isWon ? "bg-green-600 text-white" : status === "lost" ? "bg-red-600 text-white" : "bg-yellow-50 text-yellow-700 border-yellow-200"}>
               {status.toUpperCase()}
@@ -168,20 +178,50 @@ export function BetCardSingle({
           </div>
         </div>
         <div className="mb-4">
-          <div className="flex items-start justify-between">
-            <div className="flex-1 min-w-0 pr-3">
-              <div className="font-semibold text-base md:text-lg leading-tight text-white truncate mb-1">
-                {typeof selection === "object" && selection !== null && "displaySelection" in selection
-                  ? (selection as unknown as { displaySelection: string }).displaySelection
-                  : formatSelectionLabel(betType, selection, line, game)}
-              </div>
-              <div className="text-sm text-muted-foreground leading-tight">
-                {game?.awayTeam?.shortName && game?.homeTeam?.shortName
-                  ? `${game.awayTeam.shortName} @ ${game.homeTeam.shortName}`
-                  : "Game details unavailable"}
-              </div>
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              {/* Player Prop Enhanced Display */}
+              {betType === 'player_prop' && playerProp ? (
+                <div className="space-y-1.5">
+                  <div className="font-bold text-base sm:text-lg leading-tight text-white">
+                    {playerProp.playerName}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-xs sm:text-sm font-semibold px-2 py-0.5 rounded bg-accent/20 text-accent uppercase tracking-wide">
+                      {selection}
+                    </span>
+                    {typeof line === 'number' && (
+                      <span className="text-base sm:text-lg font-bold text-white">
+                        {Math.abs(line)}
+                      </span>
+                    )}
+                    <span className="text-xs sm:text-sm text-muted-foreground font-medium uppercase tracking-wide">
+                      {playerProp.statType}
+                    </span>
+                  </div>
+                  <div className="text-xs sm:text-sm text-muted-foreground leading-tight">
+                    {game?.awayTeam?.shortName && game?.homeTeam?.shortName
+                      ? `${game.awayTeam.shortName} @ ${game.homeTeam.shortName}`
+                      : "Game details unavailable"}
+                  </div>
+                </div>
+              ) : (
+                /* Regular Bet Display */
+                <div className="space-y-1">
+                  <div className="font-semibold text-base md:text-lg leading-tight text-white">
+                    {typeof selection === "object" && selection !== null && "displaySelection" in selection
+                      ? (selection as unknown as { displaySelection: string }).displaySelection
+                      : formatSelectionLabel(betType, selection, line, game, playerProp)}
+                  </div>
+                  <div className="text-sm text-muted-foreground leading-tight">
+                    {game?.awayTeam?.shortName && game?.homeTeam?.shortName
+                      ? `${game.awayTeam.shortName} @ ${game.homeTeam.shortName}`
+                      : "Game details unavailable"}
+                  </div>
+                </div>
+              )}
             </div>
-            <Badge variant="outline" className="text-base md:text-lg px-3 py-1 font-light">{formatOdds(odds)}</Badge>
+            <Badge variant="outline" className="text-base md:text-lg px-2.5 sm:px-3 py-1 font-light shrink-0">{formatOdds(odds)}</Badge>
           </div>
         </div>
         {children}
@@ -237,7 +277,7 @@ export function BetCardParlay({
             <div key={idx} className="flex items-start justify-between py-1">
               <div className="flex-1 min-w-0 pr-3">
                 <div className="text-sm font-medium leading-tight truncate mb-1">
-                  {formatSelectionLabel(leg.betType, leg.selection, leg.line, leg.game)}
+                  {formatSelectionLabel(leg.betType, leg.selection, leg.line, leg.game, leg.playerProp)}
                 </div>
                 {(leg.game?.awayTeam?.shortName && leg.game?.homeTeam?.shortName) ? (
                   <div className="text-xs text-muted-foreground leading-tight">

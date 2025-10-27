@@ -131,7 +131,7 @@ export function MobileBetSlipPanel() {
     return formatSelectionLabel(bet.betType, bet.selection, bet.line, {
       homeTeam: { shortName: bet.game.homeTeam.shortName },
       awayTeam: { shortName: bet.game.awayTeam.shortName }
-    });
+    }, bet.playerProp);
   };
 
   const formatMatchup = (bet: Bet) => {

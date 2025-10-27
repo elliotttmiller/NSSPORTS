@@ -29,7 +29,7 @@ export function MobileCustomBetSlipContent() {
     return formatSelectionLabel(bet.betType, bet.selection, bet.line, {
       homeTeam: { shortName: bet.game.homeTeam.shortName },
       awayTeam: { shortName: bet.game.awayTeam.shortName }
-    });
+    }, bet.playerProp);
   };
 
   const formatMatchup = (bet: Bet) => {
@@ -145,7 +145,13 @@ export function MobileCustomBetSlipContent() {
         const stake = customStakes[bet.id] || 0;
 
         return (
-          <div key={bet.id} className="bg-card border border-border rounded-xl p-4 space-y-3">
+          <div key={bet.id} className={`rounded-xl p-4 space-y-3 border ${
+            isStraight 
+              ? 'bet-selected-straight' 
+              : isParlay
+              ? 'bet-selected-parlay'
+              : 'bet-unselected bg-card'
+          }`}>
             {/* Bet header */}
             <div className="flex items-start justify-between">
               <div className="flex-1 min-w-0 pr-4">
@@ -162,8 +168,12 @@ export function MobileCustomBetSlipContent() {
             </div>
 
             {/* Bet Assignment Controls */}
-            <div className="flex items-center gap-4 pt-2 border-t border-border">
-              <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 pt-2 border-t border-border">
+              <div className={`flex items-center gap-2 px-3 py-2 rounded-md transition-all flex-1 justify-center ${
+                isStraight 
+                  ? 'bg-accent/20 border border-accent/40 ring-1 ring-accent/20' 
+                  : 'hover:bg-muted/50 border border-transparent'
+              }`}>
                 <Checkbox
                   id={`straight-${bet.id}`}
                   checked={isStraight}
@@ -171,12 +181,16 @@ export function MobileCustomBetSlipContent() {
                 />
                 <label
                   htmlFor={`straight-${bet.id}`}
-                  className="text-sm font-medium cursor-pointer"
+                  className="text-sm font-medium cursor-pointer whitespace-nowrap"
                 >
                   Straight
                 </label>
               </div>
-              <div className="flex items-center gap-2">
+              <div className={`flex items-center gap-2 px-3 py-2 rounded-md transition-all flex-1 justify-center ${
+                isParlay 
+                  ? 'bg-blue-500/20 border border-blue-400/40 ring-1 ring-blue-400/20' 
+                  : 'hover:bg-muted/50 border border-transparent'
+              }`}>
                 <Checkbox
                   id={`parlay-${bet.id}`}
                   checked={isParlay}
@@ -184,7 +198,7 @@ export function MobileCustomBetSlipContent() {
                 />
                 <label
                   htmlFor={`parlay-${bet.id}`}
-                  className="text-sm font-medium cursor-pointer"
+                  className="text-sm font-medium cursor-pointer whitespace-nowrap"
                 >
                   Parlay
                 </label>

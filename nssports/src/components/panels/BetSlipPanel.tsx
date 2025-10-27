@@ -82,6 +82,7 @@ export function BetSlipPanel() {
             } catch (error) {
               failCount++;
               errors.push(`Failed to place bet on ${bet.game.awayTeam.shortName} @ ${bet.game.homeTeam.shortName}`);
+              console.error("Failed to place straight bet:", error);
             }
           }
         }
@@ -117,6 +118,7 @@ export function BetSlipPanel() {
             } catch (error) {
               failCount++;
               errors.push("Failed to place parlay bet");
+              console.error("Failed to place parlay bet:", error);
             }
           }
         }
@@ -270,6 +272,7 @@ export function BetSlipPanel() {
               stake={bet.stake}
               payout={bet.potentialPayout}
               game={{ homeTeam: { shortName: bet.game.homeTeam.shortName }, awayTeam: { shortName: bet.game.awayTeam.shortName } }}
+              playerProp={bet.playerProp}
               showTotals={false}
               headerActions={(
                 <Button
@@ -320,6 +323,8 @@ export function BetSlipPanel() {
               selection: b.selection,
               odds: b.odds,
               line: b.line,
+              betType: b.betType,
+              playerProp: b.playerProp,
             }))}
             showTotals={false}
           >

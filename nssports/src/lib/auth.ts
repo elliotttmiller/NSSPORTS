@@ -64,7 +64,21 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async jwt({ token, user, trigger }) {
       // Initial sign in
       if (user) {
-        token.id = (user as any).id;
+        token.id = user.id as string;
+        
+        // Ensure account exists for this user with default balance
+        try {
+          await prisma.account.upsert({
+            where: { userId: user.id as string },
+            update: {}, // Don't update if exists
+            create: {
+              userId: user.id as string,
+              balance: 1000.00, // Starting balance for new users
+            },
+          });
+        } catch (error) {
+          console.error("Failed to create/verify account:", error);
+        }
       }
       
       // Session refresh/update
@@ -86,7 +100,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
     async session({ session, token }) {
       if (session.user) {
-        (session.user as any).id = token.id as string;
+        session.user.id = token.id as string;
       }
       return session;
     },

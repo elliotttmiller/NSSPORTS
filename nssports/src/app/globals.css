@@ -226,3 +226,54 @@
   box-shadow: 0 0 0 0.5px rgba(255,255,255,0.05), 0 0.5px 4px 0 rgba(255,255,255,0.02);
   border-radius: var(--radius-lg);
 }
+
+/* Custom Bet Selection Animations */
+@keyframes betGlow {
+  0%, 100% {
+    box-shadow: 0 0 0 1px var(--color-accent) / 0.3,
+                0 0 20px var(--color-accent) / 0.15,
+                inset 0 0 0 1px var(--color-accent) / 0.1;
+  }
+  50% {
+    box-shadow: 0 0 0 1px var(--color-accent) / 0.5,
+                0 0 30px var(--color-accent) / 0.25,
+                inset 0 0 0 1px var(--color-accent) / 0.2;
+  }
+}
+
+@keyframes parlayGlow {
+  0%, 100% {
+    box-shadow: 0 0 0 1px #3b82f6 / 0.3,
+                0 0 20px #3b82f6 / 0.15,
+                inset 0 0 0 1px #3b82f6 / 0.1;
+  }
+  50% {
+    box-shadow: 0 0 0 1px #3b82f6 / 0.5,
+                0 0 30px #3b82f6 / 0.25,
+                inset 0 0 0 1px #3b82f6 / 0.2;
+  }
+}
+
+.bet-selected-straight {
+  animation: betGlow 2s ease-in-out infinite;
+  background: linear-gradient(135deg, var(--color-accent) / 0.05, var(--color-accent) / 0.02);
+  border-color: var(--color-accent) / 0.4 !important;
+  transition: all 0.3s ease;
+}
+
+.bet-selected-parlay {
+  animation: parlayGlow 2s ease-in-out infinite;
+  background: linear-gradient(135deg, #3b82f6 / 0.05, #3b82f6 / 0.02);
+  border-color: #3b82f6 / 0.4 !important;
+  transition: all 0.3s ease;
+}
+
+.bet-unselected {
+  transition: all 0.3s ease;
+  background: transparent;
+}
+
+.bet-unselected:hover {
+  border-color: var(--color-border) / 0.6;
+  background: var(--color-muted) / 0.3;
+}

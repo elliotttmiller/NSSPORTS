@@ -16,7 +16,9 @@ export function useAccount() {
 			return AccountSchema.parse(payload) as Account;
 		},
 		refetchOnWindowFocus: true,
-		staleTime: 15_000,
+		refetchInterval: 5000, // Poll every 5 seconds for real-time updates
+		staleTime: 0, // Always consider data stale to ensure fresh fetches
 	});
 }
+
 
