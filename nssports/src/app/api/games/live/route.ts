@@ -1,8 +1,8 @@
 import { z } from 'zod';
 import { GameSchema } from '@/lib/schemas/game';
 import { withErrorHandling, successResponse, ApiErrors } from '@/lib/apiResponse';
-import { getOdds, OddsApiError } from '@/lib/the-odds-api';
-import { transformOddsApiEvents } from '@/lib/transformers/odds-api';
+import { getEvents, SportsGameOddsApiError } from '@/lib/sportsgameodds-api';
+import { transformSportsGameOddsEvents } from '@/lib/transformers/sportsgameodds-api';
 import { logger } from '@/lib/logger';
 import { unstable_cache } from 'next/cache';
 import { applyStratifiedSampling } from '@/lib/devDataLimit';
@@ -12,38 +12,52 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 /**
- * Cached function to fetch live games from The Odds API
+ * Cached function to fetch live games from SportsGameOdds API
  */
 const getCachedLiveGames = unstable_cache(
   async () => {
-    logger.info('Fetching live games from The Odds API');
+    logger.info('Fetching live games from SportsGameOdds API');
     
-    // Fetch from multiple sports in parallel
-    const [nbaEvents, nflEvents, nhlEvents] = await Promise.allSettled([
-      getOdds('basketball_nba', { regions: 'us', markets: 'h2h,spreads,totals', oddsFormat: 'american' }),
-      getOdds('americanfootball_nfl', { regions: 'us', markets: 'h2h,spreads,totals', oddsFormat: 'american' }),
-      getOdds('icehockey_nhl', { regions: 'us', markets: 'h2h,spreads,totals', oddsFormat: 'american' }),
+    // Define time range for live games
+    const now = new Date();
+    const fourHoursAgo = new Date(now.getTime() - 4 * 60 * 60 * 1000);
+    const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
+    
+    // Fetch from multiple leagues in parallel
+    const [nbaResult, nflResult, nhlResult] = await Promise.allSettled([
+      getEvents('NBA', { 
+        startsAfter: fourHoursAgo.toISOString(),
+        startsBefore: oneHourFromNow.toISOString(),
+        limit: 50,
+      }),
+      getEvents('NFL', { 
+        startsAfter: fourHoursAgo.toISOString(),
+        startsBefore: oneHourFromNow.toISOString(),
+        limit: 50,
+      }),
+      getEvents('NHL', { 
+        startsAfter: fourHoursAgo.toISOString(),
+        startsBefore: oneHourFromNow.toISOString(),
+        limit: 50,
+      }),
     ]);
     
     const allEvents = [
-      ...(nbaEvents.status === 'fulfilled' ? nbaEvents.value : []),
-      ...(nflEvents.status === 'fulfilled' ? nflEvents.value : []),
-      ...(nhlEvents.status === 'fulfilled' ? nhlEvents.value : []),
+      ...(nbaResult.status === 'fulfilled' ? nbaResult.value.data : []),
+      ...(nflResult.status === 'fulfilled' ? nflResult.value.data : []),
+      ...(nhlResult.status === 'fulfilled' ? nhlResult.value.data : []),
     ];
     
     // Filter to only games that are live (started but not finished)
-    const now = new Date();
     const liveEvents = allEvents.filter(event => {
-      const commenceTime = new Date(event.commence_time);
-      // Consider a game "live" if it started within the last 4 hours
-      const fourHoursAgo = new Date(now.getTime() - 4 * 60 * 60 * 1000);
-      return commenceTime >= fourHoursAgo && commenceTime <= now;
+      const startTime = new Date(event.startTime);
+      return startTime >= fourHoursAgo && startTime <= now;
     });
     
     logger.info(`Found ${liveEvents.length} live events out of ${allEvents.length} total`);
     return liveEvents;
   },
-  ['odds-api-live-games'],
+  ['sportsgameodds-live-games'],
   {
     revalidate: 30,
     tags: ['live-games'],
@@ -54,7 +68,7 @@ export async function GET() {
   return withErrorHandling(async () => {
     try {
       const events = await getCachedLiveGames();
-      let games = transformOddsApiEvents(events);
+      let games = transformSportsGameOddsEvents(events);
       
       // Apply stratified sampling in development (Protocol I-IV)
       games = applyStratifiedSampling(games, 'leagueId');
@@ -64,8 +78,8 @@ export async function GET() {
       logger.info(`Returning ${parsed.length} live games`);
       return successResponse(parsed);
     } catch (error) {
-      if (error instanceof OddsApiError) {
-        logger.error('The Odds API error in live games', error);
+      if (error instanceof SportsGameOddsApiError) {
+        logger.error('SportsGameOdds API error in live games', error);
         
         if (error.statusCode === 401 || error.statusCode === 403) {
           return ApiErrors.serviceUnavailable(
