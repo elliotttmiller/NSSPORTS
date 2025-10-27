@@ -25,28 +25,24 @@ export async function GET(
       const response = await getGamePropsWithCache(eventId);
       const gameProps = response.data;
       
-      logger.info(`Fetched ${gameProps.length} game props for event ${eventId} (source: ${response.source})`);
+      logger.info(`Fetched ${gameProps.length} game prop markets for event ${eventId} (source: ${response.source})`);
 
       // Group by propType for easier display - ensuring real-time SDK data
+      // The new extractGameProps returns markets with outcomes already structured
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const grouped = gameProps.reduce((acc: Record<string, any[]>, market: any) => {
-        const propType = market.marketType;
+        const propType = market.propType || market.marketType;
         if (!acc[propType]) {
           acc[propType] = [];
         }
         
-        // Add each outcome as a separate prop
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        market.outcomes.forEach((outcome: any) => {
-          acc[propType].push({
-            id: market.marketID,
-            propType: market.marketType,
-            description: outcome.name,
-            selection: outcome.name,
-            odds: outcome.price,
-            line: outcome.point,
-            bookmaker: market.bookmakerName,
-          });
+        // Add the entire market with its outcomes
+        acc[propType].push({
+          id: market.id || market.marketID,
+          marketID: market.marketID,
+          marketCategory: market.marketCategory,
+          propType: market.propType,
+          outcomes: market.outcomes,
         });
         
         return acc;

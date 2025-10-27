@@ -2,6 +2,8 @@ export { PlayerPropRow } from "./PlayerPropRow";
 export { PlayerPropsList } from "./PlayerPropsList";
 export { PlayerPropsView } from "./PlayerPropsView";
 export { GamePropButton } from "./GamePropButton";
+export { GamePropRow } from "./GamePropRow";
+export { GamePropCategory } from "./GamePropCategory";
 export { GamePropsList } from "./GamePropsList";
 export { GamePropsView } from "./GamePropsView";
 export { PropCategory } from "./PropCategory";

@@ -103,11 +103,12 @@ export interface Bet {
     | "moneyline"
     | "total"
     | "player_prop"
+    | "game_prop"
     | "period_winner"
     | "quarter_winner"
     | "half_winner"
     | "parlay";
-  selection: "home" | "away" | "over" | "under";
+  selection: string; // Can be "home", "away", "over", "under", or any custom selection for game props
   odds: number;
   line?: number;
   stake: number;
@@ -119,6 +120,11 @@ export interface Bet {
     playerName: string;
     statType: string;
     category: string;
+  };
+  gameProp?: {
+    marketCategory: string;
+    propType: string;
+    description: string;
   };
   legs?: Bet[];
 }
