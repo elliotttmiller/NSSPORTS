@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { GameSchema } from '@/lib/schemas/game';
 import { paginatedResponseSchema } from '@/lib/schemas/pagination';
 import { withErrorHandling, ApiErrors, successResponse } from '@/lib/apiResponse';
-import { getEvents, SportsGameOddsApiError } from '@/lib/sportsgameodds-sdk';
+import { getEventsWithCache } from '@/lib/hybrid-cache';
 import { transformSDKEvents } from '@/lib/transformers/sportsgameodds-sdk';
 import { logger } from '@/lib/logger';
 import { unstable_cache } from 'next/cache';
@@ -14,11 +14,11 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 /**
- * Cached function to fetch all games from SportsGameOdds SDK
+ * Cached function to fetch all games using hybrid SDK + Prisma cache
  */
 const getCachedAllGames = unstable_cache(
   async () => {
-    logger.info('Fetching all games from SportsGameOdds SDK');
+    logger.info('Fetching all games from hybrid cache');
     
     // Define time range
     const now = new Date();
@@ -27,21 +27,21 @@ const getCachedAllGames = unstable_cache(
     
     // Fetch from multiple leagues in parallel
     const [nbaResult, nflResult, nhlResult] = await Promise.allSettled([
-      getEvents({ 
+      getEventsWithCache({ 
         leagueID: 'NBA',
         startsAfter: startsAfter.toISOString(),
         startsBefore: startsBefore.toISOString(),
         oddsAvailable: true,
         limit: 100,
       }),
-      getEvents({ 
+      getEventsWithCache({ 
         leagueID: 'NFL',
         startsAfter: startsAfter.toISOString(),
         startsBefore: startsBefore.toISOString(),
         oddsAvailable: true,
         limit: 100,
       }),
-      getEvents({ 
+      getEventsWithCache({ 
         leagueID: 'NHL',
         startsAfter: startsAfter.toISOString(),
         startsBefore: startsBefore.toISOString(),
@@ -56,10 +56,10 @@ const getCachedAllGames = unstable_cache(
       ...(nhlResult.status === 'fulfilled' ? nhlResult.value.data : []),
     ];
     
-    logger.info(`Fetched ${allEvents.length} total events from SportsGameOdds SDK`);
+    logger.info(`Fetched ${allEvents.length} total events from hybrid cache`);
     return allEvents;
   },
-  ['sportsgameodds-sdk-all-games'],
+  ['hybrid-cache-all-games'],
   {
     revalidate: 30,
     tags: ['all-games'],
@@ -159,21 +159,11 @@ export async function GET(request: NextRequest) {
       logger.info(`Returning page ${page} with ${validatedGames.length} games (total: ${total})`);
       return successResponse(parsed, 200, undefined);
     } catch (error) {
-      if (error instanceof SportsGameOddsApiError) {
-        logger.error('SportsGameOdds API error in games', error);
-        
-        if (error.statusCode === 401 || error.statusCode === 403) {
-          return ApiErrors.serviceUnavailable(
-            'Sports data service is temporarily unavailable. Please check API configuration.'
-          );
-        }
-        
-        return ApiErrors.serviceUnavailable(
-          'Unable to fetch sports data at this time. Please try again later.'
-        );
-      }
+      logger.error('Error in games route', error);
       
-      throw error;
+      return ApiErrors.serviceUnavailable(
+        'Unable to fetch sports data at this time. Please try again later.'
+      );
     }
   });
 }

@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { withErrorHandling, successResponse, ApiErrors } from '@/lib/apiResponse';
-import { getGameProps, SportsGameOddsApiError } from '@/lib/sportsgameodds-sdk';
+import { getGamePropsWithCache } from '@/lib/hybrid-cache';
 import { logger } from '@/lib/logger';
 import { unstable_cache } from 'next/cache';
 
@@ -9,22 +9,22 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 /**
- * Cached function to fetch game props for a specific event from SDK
+ * Cached function to fetch game props using hybrid SDK + Prisma cache
  */
 const getCachedGameProps = unstable_cache(
   async (eventId: string) => {
-    logger.info(`Fetching game props for event ${eventId} from SDK`);
+    logger.info(`Fetching game props for event ${eventId} from hybrid cache`);
     
     try {
-      const props = await getGameProps(eventId);
-      logger.info(`Fetched ${props.length} game props for event ${eventId}`);
+      const { data: props, source } = await getGamePropsWithCache(eventId);
+      logger.info(`Fetched ${props.length} game props for event ${eventId} from ${source}`);
       return props;
     } catch (error) {
       logger.error(`Error fetching game props for event ${eventId}`, error);
       throw error;
     }
   },
-  ['sportsgameodds-sdk-event-game-props'],
+  ['hybrid-cache-event-game-props'],
   {
     revalidate: 30,
     tags: ['event-game-props'],
@@ -70,21 +70,11 @@ export async function GET(
 
       return successResponse(grouped);
     } catch (error) {
-      if (error instanceof SportsGameOddsApiError) {
-        logger.error('SportsGameOdds API error in event game props', error);
-        
-        if (error.statusCode === 401 || error.statusCode === 403) {
-          return ApiErrors.serviceUnavailable(
-            'Sports data service is temporarily unavailable. Please check API configuration.'
-          );
-        }
-        
-        return ApiErrors.serviceUnavailable(
-          'Unable to fetch game props at this time. Please try again later.'
-          );
-      }
+      logger.error('Error fetching event game props', error);
       
-      throw error;
+      return ApiErrors.serviceUnavailable(
+        'Unable to fetch game props at this time. Please try again later.'
+      );
     }
   });
 }
