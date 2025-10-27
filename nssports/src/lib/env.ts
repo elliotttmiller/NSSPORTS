@@ -36,8 +36,11 @@ const envSchema = z.object({
   // Logging
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
   
-  // The Odds API
-  THE_ODDS_API_KEY: z.string().min(1),
+  // SportsGameOdds API (Primary)
+  SPORTSGAMEODDS_API_KEY: z.string().min(1),
+  
+  // The Odds API (Deprecated - Optional for backward compatibility)
+  THE_ODDS_API_KEY: z.string().min(1).optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

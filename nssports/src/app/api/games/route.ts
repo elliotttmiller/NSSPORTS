@@ -14,16 +14,6 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 /**
- * Map league IDs to SportsGameOdds league IDs (for reference)
- */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const LEAGUE_ID_MAPPING: Record<string, string> = {
-  nba: 'NBA',
-  nfl: 'NFL',
-  nhl: 'NHL',
-};
-
-/**
  * Cached function to fetch all games from SportsGameOdds API
  */
 const getCachedAllGames = unstable_cache(
