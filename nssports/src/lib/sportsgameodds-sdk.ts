@@ -544,42 +544,107 @@ export function extractPlayerProps(event: any, playerDataMap?: Map<string, any>)
 
 /**
  * Extract game props from SDK event
- * Handles all non-player-specific markets
+ * Handles all non-player-specific markets including team totals, quarters, halves, and more
+ * 
+ * SDK oddID format: "statType-entity-periodID-betTypeID-sideID"
+ * Example: "points-home-1q-sp-home" = Home team 1st quarter spread
  */
 export function extractGameProps(event: any): any[] {
-  const props: any[] = [];
+  if (!event.odds) return [];
   
-  if (!event.odds) return props;
+  // Map to group related props (e.g., over/under pairs)
+  const propsMap = new Map<string, any>();
   
-  // Game props are markets that aren't player-specific or main markets
-  Object.entries(event.odds).forEach(([marketType, bookmakerOdds]: [string, any]) => {
-    // Skip player props and main markets
-    if (marketType.startsWith('player_')) return;
-    if (['moneyline', 'spread', 'total'].includes(marketType)) return;
+  Object.entries(event.odds).forEach(([oddID, oddData]: [string, any]) => {
+    // Parse oddID format: "statType-entity-periodID-betTypeID-sideID"
+    const parts = oddID.split('-');
+    if (parts.length < 5) return; // Invalid format
     
-    if (!Array.isArray(bookmakerOdds)) return;
+    const [statType, entity, periodID, betTypeID, sideID] = parts;
     
-    bookmakerOdds.forEach((bookmaker: any) => {
-      if (!bookmaker.outcomes) return;
-      
-      props.push({
-        marketID: `${event.eventID}_${marketType}_${bookmaker.bookmakerID}`,
+    // Only include game props (entity = 'home', 'away', 'all')
+    // Skip player props (entity would be a player ID like "LEBRON_JAMES_1_NBA")
+    if (!['home', 'away', 'all'].includes(entity)) return;
+    
+    // Skip main game lines (already shown in main odds)
+    // We want additional markets only
+    if (periodID === 'game' && betTypeID === 'ml') return; // Skip moneyline
+    if (periodID === 'game' && betTypeID === 'sp' && entity !== 'all') return; // Skip main spread (keep alt spreads)
+    if (periodID === 'game' && betTypeID === 'ou' && entity === 'all') return; // Skip main total (keep team totals)
+    
+    // Extract odds and line values
+    const oddsValue = parseFloat(String(oddData.fairOdds || oddData.bookOdds)) || 0;
+    const spreadValue = parseFloat(String(oddData.fairSpread || oddData.bookSpread)) || undefined;
+    const totalValue = parseFloat(String(oddData.fairOverUnder || oddData.bookOverUnder)) || undefined;
+    
+    // Determine market category and description
+    let marketCategory = '';
+    let description = '';
+    let line: number | undefined;
+    
+    // Categorize by period
+    if (periodID === '1q') marketCategory = '1st Quarter';
+    else if (periodID === '2q') marketCategory = '2nd Quarter';
+    else if (periodID === '3q') marketCategory = '3rd Quarter';
+    else if (periodID === '4q') marketCategory = '4th Quarter';
+    else if (periodID === '1h') marketCategory = '1st Half';
+    else if (periodID === '2h') marketCategory = '2nd Half';
+    else if (periodID === 'game') marketCategory = 'Team Totals';
+    else marketCategory = 'Other Props';
+    
+    // Build description based on bet type
+    const teamLabel = entity === 'home' ? 'Home' : entity === 'away' ? 'Away' : 'Total';
+    
+    if (betTypeID === 'sp') {
+      // Spread
+      line = spreadValue;
+      const spreadSign = line && line > 0 ? '+' : '';
+      description = `${teamLabel} ${spreadSign}${line || 0}`;
+    } else if (betTypeID === 'ou') {
+      // Over/Under (team totals or period totals)
+      line = totalValue;
+      const overUnder = sideID === 'over' ? 'Over' : 'Under';
+      description = `${teamLabel} ${overUnder} ${line || 0}`;
+    } else if (betTypeID === 'ml') {
+      // Moneyline
+      description = `${teamLabel} Win`;
+    } else {
+      // Other bet types
+      description = `${teamLabel} ${betTypeID}`;
+    }
+    
+    // Create unique key for grouping
+    const propKey = `${event.eventID}_${statType}_${entity}_${periodID}_${betTypeID}`;
+    
+    // Store in map
+    if (!propsMap.has(propKey)) {
+      propsMap.set(propKey, {
+        id: oddID,
+        marketID: propKey,
         eventID: event.eventID,
-        marketType,
-        bookmakerID: bookmaker.bookmakerID,
-        bookmakerName: bookmaker.bookmakerName,
-        outcomes: bookmaker.outcomes.map((outcome: any) => ({
-          name: outcome.name,
-          price: outcome.price,
-          point: outcome.point,
-          type: outcome.type,
-        })),
-        lastUpdated: bookmaker.lastUpdated || new Date().toISOString(),
+        marketCategory,
+        propType: `${periodID}_${betTypeID}`, // e.g., "1q_sp", "game_ou"
+        statType,
+        entity,
+        periodID,
+        betTypeID,
+        outcomes: [],
       });
+    }
+    
+    // Add outcome
+    propsMap.get(propKey).outcomes.push({
+      id: oddID,
+      description,
+      selection: sideID,
+      odds: oddsValue,
+      line,
+      sideID,
     });
   });
   
-  return props;
+  // Convert map to array and filter out empty outcomes
+  return Array.from(propsMap.values()).filter(prop => prop.outcomes.length > 0);
 }
 
 /**
@@ -598,6 +663,7 @@ export async function getPlayerProps(
     const { data: events } = await getEvents({
       eventIDs: eventID,
       oddsAvailable: true,
+      includeOpposingOdds: true, // CRITICAL: Get both over AND under for each prop
     });
     
     if (events.length === 0) {
@@ -655,6 +721,7 @@ export async function getGameProps(
     const { data: events } = await getEvents({
       eventIDs: eventID,
       oddsAvailable: true,
+      includeOpposingOdds: true, // CRITICAL: Get both sides of all markets (over/under, home/away)
     });
     
     if (events.length === 0) {

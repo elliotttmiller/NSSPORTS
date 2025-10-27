@@ -450,8 +450,8 @@ async function updatePlayerPropsCache(gameId: string, props: any[]) {
         playerId: prop.player.playerID,
         statType: prop.propType,
         line: prop.line || 0,
-        overOdds: Math.round(prop.overOdds || 0),
-        underOdds: Math.round(prop.underOdds || 0),
+        overOdds: prop.overOdds || 0, // Keep precise odds value (e.g., -110, +125)
+        underOdds: prop.underOdds || 0, // Keep precise odds value
         category: prop.propType,
         lastUpdated: new Date(),
       });
@@ -561,7 +561,7 @@ async function updateGamePropsCache(gameId: string, props: any[]) {
           propType: market.marketType,
           description: outcome.name,
           selection: outcome.name,
-          odds: Math.round(outcome.price || 0),
+          odds: outcome.price || 0, // Keep precise odds value (e.g., -110, +125)
           line: outcome.point,
           lastUpdated: new Date(),
         });

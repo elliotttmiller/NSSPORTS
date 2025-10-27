@@ -32,6 +32,18 @@ interface BetSlipContextType {
       category: string;
     }
   ) => void;
+  addGamePropBet: (
+    game: Game,
+    propId: string,
+    selection: string,
+    odds: number,
+    line: number | undefined,
+    gameProp: {
+      marketCategory: string;
+      propType: string;
+      description: string;
+    }
+  ) => void;
   removeBet: (betId: string) => void;
   updateStake: (betId: string, stake: number) => void;
   setBetType: (betType: "single" | "parlay" | "custom") => void;
@@ -246,6 +258,55 @@ export function BetSlipProvider({ children }: BetSlipProviderProps) {
     [],
   );
 
+  const addGamePropBet = useCallback(
+    (
+      game: Game,
+      propId: string,
+      selection: string,
+      odds: number,
+      line: number | undefined,
+      gameProp: {
+        marketCategory: string;
+        propType: string;
+        description: string;
+      }
+    ) => {
+      const betId = `${game.id}-gameprop-${propId}`;
+      
+      setBetSlip((prev) => {
+        const existingBetIndex = prev.bets.findIndex((b) => b.id === betId);
+        
+        if (existingBetIndex !== -1) {
+          // Bet already exists, don't add it again
+          return prev;
+        }
+
+        const newBet: Bet = {
+          id: betId,
+          gameId: game.id,
+          betType: "game_prop",
+          selection,
+          odds,
+          line,
+          stake: 10, // Default stake
+          potentialPayout: calculatePayout(10, odds) + 10,
+          game,
+          gameProp,
+        };
+
+        const newBets = [...prev.bets, newBet];
+        const totals = calculateBetSlipTotals(newBets, prev.betType, prev.customStraightBets, prev.customParlayBets, prev.customStakes);
+
+        return {
+          ...prev,
+          bets: newBets,
+          ...totals,
+        };
+      });
+    },
+    [],
+  );
+
   const removeBet = useCallback((betId: string) => {
     setBetSlip((prev) => {
       const newBets = prev.bets.filter((b) => b.id !== betId);
@@ -428,6 +489,7 @@ export function BetSlipProvider({ children }: BetSlipProviderProps) {
         betSlip,
         addBet,
         addPlayerPropBet,
+        addGamePropBet,
         removeBet,
         updateStake,
         setBetType,
