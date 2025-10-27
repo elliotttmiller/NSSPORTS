@@ -663,6 +663,7 @@ export async function getPlayerProps(
     const { data: events } = await getEvents({
       eventIDs: eventID,
       oddsAvailable: true,
+      includeOpposingOdds: true, // CRITICAL: Get both over AND under for each prop
     });
     
     if (events.length === 0) {
@@ -720,6 +721,7 @@ export async function getGameProps(
     const { data: events } = await getEvents({
       eventIDs: eventID,
       oddsAvailable: true,
+      includeOpposingOdds: true, // CRITICAL: Get both sides of all markets (over/under, home/away)
     });
     
     if (events.length === 0) {
