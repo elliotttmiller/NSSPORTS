@@ -2,7 +2,7 @@
  * Matches API Route Handler
  * 
  * Backend for Frontend (BFF) Proxy Pattern:
- * - Fetches live data from SportsGameOdds API
+ * - Fetches live data from SportsGameOdds SDK
  * - Server-side caching to minimize API calls
  * - Data transformation to internal format
  * - Comprehensive error handling
@@ -20,7 +20,7 @@ import {
   ApiErrors,
   successResponse,
 } from "@/lib/apiResponse";
-import { getEvents, SportsGameOddsApiError } from "@/lib/sportsgameodds-api";
+import { getEvents, SportsGameOddsApiError } from "@/lib/sportsgameodds-sdk";
 import { transformSportsGameOddsEvents } from "@/lib/transformers/sportsgameodds-api";
 import { GameSchema } from "@/lib/schemas/game";
 import { logger } from "@/lib/logger";
@@ -45,12 +45,12 @@ const QuerySchema = z.object({
 });
 
 /**
- * Cached function to fetch events from SportsGameOdds API
+ * Cached function to fetch events from SportsGameOdds SDK
  * Uses Next.js unstable_cache for server-side caching
  */
 const getCachedEvents = unstable_cache(
   async (sportKey: string) => {
-    logger.info(`Fetching events for ${sportKey} from SportsGameOdds`);
+    logger.info(`Fetching events for ${sportKey} from SportsGameOdds SDK`);
     
     try {
       const leagueID = SPORT_TO_LEAGUE_MAP[sportKey] || "NBA";
@@ -60,20 +60,22 @@ const getCachedEvents = unstable_cache(
       const startsAfter = new Date(now.getTime() - 4 * 60 * 60 * 1000); // 4 hours ago
       const startsBefore = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
       
-      const { data: events } = await getEvents(leagueID, {
+      const { data: events } = await getEvents({
+        leagueID,
         startsAfter: startsAfter.toISOString(),
         startsBefore: startsBefore.toISOString(),
+        oddsAvailable: true,
         limit: 100,
       });
       
       logger.info(`Fetched ${events.length} events for ${sportKey}`);
       return events;
     } catch (error) {
-      logger.error("Error fetching events from SportsGameOdds API", error);
+      logger.error("Error fetching events from SportsGameOdds SDK", error);
       throw error;
     }
   },
-  ["sportsgameodds-matches"],
+  ["sportsgameodds-sdk-matches"],
   {
     revalidate: CACHE_DURATION_SECONDS,
     tags: ["matches"],

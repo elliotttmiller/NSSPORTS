@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { GameSchema } from '@/lib/schemas/game';
 import { withErrorHandling, successResponse, ApiErrors } from '@/lib/apiResponse';
-import { getEvents, SportsGameOddsApiError } from '@/lib/sportsgameodds-api';
+import { getEvents, SportsGameOddsApiError } from '@/lib/sportsgameodds-sdk';
 import { transformSportsGameOddsEvents } from '@/lib/transformers/sportsgameodds-api';
 import { logger } from '@/lib/logger';
 import { unstable_cache } from 'next/cache';
@@ -12,11 +12,11 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 /**
- * Cached function to fetch live games from SportsGameOdds API
+ * Cached function to fetch live games from SportsGameOdds SDK
  */
 const getCachedLiveGames = unstable_cache(
   async () => {
-    logger.info('Fetching live games from SportsGameOdds API');
+    logger.info('Fetching live games from SportsGameOdds SDK');
     
     // Define time range for live games
     const now = new Date();
@@ -25,19 +25,25 @@ const getCachedLiveGames = unstable_cache(
     
     // Fetch from multiple leagues in parallel
     const [nbaResult, nflResult, nhlResult] = await Promise.allSettled([
-      getEvents('NBA', { 
+      getEvents({ 
+        leagueID: 'NBA',
         startsAfter: fourHoursAgo.toISOString(),
         startsBefore: oneHourFromNow.toISOString(),
+        live: true,
         limit: 50,
       }),
-      getEvents('NFL', { 
+      getEvents({ 
+        leagueID: 'NFL',
         startsAfter: fourHoursAgo.toISOString(),
         startsBefore: oneHourFromNow.toISOString(),
+        live: true,
         limit: 50,
       }),
-      getEvents('NHL', { 
+      getEvents({ 
+        leagueID: 'NHL',
         startsAfter: fourHoursAgo.toISOString(),
         startsBefore: oneHourFromNow.toISOString(),
+        live: true,
         limit: 50,
       }),
     ]);
@@ -57,7 +63,7 @@ const getCachedLiveGames = unstable_cache(
     logger.info(`Found ${liveEvents.length} live events out of ${allEvents.length} total`);
     return liveEvents;
   },
-  ['sportsgameodds-live-games'],
+  ['sportsgameodds-sdk-live-games'],
   {
     revalidate: 30,
     tags: ['live-games'],

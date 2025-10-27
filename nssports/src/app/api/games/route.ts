@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { GameSchema } from '@/lib/schemas/game';
 import { paginatedResponseSchema } from '@/lib/schemas/pagination';
 import { withErrorHandling, ApiErrors, successResponse } from '@/lib/apiResponse';
-import { getEvents, SportsGameOddsApiError } from '@/lib/sportsgameodds-api';
+import { getEvents, SportsGameOddsApiError } from '@/lib/sportsgameodds-sdk';
 import { transformSportsGameOddsEvents } from '@/lib/transformers/sportsgameodds-api';
 import { logger } from '@/lib/logger';
 import { unstable_cache } from 'next/cache';
@@ -14,11 +14,11 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 /**
- * Cached function to fetch all games from SportsGameOdds API
+ * Cached function to fetch all games from SportsGameOdds SDK
  */
 const getCachedAllGames = unstable_cache(
   async () => {
-    logger.info('Fetching all games from SportsGameOdds API');
+    logger.info('Fetching all games from SportsGameOdds SDK');
     
     // Define time range
     const now = new Date();
@@ -27,19 +27,25 @@ const getCachedAllGames = unstable_cache(
     
     // Fetch from multiple leagues in parallel
     const [nbaResult, nflResult, nhlResult] = await Promise.allSettled([
-      getEvents('NBA', { 
+      getEvents({ 
+        leagueID: 'NBA',
         startsAfter: startsAfter.toISOString(),
         startsBefore: startsBefore.toISOString(),
+        oddsAvailable: true,
         limit: 100,
       }),
-      getEvents('NFL', { 
+      getEvents({ 
+        leagueID: 'NFL',
         startsAfter: startsAfter.toISOString(),
         startsBefore: startsBefore.toISOString(),
+        oddsAvailable: true,
         limit: 100,
       }),
-      getEvents('NHL', { 
+      getEvents({ 
+        leagueID: 'NHL',
         startsAfter: startsAfter.toISOString(),
         startsBefore: startsBefore.toISOString(),
+        oddsAvailable: true,
         limit: 100,
       }),
     ]);
@@ -50,10 +56,10 @@ const getCachedAllGames = unstable_cache(
       ...(nhlResult.status === 'fulfilled' ? nhlResult.value.data : []),
     ];
     
-    logger.info(`Fetched ${allEvents.length} total events from SportsGameOdds API`);
+    logger.info(`Fetched ${allEvents.length} total events from SportsGameOdds SDK`);
     return allEvents;
   },
-  ['sportsgameodds-all-games'],
+  ['sportsgameodds-sdk-all-games'],
   {
     revalidate: 30,
     tags: ['all-games'],
