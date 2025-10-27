@@ -14,7 +14,6 @@
 
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { unstable_cache } from "next/cache";
 import {
   withErrorHandling,
   ApiErrors,
@@ -45,42 +44,36 @@ const QuerySchema = z.object({
 });
 
 /**
- * Cached function to fetch events from SportsGameOdds SDK
- * Uses Next.js unstable_cache for server-side caching
+ * Fetch events from SportsGameOdds SDK without caching
+ * The full event data is too large (>7MB) to cache in Next.js data cache (2MB limit)
+ * Instead we cache at the HTTP level via route segment config
  */
-const getCachedEvents = unstable_cache(
-  async (sportKey: string) => {
-    logger.info(`Fetching events for ${sportKey} from SportsGameOdds SDK`);
+async function fetchEvents(sportKey: string) {
+  logger.info(`Fetching events for ${sportKey} from SportsGameOdds SDK`);
+  
+  try {
+    const leagueID = SPORT_TO_LEAGUE_MAP[sportKey] || "NBA";
     
-    try {
-      const leagueID = SPORT_TO_LEAGUE_MAP[sportKey] || "NBA";
-      
-      // Fetch events for the next 7 days and past 4 hours
-      const now = new Date();
-      const startsAfter = new Date(now.getTime() - 4 * 60 * 60 * 1000); // 4 hours ago
-      const startsBefore = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
-      
-      const { data: events } = await getEvents({
-        leagueID,
-        startsAfter: startsAfter.toISOString(),
-        startsBefore: startsBefore.toISOString(),
-        oddsAvailable: true,
-        limit: 100,
-      });
-      
-      logger.info(`Fetched ${events.length} events for ${sportKey}`);
-      return events;
-    } catch (error) {
-      logger.error("Error fetching events from SportsGameOdds SDK", error);
-      throw error;
-    }
-  },
-  ["sportsgameodds-sdk-matches"],
-  {
-    revalidate: CACHE_DURATION_SECONDS,
-    tags: ["matches"],
+    // Fetch events for the next 7 days and past 4 hours
+    const now = new Date();
+    const startsAfter = new Date(now.getTime() - 4 * 60 * 60 * 1000); // 4 hours ago
+    const startsBefore = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
+    
+    const { data: events } = await getEvents({
+      leagueID,
+      startsAfter: startsAfter.toISOString(),
+      startsBefore: startsBefore.toISOString(),
+      oddsAvailable: true,
+      limit: 100,
+    });
+    
+    logger.info(`Fetched ${events.length} events for ${sportKey}`);
+    return events;
+  } catch (error) {
+    logger.error("Error fetching events from SportsGameOdds SDK", error);
+    throw error;
   }
-);
+}
 
 export async function GET(request: NextRequest) {
   return withErrorHandling(async () => {
@@ -101,8 +94,8 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-      // Fetch events with caching
-      const events = await getCachedEvents(sport);
+      // Fetch events (HTTP caching via route segment config)
+      const events = await fetchEvents(sport);
 
       // Transform to our internal format
       let games = transformSDKEvents(events);
@@ -121,7 +114,6 @@ export async function GET(request: NextRequest) {
         {
           sport,
           count: validatedGames.length,
-          cached: true,
           cacheDuration: CACHE_DURATION_SECONDS,
         }
       );

@@ -22,7 +22,8 @@ const getCachedLeagues = unstable_cache(
       return leagues;
     } catch (error) {
       logger.error('Error fetching leagues', error);
-      throw error;
+      // Return empty array on error - we'll use fallback data
+      return [];
     }
   },
   ['sportsgameodds-sdk-leagues'],
@@ -32,9 +33,40 @@ const getCachedLeagues = unstable_cache(
   }
 );
 
+/**
+ * Default leagues configuration (fallback if SDK returns no data)
+ * These are the primary leagues we support
+ */
+const DEFAULT_LEAGUES = [
+  {
+    leagueID: 'NBA',
+    name: 'NBA',
+    sport: 'Basketball',
+    active: true,
+  },
+  {
+    leagueID: 'NFL',
+    name: 'NFL',
+    sport: 'AmericanFootball',
+    active: true,
+  },
+  {
+    leagueID: 'NHL',
+    name: 'NHL',
+    sport: 'IceHockey',
+    active: true,
+  },
+];
+
 export async function GET() {
   try {
-    const apiLeagues = await getCachedLeagues();
+    let apiLeagues = await getCachedLeagues();
+    
+    // If SDK returns no leagues, use defaults
+    if (!apiLeagues || apiLeagues.length === 0) {
+      logger.warn('No leagues from SDK, using default configuration');
+      apiLeagues = DEFAULT_LEAGUES;
+    }
     
     // Group leagues by sport
     const sportGroups: Record<string, any[]> = {};
