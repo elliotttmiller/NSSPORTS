@@ -1,14 +1,23 @@
 /**
- * Data Transformation Layer for SportsGameOdds SDK
+ * Data Transformation Layer - SportsGameOdds SDK to Internal Format
  * 
- * Protocol II: Data Sanctity & Transformation
- * - Decouples our internal models from SDK schema
- * - Provides clean, predictable data structure
- * - Makes system resilient to upstream changes
- * - Handles SDK Event type properly
+ * ODDS-FOCUSED TRANSFORMATION:
+ * ✅ Extract betting odds (moneyline, spread, total)
+ * ✅ Extract player props odds (points, rebounds, assists, etc.)
+ * ✅ Extract game props odds (team totals, quarters, etc.)
+ * ✅ Multi-sportsbook odds aggregation
+ * ✅ Preserve official league IDs (NBA, NFL, NHL uppercase)
+ * ❌ Ignore live scores/stats (we don't need game state)
+ * ❌ Ignore activity/period/clock (odds-only focus)
+ * 
+ * Protocol: Data Sanctity & Transformation
+ * - Decouples internal models from SDK schema changes
+ * - Provides clean, predictable odds data structure
+ * - Handles missing odds gracefully with defaults
  * 
  * Official Documentation:
- * - Sports: https://sportsgameodds.com/docs/data-types/sports
+ * - Odds Structure: https://sportsgameodds.com/docs/data-types/odds-structure
+ * - Markets: https://sportsgameodds.com/docs/data-types/markets
  * - Leagues: https://sportsgameodds.com/docs/data-types/leagues
  */
 
@@ -16,138 +25,206 @@ import type { GamePayload } from "../schemas/game";
 import { logger } from "../logger";
 
 /**
- * Official League ID mapping from SportsGameOdds API
- * Source: https://sportsgameodds.com/docs/data-types/leagues
+ * Official League ID Mapping
+ * Source: https://sportsgameodds.com/docs/leagues
  * 
- * Maps SDK leagueID (uppercase) to internal format (lowercase)
- * We normalize to lowercase for consistency in our UI/database
+ * All league IDs use UPPERCASE format per official specification
+ * This mapping ensures consistent ID format across the application
  */
 const LEAGUE_ID_MAPPING: Record<string, string> = {
   // Basketball
-  "NBA": "NBA",
-  "NBA_G_LEAGUE": "NBA_G_LEAGUE",
-  "WNBA": "WNBA",
-  "NCAAB": "NCAAB",
+  'NBA': 'NBA',
+  'WNBA': 'WNBA',
+  'NCAAB': 'NCAAB',
+  'EUROLEAGUE': 'EUROLEAGUE',
   
   // Football
-  "NFL": "NFL",
-  "NCAAF": "NCAAF",
-  "CFL": "CFL",
-  "XFL": "XFL",
-  "USFL": "USFL",
+  'NFL': 'NFL',
+  'NCAAF': 'NCAAF',
+  'CFL': 'CFL',
   
   // Hockey
-  "NHL": "NHL",
-  "AHL": "AHL",
-  "KHL": "KHL",
-  "SHL": "SHL",
+  'NHL': 'NHL',
+  'AHL': 'AHL',
+  'IIHF': 'IIHF',
   
   // Baseball
-  "MLB": "MLB",
-  "MLB_MINORS": "MLB_MINORS",
-  "NPB": "NPB",
-  "KBO": "KBO",
+  'MLB': 'MLB',
+  'MiLB': 'MiLB',
+  'KBO': 'KBO',
+  'NPB': 'NPB',
   
   // Soccer
-  "EPL": "EPL",
-  "LA_LIGA": "LA_LIGA",
-  "BUNDESLIGA": "BUNDESLIGA",
-  "IT_SERIE_A": "IT_SERIE_A",
-  "FR_LIGUE_1": "FR_LIGUE_1",
-  "MLS": "MLS",
-  "LIGA_MX": "LIGA_MX",
-  "UEFA_CHAMPIONS_LEAGUE": "UEFA_CHAMPIONS_LEAGUE",
-  "UEFA_EUROPA_LEAGUE": "UEFA_EUROPA_LEAGUE",
-  
-  // Other sports
-  "UFC": "UFC",
-  "ATP": "ATP",
-  "WTA": "WTA",
-  "PGA_MEN": "PGA_MEN",
-};
-
-/**
- * Sport ID mapping from League ID
- * Source: https://sportsgameodds.com/docs/data-types/sports
- */
-const LEAGUE_TO_SPORT_MAPPING: Record<string, string> = {
-  // Basketball
-  "NBA": "BASKETBALL",
-  "NBA_G_LEAGUE": "BASKETBALL",
-  "WNBA": "BASKETBALL",
-  "NCAAB": "BASKETBALL",
-  
-  // Football
-  "NFL": "FOOTBALL",
-  "NCAAF": "FOOTBALL",
-  "CFL": "FOOTBALL",
-  "XFL": "FOOTBALL",
-  "USFL": "FOOTBALL",
-  
-  // Hockey
-  "NHL": "HOCKEY",
-  "AHL": "HOCKEY",
-  "KHL": "HOCKEY",
-  "SHL": "HOCKEY",
-  
-  // Baseball
-  "MLB": "BASEBALL",
-  "MLB_MINORS": "BASEBALL",
-  "NPB": "BASEBALL",
-  "KBO": "BASEBALL",
-  
-  // Soccer
-  "EPL": "SOCCER",
-  "LA_LIGA": "SOCCER",
-  "BUNDESLIGA": "SOCCER",
-  "IT_SERIE_A": "SOCCER",
-  "FR_LIGUE_1": "SOCCER",
-  "MLS": "SOCCER",
-  "LIGA_MX": "SOCCER",
-  "UEFA_CHAMPIONS_LEAGUE": "SOCCER",
-  "UEFA_EUROPA_LEAGUE": "SOCCER",
+  'EPL': 'EPL',
+  'LALIGA': 'LALIGA',
+  'BUNDESLIGA': 'BUNDESLIGA',
+  'SERIEA': 'SERIEA',
+  'LIGUE1': 'LIGUE1',
+  'MLS': 'MLS',
+  'UEFA': 'UEFA',
+  'FIFA': 'FIFA',
   
   // MMA
-  "UFC": "MMA",
+  'UFC': 'UFC',
+  'BELLATOR': 'BELLATOR',
+  'PFL': 'PFL',
   
   // Tennis
-  "ATP": "TENNIS",
-  "WTA": "TENNIS",
+  'ATP': 'ATP',
+  'WTA': 'WTA',
   
   // Golf
-  "PGA_MEN": "GOLF",
-};
+  'PGA': 'PGA',
+  'LPGA': 'LPGA',
+  'LIV': 'LIV',
+} as const;
 
 /**
- * Generate team short name/abbreviation from team object
+ * Official League to Sport Mapping
+ * Source: https://sportsgameodds.com/docs/sports
+ * 
+ * Maps league IDs to their sport categories
+ * Sport IDs use UPPERCASE format per official specification
  */
-function getTeamShortName(team: any): string {
-  return team.abbreviation || team.shortName || team.name?.split(" ").pop() || team.name || "TBD";
+const LEAGUE_TO_SPORT_MAPPING: Record<string, string> = {
+  // BASKETBALL leagues
+  'NBA': 'BASKETBALL',
+  'WNBA': 'BASKETBALL',
+  'NCAAB': 'BASKETBALL',
+  'EUROLEAGUE': 'BASKETBALL',
+  
+  // FOOTBALL leagues
+  'NFL': 'FOOTBALL',
+  'NCAAF': 'FOOTBALL',
+  'CFL': 'FOOTBALL',
+  
+  // HOCKEY leagues
+  'NHL': 'HOCKEY',
+  'AHL': 'HOCKEY',
+  'IIHF': 'HOCKEY',
+  
+  // BASEBALL leagues
+  'MLB': 'BASEBALL',
+  'MiLB': 'BASEBALL',
+  'KBO': 'BASEBALL',
+  'NPB': 'BASEBALL',
+  
+  // SOCCER leagues
+  'EPL': 'SOCCER',
+  'LALIGA': 'SOCCER',
+  'BUNDESLIGA': 'SOCCER',
+  'SERIEA': 'SOCCER',
+  'LIGUE1': 'SOCCER',
+  'MLS': 'SOCCER',
+  'UEFA': 'SOCCER',
+  'FIFA': 'SOCCER',
+  
+  // MMA leagues
+  'UFC': 'MMA',
+  'BELLATOR': 'MMA',
+  'PFL': 'MMA',
+  
+  // TENNIS leagues
+  'ATP': 'TENNIS',
+  'WTA': 'TENNIS',
+  
+  // GOLF leagues
+  'PGA': 'GOLF',
+  'LPGA': 'GOLF',
+  'LIV': 'GOLF',
+} as const;
+
+/**
+ * Get sport category for a league
+ * 
+ * @param leagueId - Official league ID (uppercase)
+ * @returns Sport category (uppercase) or 'UNKNOWN'
+ */
+export function getSportForLeague(leagueId: string): string {
+  return LEAGUE_TO_SPORT_MAPPING[leagueId] || 'UNKNOWN';
 }
 
 /**
- * Get logo URL for a team
- * Uses the team's logo from the SDK if available, otherwise falls back to local logos
+ * Team interface from SDK
  */
-function getTeamLogo(team: any, leagueId: string): string {
+interface SDKTeam {
+  teamID?: string;
+  name?: string;
+  shortName?: string;
+  logo?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any; // Allow additional properties from SDK
+}
+
+/**
+ * Get team short name with fallback
+ */
+function getTeamShortName(team: SDKTeam): string {
+  return team.shortName || team.name?.split(' ').pop() || team.name || '';
+}
+
+/**
+ * Get team logo URL with fallback
+ */
+function getTeamLogo(team: SDKTeam, leagueId: string): string {
   if (team.logo) {
     return team.logo;
   }
   
-  // Fallback to local logos
-  const teamSlug = (team.name || "unknown")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-  
-  return `/logos/${leagueId}/${teamSlug}.svg`;
+  // Return placeholder or generate from team name
+  const teamSlug = (team.name || 'unknown').toLowerCase().replace(/\s+/g, '-');
+  return `/logos/${leagueId.toLowerCase()}/${teamSlug}.png`;
+}
+
+/**
+ * SDK Event interface (subset of properties we use)
+ * Matches official SDK Event type structure
+ */
+interface SDKEvent {
+  eventID?: string;
+  leagueID?: string;
+  teams?: {
+    home?: SDKTeam;
+    away?: SDKTeam;
+  };
+  commence?: string;
+  startTime?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  activity?: any; // Can be string or Activity object from SDK
+  venue?: string;
+  scores?: {
+    home?: number | null;
+    away?: number | null;
+  };
+  period?: string | null;
+  clock?: string | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  odds?: any; // SDK odds structure is complex, varies by market type
+}
+
+/**
+ * SDK Outcome interface
+ */
+interface SDKOutcome {
+  name: string;
+  price?: number;
+  point?: number;
+}
+
+/**
+ * SDK Bookmaker interface
+ */
+interface SDKBookmaker {
+  bookmakerID?: string;
+  outcomes?: SDKOutcome[];
+  lastUpdated?: string;
 }
 
 /**
  * Extract odds data from SDK event
  * SDK events have odds structured differently than the old API
  */
-function extractOdds(event: any) {
+function extractOdds(event: SDKEvent) {
   const now = new Date();
   
   // Default odds structure
@@ -179,9 +256,9 @@ function extractOdds(event: any) {
     const market = oddsData[marketType];
     if (!market || !Array.isArray(market)) return null;
     
-    for (const bookmaker of market) {
+    for (const bookmaker of market as SDKBookmaker[]) {
       if (!bookmaker.outcomes) continue;
-      const outcome = bookmaker.outcomes.find((o: any) => o.name === outcomeName);
+      const outcome = bookmaker.outcomes.find((o: SDKOutcome) => o.name === outcomeName);
       if (outcome) {
         return {
           odds: outcome.price || 0,
@@ -195,12 +272,12 @@ function extractOdds(event: any) {
   }
   
   // Extract moneyline
-  const moneylineHome = getFirstOdds('moneyline', event.teams?.home?.name) || defaultOdds;
-  const moneylineAway = getFirstOdds('moneyline', event.teams?.away?.name) || defaultOdds;
+  const moneylineHome = getFirstOdds('moneyline', event.teams?.home?.name || '') || defaultOdds;
+  const moneylineAway = getFirstOdds('moneyline', event.teams?.away?.name || '') || defaultOdds;
   
   // Extract spreads
-  const spreadHome = getFirstOdds('spread', event.teams?.home?.name) || defaultOdds;
-  const spreadAway = getFirstOdds('spread', event.teams?.away?.name) || defaultOdds;
+  const spreadHome = getFirstOdds('spread', event.teams?.home?.name || '') || defaultOdds;
+  const spreadAway = getFirstOdds('spread', event.teams?.away?.name || '') || defaultOdds;
   
   // Extract totals
   const totalOver = getFirstOdds('total', 'Over') || defaultOdds;
@@ -252,13 +329,16 @@ function mapStatus(
 /**
  * Transform SDK event to our internal GamePayload format
  * 
- * @param event - Event from SDK (type any to handle SDK's types)
+ * IMPORTANT: Preserves official UPPERCASE league IDs from SDK
+ * Per official docs: https://sportsgameodds.com/docs/leagues
+ * 
+ * @param event - Event from SDK (type SDKEvent)
  */
-export function transformSDKEvent(event: any): GamePayload | null {
+export function transformSDKEvent(event: SDKEvent): GamePayload | null {
   try {
-    // SDK events use different property names
+    // SDK events use official uppercase IDs
     const eventID = event.eventID;
-    const leagueID = event.leagueID;
+    const leagueID = event.leagueID; // Already uppercase from SDK
     const homeTeam = event.teams?.home;
     const awayTeam = event.teams?.away;
     const startTime = event.commence || event.startTime;
@@ -268,8 +348,9 @@ export function transformSDKEvent(event: any): GamePayload | null {
       return null;
     }
     
-    // Map league ID to our internal format
-    const internalLeagueId = LEAGUE_ID_MAPPING[leagueID] || leagueID.toLowerCase();
+    // Use official league ID directly (no normalization to lowercase)
+    // SDK returns uppercase (NBA, NFL, NHL) per official specification
+    const officialLeagueId = LEAGUE_ID_MAPPING[leagueID] || leagueID;
     
     // Parse start time
     const startDateTime = new Date(startTime);
@@ -282,19 +363,19 @@ export function transformSDKEvent(event: any): GamePayload | null {
 
     return {
       id: eventID,
-      leagueId: internalLeagueId,
+      leagueId: officialLeagueId, // Official uppercase format
       homeTeam: {
-        id: homeTeam.teamID || `${internalLeagueId}-${homeTeam.name}`.toLowerCase().replace(/\s+/g, '-'),
-        name: homeTeam.name,
+        id: homeTeam.teamID || `${officialLeagueId}-${homeTeam.name || 'unknown'}`.toLowerCase().replace(/\s+/g, '-'),
+        name: homeTeam.name || 'Unknown',
         shortName: getTeamShortName(homeTeam),
-        logo: getTeamLogo(homeTeam, internalLeagueId),
+        logo: getTeamLogo(homeTeam, officialLeagueId),
         record: undefined,
       },
       awayTeam: {
-        id: awayTeam.teamID || `${internalLeagueId}-${awayTeam.name}`.toLowerCase().replace(/\s+/g, '-'),
-        name: awayTeam.name,
+        id: awayTeam.teamID || `${officialLeagueId}-${awayTeam.name || 'unknown'}`.toLowerCase().replace(/\s+/g, '-'),
+        name: awayTeam.name || 'Unknown',
         shortName: getTeamShortName(awayTeam),
-        logo: getTeamLogo(awayTeam, internalLeagueId),
+        logo: getTeamLogo(awayTeam, officialLeagueId),
         record: undefined,
       },
       startTime: startDateTime,
@@ -315,7 +396,7 @@ export function transformSDKEvent(event: any): GamePayload | null {
 /**
  * Transform multiple SDK events, filtering out any that fail transformation
  */
-export function transformSDKEvents(events: any[]): GamePayload[] {
+export function transformSDKEvents(events: SDKEvent[]): GamePayload[] {
   // Include both upcoming and live games
   const now = new Date();
   const fourHoursAgo = new Date(now.getTime() - 4 * 60 * 60 * 1000);
@@ -323,7 +404,9 @@ export function transformSDKEvents(events: any[]): GamePayload[] {
   return events
     .filter(e => {
       try {
-        const startTime = new Date(e.commence || e.startTime);
+        const time = e.commence || e.startTime;
+        if (!time) return false;
+        const startTime = new Date(time);
         // Include games that are upcoming or started within the last 4 hours
         return startTime > fourHoursAgo;
       } catch {

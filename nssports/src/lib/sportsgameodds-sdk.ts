@@ -1,23 +1,29 @@
 /**
- * SportsGameOdds SDK Integration
+ * SportsGameOdds SDK Integration - ODDS-FOCUSED
  * 
- * Official SDK-based implementation following industry best practices:
- * - Uses official sports-odds-api SDK
- * - Real-time WebSocket streaming support
- * - Consensus odds aggregation
- * - Proper pagination and data batching
- * - Professional rate limiting
- * - Type-safe with full TypeScript support
+ * Official SDK-based implementation for REAL-TIME ODDS & BETTING LINES ONLY:
+ * - ✅ Moneyline, Spread, Total (Over/Under) odds
+ * - ✅ Player props odds (points, rebounds, assists, etc.)
+ * - ✅ Game props odds (team totals, quarters, etc.)
+ * - ✅ Real-time WebSocket streaming for odds updates
+ * - ❌ NO live scores/stats (we don't need game state tracking)
+ * - ❌ NO activity/period/clock data (odds-only focus)
+ * 
+ * Key Official SDK Patterns:
+ * 1. Odds Filtering: oddID parameter for 50-90% payload reduction
+ * 2. Streaming: client.stream.events({ feed: 'events:live' }) for real-time odds
+ * 3. Markets: Fetch specific bet types (moneyline, spread, total, props)
+ * 4. Bookmakers: Multi-sportsbook odds aggregation
  * 
  * Documentation:
  * - SDK: https://sportsgameodds.com/docs/sdk
- * - API Reference: https://sportsgameodds.com/docs/reference
+ * - Odds Filtering: https://sportsgameodds.com/docs/guides/odds-filtering
  * - Streaming: https://sportsgameodds.com/docs/guides/realtime-streaming-api
- * - Rate Limiting: https://sportsgameodds.com/docs/setup/rate-limiting
+ * - Markets: https://sportsgameodds.com/docs/data-types/markets
  * 
- * Note: Using `any` types for SDK responses as the sports-odds-api package
- * doesn't export proper TypeScript types. This is acceptable for external API data
- * that will be transformed into our internal type-safe structures.
+ * Supported Leagues (UPPERCASE per official spec):
+ * - NBA, NFL, NHL (primary focus)
+ * - MLB, NCAAB, NCAAF (additional)
  */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -41,9 +47,9 @@ export function getSportsGameOddsClient() {
   }
 
   return new SportsGameOdds({
-    apiKeyHeader: apiKey, // Correct parameter name per SDK docs
+    apiKeyHeader: apiKey,
     timeout: 20 * 1000, // 20 seconds
-    maxRetries: 3, // Retry up to 3 times
+    maxRetries: 3,
   });
 }
 
@@ -71,15 +77,25 @@ export async function getLeagues(options: {
 }
 
 /**
- * Fetch events with optional filters
- * Uses SDK's built-in pagination and professional rate limiting
+ * Fetch events with ODDS-FOCUSED filters
+ * 
+ * Official SDK Pattern for Odds:
+ * - oddsAvailable=true: Only events with active betting markets
+ * - oddID: Filter specific bet types (reduces payload 50-90%)
+ * - bookmakerID: Filter specific sportsbooks
+ * - includeOpposingOdds: Get both sides of a market
+ * 
+ * @param options Query parameters for odds-focused event fetching
  */
 export async function getEvents(options: {
-  leagueID?: string;
+  leagueID?: string; // NBA, NFL, NHL (uppercase)
   eventIDs?: string | string[];
-  oddsAvailable?: boolean;
-  live?: boolean;
-  finalized?: boolean;
+  oddsAvailable?: boolean; // TRUE = only events with active odds
+  oddID?: string; // Filter specific markets (e.g., "ml,sp,ou" for main lines)
+  bookmakerID?: string; // Filter specific sportsbooks
+  includeOpposingOdds?: boolean; // Get both sides of markets
+  live?: boolean; // Live games with changing odds
+  finalized?: boolean; // FALSE = upcoming/live games only
   limit?: number;
   startsAfter?: string;
   startsBefore?: string;
@@ -94,7 +110,7 @@ export async function getEvents(options: {
     const result = await rateLimiter.execute(
       requestId,
       async () => {
-        logger.info('Fetching events from SportsGameOdds SDK', options);
+        logger.info('Fetching events with odds from SportsGameOdds SDK', options);
         
         // Convert eventIDs array to comma-separated string if needed
         const params = { ...options } as any;

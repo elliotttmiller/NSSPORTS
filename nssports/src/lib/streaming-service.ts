@@ -1,19 +1,25 @@
 /**
- * Real-Time Streaming Service for SportsGameOdds API
+ * Real-Time ODDS Streaming Service - SportsGameOdds API
  * 
- * Implements WebSocket streaming from official documentation:
+ * FOCUS: Real-time betting odds, lines, and props updates ONLY
+ * - ✅ Moneyline, Spread, Total odds changes
+ * - ✅ Player props odds updates (points, rebounds, etc.)
+ * - ✅ Game props odds updates (team totals, etc.)
+ * - ✅ Multi-sportsbook odds aggregation
+ * - ❌ NO live scores, game state, or play-by-play data
+ * 
+ * Official Documentation:
  * https://sportsgameodds.com/docs/guides/realtime-streaming-api
  * 
  * Requirements:
- * - AllStar or custom plan subscription
- * - Pusher protocol WebSocket support
+ * - AllStar plan subscription (7-day trial active)
+ * - Pusher WebSocket protocol
  * - Node.js environment (pusher-js client)
  * 
- * Features:
- * - Auto-reconnection with exponential backoff
- * - Connection state monitoring
- * - Event change notifications
- * - Memory-efficient data management
+ * Stream Feeds Available:
+ * - 'events:live' - All live games with changing odds
+ * - 'events:upcoming' - Upcoming games odds (requires leagueID)
+ * - 'events:byid' - Single event odds updates (requires eventID)
  * 
  * Usage:
  * ```typescript
@@ -21,7 +27,8 @@
  * await stream.connect('events:upcoming', { leagueID: 'NBA' });
  * 
  * stream.on('update', (events) => {
- *   console.log('Events updated:', events);
+ *   // events contain updated odds data only
+ *   console.log('Odds updated:', events.map(e => e.odds));
  * });
  * ```
  */
