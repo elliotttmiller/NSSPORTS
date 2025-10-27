@@ -89,7 +89,7 @@ NSSPORTS/
 │       ├── context/            # BetSlip, Navigation, etc.
 │       ├── store/              # Zustand stores (liveDataStore)
 │       ├── hooks/              # usePaginatedGames, useLiveMatch, queries
-│       ├── lib/                # formatters, prisma client, utils, the-odds-api
+│       ├── lib/                # formatters, prisma client, utils, sportsgameodds-sdk
 │       ├── services/           # api.ts (client adapters)
 │       └── types/              # Game, Bet, User models
 ├── scripts/                    # Utility scripts
@@ -201,7 +201,7 @@ See [ARCHITECTURE.md](./nssports/docs/ARCHITECTURE.md) for detailed documentatio
    - `NEXTAUTH_SECRET`: Generate with `openssl rand -base64 32`
    - `NEXTAUTH_URL`: Your app URL (http://localhost:3000 for development)
    - `SPORTSGAMEODDS_API_KEY`: Your API key from [SportsGameOdds](https://sportsgameodds.com/) (required for live odds data)
-   - `THE_ODDS_API_KEY`: (DEPRECATED - Optional fallback, replaced by SportsGameOdds)
+   - `THE_ODDS_API_KEY`: (DEPRECATED - No longer used, can be omitted)
 
 4. **Set up the database**
    ```bash

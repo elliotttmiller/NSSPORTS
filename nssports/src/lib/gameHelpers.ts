@@ -7,44 +7,34 @@
 
 import prisma from "@/lib/prisma";
 import type { Game } from "@/types";
-import { getOdds } from "@/lib/the-odds-api";
-import { transformOddsApiEvents } from "@/lib/transformers/odds-api";
+import { getEvents } from "@/lib/sportsgameodds-sdk";
+import { transformSDKEvents } from "@/lib/transformers/sportsgameodds-sdk";
 import { logger } from "@/lib/logger";
 
 /**
- * Fetches a game from The Odds API by ID
+ * Fetches a game from SportsGameOdds SDK by ID
  * @param gameId - The game ID to fetch
  * @returns The game data or null if not found
  */
 export async function fetchGameFromAPI(gameId: string): Promise<Game | null> {
   try {
-    // The gameId format from The Odds API is typically the event ID
-    // We need to fetch all games and find the matching one
-    // This is a simplified approach - in production, you might want more efficient caching
-    
-    const sports = ['basketball_nba', 'americanfootball_nfl', 'icehockey_nhl'];
-    
-    for (const sport of sports) {
-      try {
-        const events = await getOdds(sport, {
-          regions: 'us',
-          markets: 'h2h,spreads,totals',
-          oddsFormat: 'american',
-        });
-        
-        const games = transformOddsApiEvents(events);
-        const game = games.find(g => g.id === gameId);
-        
-        if (game) {
-          return game;
-        }
-      } catch (error) {
-        logger.warn(`Failed to fetch ${sport} games for game lookup`, { error });
-        // Continue to next sport
+    // Fetch the specific event by ID from the SDK
+    try {
+      const { data: events } = await getEvents({
+        eventIDs: gameId,
+        oddsAvailable: true,
+      });
+      
+      if (events.length === 0) {
+        return null;
       }
+      
+      const games = transformSDKEvents(events);
+      return games[0] || null;
+    } catch (error) {
+      logger.warn(`Failed to fetch game ${gameId} from SDK`, { error });
+      return null;
     }
-    
-    return null;
   } catch (error) {
     logger.error('Error fetching game from API', { gameId, error });
     return null;
