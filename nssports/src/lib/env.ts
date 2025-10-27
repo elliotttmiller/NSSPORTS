@@ -36,11 +36,13 @@ const envSchema = z.object({
   // Logging
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
   
-  // SportsGameOdds API (Primary)
+  // SportsGameOdds API (Primary - Required)
+  // Official SDK: https://sportsgameodds.com/docs/sdk
   SPORTSGAMEODDS_API_KEY: z.string().min(1),
   
-  // The Odds API (Deprecated - Optional for backward compatibility)
-  THE_ODDS_API_KEY: z.string().min(1).optional(),
+  // The Odds API (Deprecated - No longer used)
+  // Kept for backward compatibility only, will be removed in future version
+  THE_ODDS_API_KEY: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;
