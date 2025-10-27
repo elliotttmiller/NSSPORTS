@@ -2,7 +2,7 @@
  * Matches API Route Handler
  * 
  * Backend for Frontend (BFF) Proxy Pattern:
- * - Fetches live data from The Odds API
+ * - Fetches live data from SportsGameOdds API
  * - Server-side caching to minimize API calls
  * - Data transformation to internal format
  * - Comprehensive error handling
@@ -20,8 +20,8 @@ import {
   ApiErrors,
   successResponse,
 } from "@/lib/apiResponse";
-import { getOdds, OddsApiError } from "@/lib/the-odds-api";
-import { transformOddsApiEvents } from "@/lib/transformers/odds-api";
+import { getEvents, SportsGameOddsApiError } from "@/lib/sportsgameodds-api";
+import { transformSportsGameOddsEvents } from "@/lib/transformers/sportsgameodds-api";
 import { GameSchema } from "@/lib/schemas/game";
 import { logger } from "@/lib/logger";
 import { applySingleLeagueLimit } from "@/lib/devDataLimit";
@@ -29,6 +29,13 @@ import { applySingleLeagueLimit } from "@/lib/devDataLimit";
 // Cache duration: 60 seconds for live odds data
 // This balances data freshness with API quota usage
 const CACHE_DURATION_SECONDS = 60;
+
+// Map sport keys to league IDs
+const SPORT_TO_LEAGUE_MAP: Record<string, string> = {
+  "basketball_nba": "NBA",
+  "americanfootball_nfl": "NFL",
+  "icehockey_nhl": "NHL",
+};
 
 // Query parameters schema
 const QuerySchema = z.object({
@@ -38,28 +45,35 @@ const QuerySchema = z.object({
 });
 
 /**
- * Cached function to fetch odds from The Odds API
+ * Cached function to fetch events from SportsGameOdds API
  * Uses Next.js unstable_cache for server-side caching
  */
-const getCachedOdds = unstable_cache(
+const getCachedEvents = unstable_cache(
   async (sportKey: string) => {
-    logger.info(`Fetching live odds for ${sportKey}`);
+    logger.info(`Fetching events for ${sportKey} from SportsGameOdds`);
     
     try {
-      const events = await getOdds(sportKey, {
-        regions: "us",
-        markets: "h2h,spreads,totals",
-        oddsFormat: "american",
+      const leagueID = SPORT_TO_LEAGUE_MAP[sportKey] || "NBA";
+      
+      // Fetch events for the next 7 days and past 4 hours
+      const now = new Date();
+      const startsAfter = new Date(now.getTime() - 4 * 60 * 60 * 1000); // 4 hours ago
+      const startsBefore = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
+      
+      const { data: events } = await getEvents(leagueID, {
+        startsAfter: startsAfter.toISOString(),
+        startsBefore: startsBefore.toISOString(),
+        limit: 100,
       });
       
       logger.info(`Fetched ${events.length} events for ${sportKey}`);
       return events;
     } catch (error) {
-      logger.error("Error fetching odds from The Odds API", error);
+      logger.error("Error fetching events from SportsGameOdds API", error);
       throw error;
     }
   },
-  ["odds-api-matches"],
+  ["sportsgameodds-matches"],
   {
     revalidate: CACHE_DURATION_SECONDS,
     tags: ["matches"],
@@ -85,11 +99,11 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-      // Fetch odds with caching
-      const events = await getCachedOdds(sport);
+      // Fetch events with caching
+      const events = await getCachedEvents(sport);
 
       // Transform to our internal format
-      let games = transformOddsApiEvents(events);
+      let games = transformSportsGameOddsEvents(events);
       
       // Apply single league limit in development (Protocol I-IV)
       games = applySingleLeagueLimit(games);
@@ -111,8 +125,8 @@ export async function GET(request: NextRequest) {
       );
     } catch (error) {
       // Handle specific API errors
-      if (error instanceof OddsApiError) {
-        logger.error("The Odds API error", error);
+      if (error instanceof SportsGameOddsApiError) {
+        logger.error("SportsGameOdds API error", error);
         
         // If it's an authentication error, return 503 with helpful message
         if (error.statusCode === 401 || error.statusCode === 403) {
