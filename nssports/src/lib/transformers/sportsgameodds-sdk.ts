@@ -171,9 +171,9 @@ function getTeamLogo(team: SDKTeam, leagueId: string): string {
     return team.logo;
   }
   
-  // Return placeholder or generate from team name
+  // Generate logo path from team name (matches our public/logos structure)
   const teamSlug = (team.name || 'unknown').toLowerCase().replace(/\s+/g, '-');
-  return `/logos/${leagueId.toLowerCase()}/${teamSlug}.png`;
+  return `/logos/${leagueId.toLowerCase()}/${teamSlug}.svg`; // Changed from .png to .svg
 }
 
 /**

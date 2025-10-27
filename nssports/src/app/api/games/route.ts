@@ -19,24 +19,24 @@ export const dynamic = 'force-dynamic';
 async function getCachedAllGames() {
   logger.info('Fetching all games from hybrid cache');
   
-  // Define time range
+  // Define time range - optimized for real-world game schedules
   const now = new Date();
-  const startsAfter = new Date(now.getTime() - 4 * 60 * 60 * 1000); // 4 hours ago
-  const startsBefore = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
+  const startsAfter = new Date(now.getTime() - 12 * 60 * 60 * 1000); // 12 hours ago (catch games in progress)
+  const startsBefore = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000); // 14 days from now (2 weeks ahead)
   
   // Development-friendly limits: fetch only what we need (3-5 games per league)
   const isDevelopment = process.env.NODE_ENV === 'development';
   const fetchLimit = isDevelopment ? 5 : 100; // Only fetch 5 games per league in dev mode
   
   // Fetch from multiple leagues in parallel
-  // CRITICAL: Must include oddID parameter to get betting lines!
+  // Get ALL available odds (will filter specific markets in transformer)
   const [nbaResult, nflResult, nhlResult] = await Promise.allSettled([
     getEventsWithCache({ 
       leagueID: 'NBA',
       startsAfter: startsAfter.toISOString(),
       startsBefore: startsBefore.toISOString(),
       oddsAvailable: true,
-      oddID: 'moneyline,spread,total', // Fetch main betting lines
+      // Removed oddID to get all available odds
       limit: fetchLimit,
     }),
     getEventsWithCache({ 
@@ -44,7 +44,7 @@ async function getCachedAllGames() {
       startsAfter: startsAfter.toISOString(),
       startsBefore: startsBefore.toISOString(),
       oddsAvailable: true,
-      oddID: 'moneyline,spread,total', // Fetch main betting lines
+      // Removed oddID to get all available odds
       limit: fetchLimit,
     }),
     getEventsWithCache({ 
@@ -52,7 +52,7 @@ async function getCachedAllGames() {
       startsAfter: startsAfter.toISOString(),
       startsBefore: startsBefore.toISOString(),
       oddsAvailable: true,
-      oddID: 'moneyline,spread,total', // Fetch main betting lines
+      // Removed oddID to get all available odds
       limit: fetchLimit,
     }),
   ]);

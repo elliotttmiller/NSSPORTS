@@ -121,6 +121,20 @@ export async function getEvents(options: {
         const page = await client.events.get(params);
         logger.info(`Fetched ${page.data.length} events from SDK`);
         
+        // Debug: Log first event's odds structure to understand what we're getting
+        if (page.data.length > 0 && page.data[0].odds) {
+          logger.debug('Sample event odds structure:', {
+            eventID: page.data[0].eventID,
+            oddsKeys: Object.keys(page.data[0].odds || {}),
+            sampleOdds: JSON.stringify(page.data[0].odds).substring(0, 500)
+          });
+        } else {
+          logger.warn('No odds data in SDK response', {
+            eventCount: page.data.length,
+            firstEventKeys: page.data[0] ? Object.keys(page.data[0]) : []
+          });
+        }
+        
         return {
           data: page.data,
           meta: {
@@ -141,6 +155,12 @@ export async function getEvents(options: {
     
     if (error instanceof Error && error.message === 'HOURLY_LIMIT_EXCEEDED') {
       logger.warn('SDK hourly limit exceeded', { options });
+      return { data: [], meta: { hasMore: false } };
+    }
+    
+    // Handle 404 "No Events found" gracefully - this is a valid response
+    if (error instanceof Error && error.message.includes('404') && error.message.includes('No Events found')) {
+      logger.info('No events found for query', { options });
       return { data: [], meta: { hasMore: false } };
     }
     

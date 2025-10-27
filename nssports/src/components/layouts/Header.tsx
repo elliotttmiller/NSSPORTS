@@ -236,6 +236,7 @@ export function Header() {
               </Button>
             </div>
             {showDropdown && createPortal(
+              // Portal dropdown requires dynamic positioning based on trigger button location
               <div
                 style={{
                   position: "absolute",

@@ -215,11 +215,13 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange }: G
             </div>
           )}
           {/* Virtualized list of league headers + games for selected date */}
+          {/* Virtual scrolling requires dynamic height calculation */}
           <div className="relative [contain:layout_paint_size] [will-change:transform]" style={{ height: virtualizer.getTotalSize() }}>
             {virtualizer.getVirtualItems().map((vi) => {
               const it = (items as Item[])[vi.index];
               if (!it) return null;
               return (
+                // Virtual item positioning requires dynamic transform
                 <div
                   key={it.key}
                   className="absolute top-0 left-0 w-full [will-change:transform]"

@@ -31,7 +31,7 @@ export async function GET() {
           startsAfter: now.toISOString(),
           startsBefore: sevenDaysFromNow.toISOString(),
           oddsAvailable: true,
-          oddID: 'moneyline,spread,total', // Fetch main betting lines
+          oddID: 'ml,sp,ou', // Abbreviated format: moneyline, spread, over/under
           limit: fetchLimit,
         }),
         getEventsWithCache({ 
@@ -39,7 +39,7 @@ export async function GET() {
           startsAfter: now.toISOString(),
           startsBefore: sevenDaysFromNow.toISOString(),
           oddsAvailable: true,
-          oddID: 'moneyline,spread,total', // Fetch main betting lines
+          oddID: 'ml,sp,ou', // Abbreviated format: moneyline, spread, over/under
           limit: fetchLimit,
         }),
         getEventsWithCache({ 
@@ -47,7 +47,7 @@ export async function GET() {
           startsAfter: now.toISOString(),
           startsBefore: sevenDaysFromNow.toISOString(),
           oddsAvailable: true,
-          oddID: 'moneyline,spread,total', // Fetch main betting lines
+          oddID: 'ml,sp,ou', // Abbreviated format: moneyline, spread, over/under
           limit: fetchLimit,
         }),
       ]);

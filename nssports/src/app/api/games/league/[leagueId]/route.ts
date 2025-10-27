@@ -48,7 +48,7 @@ export async function GET(
         startsAfter: startsAfter.toISOString(),
         startsBefore: startsBefore.toISOString(),
         oddsAvailable: true,
-        oddID: 'moneyline,spread,total', // Fetch main betting lines
+        oddID: 'ml,sp,ou', // Abbreviated format: moneyline, spread, over/under
         limit: 100,
       });
       
