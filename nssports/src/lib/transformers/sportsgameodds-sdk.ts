@@ -158,8 +158,41 @@ interface SDKTeam {
 
 /**
  * Get team short name with fallback
+ * Extracts 3-letter abbreviation from team data
  */
 function getTeamShortName(team: SDKTeam): string {
+  // Try to extract abbreviation from teamID
+  // Format: "DETROIT_PISTONS_NBA" -> "DET"
+  if (team.teamID) {
+    const parts = team.teamID.split('_');
+    if (parts.length >= 2) {
+      // Get the city/first part and create abbreviation
+      const cityName = parts[0];
+      
+      // Special cases for multi-word cities
+      const multiWordCities: Record<string, string> = {
+        'LOS_ANGELES': 'LAL', // Lakers
+        'LOS ANGELES': 'LAL',
+        'NEW_YORK': 'NYK', // Knicks
+        'NEW YORK': 'NYK',
+        'GOLDEN_STATE': 'GSW', // Warriors
+        'GOLDEN STATE': 'GSW',
+      };
+      
+      // Check if it's a two-word city
+      const twoWordKey = `${parts[0]}_${parts[1]}`;
+      if (multiWordCities[twoWordKey]) {
+        return multiWordCities[twoWordKey];
+      }
+      
+      // For single-word cities, take first 3 letters
+      if (cityName.length >= 3) {
+        return cityName.substring(0, 3).toUpperCase();
+      }
+    }
+  }
+  
+  // Fallback to SDK shortName or last word of name
   return team.shortName || team.name?.split(' ').pop() || team.name || '';
 }
 

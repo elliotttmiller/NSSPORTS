@@ -356,57 +356,116 @@ export function extractPlayerProps(event: any): any[] {
   
   if (!event.odds) return props;
   
-  // Look for player prop markets
-  Object.entries(event.odds).forEach(([marketType, bookmakerOdds]: [string, any]) => {
-    // Player props typically have market types like 'player_points', 'player_rebounds', etc.
-    if (!marketType.startsWith('player_')) return;
+  // New SDK format uses oddIDs like:
+  // "points-LEBRON_JAMES_1_NBA-game-ou-over"
+  // "assists-CADE_CUNNINGHAM_1_NBA-game-ou-over"
+  // "rebounds-EVAN_MOBLEY_1_NBA-game-ou-under"
+  
+  // Group by player and stat type
+  const playerPropGroups: Record<string, {
+    player: { playerID: string, name: string, teamID?: string, position?: string },
+    statType: string,
+    over?: { odds: number, line?: number },
+    under?: { odds: number, line?: number },
+  }> = {};
+  
+  Object.entries(event.odds).forEach(([oddID, oddData]: [string, any]) => {
+    // Skip if not a player prop (player props have player ID in oddID)
+    // Format: "statType-PLAYER_ID-periodID-betTypeID-sideID"
+    const parts = oddID.split('-');
+    if (parts.length < 5) return; // Not a player prop
     
-    if (!Array.isArray(bookmakerOdds)) return;
+    const statType = parts[0];
+    const playerID = parts[1];
     
-    const propType = marketType.replace('player_', '');
+    // Skip team/game totals (they use 'all', 'away', 'home' instead of player IDs)
+    if (['all', 'away', 'home'].includes(playerID)) return;
     
-    bookmakerOdds.forEach((bookmaker: any) => {
-      if (!bookmaker.outcomes) return;
+    // Skip if this doesn't look like a player prop stat
+    const playerPropStats = ['points', 'assists', 'rebounds', 'threes', 'steals', 'blocks', 
+                             'points+assists', 'points+rebounds', 'points+rebounds+assists',
+                             'blocks+steals', 'doubles', 'triples'];
+    if (!playerPropStats.includes(statType)) return;
+    
+    // Skip if not main game (we want -game-, not -1q-, -1h-, etc.)
+    if (!oddID.includes('-game-')) return;
+    
+    // Skip if not over/under market
+    if (!oddID.includes('-ou-')) return;
+    
+    const isOver = oddID.includes('-over');
+    const isUnder = oddID.includes('-under');
+    if (!isOver && !isUnder) return;
+    
+    // Extract odds values
+    const oddsValue = parseFloat(String(oddData.fairOdds || oddData.bookOdds)) || 0;
+    // For over/under markets, the line is in fairOverUnder or bookOverUnder
+    const lineValue = parseFloat(String(oddData.fairOverUnder || oddData.bookOverUnder || oddData.fairLine || oddData.bookLine)) || undefined;
+    
+    // Create group key
+    const groupKey = `${playerID}_${statType}`;
+    
+    if (!playerPropGroups[groupKey]) {
+      // Parse player name from playerID (e.g., "LEBRON_JAMES_1_NBA" -> "LeBron James")
+      // Remove the last parts which are usually number and league
+      const playerIDParts = playerID.split('_');
       
-      // Group outcomes by player
-      const playerGroups: Record<string, any[]> = {};
+      // Find where the player name ends (before numbers and league code)
+      let nameEndIndex = playerIDParts.length;
       
-      bookmaker.outcomes.forEach((outcome: any) => {
-        const playerName = outcome.player?.name || outcome.name;
-        if (!playerGroups[playerName]) {
-          playerGroups[playerName] = [];
-        }
-        playerGroups[playerName].push(outcome);
-      });
+      // Check last part - if it's a league code (NBA, NFL, NHL), remove it
+      if (['NBA', 'NFL', 'NHL', 'MLB', 'MLS'].includes(playerIDParts[playerIDParts.length - 1])) {
+        nameEndIndex--;
+      }
       
-      // Create props for each player
-      Object.entries(playerGroups).forEach(([playerName, outcomes]) => {
-        // Find over and under outcomes
-        const overOutcome = outcomes.find((o: any) => o.type === 'over' || o.name.includes('Over'));
-        const underOutcome = outcomes.find((o: any) => o.type === 'under' || o.name.includes('Under'));
-        
-        // Get line from either outcome
-        const line = overOutcome?.point || underOutcome?.point;
-        
-        props.push({
-          propID: `${event.eventID}_${marketType}_${playerName}_${bookmaker.bookmakerID}`,
-          eventID: event.eventID,
-          marketType,
-          propType,
-          player: {
-            playerID: overOutcome?.player?.playerID || underOutcome?.player?.playerID || playerName,
-            name: playerName,
-            teamID: overOutcome?.player?.teamID || underOutcome?.player?.teamID,
-            position: overOutcome?.player?.position || underOutcome?.player?.position,
-          },
-          line,
-          overOdds: overOutcome?.price,
-          underOdds: underOutcome?.price,
-          bookmakerID: bookmaker.bookmakerID,
-          bookmakerName: bookmaker.bookmakerName,
-          lastUpdated: bookmaker.lastUpdated || new Date().toISOString(),
-        });
-      });
+      // Check second to last - if it's a number, remove it
+      if (nameEndIndex > 0 && /^\d+$/.test(playerIDParts[nameEndIndex - 1])) {
+        nameEndIndex--;
+      }
+      
+      // Build player name from remaining parts
+      const playerNameParts = playerIDParts.slice(0, nameEndIndex);
+      const playerName = playerNameParts.length > 0
+        ? playerNameParts.map(part => part.charAt(0) + part.slice(1).toLowerCase()).join(' ')
+        : playerID; // Fallback to raw playerID if parsing fails
+      
+      playerPropGroups[groupKey] = {
+        player: {
+          playerID,
+          name: playerName,
+          teamID: oddData.teamID,
+          position: oddData.position,
+        },
+        statType,
+      };
+    }
+    
+    if (isOver) {
+      playerPropGroups[groupKey].over = { odds: oddsValue, line: lineValue };
+    } else if (isUnder) {
+      playerPropGroups[groupKey].under = { odds: oddsValue, line: lineValue };
+    }
+  });
+  
+  // Convert groups to props array
+  Object.entries(playerPropGroups).forEach(([_groupKey, group]) => {
+    // Skip if missing over or under
+    if (!group.over || !group.under) return;
+    
+    // Use the line from over (they should be the same)
+    const line = group.over.line || group.under.line;
+    
+    props.push({
+      propID: `${event.eventID}_${group.statType}_${group.player.playerID}`,
+      eventID: event.eventID,
+      propType: group.statType,
+      player: group.player,
+      line,
+      overOdds: group.over.odds,
+      underOdds: group.under.odds,
+      bookmakerID: 'consensus', // Using consensus odds
+      bookmakerName: 'Consensus',
+      lastUpdated: new Date().toISOString(),
     });
   });
   
