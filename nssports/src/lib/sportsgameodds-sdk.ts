@@ -11,13 +11,16 @@
  * 
  * Key Official SDK Patterns:
  * 1. Odds Filtering: oddID parameter for 50-90% payload reduction
+ *    - Main lines: "game-ml,game-ats,game-ou" (moneyline, spread, total)
+ *    - Player props: "points-PLAYER_ID-game-ou" (wildcard for all players)
  * 2. Streaming: client.stream.events({ feed: 'events:live' }) for real-time odds
  * 3. Markets: Fetch specific bet types (moneyline, spread, total, props)
  * 4. Bookmakers: Multi-sportsbook odds aggregation
+ * 5. includeOpposingOdds: Get both sides of markets (home/away, over/under)
  * 
  * Documentation:
  * - SDK: https://sportsgameodds.com/docs/sdk
- * - Odds Filtering: https://sportsgameodds.com/docs/guides/odds-filtering
+ * - Odds Filtering: https://sportsgameodds.com/docs/guides/response-speed
  * - Streaming: https://sportsgameodds.com/docs/guides/realtime-streaming-api
  * - Markets: https://sportsgameodds.com/docs/data-types/markets
  * 
@@ -77,6 +80,75 @@ export async function getLeagues(options: {
 }
 
 /**
+ * Fetch ALL events across multiple pages (use with caution for large datasets)
+ * Automatically fetches all pages using cursor-based pagination
+ * 
+ * @param options Query parameters
+ * @param maxPages Maximum number of pages to fetch (safety limit, default: 10)
+ * @returns All events across all pages
+ */
+export async function getAllEvents(
+  options: {
+    leagueID?: string;
+    eventIDs?: string | string[];
+    oddsAvailable?: boolean;
+    oddID?: string;
+    bookmakerID?: string;
+    includeOpposingOdds?: boolean;
+    live?: boolean;
+    finalized?: boolean;
+    limit?: number;
+    startsAfter?: string;
+    startsBefore?: string;
+  } = {},
+  maxPages: number = 10
+) {
+  const client = getSportsGameOddsClient();
+  
+  try {
+    logger.info('Fetching all events with pagination', { options, maxPages });
+    
+    // Convert eventIDs array to comma-separated string if needed
+    const params = { ...options } as any;
+    if (params.eventIDs && Array.isArray(params.eventIDs)) {
+      params.eventIDs = params.eventIDs.join(',');
+    }
+    
+    let allEvents: any[] = [];
+    let page = await client.events.get(params);
+    let pageCount = 1;
+    
+    allEvents = allEvents.concat(page.data);
+    logger.debug(`Page ${pageCount}: fetched ${page.data.length} events`);
+    
+    // Fetch remaining pages
+    while (page.hasNextPage() && pageCount < maxPages) {
+      page = await page.getNextPage();
+      pageCount++;
+      allEvents = allEvents.concat(page.data);
+      logger.debug(`Page ${pageCount}: fetched ${page.data.length} events (total: ${allEvents.length})`);
+    }
+    
+    if (page.hasNextPage()) {
+      logger.warn(`Reached max pages limit (${maxPages}), there may be more data available`);
+    }
+    
+    logger.info(`Fetched ${allEvents.length} total events across ${pageCount} pages`);
+    
+    return {
+      data: allEvents,
+      meta: {
+        hasMore: page.hasNextPage(),
+        pageCount,
+      },
+    };
+  } catch (error) {
+    logger.error('Error fetching all events', error);
+    throw error;
+  }
+}
+
+/**
  * Fetch events with ODDS-FOCUSED filters
  * 
  * Official SDK Pattern for Odds:
@@ -91,9 +163,9 @@ export async function getEvents(options: {
   leagueID?: string; // NBA, NFL, NHL (uppercase)
   eventIDs?: string | string[];
   oddsAvailable?: boolean; // TRUE = only events with active odds
-  oddID?: string; // Filter specific markets (e.g., "ml,sp,ou" for main lines)
+  oddID?: string; // Filter specific markets (e.g., "game-ml,game-ats,game-ou" for main lines)
   bookmakerID?: string; // Filter specific sportsbooks
-  includeOpposingOdds?: boolean; // Get both sides of markets
+  includeOpposingOdds?: boolean; // Get both sides of markets (recommended: true)
   live?: boolean; // Live games with changing odds
   finalized?: boolean; // FALSE = upcoming/live games only
   limit?: number;
