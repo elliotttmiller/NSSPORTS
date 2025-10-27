@@ -26,12 +26,12 @@ import {
   getGameProps as sdkGetGameProps,
 } from './sportsgameodds-sdk';
 
-// Cache TTL in seconds
+// Cache TTL in seconds - optimized for development/testing
 const CACHE_TTL = {
-  events: 30, // 30 seconds for events/games
-  odds: 30, // 30 seconds for odds
-  playerProps: 30, // 30 seconds for player props
-  gameProps: 30, // 30 seconds for game props
+  events: 120, // 2 minutes for events/games (was 30s)
+  odds: 120, // 2 minutes for odds (was 30s)
+  playerProps: 120, // 2 minutes for player props (was 30s)
+  gameProps: 120, // 2 minutes for game props (was 30s)
 };
 
 /**

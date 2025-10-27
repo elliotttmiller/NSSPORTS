@@ -6,20 +6,32 @@
  * - Real-time WebSocket streaming support
  * - Consensus odds aggregation
  * - Proper pagination and data batching
+ * - Professional rate limiting
  * - Type-safe with full TypeScript support
  * 
  * Documentation:
  * - SDK: https://sportsgameodds.com/docs/sdk
  * - API Reference: https://sportsgameodds.com/docs/reference
  * - Streaming: https://sportsgameodds.com/docs/guides/realtime-streaming-api
+ * - Rate Limiting: https://sportsgameodds.com/docs/setup/rate-limiting
+ * 
+ * Note: Using `any` types for SDK responses as the sports-odds-api package
+ * doesn't export proper TypeScript types. This is acceptable for external API data
+ * that will be transformed into our internal type-safe structures.
  */
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import SportsGameOdds from 'sports-odds-api';
 import { logger } from "./logger";
+import { rateLimiter } from "./rate-limiter";
 
 /**
  * Get configured SDK client instance
  * Server-side only - API key is never exposed to client
+ * 
+ * Official SDK Configuration:
+ * https://sportsgameodds.com/docs/sdk
  */
 export function getSportsGameOddsClient() {
   const apiKey = process.env.SPORTSGAMEODDS_API_KEY;
@@ -29,7 +41,9 @@ export function getSportsGameOddsClient() {
   }
 
   return new SportsGameOdds({
-    apiKeyParam: apiKey,
+    apiKeyHeader: apiKey, // Correct parameter name per SDK docs
+    timeout: 20 * 1000, // 20 seconds
+    maxRetries: 3, // Retry up to 3 times
   });
 }
 
@@ -58,7 +72,7 @@ export async function getLeagues(options: {
 
 /**
  * Fetch events with optional filters
- * Uses SDK's built-in pagination
+ * Uses SDK's built-in pagination and professional rate limiting
  */
 export async function getEvents(options: {
   leagueID?: string;
@@ -73,24 +87,47 @@ export async function getEvents(options: {
   const client = getSportsGameOddsClient();
   
   try {
-    logger.info('Fetching events from SportsGameOdds SDK', options);
+    // Generate unique request ID for deduplication
+    const requestId = `events:${JSON.stringify(options)}`;
     
-    // Convert eventIDs array to comma-separated string if needed
-    const params = { ...options } as any;
-    if (params.eventIDs && Array.isArray(params.eventIDs)) {
-      params.eventIDs = params.eventIDs.join(',');
+    // Execute with rate limiting
+    const result = await rateLimiter.execute(
+      requestId,
+      async () => {
+        logger.info('Fetching events from SportsGameOdds SDK', options);
+        
+        // Convert eventIDs array to comma-separated string if needed
+        const params = { ...options } as any;
+        if (params.eventIDs && Array.isArray(params.eventIDs)) {
+          params.eventIDs = params.eventIDs.join(',');
+        }
+        
+        const page = await client.events.get(params);
+        logger.info(`Fetched ${page.data.length} events from SDK`);
+        
+        return {
+          data: page.data,
+          meta: {
+            hasMore: page.hasNextPage(),
+          },
+        };
+      },
+      1 // High priority
+    );
+    
+    return result;
+  } catch (error) {
+    // Handle rate limiting errors gracefully
+    if (error instanceof Error && error.message === 'DUPLICATE_REQUEST') {
+      logger.debug('Skipped duplicate request', { options });
+      return { data: [], meta: { hasMore: false } };
     }
     
-    const page = await client.events.get(params);
-    logger.info(`Fetched ${page.data.length} events`);
+    if (error instanceof Error && error.message === 'HOURLY_LIMIT_EXCEEDED') {
+      logger.warn('SDK hourly limit exceeded', { options });
+      return { data: [], meta: { hasMore: false } };
+    }
     
-    return {
-      data: page.data,
-      meta: {
-        hasMore: page.hasNextPage(),
-      },
-    };
-  } catch (error) {
     logger.error('Error fetching events', error);
     throw error;
   }

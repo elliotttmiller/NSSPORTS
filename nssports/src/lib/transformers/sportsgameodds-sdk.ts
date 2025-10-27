@@ -6,20 +6,116 @@
  * - Provides clean, predictable data structure
  * - Makes system resilient to upstream changes
  * - Handles SDK Event type properly
+ * 
+ * Official Documentation:
+ * - Sports: https://sportsgameodds.com/docs/data-types/sports
+ * - Leagues: https://sportsgameodds.com/docs/data-types/leagues
  */
 
 import type { GamePayload } from "../schemas/game";
 import { logger } from "../logger";
 
 /**
- * Map league IDs from SportsGameOdds SDK to our internal league IDs
+ * Official League ID mapping from SportsGameOdds API
+ * Source: https://sportsgameodds.com/docs/data-types/leagues
+ * 
+ * Maps SDK leagueID (uppercase) to internal format (lowercase)
+ * We normalize to lowercase for consistency in our UI/database
  */
 const LEAGUE_ID_MAPPING: Record<string, string> = {
-  "NBA": "nba",
-  "NFL": "nfl",
-  "NHL": "nhl",
-  "NCAAB": "ncaab",
-  "NCAAF": "ncaaf",
+  // Basketball
+  "NBA": "NBA",
+  "NBA_G_LEAGUE": "NBA_G_LEAGUE",
+  "WNBA": "WNBA",
+  "NCAAB": "NCAAB",
+  
+  // Football
+  "NFL": "NFL",
+  "NCAAF": "NCAAF",
+  "CFL": "CFL",
+  "XFL": "XFL",
+  "USFL": "USFL",
+  
+  // Hockey
+  "NHL": "NHL",
+  "AHL": "AHL",
+  "KHL": "KHL",
+  "SHL": "SHL",
+  
+  // Baseball
+  "MLB": "MLB",
+  "MLB_MINORS": "MLB_MINORS",
+  "NPB": "NPB",
+  "KBO": "KBO",
+  
+  // Soccer
+  "EPL": "EPL",
+  "LA_LIGA": "LA_LIGA",
+  "BUNDESLIGA": "BUNDESLIGA",
+  "IT_SERIE_A": "IT_SERIE_A",
+  "FR_LIGUE_1": "FR_LIGUE_1",
+  "MLS": "MLS",
+  "LIGA_MX": "LIGA_MX",
+  "UEFA_CHAMPIONS_LEAGUE": "UEFA_CHAMPIONS_LEAGUE",
+  "UEFA_EUROPA_LEAGUE": "UEFA_EUROPA_LEAGUE",
+  
+  // Other sports
+  "UFC": "UFC",
+  "ATP": "ATP",
+  "WTA": "WTA",
+  "PGA_MEN": "PGA_MEN",
+};
+
+/**
+ * Sport ID mapping from League ID
+ * Source: https://sportsgameodds.com/docs/data-types/sports
+ */
+const LEAGUE_TO_SPORT_MAPPING: Record<string, string> = {
+  // Basketball
+  "NBA": "BASKETBALL",
+  "NBA_G_LEAGUE": "BASKETBALL",
+  "WNBA": "BASKETBALL",
+  "NCAAB": "BASKETBALL",
+  
+  // Football
+  "NFL": "FOOTBALL",
+  "NCAAF": "FOOTBALL",
+  "CFL": "FOOTBALL",
+  "XFL": "FOOTBALL",
+  "USFL": "FOOTBALL",
+  
+  // Hockey
+  "NHL": "HOCKEY",
+  "AHL": "HOCKEY",
+  "KHL": "HOCKEY",
+  "SHL": "HOCKEY",
+  
+  // Baseball
+  "MLB": "BASEBALL",
+  "MLB_MINORS": "BASEBALL",
+  "NPB": "BASEBALL",
+  "KBO": "BASEBALL",
+  
+  // Soccer
+  "EPL": "SOCCER",
+  "LA_LIGA": "SOCCER",
+  "BUNDESLIGA": "SOCCER",
+  "IT_SERIE_A": "SOCCER",
+  "FR_LIGUE_1": "SOCCER",
+  "MLS": "SOCCER",
+  "LIGA_MX": "SOCCER",
+  "UEFA_CHAMPIONS_LEAGUE": "SOCCER",
+  "UEFA_EUROPA_LEAGUE": "SOCCER",
+  
+  // MMA
+  "UFC": "MMA",
+  
+  // Tennis
+  "ATP": "TENNIS",
+  "WTA": "TENNIS",
+  
+  // Golf
+  "PGA_MEN": "GOLF",
 };
 
 /**

@@ -8,7 +8,7 @@ import { transformSDKEvents } from '@/lib/transformers/sportsgameodds-sdk';
 import { logger } from '@/lib/logger';
 import { applyStratifiedSampling } from '@/lib/devDataLimit';
 
-export const revalidate = 30;
+export const revalidate = 120; // 2 minutes - matches hybrid cache TTL
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
@@ -96,9 +96,10 @@ export async function GET(request: NextRequest) {
       // Apply stratified sampling in development (Protocol I-IV)
       games = applyStratifiedSampling(games, 'leagueId');
       
-      // Filter by leagueId if specified
+      // Filter by leagueId if specified (case-insensitive)
       if (leagueId) {
-        games = games.filter(game => game.leagueId === leagueId);
+        const normalizedLeagueId = leagueId.toUpperCase();
+        games = games.filter(game => game.leagueId?.toUpperCase() === normalizedLeagueId);
       }
       
       // Filter by status if specified
