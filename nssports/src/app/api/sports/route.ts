@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { SportSchema } from '@/lib/schemas/sport';
-import { getLeagues, SportsGameOddsApiError } from '@/lib/sportsgameodds-api';
+import { getLeagues, SportsGameOddsApiError } from '@/lib/sportsgameodds-sdk';
 import { logger } from '@/lib/logger';
 import { unstable_cache } from 'next/cache';
 
@@ -10,11 +10,11 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 /**
- * Cached function to fetch leagues from SportsGameOdds API
+ * Cached function to fetch leagues from SportsGameOdds SDK
  */
 const getCachedLeagues = unstable_cache(
   async () => {
-    logger.info('Fetching leagues from SportsGameOdds API');
+    logger.info('Fetching leagues from SportsGameOdds SDK');
     
     try {
       const leagues = await getLeagues({ active: true });
@@ -25,7 +25,7 @@ const getCachedLeagues = unstable_cache(
       throw error;
     }
   },
-  ['sportsgameodds-leagues'],
+  ['sportsgameodds-sdk-leagues'],
   {
     revalidate: 300,
     tags: ['leagues'],
@@ -39,7 +39,7 @@ export async function GET() {
     // Group leagues by sport
     const sportGroups: Record<string, any[]> = {};
     
-    apiLeagues.forEach(league => {
+    apiLeagues.forEach((league: any) => {
       const sport = league.sport.toLowerCase();
       if (!sportGroups[sport]) {
         sportGroups[sport] = [];

@@ -1,8 +1,8 @@
 import { z } from 'zod';
 import { GameSchema } from '@/lib/schemas/game';
 import { withErrorHandling, successResponse, ApiErrors } from '@/lib/apiResponse';
-import { getEvents, SportsGameOddsApiError } from '@/lib/sportsgameodds-api';
-import { transformSportsGameOddsEvents } from '@/lib/transformers/sportsgameodds-api';
+import { getEvents, SportsGameOddsApiError } from '@/lib/sportsgameodds-sdk';
+import { transformSDKEvents } from '@/lib/transformers/sportsgameodds-sdk';
 import { logger } from '@/lib/logger';
 import { unstable_cache } from 'next/cache';
 import { applySingleLeagueLimit } from '@/lib/devDataLimit';
@@ -25,7 +25,7 @@ const LEAGUE_ID_TO_API: Record<string, string> = {
  */
 const getCachedLeagueGames = unstable_cache(
   async (leagueId: string) => {
-    logger.info(`Fetching games for league ${leagueId} from SportsGameOdds API`);
+    logger.info(`Fetching games for league ${leagueId} from SportsGameOdds SDK`);
     
     const apiLeagueId = LEAGUE_ID_TO_API[leagueId.toLowerCase()] || leagueId.toUpperCase();
     
@@ -35,9 +35,11 @@ const getCachedLeagueGames = unstable_cache(
     const startsBefore = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
     
     try {
-      const { data: events } = await getEvents(apiLeagueId, {
+      const { data: events } = await getEvents({
+        leagueID: apiLeagueId,
         startsAfter: startsAfter.toISOString(),
         startsBefore: startsBefore.toISOString(),
+        oddsAvailable: true,
         limit: 100,
       });
       
@@ -48,7 +50,7 @@ const getCachedLeagueGames = unstable_cache(
       throw error;
     }
   },
-  ['sportsgameodds-league-games'],
+  ['sportsgameodds-sdk-league-games'],
   {
     revalidate: 30,
     tags: ['league-games'],
@@ -66,7 +68,7 @@ export async function GET(
       const events = await getCachedLeagueGames(leagueId);
       
       // Transform and apply development limit (Protocol I-IV)
-      let transformedGames = transformSportsGameOddsEvents(events);
+      let transformedGames = transformSDKEvents(events);
       transformedGames = applySingleLeagueLimit(transformedGames);
       
       const parsed = z.array(GameSchema).parse(transformedGames);

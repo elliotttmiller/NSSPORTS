@@ -1,8 +1,8 @@
 import { z } from 'zod';
 import { GameSchema } from '@/lib/schemas/game';
 import { withErrorHandling, successResponse, ApiErrors } from '@/lib/apiResponse';
-import { getEvents, SportsGameOddsApiError } from '@/lib/sportsgameodds-api';
-import { transformSportsGameOddsEvents } from '@/lib/transformers/sportsgameodds-api';
+import { getEvents, SportsGameOddsApiError } from '@/lib/sportsgameodds-sdk';
+import { transformSDKEvents } from '@/lib/transformers/sportsgameodds-sdk';
 import { logger } from '@/lib/logger';
 import { unstable_cache } from 'next/cache';
 import { applyStratifiedSampling } from '@/lib/devDataLimit';
@@ -12,11 +12,11 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 /**
- * Cached function to fetch upcoming games from SportsGameOdds API
+ * Cached function to fetch upcoming games from SportsGameOdds SDK
  */
 const getCachedUpcomingGames = unstable_cache(
   async () => {
-    logger.info('Fetching upcoming games from SportsGameOdds API');
+    logger.info('Fetching upcoming games from SportsGameOdds SDK');
     
     // Define time range for upcoming games
     const now = new Date();
@@ -24,19 +24,25 @@ const getCachedUpcomingGames = unstable_cache(
     
     // Fetch from multiple leagues in parallel
     const [nbaResult, nflResult, nhlResult] = await Promise.allSettled([
-      getEvents('NBA', { 
+      getEvents({ 
+        leagueID: 'NBA',
         startsAfter: now.toISOString(),
         startsBefore: sevenDaysFromNow.toISOString(),
+        oddsAvailable: true,
         limit: 50,
       }),
-      getEvents('NFL', { 
+      getEvents({ 
+        leagueID: 'NFL',
         startsAfter: now.toISOString(),
         startsBefore: sevenDaysFromNow.toISOString(),
+        oddsAvailable: true,
         limit: 50,
       }),
-      getEvents('NHL', { 
+      getEvents({ 
+        leagueID: 'NHL',
         startsAfter: now.toISOString(),
         startsBefore: sevenDaysFromNow.toISOString(),
+        oddsAvailable: true,
         limit: 50,
       }),
     ]);
@@ -48,20 +54,20 @@ const getCachedUpcomingGames = unstable_cache(
     ];
     
     // Filter to only upcoming games (not yet started)
-    const upcomingEvents = allEvents.filter(event => {
-      const startTime = new Date(event.startTime);
+    const upcomingEvents = allEvents.filter((event: any) => {
+      const startTime = new Date(event.commence || event.startTime);
       return startTime > now;
     });
     
     // Sort by start time and limit to 20
-    upcomingEvents.sort((a, b) => 
-      new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+    upcomingEvents.sort((a: any, b: any) => 
+      new Date(a.commence || a.startTime).getTime() - new Date(b.commence || b.startTime).getTime()
     );
     
     logger.info(`Found ${upcomingEvents.length} upcoming events out of ${allEvents.length} total`);
     return upcomingEvents.slice(0, 20);
   },
-  ['sportsgameodds-upcoming-games'],
+  ['sportsgameodds-sdk-upcoming-games'],
   {
     revalidate: 60,
     tags: ['upcoming-games'],
@@ -72,7 +78,7 @@ export async function GET() {
   return withErrorHandling(async () => {
     try {
       const events = await getCachedUpcomingGames();
-      let games = transformSportsGameOddsEvents(events);
+      let games = transformSDKEvents(events);
       
       // Apply stratified sampling in development (Protocol I-IV)
       games = applyStratifiedSampling(games, 'leagueId');
