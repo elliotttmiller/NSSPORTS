@@ -68,13 +68,13 @@ export async function GET(request: NextRequest) {
       logger.info(`Fetching events for ${sport} using hybrid cache`);
       
       // Use hybrid cache (checks Prisma first, then SDK)
-      // CRITICAL: Must include oddID parameter to get betting lines!
+      // Note: Removed oddID filter - it was preventing events from being returned
+      // The API will return all available odds for filtering on the client side
       const response = await getEventsWithCache({
         leagueID,
         startsAfter: startsAfter.toISOString(),
         startsBefore: startsBefore.toISOString(),
         oddsAvailable: true,
-        oddID: 'ml,sp,ou', // Abbreviated format: moneyline, spread, over/under
         limit: 100,
       });
       

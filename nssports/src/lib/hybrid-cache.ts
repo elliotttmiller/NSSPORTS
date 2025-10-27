@@ -205,33 +205,70 @@ async function updateOddsCache(gameId: string, oddsData: any) {
     // Delete old odds
     await prisma.odds.deleteMany({ where: { gameId } });
     
-    // Insert new odds
+    // Insert new odds from SDK structure
+    // SDK returns odds as: { "oddID": { fairOdds, fairSpread, fairOverUnder, ... } }
     const oddsToCreate: any[] = [];
     
-    Object.entries(oddsData).forEach(([marketType, bookmakerOdds]: [string, any]) => {
-      if (!Array.isArray(bookmakerOdds)) return;
+    if (!oddsData || typeof oddsData !== 'object') {
+      logger.warn(`No odds data to cache for game ${gameId}`);
+      return;
+    }
+    
+    // Process each odd by oddID
+    Object.entries(oddsData).forEach(([oddID, oddData]: [string, any]) => {
+      // Skip if not an object or if it's player/game props
+      if (!oddData || typeof oddData !== 'object') return;
       
-      // Take first bookmaker's odds (can be enhanced to store multiple)
-      const bookmaker = bookmakerOdds[0];
-      if (!bookmaker?.outcomes) return;
+      // Only process main game odds (moneyline, spread, total)
+      // Skip quarter odds, half odds, player props, etc.
+      if (!oddID.includes('-game-')) return;
       
-      bookmaker.outcomes.forEach((outcome: any) => {
-        oddsToCreate.push({
-          gameId,
-          betType: marketType,
-          selection: outcome.name,
-          odds: Math.round(outcome.price),
-          line: outcome.point,
-          lastUpdated: new Date(),
-        });
+      // Extract consensus odds (fairOdds recommended per API docs)
+      const oddsValue = oddData.fairOdds || oddData.bookOdds;
+      const spreadValue = oddData.fairSpread || oddData.bookSpread;
+      const totalValue = oddData.fairOverUnder || oddData.bookOverUnder;
+      
+      if (!oddsValue) return; // Skip if no odds available
+      
+      // Determine bet type and selection from oddID
+      // Examples: "points-away-game-ml-away", "points-home-game-sp-home", "points-all-game-ou-over"
+      let betType: string;
+      let selection: string;
+      let line: number | undefined;
+      
+      if (oddID.includes('-ml-')) {
+        betType = 'moneyline';
+        selection = oddID.includes('-home') ? 'home' : 'away';
+      } else if (oddID.includes('-sp-')) {
+        betType = 'spread';
+        selection = oddID.includes('-home') ? 'home' : 'away';
+        line = spreadValue ? parseFloat(String(spreadValue)) : undefined;
+      } else if (oddID.includes('-ou-')) {
+        betType = 'total';
+        selection = oddID.includes('-over') ? 'over' : 'under';
+        line = totalValue ? parseFloat(String(totalValue)) : undefined;
+      } else {
+        return; // Skip other market types
+      }
+      
+      oddsToCreate.push({
+        gameId,
+        betType,
+        selection,
+        odds: parseFloat(String(oddsValue)) || 0,
+        line,
+        lastUpdated: new Date(),
       });
     });
     
     if (oddsToCreate.length > 0) {
+      logger.info(`Caching ${oddsToCreate.length} odds for game ${gameId}`);
       await prisma.odds.createMany({
         data: oddsToCreate,
         skipDuplicates: true,
       });
+    } else {
+      logger.warn(`No processable odds found for game ${gameId}`);
     }
   } catch (error) {
     logger.error('Error updating odds cache', error);
@@ -312,38 +349,39 @@ async function getEventsFromCache(options: {
 
 /**
  * Transform cached odds to SDK format
+ * Returns odds in the new SDK structure: { "oddID": { fairOdds, fairSpread, fairOverUnder, ... } }
  */
 function transformOddsFromCache(odds: any[]) {
-  const grouped: any = {};
+  const oddsObject: any = {};
   
   odds.forEach(odd => {
-    if (!grouped[odd.betType]) {
-      grouped[odd.betType] = [];
+    // Reconstruct oddID based on betType and selection
+    // Examples: "points-away-game-ml-away", "points-home-game-sp-home", "points-all-game-ou-over"
+    let oddID: string;
+    
+    if (odd.betType === 'moneyline') {
+      oddID = `points-${odd.selection}-game-ml-${odd.selection}`;
+    } else if (odd.betType === 'spread') {
+      oddID = `points-${odd.selection}-game-sp-${odd.selection}`;
+    } else if (odd.betType === 'total') {
+      oddID = `points-all-game-ou-${odd.selection}`;
+    } else {
+      return; // Skip unknown types
     }
     
-    // Group by bet type
-    const existing = grouped[odd.betType][0];
-    if (!existing) {
-      grouped[odd.betType].push({
-        bookmakerID: 'cached',
-        bookmakerName: 'Cached',
-        outcomes: [{
-          name: odd.selection,
-          price: odd.odds,
-          point: odd.line,
-        }],
-        lastUpdated: odd.lastUpdated.toISOString(),
-      });
-    } else {
-      existing.outcomes.push({
-        name: odd.selection,
-        price: odd.odds,
-        point: odd.line,
-      });
-    }
+    // Create odds object in SDK format
+    oddsObject[oddID] = {
+      oddID,
+      fairOdds: String(odd.odds), // SDK returns as string
+      fairSpread: odd.line != null ? String(odd.line) : undefined,
+      fairOverUnder: odd.line != null ? String(odd.line) : undefined,
+      bookOdds: String(odd.odds), // Use same value as fallback
+      bookSpread: odd.line != null ? String(odd.line) : undefined,
+      bookOverUnder: odd.line != null ? String(odd.line) : undefined,
+    };
   });
   
-  return grouped;
+  return oddsObject;
 }
 
 /**

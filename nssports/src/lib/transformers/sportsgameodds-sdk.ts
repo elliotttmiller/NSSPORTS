@@ -240,15 +240,22 @@ function extractOdds(event: SDKEvent) {
   
   const oddsData = event.odds;
   
-  // Helper to extract odds from the consensus data structure
+  // Helper to extract consensus odds from the SDK data structure
+  // Uses fairOdds (consensus across all bookmakers) per API recommendation
+  // https://sportsgameodds.com/docs/info/consensus-odds
   function extractConsensusOdds(oddData: unknown) {
     if (!oddData || typeof oddData !== 'object') return null;
     
     const data = oddData as Record<string, unknown>;
     
-    // Use fairOdds (consensus) if available, fallback to bookOdds
+    // Use fairOdds (consensus) as recommended by API docs, fallback to bookOdds
     const oddsValue = data.fairOdds || data.bookOdds;
-    const lineValue = data.line;
+    
+    // For spreads use fairSpread/bookSpread
+    // For totals use fairOverUnder/bookOverUnder
+    const spreadValue = data.fairSpread || data.bookSpread;
+    const totalValue = data.fairOverUnder || data.bookOverUnder;
+    const lineValue = spreadValue || totalValue;
     
     if (!oddsValue) return null;
     
