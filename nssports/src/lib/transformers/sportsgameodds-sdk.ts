@@ -203,24 +203,6 @@ interface SDKEvent {
 }
 
 /**
- * SDK Outcome interface
- */
-interface SDKOutcome {
-  name: string;
-  price?: number;
-  point?: number;
-}
-
-/**
- * SDK Bookmaker interface
- */
-interface SDKBookmaker {
-  bookmakerID?: string;
-  outcomes?: SDKOutcome[];
-  lastUpdated?: string;
-}
-
-/**
  * Extract odds data from SDK event
  * SDK events have odds structured differently than the old API
  */
@@ -230,7 +212,7 @@ function extractOdds(event: SDKEvent) {
   // Default odds structure
   const defaultOdds = {
     odds: 0,
-    line: undefined,
+    line: undefined as number | undefined,
     lastUpdated: now,
   };
 
@@ -248,40 +230,69 @@ function extractOdds(event: SDKEvent) {
     };
   }
 
-  // SDK structures odds by market type, then by bookmaker
+  // The new SDK returns odds with complex oddID format like:
+  // - "points-away-game-ml-away" (moneyline away)
+  // - "points-home-game-ml-home" (moneyline home)
+  // - "points-away-game-sp-away" (spread away)
+  // - "points-home-game-sp-home" (spread home)
+  // - "points-all-game-ou-over" (total over)
+  // - "points-all-game-ou-under" (total under)
+  
   const oddsData = event.odds;
   
-  // Helper to get first available odds from any bookmaker
-  function getFirstOdds(marketType: string, outcomeName: string) {
-    const market = oddsData[marketType];
-    if (!market || !Array.isArray(market)) return null;
+  // Helper to extract odds from the consensus data structure
+  function extractConsensusOdds(oddData: unknown) {
+    if (!oddData || typeof oddData !== 'object') return null;
     
-    for (const bookmaker of market as SDKBookmaker[]) {
-      if (!bookmaker.outcomes) continue;
-      const outcome = bookmaker.outcomes.find((o: SDKOutcome) => o.name === outcomeName);
-      if (outcome) {
-        return {
-          odds: outcome.price || 0,
-          line: outcome.point,
-          lastUpdated: new Date(bookmaker.lastUpdated || now),
-        };
-      }
-    }
+    const data = oddData as Record<string, unknown>;
     
-    return null;
+    // Use fairOdds (consensus) if available, fallback to bookOdds
+    const oddsValue = data.fairOdds || data.bookOdds;
+    const lineValue = data.line;
+    
+    if (!oddsValue) return null;
+    
+    return {
+      odds: parseFloat(String(oddsValue)) || 0,
+      line: lineValue ? parseFloat(String(lineValue)) : undefined,
+      lastUpdated: now,
+    };
   }
   
-  // Extract moneyline
-  const moneylineHome = getFirstOdds('moneyline', event.teams?.home?.name || '') || defaultOdds;
-  const moneylineAway = getFirstOdds('moneyline', event.teams?.away?.name || '') || defaultOdds;
+  // Find main game odds by pattern matching
+  let moneylineHome = defaultOdds;
+  let moneylineAway = defaultOdds;
+  let spreadHome = defaultOdds;
+  let spreadAway = defaultOdds;
+  let totalOver = defaultOdds;
+  let totalUnder = defaultOdds;
   
-  // Extract spreads
-  const spreadHome = getFirstOdds('spread', event.teams?.home?.name || '') || defaultOdds;
-  const spreadAway = getFirstOdds('spread', event.teams?.away?.name || '') || defaultOdds;
-  
-  // Extract totals
-  const totalOver = getFirstOdds('total', 'Over') || defaultOdds;
-  const totalUnder = getFirstOdds('total', 'Under') || defaultOdds;
+  for (const [oddID, oddData] of Object.entries(oddsData)) {
+    // Skip if not main game odds (ignore quarter, half, player props, etc.)
+    if (!oddID.includes('-game-')) continue;
+    
+    const consensusOdds = extractConsensusOdds(oddData);
+    if (!consensusOdds) continue;
+    
+    // Match moneyline odds
+    if (oddID.includes('-ml-home')) {
+      moneylineHome = consensusOdds;
+    } else if (oddID.includes('-ml-away')) {
+      moneylineAway = consensusOdds;
+    }
+    // Match spread odds  
+    else if (oddID.includes('-sp-home')) {
+      spreadHome = consensusOdds;
+    } else if (oddID.includes('-sp-away')) {
+      spreadAway = consensusOdds;
+    }
+    // Match total odds
+    else if (oddID.includes('-ou-over')) {
+      totalOver = consensusOdds;
+    } else if (oddID.includes('-ou-under')) {
+      totalUnder = consensusOdds;
+    }
+  }
 
   return {
     spread: {
