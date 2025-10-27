@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from '@jest/globals';
+import { describe, it, expect } from '@jest/globals';
 import { renderHook, act } from '@testing-library/react';
 import { BetSlipProvider, useBetSlip } from './BetSlipContext';
 import type { Game } from '@/types';
@@ -19,7 +19,7 @@ describe('BetSlipContext - Custom Mode', () => {
 
   const mockGame1: Game = {
     id: 'game1',
-    leagueId: 'nba',
+    leagueId: 'NBA', // Official uppercase format per SportsGameOdds SDK
     homeTeam: {
       id: 'lakers',
       name: 'Los Angeles Lakers',

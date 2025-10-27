@@ -48,8 +48,8 @@ export async function GET(
         startsAfter: startsAfter.toISOString(),
         startsBefore: startsBefore.toISOString(),
         oddsAvailable: true,
-        oddID: 'game-ml,game-ats,game-ou', // Main lines: moneyline, spread, total
-        includeOpposingOdds: true, // Get both sides of each market
+        oddIDs: 'game-ml,game-ats,game-ou', // Main lines: moneyline, spread, total
+        includeOpposingOddIDs: true, // Get both sides of each market
         limit: 100,
       });
       

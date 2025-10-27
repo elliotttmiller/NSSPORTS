@@ -29,15 +29,17 @@ async function getCachedAllGames() {
   const fetchLimit = isDevelopment ? 5 : 100; // Only fetch 5 games per league in dev mode
   
   // Fetch from multiple leagues in parallel
-  // Removed oddID filter - was preventing events from being returned
-  // The API will return all available odds
+  // CRITICAL: Use oddID filter for main game lines only per official docs
+  // https://sportsgameodds.com/docs/guides/response-speed
+  // Format: "game-ml,game-ats,game-ou" (moneyline, spread, total)
   const [nbaResult, nflResult, nhlResult] = await Promise.allSettled([
     getEventsWithCache({ 
       leagueID: 'NBA',
       startsAfter: startsAfter.toISOString(),
       startsBefore: startsBefore.toISOString(),
       oddsAvailable: true,
-      includeOpposingOdds: true, // Get both sides of each market
+      oddIDs: 'game-ml,game-ats,game-ou', // Main lines only
+      includeOpposingOddIDs: true, // Get both sides of each market
       limit: fetchLimit,
     }),
     getEventsWithCache({ 
@@ -45,7 +47,8 @@ async function getCachedAllGames() {
       startsAfter: startsAfter.toISOString(),
       startsBefore: startsBefore.toISOString(),
       oddsAvailable: true,
-      includeOpposingOdds: true,
+      oddIDs: 'game-ml,game-ats,game-ou', // Main lines only
+      includeOpposingOddIDs: true,
       limit: fetchLimit,
     }),
     getEventsWithCache({ 
@@ -53,7 +56,8 @@ async function getCachedAllGames() {
       startsAfter: startsAfter.toISOString(),
       startsBefore: startsBefore.toISOString(),
       oddsAvailable: true,
-      includeOpposingOdds: true,
+      oddIDs: 'game-ml,game-ats,game-ou', // Main lines only
+      includeOpposingOddIDs: true,
       limit: fetchLimit,
     }),
   ]);

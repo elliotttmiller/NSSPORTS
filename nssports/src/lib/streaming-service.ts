@@ -1,36 +1,32 @@
 /**
  * Real-Time ODDS Streaming Service - SportsGameOdds API
  * 
- * FOCUS: Real-time betting odds, lines, and props updates ONLY
- * - ✅ Moneyline, Spread, Total odds changes
- * - ✅ Player props odds updates (points, rebounds, etc.)
- * - ✅ Game props odds updates (team totals, etc.)
- * - ✅ Multi-sportsbook odds aggregation
- * - ❌ NO live scores, game state, or play-by-play data
- * 
- * Official Documentation:
+ * OFFICIAL IMPLEMENTATION per SportsGameOdds documentation:
  * https://sportsgameodds.com/docs/guides/realtime-streaming-api
  * 
- * Requirements:
- * - AllStar plan subscription (7-day trial active)
- * - Pusher WebSocket protocol
- * - Node.js environment (pusher-js client)
+ * Architecture (Official Pattern):
+ * 1. Call /v2/stream/events to get:
+ *    - WebSocket credentials (pusherKey, pusherOptions)
+ *    - Channel name
+ *    - Initial snapshot of events
+ * 2. Connect via Pusher WebSocket
+ * 3. Receive eventID notifications (NOT full data)
+ * 4. Fetch full event data using /v2/events with eventIDs parameter
  * 
- * Stream Feeds Available:
+ * CRITICAL: Streaming updates contain ONLY eventID, must fetch full data separately
+ * 
+ * Feeds:
  * - 'events:live' - All live games with changing odds
  * - 'events:upcoming' - Upcoming games odds (requires leagueID)
  * - 'events:byid' - Single event odds updates (requires eventID)
  * 
- * Usage:
- * ```typescript
- * const stream = new StreamingService();
- * await stream.connect('events:upcoming', { leagueID: 'NBA' });
+ * Optimization:
+ * - Use oddIDs parameter: "game-ml,game-ats,game-ou" (50-90% payload reduction)
+ * - Use includeOpposingOddIDs=true for both sides (home/away, over/under)
  * 
- * stream.on('update', (events) => {
- *   // events contain updated odds data only
- *   console.log('Odds updated:', events.map(e => e.odds));
- * });
- * ```
+ * Requirements:
+ * - AllStar plan subscription
+ * - Pusher client library (pusher-js)
  */
 
 import { logger } from './logger';
@@ -104,7 +100,13 @@ export class StreamingService {
   private eventListeners: Map<string, Set<(data: any) => void>> = new Map();
 
   /**
-   * Connect to streaming API
+   * Connect to streaming API (Official Implementation)
+   * 
+   * Per official docs: https://sportsgameodds.com/docs/guides/realtime-streaming-api
+   * 1. Get connection details from /v2/stream/events
+   * 2. Connect via Pusher WebSocket
+   * 3. Receive eventID notifications (NOT full data)
+   * 4. Fetch full event data when notified
    */
   async connect(feed: StreamFeed, options: StreamOptions = {}): Promise<void> {
     logger.info('[Streaming] Connecting to stream', { feed, options });
@@ -121,7 +123,7 @@ export class StreamingService {
       // Dynamically import Pusher (only when needed)
       const PusherConstructor = await this.loadPusher();
       
-      // Get stream connection info from API
+      // Get stream connection info from API (Step 1 - Official Pattern)
       const streamInfo = await this.getStreamConnectionInfo(feed, options);
       
       logger.info('[Streaming] Stream configuration received', {
@@ -130,7 +132,7 @@ export class StreamingService {
         initialDataCount: streamInfo.initialData.length,
       });
 
-      // Seed initial data
+      // Seed initial data (Official Pattern)
       streamInfo.initialData.forEach((event) => {
         this.events.set(event.eventID, event);
         logger.debug('[Streaming] Initial event loaded', {
@@ -139,7 +141,7 @@ export class StreamingService {
         });
       });
 
-      // Initialize Pusher client
+      // Initialize Pusher client (Step 2 - Official Pattern)
       this.pusher = new (PusherConstructor as PusherConstructor)(
         streamInfo.pusherKey,
         streamInfo.pusherOptions
@@ -148,7 +150,7 @@ export class StreamingService {
       // Start monitoring
       this.startConnectionMonitoring();
 
-      // Subscribe to channel
+      // Subscribe to channel (Step 3 - Official Pattern)
       if (this.pusher) {
         this.channel = this.pusher.subscribe(streamInfo.channel);
         
@@ -160,13 +162,15 @@ export class StreamingService {
           this.emit('connected', { feed, options });
         });
 
-        // Handle data updates
+        // Handle data updates (Step 4 - Official Pattern)
+        // CRITICAL: Updates contain ONLY eventID, not full data
         this.channel.bind('data', (data: unknown) => {
           const changedEvents = data as EventUpdate[];
           logger.info('[Streaming] Received update notification', {
             count: changedEvents.length,
           });
 
+          // Fetch full event data (Official Pattern - Required Step)
           void this.handleEventUpdates(changedEvents);
         });
       }
@@ -247,6 +251,25 @@ export class StreamingService {
     return pusherModule.default as PusherConstructor;
   }
 
+  /**
+   * Get stream connection details (Official API Call - Step 1)
+   * 
+   * Calls /v2/stream/events to get:
+   * - pusherKey: WebSocket authentication credentials
+   * - pusherOptions: WebSocket configuration
+   * - channel: Channel name to subscribe to
+   * - data: Initial snapshot of events
+   * 
+   * Official parameters per docs:
+   * - feed: 'events:live' | 'events:upcoming' | 'events:byid'
+   * - leagueID: Required for 'events:upcoming'
+   * - eventID: Required for 'events:byid'
+   * - oddIDs: Filter specific markets (e.g., "game-ml,game-ats,game-ou")
+   * - includeOpposingOddIDs: Get both sides of markets
+   * 
+   * Official reference:
+   * https://sportsgameodds.com/docs/guides/realtime-streaming-api
+   */
   private async getStreamConnectionInfo(
     feed: StreamFeed,
     options: StreamOptions
@@ -261,6 +284,12 @@ export class StreamingService {
     
     if (options.leagueID) params.leagueID = options.leagueID;
     if (options.eventID) params.eventID = options.eventID;
+    
+    // CRITICAL: Filter only main game lines per official docs
+    // https://sportsgameodds.com/docs/guides/response-speed
+    // Format: "game-ml,game-ats,game-ou" (moneyline, spread, total)
+    params.oddIDs = 'game-ml,game-ats,game-ou';
+    params.includeOpposingOddIDs = 'true'; // Get both sides (home/away, over/under)
 
     const response = await fetch(
       'https://api.sportsgameodds.com/v2/stream/events?' + new URLSearchParams(params),
@@ -331,6 +360,19 @@ export class StreamingService {
     });
   }
 
+  /**
+   * Handle event updates (Official Pattern - Step 4)
+   * 
+   * Per official docs:
+   * 1. Receive eventID notifications (NOT full data)
+   * 2. Fetch full event data using /v2/events with eventIDs parameter
+   * 3. Use oddIDs to filter for main game lines only
+   * 4. Use includeOpposingOddIDs=true for both sides
+   * 
+   * Official reference:
+   * https://sportsgameodds.com/docs/guides/realtime-streaming-api
+   * https://sportsgameodds.com/docs/guides/response-speed
+   */
   private async handleEventUpdates(changedEvents: EventUpdate[]): Promise<void> {
     if (changedEvents.length === 0) return;
 
@@ -341,10 +383,15 @@ export class StreamingService {
     });
 
     try {
-      // Fetch full event data
+      // Fetch full event data WITH ODDS FILTERING (Official Pattern)
+      // Per official docs: Use oddIDs to reduce payload by 50-90%
+      // Format: "game-ml,game-ats,game-ou" = moneyline, spread, total
+      // includeOpposingOddIDs=true gets both sides (home/away, over/under)
       const response = await getEvents({
         eventIDs,
         limit: 100,
+        oddIDs: 'game-ml,game-ats,game-ou', // Main game lines only
+        includeOpposingOddIDs: true, // Get both sides
       });
 
       if (!response?.data || response.data.length === 0) {

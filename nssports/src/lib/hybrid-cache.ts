@@ -45,9 +45,9 @@ export async function getEventsWithCache(options: {
   leagueID?: string;
   eventIDs?: string | string[];
   oddsAvailable?: boolean;
-  oddID?: string; // Filter specific markets (e.g., "game-ml,game-ats,game-ou")
+  oddIDs?: string; // Filter specific markets (e.g., "game-ml,game-ats,game-ou")
   bookmakerID?: string; // Filter specific sportsbooks
-  includeOpposingOdds?: boolean; // Get both sides of markets (recommended: true)
+  includeOpposingOddIDs?: boolean; // Get both sides of markets (recommended: true)
   live?: boolean;
   finalized?: boolean;
   limit?: number;
@@ -219,8 +219,9 @@ async function updateOddsCache(gameId: string, oddsData: any) {
       // Skip if not an object or if it's player/game props
       if (!oddData || typeof oddData !== 'object') return;
       
-      // Only process main game odds (moneyline, spread, total)
+      // CRITICAL: Only process main game odds (moneyline, spread, total)
       // Skip quarter odds, half odds, player props, etc.
+      // Official format per docs: https://sportsgameodds.com/docs/data-types/odds
       if (!oddID.includes('-game-')) return;
       
       // Extract consensus odds (fairOdds recommended per API docs)
@@ -236,14 +237,15 @@ async function updateOddsCache(gameId: string, oddsData: any) {
       let selection: string;
       let line: number | undefined;
       
-      if (oddID.includes('-ml-')) {
+      if (oddID.includes('-game-ml-')) {
         betType = 'moneyline';
         selection = oddID.includes('-home') ? 'home' : 'away';
-      } else if (oddID.includes('-sp-')) {
+      } else if (oddID.includes('-game-sp-')) {
         betType = 'spread';
         selection = oddID.includes('-home') ? 'home' : 'away';
         line = spreadValue ? parseFloat(String(spreadValue)) : undefined;
-      } else if (oddID.includes('-ou-')) {
+      } else if (oddID.includes('-game-ou-')) {
+        // CRITICAL: Must match "-game-ou-" for main game totals only
         betType = 'total';
         selection = oddID.includes('-over') ? 'over' : 'under';
         line = totalValue ? parseFloat(String(totalValue)) : undefined;

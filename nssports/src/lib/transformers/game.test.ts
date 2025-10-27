@@ -7,7 +7,7 @@ describe('transformGame', () => {
     const now = new Date();
     const game: any = {
       id: 'g1',
-      leagueId: 'nba',
+      leagueId: 'NBA', // Official uppercase format per SportsGameOdds SDK
       startTime: now,
       status: 'upcoming',
       venue: null,

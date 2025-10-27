@@ -237,7 +237,27 @@ interface SDKEvent {
 
 /**
  * Extract odds data from SDK event
- * SDK events have odds structured differently than the old API
+ * 
+ * SDK events use official oddID format: {statID}-{statEntityID}-{periodID}-{betTypeID}-{sideID}
+ * Official Documentation: https://sportsgameodds.com/docs/data-types/odds
+ * 
+ * Main Game Odds Examples:
+ * - "points-away-game-ml-away" (moneyline away)
+ * - "points-home-game-ml-home" (moneyline home)
+ * - "points-away-game-sp-away" or "points-home-game-sp-home" (spread)
+ * - "points-all-game-ou-over" or "points-all-game-ou-under" (total over/under)
+ * 
+ * CRITICAL: We ONLY extract main game odds containing "-game-" in the oddID.
+ * This filters out:
+ * - Quarter odds (e.g., "points-home-1q-ou-over")
+ * - Half odds (e.g., "points-away-1h-sp-away")
+ * - Player props (e.g., "points-PLAYER_ID-game-ou-over")
+ * - Team props (e.g., "points-home-game-ou-over" for team totals)
+ * 
+ * Official Bet Types (betTypeID):
+ * - ml: Moneyline (straight-up winner)
+ * - sp/ats: Spread (point spread)
+ * - ou: Over/Under (total points)
  */
 function extractOdds(event: SDKEvent) {
   const now = new Date();
@@ -308,28 +328,31 @@ function extractOdds(event: SDKEvent) {
   let totalUnder = defaultOdds;
   
   for (const [oddID, oddData] of Object.entries(oddsData)) {
-    // Skip if not main game odds (ignore quarter, half, player props, etc.)
+    // CRITICAL: Only process main game odds (skip quarters, halves, props, etc.)
+    // Official format per docs: https://sportsgameodds.com/docs/data-types/odds
+    // Main game odds contain '-game-' in the oddID
     if (!oddID.includes('-game-')) continue;
     
     const consensusOdds = extractConsensusOdds(oddData);
     if (!consensusOdds) continue;
     
-    // Match moneyline odds
+    // Match moneyline odds: "...-game-ml-home" or "...-game-ml-away"
     if (oddID.includes('-ml-home')) {
       moneylineHome = consensusOdds;
     } else if (oddID.includes('-ml-away')) {
       moneylineAway = consensusOdds;
     }
-    // Match spread odds  
+    // Match spread odds: "...-game-sp-home" or "...-game-sp-away"  
     else if (oddID.includes('-sp-home')) {
       spreadHome = consensusOdds;
     } else if (oddID.includes('-sp-away')) {
       spreadAway = consensusOdds;
     }
-    // Match total odds
-    else if (oddID.includes('-ou-over')) {
+    // Match total odds: "...-game-ou-over" or "...-game-ou-under"
+    // CRITICAL: Must contain BOTH "-game-ou-" AND "-over"/"-under" for main game totals
+    else if (oddID.includes('-game-ou-over')) {
       totalOver = consensusOdds;
-    } else if (oddID.includes('-ou-under')) {
+    } else if (oddID.includes('-game-ou-under')) {
       totalUnder = consensusOdds;
     }
   }

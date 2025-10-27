@@ -81,6 +81,7 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange }: G
   const groupGamesByLeagueAndDate = (games: Game[]) => {
     const leagueGroups: { [leagueId: string]: { [date: string]: Game[] } } = {};
     games.forEach((game) => {
+      // Use official uppercase league IDs from SportsGameOdds API (NBA, NFL, NHL)
       const league = game.leagueId || 'other';
       if (!leagueGroups[league]) leagueGroups[league] = {};
       const dateObj = new Date(game.startTime);
@@ -103,11 +104,12 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange }: G
   }, [allGames, status]);
 
   const groupedByLeague = useMemo(() => groupGamesByLeagueAndDate(visibleGames), [visibleGames]);
-  const leagueOrder = useMemo(() => ['nba', 'nfl', 'nhl'], []);
+  // Use official uppercase league IDs per SportsGameOdds API specification
+  const leagueOrder = useMemo(() => ['NBA', 'NFL', 'NHL'], []);
   const leagueNames: Record<string, string> = {
-    nba: 'NBA',
-    nfl: 'NFL',
-    nhl: 'NHL',
+    NBA: 'NBA',
+    NFL: 'NFL',
+    NHL: 'NHL',
     other: 'Other',
   };
 

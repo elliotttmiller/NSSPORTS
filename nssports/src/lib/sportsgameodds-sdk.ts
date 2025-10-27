@@ -10,13 +10,13 @@
  * - ❌ NO activity/period/clock data (odds-only focus)
  * 
  * Key Official SDK Patterns:
- * 1. Odds Filtering: oddID parameter for 50-90% payload reduction
+ * 1. Odds Filtering: oddIDs parameter for 50-90% payload reduction
  *    - Main lines: "game-ml,game-ats,game-ou" (moneyline, spread, total)
  *    - Player props: "points-PLAYER_ID-game-ou" (wildcard for all players)
  * 2. Streaming: client.stream.events({ feed: 'events:live' }) for real-time odds
  * 3. Markets: Fetch specific bet types (moneyline, spread, total, props)
  * 4. Bookmakers: Multi-sportsbook odds aggregation
- * 5. includeOpposingOdds: Get both sides of markets (home/away, over/under)
+ * 5. includeOpposingOddIDs: Get both sides of markets (home/away, over/under)
  * 
  * Documentation:
  * - SDK: https://sportsgameodds.com/docs/sdk
@@ -92,9 +92,9 @@ export async function getAllEvents(
     leagueID?: string;
     eventIDs?: string | string[];
     oddsAvailable?: boolean;
-    oddID?: string;
+    oddIDs?: string;
     bookmakerID?: string;
-    includeOpposingOdds?: boolean;
+    includeOpposingOddIDs?: boolean;
     live?: boolean;
     finalized?: boolean;
     limit?: number;
@@ -153,9 +153,9 @@ export async function getAllEvents(
  * 
  * Official SDK Pattern for Odds:
  * - oddsAvailable=true: Only events with active betting markets
- * - oddID: Filter specific bet types (reduces payload 50-90%)
+ * - oddIDs: Filter specific bet types (reduces payload 50-90%)
  * - bookmakerID: Filter specific sportsbooks
- * - includeOpposingOdds: Get both sides of a market
+ * - includeOpposingOddIDs: Get both sides of a market
  * 
  * @param options Query parameters for odds-focused event fetching
  */
@@ -163,9 +163,9 @@ export async function getEvents(options: {
   leagueID?: string; // NBA, NFL, NHL (uppercase)
   eventIDs?: string | string[];
   oddsAvailable?: boolean; // TRUE = only events with active odds
-  oddID?: string; // Filter specific markets (e.g., "game-ml,game-ats,game-ou" for main lines)
+  oddIDs?: string; // Filter specific markets (e.g., "game-ml,game-ats,game-ou" for main lines)
   bookmakerID?: string; // Filter specific sportsbooks
-  includeOpposingOdds?: boolean; // Get both sides of markets (recommended: true)
+  includeOpposingOddIDs?: boolean; // Get both sides of markets (recommended: true)
   live?: boolean; // Live games with changing odds
   finalized?: boolean; // FALSE = upcoming/live games only
   limit?: number;
@@ -184,13 +184,28 @@ export async function getEvents(options: {
       async () => {
         logger.info('Fetching events with odds from SportsGameOdds SDK', options);
         
-        // Convert eventIDs array to comma-separated string if needed
+        // TEMPORARY TEST: Try without oddIDs filter to see if we get ANY data
         const params = { ...options } as any;
+        
+        // Remove oddIDs and includeOpposingOddIDs temporarily for testing
+        const testParams: any = {
+          leagueID: params.leagueID,
+          oddsAvailable: params.oddsAvailable,
+          startsAfter: params.startsAfter,
+          startsBefore: params.startsBefore,
+          limit: params.limit,
+        };
+        
+        logger.info('TEST: Fetching WITHOUT oddIDs filter', testParams);
+        
+        // Convert eventIDs array to comma-separated string if needed
         if (params.eventIDs && Array.isArray(params.eventIDs)) {
-          params.eventIDs = params.eventIDs.join(',');
+          testParams.eventIDs = params.eventIDs.join(',');
+        } else if (params.eventIDs) {
+          testParams.eventIDs = params.eventIDs;
         }
         
-        const page = await client.events.get(params);
+        const page = await client.events.get(testParams);
         logger.info(`Fetched ${page.data.length} events from SDK`);
         
         // Debug: Log first event's odds structure to understand what we're getting
@@ -331,24 +346,34 @@ export async function getPlayersBatch(playerIDs: string[]): Promise<Map<string, 
  * Get real-time streaming connection details
  * Requires AllStar or custom plan subscription
  * 
+ * Official Documentation: https://sportsgameodds.com/docs/guides/realtime-streaming-api
+ * 
  * @param feed - Stream feed type ('events:live', 'events:upcoming', 'events:byid')
  * @param params - Additional parameters (e.g., leagueID for upcoming, eventID for byid)
+ * @param params.oddID - Filter specific markets (e.g., "game-ml,game-ats,game-ou" for main lines)
+ * @param params.includeOpposingOdds - Get both sides of markets (recommended: true)
  */
 export async function getStreamConnection(
   feed: 'events:live' | 'events:upcoming' | 'events:byid',
   params: {
     leagueID?: string;
     eventID?: string;
+    oddID?: string;
+    includeOpposingOdds?: boolean;
   } = {}
 ) {
   const client = getSportsGameOddsClient();
   
   try {
-    logger.info(`Getting stream connection for feed: ${feed}`);
+    logger.info(`Getting stream connection for feed: ${feed}`, params);
     
     const streamParams: any = { feed };
     if (params.leagueID) streamParams.leagueID = params.leagueID;
     if (params.eventID) streamParams.eventID = params.eventID;
+    if (params.oddID) streamParams.oddID = params.oddID;
+    if (params.includeOpposingOdds !== undefined) {
+      streamParams.includeOpposingOdds = params.includeOpposingOdds;
+    }
     
     const response = await client.stream.events(streamParams);
     
@@ -663,7 +688,7 @@ export async function getPlayerProps(
     const { data: events } = await getEvents({
       eventIDs: eventID,
       oddsAvailable: true,
-      includeOpposingOdds: true, // CRITICAL: Get both over AND under for each prop
+      includeOpposingOddIDs: true, // CRITICAL: Get both over AND under for each prop
     });
     
     if (events.length === 0) {
@@ -721,7 +746,7 @@ export async function getGameProps(
     const { data: events } = await getEvents({
       eventIDs: eventID,
       oddsAvailable: true,
-      includeOpposingOdds: true, // CRITICAL: Get both sides of all markets (over/under, home/away)
+      includeOpposingOddIDs: true, // CRITICAL: Get both sides of all markets (over/under, home/away)
     });
     
     if (events.length === 0) {
