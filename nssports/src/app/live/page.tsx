@@ -12,7 +12,8 @@ export default function LivePage() {
   const loading = useIsLoading();
   const error = useError();
 
-  // Data is now fetched by LiveDataProvider at the app level with automatic 30s polling
+  // Data is fetched by LiveDataProvider at the app level on mount
+  // Refreshes on manual page reload or refresh button click
   // No need to fetch here - Protocol II: Efficient State Hydration
 
   return (

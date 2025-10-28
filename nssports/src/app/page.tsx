@@ -29,7 +29,8 @@ export default function Home() {
   const available = account?.available ?? 0;
   const risk = account?.risk ?? 0;
 
-  // Data is now fetched by LiveDataProvider at the app level with automatic 30s polling
+  // Data is fetched by LiveDataProvider at the app level on mount
+  // Refreshes on manual page reload or refresh button click
   // No need to fetch here - Protocol II: Efficient State Hydration
   
   // Display first 5 currently live/in-progress matches as trending
