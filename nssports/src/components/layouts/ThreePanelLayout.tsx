@@ -1,7 +1,7 @@
 "use client";
 
 import { ReactNode } from "react";
-import { useNavigation } from "@/context";
+import { useNavigation, useMobileScroll } from "@/context";
 import { useIsMobile } from "@/hooks";
 import { Header } from "./Header";
 import { SideNavPanel, BetSlipPanel, SidebarToggle } from "@/components/panels";
@@ -15,6 +15,7 @@ interface ThreePanelLayoutProps {
 export function ThreePanelLayout({ children }: ThreePanelLayoutProps) {
   const { sideNavOpen, betSlipOpen, toggleSideNav, toggleBetSlip } = useNavigation();
   const isMobile = useIsMobile();
+  const { scrollContainerRef } = useMobileScroll();
 
   return (
   <div className="bg-background text-foreground flex flex-col min-h-screen">
@@ -78,12 +79,16 @@ export function ThreePanelLayout({ children }: ThreePanelLayoutProps) {
             }`}
           >
             {isMobile ? (
-              /* Mobile: Official Next.js single scroll container pattern */
+              /* Mobile: Unified scroll container with global scroll management */
               <div 
-                className="fixed inset-0 overflow-y-auto bg-background"
+                ref={scrollContainerRef}
+                className="fixed inset-0 overflow-y-auto seamless-scroll bg-background"
                 style={{
                   top: 'calc(4rem + env(safe-area-inset-top))',
                   bottom: 'calc(5rem + env(safe-area-inset-bottom))',
+                  WebkitOverflowScrolling: 'touch',
+                  overscrollBehavior: 'contain',
+                  touchAction: 'pan-y', // Only allow vertical scrolling, prevent other touch gestures
                 }}
                 data-mobile-scroll
               >

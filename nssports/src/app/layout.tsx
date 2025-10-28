@@ -3,7 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "sonner";
 import { QueryProvider } from "@/components/QueryProvider";
-import { BetSlipProvider, NavigationProvider, BetHistoryProvider } from "@/context";
+import { BetSlipProvider, NavigationProvider, BetHistoryProvider, MobileScrollProvider } from "@/context";
 import { ConditionalLayout } from "@/components/layouts";
 import { SmoothScrollProvider } from "@/components/SmoothScrollProvider";
 import { AuthProvider, LiveDataProvider } from "@/components/providers";
@@ -100,12 +100,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <LiveDataProvider>
                 <SmoothScrollProvider>
                   <NavigationProvider>
-                    <BetSlipProvider>
-                      <BetHistoryProvider>
-                        <ConditionalLayout>{children}</ConditionalLayout>
-                        <Toaster richColors position="top-right" />
-                      </BetHistoryProvider>
-                    </BetSlipProvider>
+                    <MobileScrollProvider>
+                      <BetSlipProvider>
+                        <BetHistoryProvider>
+                          <ConditionalLayout>{children}</ConditionalLayout>
+                          <Toaster richColors position="top-right" />
+                        </BetHistoryProvider>
+                      </BetSlipProvider>
+                    </MobileScrollProvider>
                   </NavigationProvider>
                 </SmoothScrollProvider>
               </LiveDataProvider>

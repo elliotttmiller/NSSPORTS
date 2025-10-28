@@ -154,17 +154,27 @@ export function BetCardSingle({
   const placed = placedAt ? new Date(placedAt) : null;
   const isWon = status === "won";
   return (
-    <Card className={cn(
-      "w-full max-w-full mx-auto",
-      isWon
-        ? "border-border/30 ring-1 ring-white/10"
-        : status === "lost"
-        ? "border-destructive/50 ring-1 ring-white/10"
-        : "border-accent/20 ring-1 ring-accent/10"
-    )}>
-      <CardContent className="p-4 sm:p-5">
+    <Card 
+      className={cn(
+        "w-full max-w-full mx-auto",
+        // Mobile: Completely non-interactive for smooth scrolling
+        "touch-pan-y select-none",
+        isWon
+          ? "border-border/30 ring-1 ring-white/10"
+          : status === "lost"
+          ? "border-destructive/50 ring-1 ring-white/10"
+          : "border-accent/20 ring-1 ring-accent/10"
+      )}
+      style={{
+        touchAction: 'pan-y', // Only vertical scrolling
+        WebkitTouchCallout: 'none', // Disable iOS callout
+        WebkitUserSelect: 'none', // Disable text selection on touch
+        userSelect: 'none',
+      }}
+    >
+      <CardContent className="px-5 py-6 sm:px-6 sm:py-7">
         {/* Header: Badges and Date */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2 flex-wrap">
             <Badge 
               variant={isWon ? "default" : status === "lost" ? "destructive" : "outline"} 
@@ -194,18 +204,18 @@ export function BetCardSingle({
         </div>
         
         {/* Main Bet Content */}
-        <div className="mb-6">
+        <div className="mb-8">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
               {/* Player Prop Enhanced Display */}
               {betType === 'player_prop' && playerProp && game?.awayTeam?.shortName && game?.homeTeam?.shortName ? (
-                <div className="space-y-1">
+                <div>
                   {/* Game Matchup - Top */}
-                  <div className="text-[10px] sm:text-xs text-muted-foreground/60 uppercase tracking-wide font-medium leading-tight mb-3">
+                  <div className="text-[10px] sm:text-xs text-muted-foreground/60 uppercase tracking-wide font-medium leading-tight mb-6">
                     {game.awayTeam.shortName} @ {game.homeTeam.shortName}
                   </div>
                   {/* Player Name - Middle */}
-                  <div className="font-bold text-base sm:text-lg leading-tight text-white mb-3">
+                  <div className="font-bold text-base sm:text-lg leading-tight text-white mb-6">
                     {playerProp.playerName}
                   </div>
                   {/* Selection, Line, Stat Type - Bottom */}
@@ -309,14 +319,24 @@ export function BetCardParlay({
   const placed = placedAt ? new Date(placedAt) : null;
   const isWon = status === "won";
   return (
-    <Card className={cn(
-      "w-full max-w-full mx-auto",
-      isWon 
-        ? "border-green-200/50 ring-2 ring-green-100" 
-        : status === "lost" 
-        ? "border-red-200/50 ring-2 ring-red-100" 
-        : "ring-1 ring-accent/10",
-    )}>
+    <Card 
+      className={cn(
+        "w-full max-w-full mx-auto",
+        // Mobile: Completely non-interactive for smooth scrolling
+        "touch-pan-y select-none",
+        isWon 
+          ? "border-green-200/50 ring-2 ring-green-100" 
+          : status === "lost" 
+          ? "border-red-200/50 ring-2 ring-red-100" 
+          : "ring-1 ring-accent/10",
+      )}
+      style={{
+        touchAction: 'pan-y', // Only vertical scrolling
+        WebkitTouchCallout: 'none', // Disable iOS callout
+        WebkitUserSelect: 'none', // Disable text selection on touch
+        userSelect: 'none',
+      }}
+    >
       <CardContent className="p-4 sm:p-5">
         {/* Header: Badges and Date */}
         <div className="flex items-center justify-between mb-4">

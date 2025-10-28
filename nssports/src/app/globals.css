@@ -277,3 +277,28 @@
   border-color: var(--color-border) / 0.6;
   background: var(--color-muted) / 0.3;
 }
+
+/* Mobile: Non-interactive bet cards for smooth scrolling */
+@media (max-width: 768px) {
+  [data-slot="card"] {
+    /* Remove all interactive states on mobile */
+    pointer-events: auto;
+    cursor: default !important;
+    touch-action: pan-y !important;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  
+  /* Ensure buttons and interactive elements still work */
+  [data-slot="card"] button,
+  [data-slot="card"] a,
+  [data-slot="card"] input,
+  [data-slot="card"] select,
+  [data-slot="card"] textarea {
+    pointer-events: auto;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+}

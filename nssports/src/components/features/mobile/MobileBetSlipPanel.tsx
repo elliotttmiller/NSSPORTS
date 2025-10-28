@@ -224,18 +224,22 @@ export function MobileBetSlipPanel() {
                     className="bg-card border border-border rounded-xl p-4 space-y-4"
                   >
                     {/* Bet header */}
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1 min-w-0 pr-4">
-                        <div className="font-semibold text-base leading-tight mb-2 whitespace-pre-line">
-                          {formatBetDescription(bet)}
-                        </div>
-                        <div className="text-sm text-muted-foreground leading-tight">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        {/* Matchup at top - aligned left */}
+                        <div className="text-[10px] sm:text-xs text-muted-foreground/60 uppercase tracking-wide font-medium leading-tight mb-3">
                           {formatMatchup(bet)}
                         </div>
+                        {/* Player name/bet description - with odds badge aligned */}
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0 font-semibold text-base leading-tight whitespace-pre-line">
+                            {formatBetDescription(bet)}
+                          </div>
+                          <Badge className="bg-accent/10 text-accent border-accent/20 font-mono px-3 py-1 text-sm font-normal shrink-0">
+                            {formatOdds(bet.odds)}
+                          </Badge>
+                        </div>
                       </div>
-                      <Badge className="bg-accent/10 text-accent border-accent/20 font-mono px-3 py-1 text-sm font-normal">
-                        {formatOdds(bet.odds)}
-                      </Badge>
                     </div>
 
                     {/* Well-Spaced Professional Summary */}
