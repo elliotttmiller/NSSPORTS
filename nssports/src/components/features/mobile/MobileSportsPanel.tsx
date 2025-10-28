@@ -124,7 +124,6 @@ export function MobileSportsPanel() {
                         className="w-full flex items-center justify-between px-4 py-3 hover:bg-accent/10 transition-colors"
                       >
                         <div className="flex items-center gap-3">
-                          <span className="text-2xl">{sport.icon}</span>
                           <span className="font-medium">{sport.name}</span>
                         </div>
                         <motion.div

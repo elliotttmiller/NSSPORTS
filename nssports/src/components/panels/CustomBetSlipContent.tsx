@@ -326,6 +326,7 @@ export function CustomBetSlipContent() {
                 awayTeam: { shortName: bet.game.awayTeam.shortName } 
               }}
               playerProp={bet.playerProp}
+              gameProp={bet.gameProp}
               showTotals={false}
               headerActions={(
                 <Button

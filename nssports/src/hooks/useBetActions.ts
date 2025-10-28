@@ -70,6 +70,8 @@ export function usePlaceBetWithActions() {
             line: bet.line ?? null,
             stake: bet.stake || totalStake,
             potentialPayout: bet.potentialPayout || totalPayout,
+            playerProp: bet.playerProp,
+            gameProp: bet.gameProp,
           });
 
           if (!result.success) {

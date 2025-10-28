@@ -80,8 +80,8 @@ export function GamePropsView({ game, gameProps }: GamePropsViewProps) {
 
   return (
     <div className="space-y-4 isolate">
-      {/* Category Tabs - Sticky (positioned below parent tabs) */}
-      <div className="sticky top-[3.5rem] z-[15] bg-background border-b border-border pb-2 -mx-6 px-6 md:-mx-8 md:px-8 xl:-mx-12 xl:px-12 pt-2">
+      {/* Category Tabs - Sticky (positioned below Player/Game Props tabs) */}
+      <div className="sticky top-[4.5rem] z-[15] bg-background/95 backdrop-blur-sm border-b border-border pb-2 -mx-6 px-6 md:-mx-8 md:px-8 xl:-mx-12 xl:px-12 pt-2">
         <div 
           className="flex gap-1 overflow-x-auto scrollbar-hide min-w-0"
           data-mobile-scroll

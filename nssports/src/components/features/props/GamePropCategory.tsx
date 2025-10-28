@@ -84,26 +84,14 @@ export function GamePropCategory({ category, game, defaultOpen = false }: GamePr
             className="overflow-hidden"
           >
             <div className="bg-muted/10 backdrop-blur-sm border-t border-border/30">
-              <div 
-                className="max-h-[300px] overflow-y-auto seamless-scroll px-2 md:px-4 py-3"
-                data-mobile-scroll
-                style={{ 
-                  overscrollBehavior: 'contain',
-                  WebkitOverflowScrolling: 'touch',
-                  touchAction: 'pan-y'
-                }}
-                onWheel={(e) => e.stopPropagation()}
-                onTouchMove={(e) => e.stopPropagation()}
-              >
-                <div className="space-y-2">
-                  {Object.entries(category.props).map(([propType, props]) => (
-                    <div key={propType} className="space-y-1">
-                      {props.map((prop) => (
-                        <GamePropRow key={prop.marketID} prop={prop} game={game} />
-                      ))}
-                    </div>
-                  ))}
-                </div>
+              <div className="space-y-2 px-2 md:px-4 py-3">
+                {Object.entries(category.props).map(([propType, props]) => (
+                  <div key={propType} className="space-y-1">
+                    {props.map((prop) => (
+                      <GamePropRow key={prop.marketID} prop={prop} game={game} />
+                    ))}
+                  </div>
+                ))}
               </div>
             </div>
           </motion.div>

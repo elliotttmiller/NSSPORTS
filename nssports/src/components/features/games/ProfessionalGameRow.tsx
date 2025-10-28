@@ -373,11 +373,7 @@ export function ProfessionalGameRow({
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
             className="overflow-hidden bg-muted/20 border-t border-border rounded-b-lg shadow-lg"
           >
-            <div 
-              className="max-h-[70vh] md:max-h-[75vh] lg:max-h-[80vh] overflow-y-auto seamless-scroll px-6 py-6 md:px-8 md:py-6 xl:px-12 xl:py-8 [overscroll-behavior:contain]"
-              onWheel={(e) => e.stopPropagation()}
-              onTouchMove={(e) => e.stopPropagation()}
-            >
+            <div className="px-6 py-6 md:px-8 md:py-6 xl:px-12 xl:py-8">
               <PropsDisplay game={game} />
             </div>
           </motion.div>

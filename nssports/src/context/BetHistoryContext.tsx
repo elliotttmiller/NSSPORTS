@@ -43,6 +43,17 @@ export interface PlacedBet {
     };
   };
   profit?: number;
+  playerProp?: {
+    playerId: string;
+    playerName: string;
+    statType: string;
+    category: string;
+  };
+  gameProp?: {
+    propType: string;
+    description: string;
+    marketCategory: string;
+  };
   legs?: Array<{
     game?: {
       id: string;
@@ -67,6 +78,18 @@ export interface PlacedBet {
     selection: string;
     odds: number;
     line?: number;
+    betType?: string;
+    playerProp?: {
+      playerId: string;
+      playerName: string;
+      statType: string;
+      category: string;
+    };
+    gameProp?: {
+      propType: string;
+      description: string;
+      marketCategory: string;
+    };
   }>;
 }
 

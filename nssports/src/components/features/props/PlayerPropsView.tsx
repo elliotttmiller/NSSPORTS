@@ -132,8 +132,8 @@ export function PlayerPropsView({ game, playerProps }: PlayerPropsViewProps) {
 
   return (
     <div className="space-y-4 isolate relative">
-      {/* Sticky Filters & Categories Container - positioned below parent tabs */}
-      <div className="sticky top-[3.5rem] z-[15] bg-background border-b border-border pb-2 pt-2">
+      {/* Sticky Filters & Categories Container - positioned below parent tabs (Player/Game Props tabs) */}
+      <div className="sticky top-[4.5rem] z-[15] bg-background/95 backdrop-blur-sm border-b border-border pb-2 pt-2">
         {/* Inner wrapper with proper padding that respects parent container */}
         <div className="space-y-4">
         {/* Player Filter - Styled Dropdown */}

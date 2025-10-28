@@ -23,7 +23,7 @@ function toLegArray(input: unknown): ParlayLeg[] | null {
     const value =
       typeof input === "string" ? (JSON.parse(input) as unknown) : input;
     if (!Array.isArray(value)) return null;
-    return value
+    const parsed = value
       .map((item) => (typeof item === "object" && item !== null ? item : null))
       .filter((x): x is Record<string, unknown> => x !== null)
       .map((obj) => ({
@@ -44,7 +44,11 @@ function toLegArray(input: unknown): ParlayLeg[] | null {
             ? Number(obj.line)
             : null,
       }));
-  } catch {
+    console.log('[toLegArray] Input:', input);
+    console.log('[toLegArray] Parsed:', parsed);
+    return parsed;
+  } catch (e) {
+    console.error('[toLegArray] Parse error:', e);
     return null;
   }
 }
@@ -77,13 +81,16 @@ export async function GET() {
     for (const bet of bets) {
       if (bet.betType === "parlay" && bet.legs) {
         const legs = toLegArray(bet.legs);
+        logger.debug('[my-bets] Parlay bet legs:', { betId: bet.id, legsRaw: bet.legs, legsParsed: legs });
         if (Array.isArray(legs)) {
           for (const leg of legs) {
+            logger.debug('[my-bets] Parlay leg:', { gameId: leg?.gameId, betType: leg?.betType, selection: leg?.selection });
             if (leg?.gameId) allLegGameIds.add(leg.gameId);
           }
         }
       }
     }
+    logger.debug('[my-bets] All leg game IDs to fetch:', Array.from(allLegGameIds));
 
     let legGamesById: Record<string, unknown> = {};
     if (allLegGameIds.size > 0) {
@@ -204,12 +211,29 @@ export async function GET() {
     
     const serialized = normalized.map((b: any) => {
       const gameForCard = transformGameForBetCard(b.game);
+      
+      // Parse player/game prop metadata from legs JSON field for single bets
+      let playerProp;
+      let gameProp;
+      if (b.betType !== 'parlay' && b.legs) {
+        try {
+          const metadata = typeof b.legs === 'string' ? JSON.parse(b.legs) : b.legs;
+          playerProp = metadata.playerProp;
+          gameProp = metadata.gameProp;
+        } catch {
+          // Ignore parse errors
+        }
+      }
+      
       return {
         ...(b as Record<string, unknown>),
         stake: toNum((b as Record<string, unknown>).stake),
         potentialPayout: toNum((b as Record<string, unknown>).potentialPayout),
         // Transform game data for BetCard compatibility
         game: gameForCard,
+        // Include player/game prop metadata for display
+        playerProp,
+        gameProp,
         // Provide a server-side label for singles too
         displaySelection: b.betType !== 'parlay'
           ? computeSelectionLabel(b.betType, b.selection, (b as any).line, gameForCard)
@@ -220,7 +244,7 @@ export async function GET() {
               ...leg,
               game: transformGameForBetCard(leg.game),
             }))
-          : b.legs,
+          : b.betType === 'parlay' ? b.legs : null, // Keep parlay legs, null out single bet metadata
       };
     });
     

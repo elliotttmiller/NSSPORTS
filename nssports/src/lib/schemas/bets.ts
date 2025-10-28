@@ -4,7 +4,7 @@ import { z } from "zod";
 // Request schemas (client/server)
 // ----------------------------
 export const BetSelectionSchema = z.enum(["home", "away", "over", "under"]);
-export const BetTypeSchema = z.enum(["spread", "moneyline", "total", "parlay"]);
+export const BetTypeSchema = z.enum(["spread", "moneyline", "total", "parlay", "player_prop", "game_prop"]);
 
 export const ParlayLegRequestSchema = z.object({
   gameId: z.string().optional(),
@@ -25,9 +25,9 @@ export const BetBaseRequestSchema = z.object({
 });
 
 export const SingleBetRequestSchema = BetBaseRequestSchema.extend({
-  betType: z.enum(["spread", "moneyline", "total"]),
+  betType: z.enum(["spread", "moneyline", "total", "player_prop", "game_prop"]),
   gameId: z.string(),
-  selection: BetSelectionSchema,
+  selection: z.string(), // Allow any string to support player/game prop selections
   odds: z.number(),
 });
 
@@ -44,8 +44,8 @@ export const BetRequestSchema = z.union([
 
 export const SingleBetResponseSchema = z.object({
   id: z.string(),
-  betType: z.literal("spread").or(z.literal("moneyline")).or(z.literal("total")),
-  selection: z.enum(["home", "away", "over", "under"]),
+  betType: z.literal("spread").or(z.literal("moneyline")).or(z.literal("total")).or(z.literal("player_prop")).or(z.literal("game_prop")),
+  selection: z.string(), // Allow any string to support player/game prop selections
   odds: z.number(),
   line: z.number().nullable().optional(),
   stake: z.number(),
@@ -55,6 +55,19 @@ export const SingleBetResponseSchema = z.object({
   settledAt: z.string().or(z.date()).nullable().optional(),
   game: z.any().optional(),
   displaySelection: z.string().optional(),
+  // Player prop metadata
+  playerProp: z.object({
+    playerId: z.string().optional(),
+    playerName: z.string().optional(),
+    statType: z.string().optional(),
+    category: z.string().optional(),
+  }).optional(),
+  // Game prop metadata
+  gameProp: z.object({
+    propType: z.string().optional(),
+    description: z.string().optional(),
+    marketCategory: z.string().optional(),
+  }).optional(),
 });
 
 export const ParlayLegSchema = z.object({
@@ -64,6 +77,19 @@ export const ParlayLegSchema = z.object({
   odds: z.number(),
   line: z.number().optional(),
   displaySelection: z.string().optional(),
+  // Player prop metadata for parlay legs
+  playerProp: z.object({
+    playerId: z.string().optional(),
+    playerName: z.string().optional(),
+    statType: z.string().optional(),
+    category: z.string().optional(),
+  }).optional(),
+  // Game prop metadata for parlay legs
+  gameProp: z.object({
+    propType: z.string().optional(),
+    description: z.string().optional(),
+    marketCategory: z.string().optional(),
+  }).optional(),
 });
 
 export const ParlayBetResponseSchema = z.object({

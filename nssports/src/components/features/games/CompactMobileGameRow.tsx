@@ -28,26 +28,29 @@ function PropsDisplay({ game }: { game: Game }) {
   );
 
   return (
-    <div className="w-full">
-      <div className="inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground mb-4">
-        <button
-          onClick={() => setActiveTab('player')}
-          className={cn(
-            "inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium transition-all",
-            activeTab === 'player' && "bg-background text-foreground shadow-sm"
-          )}
-        >
-          Player Props
-        </button>
-        <button
-          onClick={() => setActiveTab('game')}
-          className={cn(
-            "inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium transition-all",
-            activeTab === 'game' && "bg-background text-foreground shadow-sm"
-          )}
-        >
-          Game Props
-        </button>
+    <div className="w-full relative">
+      {/* Sticky Tab Switcher */}
+      <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-sm pb-4 -mx-4 px-4 pt-2 border-b border-border mb-4">
+        <div className="inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground w-full">
+          <button
+            onClick={() => setActiveTab('player')}
+            className={cn(
+              "inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium transition-all flex-1",
+              activeTab === 'player' && "bg-background text-foreground shadow-sm"
+            )}
+          >
+            Player Props
+          </button>
+          <button
+            onClick={() => setActiveTab('game')}
+            className={cn(
+              "inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium transition-all flex-1",
+              activeTab === 'game' && "bg-background text-foreground shadow-sm"
+            )}
+          >
+            Game Props
+          </button>
+        </div>
       </div>
 
       {activeTab === 'player' && (
@@ -392,17 +395,7 @@ export const CompactMobileGameRow = memo(({ game }: Props) => {
               if (!expanded) setShouldRenderDropdown(false);
             }}
           >
-            <div 
-              className="max-h-[70vh] overflow-y-auto seamless-scroll px-4 py-4"
-              data-mobile-scroll
-              style={{ 
-                overscrollBehavior: 'contain',
-                WebkitOverflowScrolling: 'touch',
-                touchAction: 'pan-y'
-              }}
-              onWheel={(e) => e.stopPropagation()}
-              onTouchMove={(e) => e.stopPropagation()}
-            >
+            <div className="px-4 py-4">
               <PropsDisplay game={game} />
             </div>
           </motion.div>

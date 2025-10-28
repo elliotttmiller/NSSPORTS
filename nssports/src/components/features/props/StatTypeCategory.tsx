@@ -106,22 +106,10 @@ export function StatTypeCategory({ statType, game, defaultOpen = false }: StatTy
             className="overflow-hidden"
           >
             <div className="bg-muted/10 backdrop-blur-sm border-t border-border/30">
-              <div 
-                className="max-h-[300px] overflow-y-auto seamless-scroll px-2 md:px-4 py-3"
-                data-mobile-scroll
-                style={{ 
-                  overscrollBehavior: 'contain',
-                  WebkitOverflowScrolling: 'touch',
-                  touchAction: 'pan-y'
-                }}
-                onWheel={(e) => e.stopPropagation()}
-                onTouchMove={(e) => e.stopPropagation()}
-              >
-                <div className="space-y-1">
-                  {statType.props.map((prop) => (
-                    <PlayerPropRow key={prop.id} prop={prop} game={game} />
-                  ))}
-                </div>
+              <div className="space-y-1 px-2 md:px-4 py-3">
+                {statType.props.map((prop) => (
+                  <PlayerPropRow key={prop.id} prop={prop} game={game} />
+                ))}
               </div>
             </div>
           </motion.div>

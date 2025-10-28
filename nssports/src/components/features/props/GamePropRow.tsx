@@ -40,6 +40,8 @@ const formatPropType = (propType: string): string => {
     .replace(/3p_eo/gi, '3rd Period Even/Odd')
     .replace(/_eo/gi, ' Even/Odd')
     .replace(/_ou/gi, ' Over/Under')
+    .replace(/_ml3way/gi, ' 3-Way Moneyline')
+    .replace(/ml3way/gi, '3-Way Moneyline')
     .replace(/_ml/gi, ' Moneyline')
     .replace(/_sp/gi, ' Spread')
     .replace(/_yn/gi, '')
@@ -69,6 +71,17 @@ const formatOutcomeDescription = (description: string, game: Game, outcome: { si
   
   let formatted = description;
   
+  // Handle 3-way moneyline specific outcomes
+  if (outcome.selection === 'draw') {
+    return 'Draw';
+  } else if (outcome.selection === 'away+draw') {
+    return `${awayTeam} or Draw`;
+  } else if (outcome.selection === 'home+draw') {
+    return `${homeTeam} or Draw`;
+  } else if (outcome.selection === 'not_draw') {
+    return 'No Draw';
+  }
+  
   // Replace with proper team name and Even/Odd
   if (description.toLowerCase().includes('home')) {
     if (isEven) {
@@ -90,16 +103,20 @@ const formatOutcomeDescription = (description: string, game: Game, outcome: { si
     // Generic replacements for other cases
     formatted = description
       .replace(/\bhome\b/gi, homeTeam)
-      .replace(/\baway\b/gi, awayTeam);
+      .replace(/\baway\b/gi, awayTeam)
+      .replace(/\bdraw\b/gi, 'Draw')
+      .replace(/\bnot_draw\b/gi, 'No Draw');
   }
   
   // Clean up common SDK patterns
   formatted = formatted
     .replace(/\s+eo$/gi, '')
     .replace(/\s+ou$/gi, '')
+    .replace(/\s+ml3way$/gi, '')
     .replace(/\s+ml$/gi, '')
     .replace(/\s+sp$/gi, '')
     .replace(/\s+yn$/gi, '')
+    .replace(/\+/g, ' or ')
     .trim();
   
   return formatted;

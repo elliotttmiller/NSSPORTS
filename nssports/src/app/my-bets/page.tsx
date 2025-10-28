@@ -115,6 +115,8 @@ export default function MyBetsPage() {
                         stake={bet.stake}
                         payout={bet.potentialPayout}
                         game={bet.game}
+                        playerProp={bet.playerProp}
+                        gameProp={bet.gameProp}
                       />
                     );
                   })}
@@ -170,6 +172,8 @@ export default function MyBetsPage() {
                         stake={bet.stake}
                         payout={bet.potentialPayout}
                         game={bet.game}
+                        playerProp={bet.playerProp}
+                        gameProp={bet.gameProp}
                       />
                     );
                   })}

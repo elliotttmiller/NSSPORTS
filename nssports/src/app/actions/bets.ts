@@ -36,6 +36,17 @@ const singleBetSchema = z.object({
   line: z.number().nullable().optional(),
   stake: z.number().positive(),
   potentialPayout: z.number().positive(),
+  playerProp: z.object({
+    playerId: z.string(),
+    playerName: z.string(),
+    statType: z.string(),
+    category: z.string(),
+  }).optional(),
+  gameProp: z.object({
+    propType: z.string(),
+    description: z.string(),
+    marketCategory: z.string(),
+  }).optional(),
 });
 
 const parlayBetSchema = z.object({
@@ -87,9 +98,9 @@ export async function placeSingleBetAction(
       };
     }
 
-    const { gameId, betType, selection, odds, line, stake, potentialPayout } = validatedData.data;
+    const { gameId, betType, selection, odds, line, stake, potentialPayout, playerProp, gameProp } = validatedData.data;
     
-    console.log("[placeSingleBetAction] Validated data:", { gameId, betType, selection, odds, line, stake, potentialPayout });
+    console.log("[placeSingleBetAction] Validated data:", { gameId, betType, selection, odds, line, stake, potentialPayout, playerProp, gameProp });
     
     // Ensure odds is an integer as required by Prisma schema
     const oddsInt = Math.round(odds);
@@ -179,6 +190,11 @@ export async function placeSingleBetAction(
           status: "pending",
           placedAt: new Date(),
           userId: session.user.id,
+          // Store player/game prop metadata in legs JSON field for single bets
+          legs: (playerProp || gameProp) ? {
+            playerProp: playerProp || undefined,
+            gameProp: gameProp || undefined,
+          } : undefined,
         },
       }),
       prisma.account.update({
