@@ -5,11 +5,12 @@
  * - Cache static assets for offline access
  * - Network-first strategy for API calls
  * - Cache-first strategy for static assets
+ * - Skip authentication requests to prevent redirect issues in Safari
  * 
  * Reference: https://nextjs.org/docs/app/guides/progressive-web-apps
  */
 
-const CACHE_NAME = 'nssports-v1';
+const CACHE_NAME = 'nssports-v2';
 const STATIC_CACHE = [
   '/',
   '/manifest.webmanifest',
@@ -49,11 +50,27 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Skip authentication and auth-related requests - let them go directly to network
+  // This prevents Safari's "response served by service worker has redirections" error
+  if (url.pathname.startsWith('/api/auth') || 
+      url.pathname.startsWith('/auth/') ||
+      url.pathname === '/auth' ||
+      url.pathname.includes('callback') ||
+      url.pathname.includes('signin') ||
+      url.pathname.includes('signout')) {
+    return;
+  }
+
   // API requests - network first, fall back to cache
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(
       fetch(request)
         .then((response) => {
+          // Don't cache redirects (Safari compatibility)
+          if (response.type === 'opaqueredirect' || response.redirected) {
+            return response;
+          }
+          
           // Clone and cache successful responses
           if (response.ok) {
             const responseClone = response.clone();
@@ -78,6 +95,11 @@ self.addEventListener('fetch', (event) => {
         return cachedResponse;
       }
       return fetch(request).then((response) => {
+        // Don't cache redirects (Safari compatibility)
+        if (response.type === 'opaqueredirect' || response.redirected) {
+          return response;
+        }
+        
         // Cache new static assets
         if (response.ok) {
           const responseClone = response.clone();

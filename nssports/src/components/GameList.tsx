@@ -8,7 +8,7 @@ import { DesktopGameTableHeader } from '@/components/features/games/DesktopGameT
 import { MobileGameTableHeader } from '@/components/features/games/MobileGameTableHeader';
 import { ProfessionalGameRow } from '@/components/features/games/ProfessionalGameRow';
 import { CompactMobileGameRow } from '@/components/features/games/CompactMobileGameRow';
-import { RefreshCw } from 'lucide-react';
+import { RefreshButton } from '@/components/ui/RefreshButton';
 import type { Game } from '@/types';
 
 export type GameListProps = Partial<UsePaginatedGamesParams> & {
@@ -210,15 +210,7 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange }: G
           {/* Single date filter bar for all leagues with refresh button */}
           <div className="flex items-center gap-2 overflow-x-auto py-2 px-1 bg-background border-b border-border sticky top-0 z-20" style={{ willChange: 'scroll-position', WebkitOverflowScrolling: 'touch' }}>
             {/* Refresh Button */}
-            <button
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-              className="flex items-center gap-2 px-4 py-2 rounded-full font-medium whitespace-nowrap transition-all duration-150 bg-accent/10 text-accent hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Refresh odds and games"
-            >
-              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-              <span className="hidden sm:inline">Refresh</span>
-            </button>
+            <RefreshButton onRefresh={handleRefresh} isLoading={isRefreshing} />
             {/* Date Filters */}
             {uniqueSortedDates.map((dateStr) => (
               <button

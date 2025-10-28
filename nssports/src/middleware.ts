@@ -12,12 +12,16 @@ import { auth } from '@/lib/auth';
  * - Sets proper CORS headers
  * - Supports credentials
  * - Protects authenticated routes
+ * - Redirects first-time/unauthenticated users to login
  * 
  * Reference: https://nextjs.org/docs/app/guides/authentication
  */
 
-// Protected routes that require authentication
-const PROTECTED_ROUTES = ['/', '/my-bets', '/account'];
+// Public routes that don't require authentication
+const PUBLIC_ROUTES = ['/auth/login', '/auth/register', '/welcome'];
+
+// Protected routes that require authentication (everything else)
+const PROTECTED_ROUTES = ['/', '/my-bets', '/account', '/games', '/live'];
 const PROTECTED_API_ROUTES = ['/api/my-bets', '/api/account'];
 
 // Get allowed origins from environment variable
@@ -39,28 +43,37 @@ function getAllowedOrigins(): string[] {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
-  // Skip NextAuth routes, public API routes, and public pages explicitly
+  // Skip NextAuth routes and public API routes
   if (pathname.startsWith('/api/auth') || 
-      pathname.startsWith('/auth/') || 
-      pathname === '/welcome' ||
       pathname.startsWith('/api/games') ||
       pathname.startsWith('/api/live') ||
-      pathname.startsWith('/api/matches')) {
+      pathname.startsWith('/api/sports') ||
+      pathname.startsWith('/api/matches') ||
+      pathname.startsWith('/_next') ||
+      pathname.startsWith('/public')) {
     return NextResponse.next();
   }
 
-  // Check authentication for protected routes
+  // Allow public routes (login, register, welcome)
+  const isPublicRoute = pathname === '/auth/login' || 
+                        pathname === '/auth/register' || 
+                        pathname === '/welcome';
+
+  // Check authentication for all non-public routes
   const isProtectedPage = PROTECTED_ROUTES.some(route => pathname.startsWith(route));
   const isProtectedApi = PROTECTED_API_ROUTES.some(route => pathname.startsWith(route));
   
-  if (isProtectedPage || isProtectedApi) {
+  // For protected routes or root path, check authentication
+  if ((isProtectedPage || isProtectedApi || pathname === '/') && !isPublicRoute) {
     const session = await auth();
     
     if (!session) {
       // Redirect to login for protected pages
-      if (isProtectedPage) {
+      if (isProtectedPage || pathname === '/') {
         const loginUrl = new URL('/auth/login', request.url);
-        loginUrl.searchParams.set('callbackUrl', pathname);
+        if (pathname !== '/') {
+          loginUrl.searchParams.set('callbackUrl', pathname);
+        }
         return NextResponse.redirect(loginUrl);
       }
       
@@ -129,12 +142,14 @@ export async function middleware(request: NextRequest) {
 }
 
 // Configure which paths the middleware runs on
-// Include both API routes and protected pages
+// Include all routes to ensure proper authentication checks
 export const config = {
   matcher: [
-    '/api/:path*',
     '/',
+    '/games/:path*',
+    '/live/:path*',
     '/my-bets/:path*',
     '/account/:path*',
+    '/api/:path*',
   ],
 };

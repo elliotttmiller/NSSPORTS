@@ -47,7 +47,13 @@ function MobileAccountDropdown({ balance, available, risk, isAuthenticated, user
           />
           
           {/* Dropdown */}
-          <div className="fixed top-20 right-4 w-64 bg-card border border-border rounded-xl shadow-2xl z-50 max-w-[calc(100vw-32px)]">
+          <div 
+            className="fixed w-64 bg-card border border-border rounded-xl shadow-2xl z-50 max-w-[calc(100vw-32px)]"
+            style={{
+              top: 'calc(5rem + env(safe-area-inset-top))',
+              right: 'max(1rem, env(safe-area-inset-right))',
+            }}
+          >
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-border">
               <div>
@@ -174,7 +180,15 @@ export function Header() {
   }, [showDropdown]);
 
   return (
-  <header className="fixed top-0 left-0 right-0 h-16 border-b border-white/10 bg-[#0a0a0a] flex items-center px-4 z-50 shadow-sm header-glow">
+  <header 
+    className="fixed top-0 left-0 right-0 border-b border-border bg-background flex items-center z-50 shadow-sm header-glow"
+    style={{
+      height: 'calc(4rem + env(safe-area-inset-top))',
+      paddingTop: 'env(safe-area-inset-top)',
+      paddingLeft: 'max(1rem, env(safe-area-inset-left))',
+      paddingRight: 'max(1rem, env(safe-area-inset-right))',
+    }}
+  >
       {/* Desktop Centered Logo */}
       <div className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
         <Link

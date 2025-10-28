@@ -44,7 +44,15 @@ export function BottomNav() {
   };
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-sm border-t border-border h-20 flex items-center justify-center px-2 w-full z-40 pt-0.5">
+    <nav 
+      className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-sm border-t border-border flex items-center justify-center px-2 w-full z-40 pt-0.5"
+      style={{
+        height: 'calc(5rem + env(safe-area-inset-bottom))',
+        paddingBottom: 'env(safe-area-inset-bottom)',
+        paddingLeft: 'max(0.5rem, env(safe-area-inset-left))',
+        paddingRight: 'max(0.5rem, env(safe-area-inset-right))',
+      }}
+    >
       {/* Sports - Text Only */}
       <motion.button
         onClick={handleSportsClick}

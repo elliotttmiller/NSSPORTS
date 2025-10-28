@@ -226,7 +226,7 @@ export function MobileBetSlipPanel() {
                     {/* Bet header */}
                     <div className="flex items-start justify-between">
                       <div className="flex-1 min-w-0 pr-4">
-                        <div className="font-semibold text-base leading-tight mb-2">
+                        <div className="font-semibold text-base leading-tight mb-2 whitespace-pre-line">
                           {formatBetDescription(bet)}
                         </div>
                         <div className="text-sm text-muted-foreground leading-tight">
@@ -358,7 +358,7 @@ export function MobileBetSlipPanel() {
                             {index + 1}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="text-sm font-medium leading-tight">
+                            <div className="text-sm font-medium leading-tight whitespace-pre-line">
                               {formatBetDescription(bet)}
                             </div>
                             <div className="text-xs text-muted-foreground leading-tight">

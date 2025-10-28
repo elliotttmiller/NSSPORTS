@@ -2,6 +2,7 @@
 
 import { ProfessionalGameRow, CompactMobileGameRow, MobileGameTableHeader, DesktopGameTableHeader } from "@/components/features/games";
 import { useLiveMatches, useIsLoading, useError } from "@/hooks/useStableLiveData";
+import { RefreshButton } from "@/components/ui";
 
 export default function LivePage() {
   // Protocol I: Single Source of Truth - consume from centralized store
@@ -10,18 +11,26 @@ export default function LivePage() {
   const loading = useIsLoading();
   const error = useError();
 
-  // Data is now fetched by LiveDataProvider at the app level
-  // No need to fetch here - Protocol II: Efficient State Hydration
+  // Live data auto-refreshes via LiveDataProvider
+  // Refresh button for visual consistency (data updates automatically)
+  const handleRefresh = async () => {
+    // Live data refreshes automatically via LiveDataProvider
+    // This provides visual feedback for user interaction
+    window.location.reload();
+  };
 
   return (
     <div className="bg-background">
   <div className="container mx-auto px-6 md:px-8 xl:px-12 pt-12 pb-6 max-w-screen-2xl">
   {/* Page Header */}
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-foreground">Live Games</h1>
-          <p className="text-muted-foreground mt-1">
-            {liveGames.length} game{liveGames.length !== 1 ? "s" : ""} in progress
-          </p>
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Live Games</h1>
+            <p className="text-muted-foreground mt-1">
+              {liveGames.length} game{liveGames.length !== 1 ? "s" : ""} in progress
+            </p>
+          </div>
+          <RefreshButton onRefresh={handleRefresh} isLoading={loading} />
         </div>
 
   {/* Games List */}

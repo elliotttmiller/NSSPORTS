@@ -14,23 +14,25 @@ import { useEffect } from "react";
  */
 export function ServiceWorkerRegistration() {
   useEffect(() => {
-    // Only register in production and if service workers are supported
+    // Register service worker if supported (now works in dev too for testing)
     if (
       typeof window !== "undefined" &&
-      "serviceWorker" in navigator &&
-      process.env.NODE_ENV === "production"
+      "serviceWorker" in navigator
     ) {
       navigator.serviceWorker
         .register("/sw.js")
         .then((registration) => {
-          console.log("Service Worker registered:", registration.scope);
+          console.log("✅ Service Worker registered:", registration.scope);
+          console.log("📱 PWA is ready! Add to Home Screen for app experience.");
           
           // Check for updates periodically
           registration.update();
         })
         .catch((error) => {
-          console.error("Service Worker registration failed:", error);
+          console.error("❌ Service Worker registration failed:", error);
         });
+    } else {
+      console.log("⚠️ Service Workers not supported in this browser");
     }
   }, []);
 

@@ -32,10 +32,15 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       { url: "/mn-outline.svg", sizes: "any", type: "image/svg+xml" },
+      { url: "/app/icon.svg", sizes: "any", type: "image/svg+xml" },
     ],
     apple: [
-      { url: "/mn-outline.svg", sizes: "any", type: "image/svg+xml" },
+      { url: "/mn-outline.svg", sizes: "180x180", type: "image/svg+xml" },
+      { url: "/app/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
     ],
+  },
+  other: {
+    'mobile-web-app-capable': 'yes',
   },
 };
 
@@ -54,6 +59,33 @@ export const viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={inter.variable}>
+      <head>
+        {/* iOS PWA Meta Tags - Required for standalone mode */}
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="NSSPORTS" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        
+        {/* Viewport for mobile */}
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+        
+        {/* Theme color for mobile browsers */}
+        <meta name="theme-color" content="#0a0a0a" />
+        <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
+        <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0a0a" />
+        
+        {/* Apple Touch Icons */}
+        <link rel="apple-touch-icon" href="/app/apple-touch-icon.png" />
+        <link rel="apple-touch-icon" sizes="152x152" href="/app/apple-touch-icon.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/app/apple-touch-icon.png" />
+        <link rel="apple-touch-icon" sizes="167x167" href="/app/apple-touch-icon.png" />
+        
+        {/* Manifest */}
+        <link rel="manifest" href="/manifest.webmanifest" />
+        
+        {/* Favicon */}
+        <link rel="icon" href="/mn-outline.svg" type="image/svg+xml" />
+      </head>
       <body className="antialiased">
         <ServiceWorkerRegistration />
         <AddToHomeScreenPrompt />

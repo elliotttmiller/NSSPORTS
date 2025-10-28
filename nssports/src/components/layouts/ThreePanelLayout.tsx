@@ -25,7 +25,7 @@ export function ThreePanelLayout({ children }: ThreePanelLayoutProps) {
         layout
         transition={{ type: "spring", stiffness: 320, damping: 32 }}
         className="flex-1 relative overflow-hidden"
-        style={{ height: 'calc(100vh - 4rem)' }}
+        style={{ height: 'calc(100vh - 4rem - env(safe-area-inset-top))' }}
       >
         <div className="flex relative h-full w-full">
           {/* Left Sidebar Toggle Button - Desktop Only - Fixed Position */}
@@ -54,10 +54,13 @@ export function ThreePanelLayout({ children }: ThreePanelLayoutProps) {
 
           {/* Left Panel - Side Navigation (Collapsible) - Fixed */}
           <div
-            className={`hidden lg:block border-r border-border bg-background transition-all duration-300 ease-in-out overflow-hidden fixed left-0 top-16 z-20 ${
+            className={`hidden lg:block border-r border-border bg-background transition-all duration-300 ease-in-out overflow-hidden fixed left-0 z-20 ${
               sideNavOpen ? "w-72" : "w-0"
             }`}
-            style={{ height: 'calc(100vh - 4rem)' }}
+            style={{ 
+              top: 'calc(4rem + env(safe-area-inset-top))',
+              height: 'calc(100vh - 4rem - env(safe-area-inset-top))'
+            }}
           >
             {sideNavOpen && (
               <div className="h-full overflow-y-auto seamless-scroll bg-background">
@@ -77,7 +80,11 @@ export function ThreePanelLayout({ children }: ThreePanelLayoutProps) {
             {isMobile ? (
               /* Mobile: Official Next.js single scroll container pattern */
               <div 
-                className="fixed inset-0 top-16 bottom-20 overflow-y-auto bg-background"
+                className="fixed inset-0 overflow-y-auto bg-background"
+                style={{
+                  top: 'calc(4rem + env(safe-area-inset-top))',
+                  bottom: 'calc(5rem + env(safe-area-inset-bottom))',
+                }}
                 data-mobile-scroll
               >
                 <div className="min-h-full pb-4">
@@ -96,10 +103,13 @@ export function ThreePanelLayout({ children }: ThreePanelLayoutProps) {
 
           {/* Right Panel - Bet Slip (Collapsible) - Fixed */}
           <div
-            className={`hidden lg:block border-l border-border bg-background transition-all duration-300 ease-in-out overflow-hidden fixed right-0 top-16 z-20 ${
+            className={`hidden lg:block border-l border-border bg-background transition-all duration-300 ease-in-out overflow-hidden fixed right-0 z-20 ${
               betSlipOpen ? "w-96" : "w-0"
             }`}
-            style={{ height: 'calc(100vh - 4rem)' }}
+            style={{ 
+              top: 'calc(4rem + env(safe-area-inset-top))',
+              height: 'calc(100vh - 4rem - env(safe-area-inset-top))'
+            }}
           >
             {betSlipOpen && (
               <div className="h-full overflow-hidden">

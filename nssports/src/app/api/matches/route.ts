@@ -6,6 +6,7 @@
  * - Server-side caching to minimize API calls
  * - Data transformation to internal format
  * - Comprehensive error handling
+ * - **REQUIRES AUTHENTICATION** - Only authenticated users can access
  * 
  * Protocol I: Secure Abstraction - API key never exposed to client
  * Protocol III: Performance & Cost Consciousness - Aggressive caching
@@ -13,6 +14,7 @@
  */
 
 import { NextRequest } from "next/server";
+import { auth } from "@/lib/auth";
 import { z } from "zod";
 import {
   withErrorHandling,
@@ -41,6 +43,16 @@ const QuerySchema = z.object({
 
 export async function GET(request: NextRequest) {
   return withErrorHandling(async () => {
+    // ⚠️ CRITICAL: Authenticate user BEFORE fetching expensive data
+    const session = await auth();
+    
+    if (!session || !session.user) {
+      logger.warn('[API /matches] Unauthorized access attempt - no session');
+      throw ApiErrors.unauthorized('You must be logged in to access game data');
+    }
+
+    logger.info(`[API /matches] Authenticated user ${session.user.email} requesting matches`);
+    
     const searchParams = request.nextUrl.searchParams;
 
     // Parse and validate query parameters

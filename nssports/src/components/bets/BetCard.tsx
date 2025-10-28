@@ -87,7 +87,11 @@ export function formatSelectionLabel(
   // Handle player props
   if (betType === 'player_prop' && playerProp) {
     const sel = selection.toUpperCase();
-    return `${playerProp.playerName} ${sel} ${typeof line === 'number' ? Math.abs(line) : ''} ${playerProp.statType}`.trim();
+    const statType = playerProp.statType 
+      ? playerProp.statType.charAt(0).toUpperCase() + playerProp.statType.slice(1).toLowerCase()
+      : '';
+    const lineStr = typeof line === 'number' ? ` ${Math.abs(line)}` : '';
+    return `${playerProp.playerName}\n${sel}${lineStr} ${statType}`.trim();
   }
 
   // Handle game props
@@ -194,8 +198,8 @@ export function BetCardSingle({
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
               {/* Player Prop Enhanced Display */}
-              {betType === 'player_prop' && playerProp ? (
-                <div className="space-y-2">
+              {betType === 'player_prop' && playerProp && game?.awayTeam?.shortName && game?.homeTeam?.shortName ? (
+                <div className="space-y-2.5">
                   {/* Player Name */}
                   <div className="font-bold text-lg sm:text-xl leading-tight text-white">
                     {playerProp.playerName}
@@ -217,44 +221,14 @@ export function BetCardSingle({
                       {playerProp.statType}
                     </span>
                   </div>
-                  {/* Game Matchup */}
-                  <div className="text-xs sm:text-sm text-muted-foreground leading-tight pt-0.5">
-                    {game?.awayTeam?.shortName && game?.homeTeam?.shortName
-                      ? `${game.awayTeam.shortName} @ ${game.homeTeam.shortName}`
-                      : "Game details unavailable"}
+                  {/* Game Matchup - Below bet details */}
+                  <div className="text-xs text-muted-foreground/70 leading-tight pt-0.5">
+                    {game.awayTeam.shortName} @ {game.homeTeam.shortName}
                   </div>
                 </div>
-              ) : betType === 'player_prop' && !playerProp ? (
-                /* Player Prop Fallback (missing metadata) */
-                <div className="space-y-2">
-                  <div className="font-bold text-lg sm:text-xl leading-tight text-white">
-                    Player Prop Bet
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge 
-                      variant="secondary" 
-                      className="text-xs sm:text-sm font-bold px-2.5 py-1 bg-accent/20 text-accent border-accent/30 uppercase tracking-wide"
-                    >
-                      {selection}
-                    </Badge>
-                    {typeof line === 'number' && (
-                      <span className="text-xl sm:text-2xl font-extrabold text-white tabular-nums">
-                        {Math.abs(line)}
-                      </span>
-                    )}
-                    <span className="text-sm text-muted-foreground font-medium italic">
-                      (Details unavailable)
-                    </span>
-                  </div>
-                  <div className="text-xs sm:text-sm text-muted-foreground leading-tight pt-0.5">
-                    {game?.awayTeam?.shortName && game?.homeTeam?.shortName
-                      ? `${game.awayTeam.shortName} @ ${game.homeTeam.shortName}`
-                      : "Game details unavailable"}
-                  </div>
-                </div>
-              ) : betType === 'game_prop' && gameProp ? (
+              ) : betType === 'game_prop' && gameProp && game?.awayTeam?.shortName && game?.homeTeam?.shortName ? (
                 /* Game Prop Enhanced Display */
-                <div className="space-y-2">
+                <div className="space-y-2.5">
                   <div className="font-bold text-lg sm:text-xl leading-tight text-white">
                     {gameProp.description || gameProp.propType}
                   </div>
@@ -276,68 +250,21 @@ export function BetCardSingle({
                       </span>
                     )}
                   </div>
-                  <div className="text-xs sm:text-sm text-muted-foreground leading-tight pt-0.5">
-                    {game?.awayTeam?.shortName && game?.homeTeam?.shortName
-                      ? `${game.awayTeam.shortName} @ ${game.homeTeam.shortName}`
-                      : "Game details unavailable"}
+                  <div className="text-xs text-muted-foreground/70 leading-tight pt-0.5">
+                    {game.awayTeam.shortName} @ {game.homeTeam.shortName}
                   </div>
                 </div>
-              ) : betType === 'game_prop' && !gameProp ? (
-                /* Game Prop Fallback (missing metadata) */
-                <div className="space-y-2">
-                  <div className="font-bold text-lg sm:text-xl leading-tight text-white">
-                    Game Prop Bet
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge 
-                      variant="secondary" 
-                      className="text-xs sm:text-sm font-bold px-2.5 py-1 bg-accent/20 text-accent border-accent/30 uppercase tracking-wide"
-                    >
-                      {selection}
-                    </Badge>
-                    {typeof line === 'number' && (
-                      <span className="text-xl sm:text-2xl font-extrabold text-white tabular-nums">
-                        {Math.abs(line)}
-                      </span>
-                    )}
-                    <span className="text-sm text-muted-foreground font-medium italic">
-                      (Details unavailable)
-                    </span>
-                  </div>
-                  <div className="text-xs sm:text-sm text-muted-foreground leading-tight pt-0.5">
-                    {game?.awayTeam?.shortName && game?.homeTeam?.shortName
-                      ? `${game.awayTeam.shortName} @ ${game.homeTeam.shortName}`
-                      : "Game details unavailable"}
-                  </div>
-                </div>
-              ) : (
+              ) : game?.awayTeam?.shortName && game?.homeTeam?.shortName ? (
                 /* Regular Bet Display */
-                <div className="space-y-2">
+                <div className="space-y-2.5">
                   <div className="font-bold text-lg sm:text-xl leading-tight text-white">
-                    {typeof selection === "object" && selection !== null && "displaySelection" in selection
-                      ? (selection as unknown as { displaySelection: string }).displaySelection
-                      : formatSelectionLabel(betType, selection, line, game, playerProp)}
+                    {formatSelectionLabel(betType, selection, line, game, playerProp)}
                   </div>
-                  <div className="text-xs sm:text-sm text-muted-foreground leading-tight pt-0.5">
-                    {(() => {
-                      console.log('[BetCard] Regular bet game data:', {
-                        betType,
-                        selection,
-                        hasGame: !!game,
-                        game: game ? {
-                          awayTeam: game.awayTeam,
-                          homeTeam: game.homeTeam,
-                        } : null
-                      });
-                      
-                      if (game?.awayTeam?.shortName && game?.homeTeam?.shortName) {
-                        return `${game.awayTeam.shortName} @ ${game.homeTeam.shortName}`;
-                      }
-                      return "Game details unavailable";
-                    })()}
+                  <div className="text-xs text-muted-foreground/70 leading-tight pt-0.5">
+                    {game.awayTeam.shortName} @ {game.homeTeam.shortName}
                   </div>
                 </div>
-              )}
+              ) : null}
             </div>
             {/* Odds Badge */}
             <Badge 
@@ -419,16 +346,9 @@ export function BetCardParlay({
         {/* Parlay Legs */}
         <div className="space-y-3 mb-4 bg-background/50 rounded-lg p-3 sm:p-4">
           {legs.map((leg, idx) => {
-            console.log('[BetCard] Parlay leg data:', {
-              idx,
-              betType: leg.betType,
-              selection: leg.selection,
-              hasGame: !!leg.game,
-              game: leg.game ? {
-                awayTeam: leg.game.awayTeam,
-                homeTeam: leg.game.homeTeam,
-              } : null
-            });
+            if (!leg.game?.awayTeam?.shortName || !leg.game?.homeTeam?.shortName) {
+              return null;
+            }
             
             return (
               <div key={idx} className="flex items-start justify-between gap-4 py-2 border-b border-border/30 last:border-0 last:pb-0">
@@ -436,15 +356,9 @@ export function BetCardParlay({
                   <div className="text-sm sm:text-base font-semibold leading-tight text-white mb-1.5">
                     {formatSelectionLabel(leg.betType, leg.selection, leg.line, leg.game, leg.playerProp, leg.gameProp)}
                   </div>
-                  {(leg.game?.awayTeam?.shortName && leg.game?.homeTeam?.shortName) ? (
-                    <div className="text-xs sm:text-sm text-muted-foreground leading-tight">
-                      {leg.game.awayTeam.shortName} @ {leg.game.homeTeam.shortName}
-                    </div>
-                  ) : (
-                    <div className="text-xs sm:text-sm text-muted-foreground/50 leading-tight italic">
-                      Game details unavailable
-                    </div>
-                  )}
+                  <div className="text-xs text-muted-foreground/70 leading-tight">
+                    {leg.game.awayTeam.shortName} @ {leg.game.homeTeam.shortName}
+                  </div>
                 </div>
                 <Badge 
                   variant="outline" 

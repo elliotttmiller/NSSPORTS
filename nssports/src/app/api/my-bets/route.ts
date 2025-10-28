@@ -90,10 +90,11 @@ export async function GET() {
         }
       }
     }
-    logger.debug('[my-bets] All leg game IDs to fetch:', Array.from(allLegGameIds));
+    logger.debug('[my-bets] All leg game IDs to fetch:', { gameIds: Array.from(allLegGameIds) });
 
     let legGamesById: Record<string, unknown> = {};
     if (allLegGameIds.size > 0) {
+      logger.debug('[my-bets] Fetching games for legs...', { count: allLegGameIds.size });
       const games = await prisma.game.findMany({
         where: { id: { in: Array.from(allLegGameIds) } },
         include: {
@@ -102,9 +103,11 @@ export async function GET() {
           league: true,
         },
       });
+      logger.debug('[my-bets] Games fetched:', { count: games.length, gameIds: games.map(g => g.id) });
       legGamesById = Object.fromEntries(
         games.map((g: any) => [g.id, JSON.parse(JSON.stringify(g))])
       );
+      logger.debug('[my-bets] legGamesById keys:', { keys: Object.keys(legGamesById) });
     }
 
     // Helper: compute human-friendly selection label to match BetCard
