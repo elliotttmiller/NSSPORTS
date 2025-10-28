@@ -167,15 +167,6 @@ export function BetCardSingle({
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2 flex-wrap">
             <Badge 
-              variant={isWon ? "default" : "outline"} 
-              className={cn(
-                "text-[10px] sm:text-xs font-semibold px-2 py-0.5 uppercase tracking-wider",
-                isWon ? "bg-accent/10 text-accent border-accent/30" : ""
-              )}
-            >
-              {betType === 'player_prop' ? 'PLAYER PROP' : betType === 'game_prop' ? 'GAME PROP' : betType.toUpperCase()}
-            </Badge>
-            <Badge 
               variant={isWon ? "default" : status === "lost" ? "destructive" : "outline"} 
               className={cn(
                 "text-[10px] sm:text-xs font-semibold px-2 py-0.5 uppercase tracking-wide",
@@ -183,6 +174,15 @@ export function BetCardSingle({
               )}
             >
               {status.toUpperCase()}
+            </Badge>
+            <Badge 
+              variant={isWon ? "default" : "outline"} 
+              className={cn(
+                "text-[10px] sm:text-xs font-semibold px-2 py-0.5 uppercase tracking-wider",
+                isWon ? "bg-accent/10 text-accent border-accent/30" : ""
+              )}
+            >
+              {betType === 'player_prop' ? 'PLAYER PROP' : betType === 'game_prop' ? 'GAME PROP' : betType.toUpperCase()}
             </Badge>
           </div>
           <div className="flex items-center gap-2 shrink-0">
@@ -194,74 +194,79 @@ export function BetCardSingle({
         </div>
         
         {/* Main Bet Content */}
-        <div className="mb-4">
+        <div className="mb-6">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
               {/* Player Prop Enhanced Display */}
               {betType === 'player_prop' && playerProp && game?.awayTeam?.shortName && game?.homeTeam?.shortName ? (
-                <div className="space-y-2.5">
-                  {/* Player Name */}
-                  <div className="font-bold text-lg sm:text-xl leading-tight text-white">
+                <div className="space-y-1">
+                  {/* Game Matchup - Top */}
+                  <div className="text-[10px] sm:text-xs text-muted-foreground/60 uppercase tracking-wide font-medium leading-tight mb-3">
+                    {game.awayTeam.shortName} @ {game.homeTeam.shortName}
+                  </div>
+                  {/* Player Name - Middle */}
+                  <div className="font-bold text-base sm:text-lg leading-tight text-white mb-3">
                     {playerProp.playerName}
                   </div>
-                  {/* Selection, Line, Stat Type */}
-                  <div className="flex flex-wrap items-center gap-2">
+                  {/* Selection, Line, Stat Type - Bottom */}
+                  <div className="flex flex-wrap items-center gap-1.5">
                     <Badge 
                       variant="secondary" 
-                      className="text-xs sm:text-sm font-bold px-2.5 py-1 bg-accent/20 text-accent border-accent/30 uppercase tracking-wide"
+                      className="text-xs sm:text-sm font-bold px-2 py-0.5 bg-accent/20 text-accent border-accent/30 uppercase tracking-wide"
                     >
                       {selection}
                     </Badge>
                     {typeof line === 'number' && (
-                      <span className="text-xl sm:text-2xl font-extrabold text-white tabular-nums">
+                      <span className="text-lg sm:text-xl font-extrabold text-white tabular-nums">
                         {Math.abs(line)}
                       </span>
                     )}
-                    <span className="text-sm sm:text-base text-muted-foreground font-medium uppercase tracking-wide">
+                    <span className="text-xs sm:text-sm text-muted-foreground font-medium uppercase tracking-wide">
                       {playerProp.statType}
                     </span>
-                  </div>
-                  {/* Game Matchup - Below bet details */}
-                  <div className="text-xs text-muted-foreground/70 leading-tight pt-0.5">
-                    {game.awayTeam.shortName} @ {game.homeTeam.shortName}
                   </div>
                 </div>
               ) : betType === 'game_prop' && gameProp && game?.awayTeam?.shortName && game?.homeTeam?.shortName ? (
                 /* Game Prop Enhanced Display */
                 <div className="space-y-2.5">
-                  <div className="font-bold text-lg sm:text-xl leading-tight text-white">
+                  {/* Game Matchup - Top */}
+                  <div className="text-[10px] sm:text-xs text-muted-foreground/60 uppercase tracking-wide font-medium leading-tight">
+                    {game.awayTeam.shortName} @ {game.homeTeam.shortName}
+                  </div>
+                  {/* Prop Description - Middle */}
+                  <div className="font-bold text-base sm:text-lg leading-tight text-white">
                     {gameProp.description || gameProp.propType}
                   </div>
-                  <div className="flex flex-wrap items-center gap-2">
+                  {/* Selection, Line, Category - Bottom */}
+                  <div className="flex flex-wrap items-center gap-1.5">
                     <Badge 
                       variant="secondary" 
-                      className="text-xs sm:text-sm font-bold px-2.5 py-1 bg-accent/20 text-accent border-accent/30 uppercase tracking-wide"
+                      className="text-xs sm:text-sm font-bold px-2 py-0.5 bg-accent/20 text-accent border-accent/30 uppercase tracking-wide"
                     >
                       {selection}
                     </Badge>
                     {typeof line === 'number' && (
-                      <span className="text-xl sm:text-2xl font-extrabold text-white tabular-nums">
+                      <span className="text-lg sm:text-xl font-extrabold text-white tabular-nums">
                         {Math.abs(line)}
                       </span>
                     )}
                     {gameProp.marketCategory && (
-                      <span className="text-sm sm:text-base text-muted-foreground font-medium uppercase tracking-wide">
+                      <span className="text-xs sm:text-sm text-muted-foreground font-medium uppercase tracking-wide">
                         {gameProp.marketCategory}
                       </span>
                     )}
-                  </div>
-                  <div className="text-xs text-muted-foreground/70 leading-tight pt-0.5">
-                    {game.awayTeam.shortName} @ {game.homeTeam.shortName}
                   </div>
                 </div>
               ) : game?.awayTeam?.shortName && game?.homeTeam?.shortName ? (
                 /* Regular Bet Display */
                 <div className="space-y-2.5">
-                  <div className="font-bold text-lg sm:text-xl leading-tight text-white">
-                    {formatSelectionLabel(betType, selection, line, game, playerProp)}
-                  </div>
-                  <div className="text-xs text-muted-foreground/70 leading-tight pt-0.5">
+                  {/* Game Matchup - Top */}
+                  <div className="text-[10px] sm:text-xs text-muted-foreground/60 uppercase tracking-wide font-medium leading-tight">
                     {game.awayTeam.shortName} @ {game.homeTeam.shortName}
+                  </div>
+                  {/* Bet Selection - Bottom */}
+                  <div className="font-bold text-base sm:text-lg leading-tight text-white">
+                    {formatSelectionLabel(betType, selection, line, game, playerProp)}
                   </div>
                 </div>
               ) : null}
@@ -352,12 +357,14 @@ export function BetCardParlay({
             
             return (
               <div key={idx} className="flex items-start justify-between gap-4 py-2 border-b border-border/30 last:border-0 last:pb-0">
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm sm:text-base font-semibold leading-tight text-white mb-1.5">
-                    {formatSelectionLabel(leg.betType, leg.selection, leg.line, leg.game, leg.playerProp, leg.gameProp)}
-                  </div>
-                  <div className="text-xs text-muted-foreground/70 leading-tight">
+                <div className="flex-1 min-w-0 space-y-1.5">
+                  {/* Game Matchup - Top */}
+                  <div className="text-[10px] text-muted-foreground/60 uppercase tracking-wide font-medium leading-tight">
                     {leg.game.awayTeam.shortName} @ {leg.game.homeTeam.shortName}
+                  </div>
+                  {/* Bet Selection - Bottom */}
+                  <div className="text-sm sm:text-base font-semibold leading-tight text-white">
+                    {formatSelectionLabel(leg.betType, leg.selection, leg.line, leg.game, leg.playerProp, leg.gameProp)}
                   </div>
                 </div>
                 <Badge 
