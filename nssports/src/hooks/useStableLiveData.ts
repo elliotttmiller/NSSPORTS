@@ -18,7 +18,9 @@ export function useFetchMatches() {
 }
 
 /**
- * Hook to get live matches
+ * Hook to get live matches ONLY
+ * Filters matches to show only games with status='live' (currently in progress)
+ * Automatically excludes upcoming and finished games
  */
 export function useLiveMatches(): Game[] {
   const [matches, setMatches] = useState<Game[]>(() => 

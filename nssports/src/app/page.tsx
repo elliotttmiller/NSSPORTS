@@ -17,6 +17,8 @@ export default function Home() {
   
   // Subscribe to live data store - Protocol I: Single Source of Truth
   // Using stable hooks to prevent infinite loops
+  // IMPORTANT: useLiveMatches() filters to show ONLY games with status='live' (currently in progress)
+  // This hook automatically filters out upcoming and finished games
   const liveMatches = useLiveMatches();
   const isLoading = useIsLoading();
   const error = useError();
@@ -27,10 +29,10 @@ export default function Home() {
   const available = account?.available ?? 0;
   const risk = account?.risk ?? 0;
 
-  // Data is now fetched by LiveDataProvider at the app level
+  // Data is now fetched by LiveDataProvider at the app level with automatic 30s polling
   // No need to fetch here - Protocol II: Efficient State Hydration
   
-  // Display first 5 live matches as trending
+  // Display first 5 currently live/in-progress matches as trending
   const trendingGames = liveMatches.slice(0, 5);
 
   const displayName = session?.user?.name || 'NorthStar User';

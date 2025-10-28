@@ -6,11 +6,13 @@ import { useLiveMatches, useIsLoading, useError } from "@/hooks/useStableLiveDat
 export default function LivePage() {
   // Protocol I: Single Source of Truth - consume from centralized store
   // Using stable hooks to prevent infinite loops
+  // IMPORTANT: useLiveMatches() filters to show ONLY games with status='live' (currently in progress)
+  // Automatically excludes upcoming and finished games
   const liveGames = useLiveMatches();
   const loading = useIsLoading();
   const error = useError();
 
-  // Data is now fetched by LiveDataProvider at the app level
+  // Data is now fetched by LiveDataProvider at the app level with automatic 30s polling
   // No need to fetch here - Protocol II: Efficient State Hydration
 
   return (
