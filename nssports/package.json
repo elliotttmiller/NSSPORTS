@@ -22,8 +22,9 @@
   "scripts": {
     "predev": "prisma generate",
     "dev": "next dev --turbopack",
-    "prebuild": "prisma generate",
+    "prebuild": "node scripts/prebuild.mjs && prisma generate",
     "build": "next build",
+    "postbuild": "node scripts/postbuild.mjs",
     "start": "next start",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

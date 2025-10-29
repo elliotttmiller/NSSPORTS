@@ -13,6 +13,15 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
 import { logger } from '@/lib/logger';
 
+// Type for streaming odds update data
+interface OddsUpdateData {
+  eventID: string;
+  gameID?: string;
+  odds?: unknown;
+  timestamp?: string;
+  [key: string]: unknown;
+}
+
 interface StreamingContextValue {
   isConnected: boolean;
   isStreaming: boolean;
@@ -21,7 +30,7 @@ interface StreamingContextValue {
   connectionState: string;
   startStreaming: (leagueID?: string) => Promise<void>;
   stopStreaming: () => void;
-  subscribe: (eventID: string, callback: (data: any) => void) => () => void;
+  subscribe: (eventID: string, callback: (data: OddsUpdateData) => void) => () => void;
 }
 
 const StreamingContext = createContext<StreamingContextValue | undefined>(undefined);
@@ -36,7 +45,7 @@ export function StreamingProvider({ children }: StreamingProviderProps) {
   const [eventCount, setEventCount] = useState(0);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [connectionState, setConnectionState] = useState('disconnected');
-  const [subscribers, setSubscribers] = useState<Map<string, Set<(data: any) => void>>>(new Map());
+  const [subscribers, setSubscribers] = useState<Map<string, Set<(data: OddsUpdateData) => void>>>(new Map());
 
   // Start streaming for a specific league or all live games
   const startStreaming = useCallback(async (leagueID?: string) => {
@@ -96,7 +105,7 @@ export function StreamingProvider({ children }: StreamingProviderProps) {
   }, [isStreaming]);
 
   // Subscribe to updates for a specific event
-  const subscribe = useCallback((eventID: string, callback: (data: any) => void) => {
+  const subscribe = useCallback((eventID: string, callback: (data: OddsUpdateData) => void) => {
     setSubscribers(prev => {
       const newMap = new Map(prev);
       if (!newMap.has(eventID)) {
@@ -196,7 +205,7 @@ export function useStreaming() {
 /**
  * Hook for subscribing to real-time odds updates for a specific game
  */
-export function useGameOddsStream(gameId: string, onUpdate: (data: any) => void) {
+export function useGameOddsStream(gameId: string, onUpdate: (data: OddsUpdateData) => void) {
   const { subscribe, isConnected } = useStreaming();
 
   useEffect(() => {

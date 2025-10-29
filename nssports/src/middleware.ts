@@ -6,6 +6,8 @@ import { auth } from '@/lib/auth';
  * Next.js Middleware for CORS, Request Handling, and Authentication
  * Runs before every request to API routes and protected pages
  * 
+ * Uses Node.js runtime to support Prisma and bcryptjs for authentication
+ * 
  * Official Next.js Best Practices:
  * - Validates allowed origins
  * - Handles preflight OPTIONS requests
@@ -17,12 +19,8 @@ import { auth } from '@/lib/auth';
  * Reference: https://nextjs.org/docs/app/guides/authentication
  */
 
-// Public routes that don't require authentication
-const PUBLIC_ROUTES = ['/auth/login', '/auth/register', '/welcome'];
-
-// Protected routes that require authentication (everything else)
-const PROTECTED_ROUTES = ['/', '/my-bets', '/account', '/games', '/live'];
-const PROTECTED_API_ROUTES = ['/api/my-bets', '/api/account'];
+// Force Node.js runtime (required for Prisma/bcryptjs)
+export const runtime = 'nodejs';
 
 // Get allowed origins from environment variable
 function getAllowedOrigins(): string[] {
@@ -43,49 +41,75 @@ function getAllowedOrigins(): string[] {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
-  // Skip NextAuth routes and public API routes
-  if (pathname.startsWith('/api/auth') || 
-      pathname.startsWith('/api/games') ||
-      pathname.startsWith('/api/live') ||
-      pathname.startsWith('/api/sports') ||
-      pathname.startsWith('/api/matches') ||
-      pathname.startsWith('/_next') ||
-      pathname.startsWith('/public')) {
+  // Log every request the middleware sees
+  console.log('[MIDDLEWARE] Processing:', pathname);
+  
+  // Allow Next.js internal routes, static assets, and files
+  if (pathname.startsWith('/_next') || 
+      pathname.startsWith('/favicon.ico') ||
+      pathname.startsWith('/icon.') ||
+      pathname.startsWith('/apple-') ||
+      pathname.startsWith('/manifest.') ||
+      pathname.startsWith('/sw.') ||
+      pathname.startsWith('/public') ||
+      pathname.startsWith('/logos/') ||
+      pathname.match(/\.(png|jpg|jpeg|gif|svg|ico|webp|woff|woff2|ttf|eot)$/)) {
+    console.log('[MIDDLEWARE] Skipping static asset:', pathname);
     return NextResponse.next();
   }
 
-  // Allow public routes (login, register, welcome)
-  const isPublicRoute = pathname === '/auth/login' || 
-                        pathname === '/auth/register' || 
-                        pathname === '/welcome';
+  // Define public routes (no auth required)
+  const PUBLIC_ROUTES = [
+    '/auth/login',
+    '/auth/register', 
+    '/welcome',
+    '/api/auth', // NextAuth API routes
+  ];
 
-  // Check authentication for all non-public routes
-  const isProtectedPage = PROTECTED_ROUTES.some(route => pathname.startsWith(route));
-  const isProtectedApi = PROTECTED_API_ROUTES.some(route => pathname.startsWith(route));
+  // Check if this is a public route
+  const isPublicRoute = PUBLIC_ROUTES.some(route => pathname.startsWith(route));
   
-  // For protected routes or root path, check authentication
-  if ((isProtectedPage || isProtectedApi || pathname === '/') && !isPublicRoute) {
-    const session = await auth();
-    
-    if (!session) {
-      // Redirect to login for protected pages
-      if (isProtectedPage || pathname === '/') {
-        const loginUrl = new URL('/auth/login', request.url);
-        if (pathname !== '/') {
-          loginUrl.searchParams.set('callbackUrl', pathname);
-        }
-        return NextResponse.redirect(loginUrl);
-      }
-      
-      // Return 401 for protected API routes
-      if (isProtectedApi) {
-        return new NextResponse(
-          JSON.stringify({ error: 'Unauthorized', message: 'Authentication required' }),
-          { status: 401, headers: { 'content-type': 'application/json' } }
-        );
-      }
-    }
+  // Public API routes that don't require authentication
+  const isPublicApi = pathname.startsWith('/api/games') ||
+                      pathname.startsWith('/api/live') ||
+                      pathname.startsWith('/api/sports') ||
+                      pathname.startsWith('/api/matches') ||
+                      pathname.startsWith('/api/player-props') ||
+                      pathname.startsWith('/api/game-props');
+
+  // Skip auth check for public routes and public APIs
+  if (isPublicRoute || isPublicApi) {
+    console.log('[MIDDLEWARE] Public route, allowing:', pathname);
+    return NextResponse.next();
   }
+
+  console.log('[MIDDLEWARE] Protected route, checking auth:', pathname);
+
+  // ⚠️ STRICT AUTHENTICATION CHECK - All other routes require auth
+  const session = await auth();
+  
+  if (!session || !session.user) {
+    console.warn('[AUTH] Blocked unauthenticated access to:', pathname);
+    
+    // Block API routes with 401
+    if (pathname.startsWith('/api/')) {
+      return new NextResponse(
+        JSON.stringify({ error: 'Unauthorized', message: 'Authentication required' }),
+        { status: 401, headers: { 'content-type': 'application/json' } }
+      );
+    }
+    
+    // Redirect ALL page requests to login (including root /)
+    console.log('[AUTH] Redirecting to login with callback:', pathname);
+    const loginUrl = new URL('/auth/login', request.url);
+    if (pathname !== '/' && pathname !== '/auth/login') {
+      loginUrl.searchParams.set('callbackUrl', pathname);
+    }
+    return NextResponse.redirect(loginUrl);
+  }
+
+  // User is authenticated - allow access
+  console.log('[AUTH] Authenticated user access:', session.user.email, '→', pathname);
 
   // Get origin from request
   const origin = request.headers.get('origin');
@@ -142,14 +166,13 @@ export async function middleware(request: NextRequest) {
 }
 
 // Configure which paths the middleware runs on
-// Include all routes to ensure proper authentication checks
 export const config = {
   matcher: [
+    /*
+     * Match all request paths including root
+     * Exclude: _next/static, _next/image, favicon, and static files
+     */
     '/',
-    '/games/:path*',
-    '/live/:path*',
-    '/my-bets/:path*',
-    '/account/:path*',
-    '/api/:path*',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
   ],
 };

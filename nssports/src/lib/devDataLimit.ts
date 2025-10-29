@@ -49,7 +49,7 @@ export function isDevLimitingEnabled(): boolean {
  * @param leagueIdKey Key to access the league identifier
  * @returns Sampled array of games
  */
-export function applyStratifiedSampling<T extends Record<string, any>>(
+export function applyStratifiedSampling<T extends Record<string, unknown>>(
   games: T[],
   leagueIdKey: keyof T = 'leagueId' as keyof T
 ): T[] {
@@ -132,7 +132,7 @@ export function applySingleLeagueLimit<T>(games: T[]): T[] {
  * @param leagueIdKey Key to access the league identifier (for multi-league)
  * @returns Limited array of games
  */
-export function applyDevLimit<T extends Record<string, any>>(
+export function applyDevLimit<T extends Record<string, unknown>>(
   games: T[],
   isMultiLeague: boolean,
   leagueIdKey: keyof T = 'leagueId' as keyof T

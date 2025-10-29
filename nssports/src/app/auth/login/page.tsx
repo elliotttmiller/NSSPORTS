@@ -1,14 +1,15 @@
 "use client";
 
-import { Suspense, useEffect, useActionState } from "react";
+import { Suspense, useEffect, useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { loginAction, type LoginState } from "../actions";
+import { useSession } from "next-auth/react";
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -26,23 +27,48 @@ function SubmitButton() {
 
 function LoginForm() {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const { update } = useSession();
   const callbackUrl = searchParams.get("callbackUrl") || "/";
+  const [isRedirecting, setIsRedirecting] = useState(false);
   
   const [state, formAction] = useActionState<LoginState, FormData>(
     loginAction,
     { success: false }
   );
 
-  // Show toast notifications based on action result
+  // Show toast notifications and handle redirect
   useEffect(() => {
     if (state.success && state.message) {
       toast.success(state.message);
-      // Redirect after successful login
-      window.location.href = callbackUrl;
+      setIsRedirecting(true);
+      
+      // Update session to sync auth state
+      update().then(() => {
+        // Small delay to ensure session is synced
+        setTimeout(() => {
+          router.push(callbackUrl);
+          router.refresh();
+        }, 500);
+      });
     } else if (state.error) {
       toast.error(state.error);
+      setIsRedirecting(false);
     }
-  }, [state, callbackUrl]);
+  }, [state, callbackUrl, router, update]);
+
+  // Show loading overlay during redirect
+  if (isRedirecting) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-accent border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-lg font-medium text-foreground">Logging you in...</p>
+          <p className="text-sm text-muted-foreground mt-2">Please wait</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <motion.div 

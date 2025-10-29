@@ -222,12 +222,6 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange }: G
               </button>
             ))}
           </div>
-          {/* Date header for selected date */}
-          {selectedDate && (
-            <div className="py-2 px-4 bg-muted/10 border-b border-border text-lg font-semibold text-accent sticky top-0 z-10 mb-2">
-              {selectedDate}
-            </div>
-          )}
           {/* Virtualized list of league headers + games for selected date */}
           <div style={{ height: virtualizer.getTotalSize(), position: 'relative', contain: 'layout paint size', willChange: 'transform' }}>
             {virtualizer.getVirtualItems().map((vi) => {

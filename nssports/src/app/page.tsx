@@ -9,16 +9,49 @@ import { useBetHistory } from "@/context";
 import { useAccount } from "@/hooks/useAccount";
 import { formatCurrency } from "@/lib/formatters";
 import { useLiveMatches, useIsLoading, useError } from "@/hooks/useStableLiveData";
+import { useEffect, useState } from "react";
+import { LoadingScreen } from "@/components/LoadingScreen";
+import { useLoadingState } from "@/hooks/useLoadingState";
+import type { Session } from "next-auth";
 
 export default function Home() {
-  const { data: session } = useSession();
+  // Middleware handles redirect - this page will only render if authenticated
+  // If session is loading, middleware redirect is in progress
+  const { data: session, status } = useSession();
+
+  // Client-side fallback: if session check completes and user is NOT authenticated,
+  // redirect to login (in case middleware didn't catch it)
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      console.log('[CLIENT] Unauthenticated - redirecting to login');
+      window.location.href = '/auth/login';
+    }
+  }, [status]);
+
+  // Show loading while session is being verified
+  // Middleware will redirect if not authenticated, or useEffect will catch it
+  if (status === 'loading' || !session) {
+    return (
+      <LoadingScreen 
+        title="Loading..." 
+        subtitle="Preparing your dashboard" 
+      />
+    );
+  }
+
+  // Session confirmed - render authenticated content
+  return <AuthenticatedHomePage session={session} />;
+}
+
+// Separate component that only renders when authenticated
+function AuthenticatedHomePage({ session }: { session: Session }) {
   const { placedBets } = useBetHistory();
   const activeBetsCount = (placedBets || []).filter(b => b.status === 'pending').length;
   
   // Subscribe to live data store - Protocol I: Single Source of Truth
   // Using stable hooks to prevent infinite loops
   const liveMatches = useLiveMatches();
-  const isLoading = useIsLoading();
+  const isDataLoading = useIsLoading();
   const error = useError();
   
   // API-driven account stats (same as Header component)
@@ -26,6 +59,31 @@ export default function Home() {
   const balance = account?.balance ?? 0;
   const available = account?.available ?? 0;
   const risk = account?.risk ?? 0;
+
+  // Use proper loading state with minimum display time
+  const showDataLoading = useLoadingState(isDataLoading, 600);
+  
+  // Track if content is ready to render
+  const [isContentReady, setIsContentReady] = useState(false);
+
+  // Check if all critical data is loaded and ready
+  useEffect(() => {
+    const dataReady = !isDataLoading && liveMatches.length >= 0;
+    
+    if (dataReady) {
+      // Small delay to ensure smooth transition
+      setTimeout(() => {
+        setIsContentReady(true);
+      }, 200);
+    } else {
+      setIsContentReady(false);
+    }
+  }, [isDataLoading, liveMatches]);
+
+  // Show loading while data is being fetched (with proper timing)
+  if (showDataLoading || !isContentReady) {
+    return <LoadingScreen title="Loading games..." subtitle="Getting latest odds and matches" showLogo={false} />;
+  }
 
   // Data is now fetched by LiveDataProvider at the app level
   // No need to fetch here - Protocol II: Efficient State Hydration
@@ -98,7 +156,7 @@ export default function Home() {
             {/* Games List - Responsive like /live page */}
             {/* Protocol IV: Universal UI State Handling */}
             <div className="space-y-3">
-              {isLoading ? (
+              {isDataLoading ? (
                 <div className="text-center py-12">
                   <div className="animate-spin w-8 h-8 border-2 border-accent border-t-transparent rounded-full mx-auto mb-4"></div>
                   <p className="text-muted-foreground">Loading games...</p>

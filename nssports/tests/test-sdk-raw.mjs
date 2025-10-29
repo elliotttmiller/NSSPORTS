@@ -2,7 +2,7 @@
  * Direct SDK test to see raw odds data structure
  */
 
-import { getEvents } from './src/lib/sportsgameodds-sdk.ts';
+import { getEvents } from '../src/lib/sportsgameodds-sdk.ts';
 
 async function testSDKDirectly() {
   try {

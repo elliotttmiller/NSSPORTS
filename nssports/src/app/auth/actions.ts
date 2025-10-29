@@ -189,7 +189,7 @@ export async function registerAction(
         success: true,
         message: "Account created successfully!",
       };
-    } catch (_error) {
+    } catch {
       // Registration succeeded but auto-login failed
       return {
         success: true,

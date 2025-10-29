@@ -9,6 +9,8 @@ import {
 } from "react";
 import { Bet, BetSlip, Game } from "@/types";
 import { calculatePayout } from "@/services/api";
+import { validateBetAddition } from "@/lib/betting-rules";
+import { toast } from "sonner";
 
 interface BetSlipContextType {
   betSlip: BetSlip;
@@ -179,7 +181,7 @@ export function BetSlipProvider({ children }: BetSlipProviderProps) {
         const existingBetIndex = prev.bets.findIndex((b) => b.id === betId);
         
         if (existingBetIndex !== -1) {
-          // Bet already exists, don't add it again
+          toast.error("This bet is already in your slip");
           return prev;
         }
 
@@ -195,8 +197,23 @@ export function BetSlipProvider({ children }: BetSlipProviderProps) {
           game,
         };
 
+        // Validate betting rules (treat custom as parlay for validation)
+        const validationType = prev.betType === "custom" ? "parlay" : prev.betType;
+        const violation = validateBetAddition(prev.bets, newBet, validationType);
+        if (violation) {
+          toast.error(violation.message, {
+            description: violation.rule.replace(/_/g, " "),
+          });
+          return prev;
+        }
+
         const newBets = [...prev.bets, newBet];
         const totals = calculateBetSlipTotals(newBets, prev.betType, prev.customStraightBets, prev.customParlayBets, prev.customStakes);
+
+        // Success toast for parlay mode
+        if (prev.betType === "parlay") {
+          toast.success("Bet added to parlay");
+        }
 
         return {
           ...prev,
@@ -228,7 +245,7 @@ export function BetSlipProvider({ children }: BetSlipProviderProps) {
         const existingBetIndex = prev.bets.findIndex((b) => b.id === betId);
         
         if (existingBetIndex !== -1) {
-          // Bet already exists, don't add it again
+          toast.error("This bet is already in your slip");
           return prev;
         }
 
@@ -245,8 +262,23 @@ export function BetSlipProvider({ children }: BetSlipProviderProps) {
           playerProp,
         };
 
+        // Validate betting rules (treat custom as parlay for validation)
+        const validationType = prev.betType === "custom" ? "parlay" : prev.betType;
+        const violation = validateBetAddition(prev.bets, newBet, validationType);
+        if (violation) {
+          toast.error(violation.message, {
+            description: violation.rule.replace(/_/g, " "),
+          });
+          return prev;
+        }
+
         const newBets = [...prev.bets, newBet];
         const totals = calculateBetSlipTotals(newBets, prev.betType, prev.customStraightBets, prev.customParlayBets, prev.customStakes);
+
+        // Success toast for parlay mode
+        if (prev.betType === "parlay") {
+          toast.success("Bet added to parlay");
+        }
 
         return {
           ...prev,
@@ -277,7 +309,7 @@ export function BetSlipProvider({ children }: BetSlipProviderProps) {
         const existingBetIndex = prev.bets.findIndex((b) => b.id === betId);
         
         if (existingBetIndex !== -1) {
-          // Bet already exists, don't add it again
+          toast.error("This bet is already in your slip");
           return prev;
         }
 
@@ -294,8 +326,23 @@ export function BetSlipProvider({ children }: BetSlipProviderProps) {
           gameProp,
         };
 
+        // Validate betting rules (treat custom as parlay for validation)
+        const validationType = prev.betType === "custom" ? "parlay" : prev.betType;
+        const violation = validateBetAddition(prev.bets, newBet, validationType);
+        if (violation) {
+          toast.error(violation.message, {
+            description: violation.rule.replace(/_/g, " "),
+          });
+          return prev;
+        }
+
         const newBets = [...prev.bets, newBet];
         const totals = calculateBetSlipTotals(newBets, prev.betType, prev.customStraightBets, prev.customParlayBets, prev.customStakes);
+
+        // Success toast for parlay mode
+        if (prev.betType === "parlay") {
+          toast.success("Bet added to parlay");
+        }
 
         return {
           ...prev,

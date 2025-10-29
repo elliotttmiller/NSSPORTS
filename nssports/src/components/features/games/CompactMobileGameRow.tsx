@@ -11,6 +11,7 @@ import { PlayerPropsView, GamePropsView } from "@/components/features/props";
 import { useLiveOdds } from "@/hooks/useLiveOdds";
 import { usePlayerProps, useGameProps } from "@/hooks";
 import type { Game } from "@/types";
+import { wouldBetCauseConflict } from "@/lib/betting-rules";
 
 // Helper component for displaying props with tabs - same as desktop
 function PropsDisplay({ game }: { game: Game }) {
@@ -111,6 +112,24 @@ export const CompactMobileGameRow = memo(({ game }: Props) => {
       );
     },
     [betSlip, getBetId]
+  );
+
+  const wouldBetConflict = useCallback(
+    (betType: "spread" | "moneyline" | "total", selection: string) => {
+      // Only check conflicts in parlay mode
+      if (betSlip.betType === "single") return false;
+      
+      return wouldBetCauseConflict(
+        betSlip.bets,
+        {
+          gameId: game.id,
+          betType,
+          selection,
+        },
+        betSlip.betType === "custom" ? "parlay" : betSlip.betType
+      );
+    },
+    [betSlip, game.id],
   );
 
   const handleBetClick = (
@@ -258,12 +277,16 @@ export const CompactMobileGameRow = memo(({ game }: Props) => {
                 variant={isBetInSlip("spread", "away") ? "default" : "outline"}
                 size="sm"
                 onClick={(e) => handleBetClick("spread", "away", e)}
+                disabled={wouldBetConflict("spread", "away") && !isBetInSlip("spread", "away")}
                 className={cn(
                   "w-full h-8 px-2 transition-all duration-200 font-medium flex flex-col justify-center items-center gap-0.5 text-center rounded-md border border-border",
                   isBetInSlip("spread", "away")
                     ? "bg-accent text-accent-foreground shadow-sm ring-1 ring-accent/20"
+                    : wouldBetConflict("spread", "away")
+                    ? "opacity-40 cursor-not-allowed"
                     : "hover:bg-accent hover:text-accent-foreground hover:shadow-md"
                 )}
+                title={wouldBetConflict("spread", "away") && !isBetInSlip("spread", "away") ? "Conflicts with existing bet in parlay" : undefined}
               >
                 <span className="text-xs leading-none font-semibold">
                   {formatSpreadLine(oddsSource.spread.away.line || 0)}
@@ -279,12 +302,16 @@ export const CompactMobileGameRow = memo(({ game }: Props) => {
                 variant={isBetInSlip("spread", "home") ? "default" : "outline"}
                 size="sm"
                 onClick={(e) => handleBetClick("spread", "home", e)}
+                disabled={wouldBetConflict("spread", "home") && !isBetInSlip("spread", "home")}
                 className={cn(
                   "w-full h-8 px-2 transition-all duration-200 font-medium flex flex-col justify-center items-center gap-0.5 text-center rounded-md border border-border",
                   isBetInSlip("spread", "home")
                     ? "bg-accent text-accent-foreground shadow-sm ring-1 ring-accent/20"
+                    : wouldBetConflict("spread", "home")
+                    ? "opacity-40 cursor-not-allowed"
                     : "hover:bg-accent hover:text-accent-foreground hover:shadow-md"
                 )}
+                title={wouldBetConflict("spread", "home") && !isBetInSlip("spread", "home") ? "Conflicts with existing bet in parlay" : undefined}
               >
                 <span className="text-xs leading-none font-semibold">
                   {formatSpreadLine(oddsSource.spread.home.line || 0)}
@@ -304,12 +331,16 @@ export const CompactMobileGameRow = memo(({ game }: Props) => {
                 variant={isBetInSlip("total", "over") ? "default" : "outline"}
                 size="sm"
                 onClick={(e) => handleBetClick("total", "over", e)}
+                disabled={wouldBetConflict("total", "over") && !isBetInSlip("total", "over")}
                 className={cn(
                   "w-full h-8 px-2 transition-all duration-200 font-medium flex flex-col justify-center items-center gap-0.5 text-center rounded-md border border-border",
                   isBetInSlip("total", "over")
                     ? "bg-accent text-accent-foreground shadow-sm ring-1 ring-accent/20"
+                    : wouldBetConflict("total", "over")
+                    ? "opacity-40 cursor-not-allowed"
                     : "hover:bg-accent hover:text-accent-foreground hover:shadow-md"
                 )}
+                title={wouldBetConflict("total", "over") && !isBetInSlip("total", "over") ? "Conflicts with existing bet in parlay" : undefined}
               >
                 <span className="text-xs leading-none font-semibold">
                   O<span className="mx-1">{formatTotalLine(oddsSource.total.over?.line || 0)}</span>
@@ -325,12 +356,16 @@ export const CompactMobileGameRow = memo(({ game }: Props) => {
                 variant={isBetInSlip("total", "under") ? "default" : "outline"}
                 size="sm"
                 onClick={(e) => handleBetClick("total", "under", e)}
+                disabled={wouldBetConflict("total", "under") && !isBetInSlip("total", "under")}
                 className={cn(
                   "w-full h-8 px-2 transition-all duration-200 font-medium flex flex-col justify-center items-center gap-0.5 text-center rounded-md border border-border",
                   isBetInSlip("total", "under")
                     ? "bg-accent text-accent-foreground shadow-sm ring-1 ring-accent/20"
+                    : wouldBetConflict("total", "under")
+                    ? "opacity-40 cursor-not-allowed"
                     : "hover:bg-accent hover:text-accent-foreground hover:shadow-md"
                 )}
+                title={wouldBetConflict("total", "under") && !isBetInSlip("total", "under") ? "Conflicts with existing bet in parlay" : undefined}
               >
                 <span className="text-xs leading-none font-semibold">
                   U<span className="mx-1">{formatTotalLine(oddsSource.total.under?.line || 0)}</span>
@@ -350,12 +385,16 @@ export const CompactMobileGameRow = memo(({ game }: Props) => {
                 variant={isBetInSlip("moneyline", "away") ? "default" : "outline"}
                 size="sm"
                 onClick={(e) => handleBetClick("moneyline", "away", e)}
+                disabled={wouldBetConflict("moneyline", "away") && !isBetInSlip("moneyline", "away")}
                 className={cn(
                   "w-full h-8 px-2 transition-all duration-200 font-medium flex items-center justify-center text-center rounded-md border border-border",
                   isBetInSlip("moneyline", "away")
                     ? "bg-accent text-accent-foreground shadow-sm ring-1 ring-accent/20"
+                    : wouldBetConflict("moneyline", "away")
+                    ? "opacity-40 cursor-not-allowed"
                     : "hover:bg-accent hover:text-accent-foreground hover:shadow-md"
                 )}
+                title={wouldBetConflict("moneyline", "away") && !isBetInSlip("moneyline", "away") ? "Conflicts with existing bet in parlay" : undefined}
               >
                 <span className="text-xs font-semibold">
                   <span className="tracking-wide text-xs font-semibold leading-none">{formatOdds(oddsSource.moneyline.away.odds)}</span>
@@ -368,12 +407,16 @@ export const CompactMobileGameRow = memo(({ game }: Props) => {
                 variant={isBetInSlip("moneyline", "home") ? "default" : "outline"}
                 size="sm"
                 onClick={(e) => handleBetClick("moneyline", "home", e)}
+                disabled={wouldBetConflict("moneyline", "home") && !isBetInSlip("moneyline", "home")}
                 className={cn(
                   "w-full h-8 px-2 transition-all duration-200 font-medium flex items-center justify-center text-center rounded-md border border-border",
                   isBetInSlip("moneyline", "home")
                     ? "bg-accent text-accent-foreground shadow-sm ring-1 ring-accent/20"
+                    : wouldBetConflict("moneyline", "home")
+                    ? "opacity-40 cursor-not-allowed"
                     : "hover:bg-accent hover:text-accent-foreground hover:shadow-md"
                 )}
+                title={wouldBetConflict("moneyline", "home") && !isBetInSlip("moneyline", "home") ? "Conflicts with existing bet in parlay" : undefined}
               >
                 <span className="text-xs font-semibold">
                   <span className="tracking-wide text-xs font-semibold leading-none">{formatOdds(oddsSource.moneyline.home.odds)}</span>

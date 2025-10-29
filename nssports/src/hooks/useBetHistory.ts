@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useSession } from "next-auth/react";
 import { getBetHistory } from "@/services/api";
 import type { PlacedBet } from "@/context/BetHistoryContext";
 import type { Bet } from "@/types";
@@ -21,12 +22,16 @@ export const betQueryKeys = {
  * - Refetches on window focus when data is stale (30s)
  */
 export function useBetHistoryQuery() {
+  const { status } = useSession();
+  
   return useQuery({
     queryKey: betQueryKeys.history(),
     queryFn: async () => {
       const data = await getBetHistory();
       return data as PlacedBet[];
     },
+    // Only fetch when authenticated
+    enabled: status === "authenticated",
     // Refetch when user returns to tab (if stale)
     refetchOnWindowFocus: true,
     // Keep data in cache for 5 minutes

@@ -1,14 +1,19 @@
+"use client";
+
+import { LoadingScreen } from "@/components/LoadingScreen";
+
 /**
  * Root Loading UI
- * Official Next.js Pattern: https://nextjs.org/docs/app/building-your-application/routing/loading-ui-and-streaming
+ * Official Next.js Pattern: Shown automatically during page transitions and Suspense boundaries
+ * Provides smooth, animated loading experience across all routes
+ * Reference: https://nextjs.org/docs/app/building-your-application/routing/loading-ui-and-streaming
  */
 export default function Loading() {
   return (
-    <div className="flex items-center justify-center min-h-screen bg-background">
-      <div className="flex flex-col items-center gap-4">
-        <div className="w-12 h-12 border-4 border-accent border-t-transparent rounded-full animate-spin" />
-        <p className="text-muted-foreground">Loading NSSPORTS...</p>
-      </div>
-    </div>
+    <LoadingScreen 
+      title="Loading NSSPORTSCLUB..." 
+      subtitle="Preparing your experience"
+      showLogo={true}
+    />
   );
 }

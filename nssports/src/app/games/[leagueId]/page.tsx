@@ -129,10 +129,6 @@ export default function LeaguePage() {
                 {filteredDates.map((dateStr) =>
                   groupedGames[dateStr] ? (
                     <div key={dateStr} className="space-y-2">
-                      {/* Date divider/header */}
-                      <div className="py-2 px-4 bg-muted/10 border-b border-border text-lg font-semibold text-accent sticky top-0 z-10">
-                        {dateStr}
-                      </div>
                       {/* Games for this date, sorted by time */}
                       {groupedGames[dateStr]
                         .sort((a: Game, b: Game) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())

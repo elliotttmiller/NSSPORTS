@@ -8,7 +8,11 @@
   "orientation": "portrait-primary",
   "start_url": "/?source=pwa",
   "scope": "/",
-  "categories": ["sports", "entertainment", "lifestyle"],
+  "categories": [
+    "sports",
+    "entertainment",
+    "lifestyle"
+  ],
   "icons": [
     {
       "src": "/mn-outline.svg",
@@ -61,5 +65,7 @@
         }
       ]
     }
-  ]
+  ],
+  "version": "1.0.0",
+  "build": 11
 }

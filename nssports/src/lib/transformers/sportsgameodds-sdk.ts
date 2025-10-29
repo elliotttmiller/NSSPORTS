@@ -158,42 +158,135 @@ interface SDKTeam {
 
 /**
  * Get team short name with fallback
- * Extracts 3-letter abbreviation from team data
+ * Uses official ESPN team abbreviations for NFL, NBA, and NHL
  */
 function getTeamShortName(team: SDKTeam): string {
-  // Try to extract abbreviation from teamID
-  // Format: "DETROIT_PISTONS_NBA" -> "DET"
+  // Official team abbreviation mapping (ESPN standard)
+  const officialAbbreviations: Record<string, string> = {
+    // NFL Teams
+    'ARIZONA_CARDINALS': 'ARI',
+    'ATLANTA_FALCONS': 'ATL',
+    'BALTIMORE_RAVENS': 'BAL',
+    'BUFFALO_BILLS': 'BUF',
+    'CAROLINA_PANTHERS': 'CAR',
+    'CHICAGO_BEARS': 'CHI',
+    'CINCINNATI_BENGALS': 'CIN',
+    'CLEVELAND_BROWNS': 'CLE',
+    'DALLAS_COWBOYS': 'DAL',
+    'DENVER_BRONCOS': 'DEN',
+    'DETROIT_LIONS': 'DET',
+    'GREEN_BAY_PACKERS': 'GB',
+    'HOUSTON_TEXANS': 'HOU',
+    'INDIANAPOLIS_COLTS': 'IND',
+    'JACKSONVILLE_JAGUARS': 'JAX',
+    'KANSAS_CITY_CHIEFS': 'KC',
+    'LAS_VEGAS_RAIDERS': 'LV',
+    'LOS_ANGELES_CHARGERS': 'LAC',
+    'LOS_ANGELES_RAMS': 'LAR',
+    'MIAMI_DOLPHINS': 'MIA',
+    'MINNESOTA_VIKINGS': 'MIN',
+    'NEW_ENGLAND_PATRIOTS': 'NE',
+    'NEW_ORLEANS_SAINTS': 'NO',
+    'NEW_YORK_GIANTS': 'NYG',
+    'NEW_YORK_JETS': 'NYJ',
+    'PHILADELPHIA_EAGLES': 'PHI',
+    'PITTSBURGH_STEELERS': 'PIT',
+    'SAN_FRANCISCO_49ERS': 'SF',
+    'SEATTLE_SEAHAWKS': 'SEA',
+    'TAMPA_BAY_BUCCANEERS': 'TB',
+    'TENNESSEE_TITANS': 'TEN',
+    'WASHINGTON_COMMANDERS': 'WSH',
+    
+    // NBA Teams
+    'ATLANTA_HAWKS': 'ATL',
+    'BOSTON_CELTICS': 'BOS',
+    'BROOKLYN_NETS': 'BKN',
+    'CHARLOTTE_HORNETS': 'CHA',
+    'CHICAGO_BULLS': 'CHI',
+    'CLEVELAND_CAVALIERS': 'CLE',
+    'DALLAS_MAVERICKS': 'DAL',
+    'DENVER_NUGGETS': 'DEN',
+    'DETROIT_PISTONS': 'DET',
+    'GOLDEN_STATE_WARRIORS': 'GSW',
+    'HOUSTON_ROCKETS': 'HOU',
+    'INDIANA_PACERS': 'IND',
+    'LA_CLIPPERS': 'LAC',
+    'LOS_ANGELES_LAKERS': 'LAL',
+    'MEMPHIS_GRIZZLIES': 'MEM',
+    'MIAMI_HEAT': 'MIA',
+    'MILWAUKEE_BUCKS': 'MIL',
+    'MINNESOTA_TIMBERWOLVES': 'MIN',
+    'NEW_ORLEANS_PELICANS': 'NOP',
+    'NEW_YORK_KNICKS': 'NYK',
+    'OKLAHOMA_CITY_THUNDER': 'OKC',
+    'ORLANDO_MAGIC': 'ORL',
+    'PHILADELPHIA_76ERS': 'PHI',
+    'PHOENIX_SUNS': 'PHX',
+    'PORTLAND_TRAIL_BLAZERS': 'POR',
+    'SACRAMENTO_KINGS': 'SAC',
+    'SAN_ANTONIO_SPURS': 'SAS',
+    'TORONTO_RAPTORS': 'TOR',
+    'UTAH_JAZZ': 'UTA',
+    'WASHINGTON_WIZARDS': 'WAS',
+    
+    // NHL Teams
+    'ANAHEIM_DUCKS': 'ANA',
+    'ARIZONA_COYOTES': 'ARI',
+    'BOSTON_BRUINS': 'BOS',
+    'BUFFALO_SABRES': 'BUF',
+    'CALGARY_FLAMES': 'CGY',
+    'CAROLINA_HURRICANES': 'CAR',
+    'CHICAGO_BLACKHAWKS': 'CHI',
+    'COLORADO_AVALANCHE': 'COL',
+    'COLUMBUS_BLUE_JACKETS': 'CBJ',
+    'DALLAS_STARS': 'DAL',
+    'DETROIT_RED_WINGS': 'DET',
+    'EDMONTON_OILERS': 'EDM',
+    'FLORIDA_PANTHERS': 'FLA',
+    'LOS_ANGELES_KINGS': 'LAK',
+    'MINNESOTA_WILD': 'MIN',
+    'MONTREAL_CANADIENS': 'MTL',
+    'NASHVILLE_PREDATORS': 'NSH',
+    'NEW_JERSEY_DEVILS': 'NJD',
+    'NEW_YORK_ISLANDERS': 'NYI',
+    'NEW_YORK_RANGERS': 'NYR',
+    'OTTAWA_SENATORS': 'OTT',
+    'PHILADELPHIA_FLYERS': 'PHI',
+    'PITTSBURGH_PENGUINS': 'PIT',
+    'SAN_JOSE_SHARKS': 'SJS',
+    'SEATTLE_KRAKEN': 'SEA',
+    'ST_LOUIS_BLUES': 'STL',
+    'TAMPA_BAY_LIGHTNING': 'TBL',
+    'TORONTO_MAPLE_LEAFS': 'TOR',
+    'UTAH_MAMMOTH': 'UTA',
+    'VANCOUVER_CANUCKS': 'VAN',
+    'VEGAS_GOLDEN_KNIGHTS': 'VGK',
+    'WASHINGTON_CAPITALS': 'WSH',
+    'WINNIPEG_JETS': 'WPG',
+  };
+
+  // Try to extract team identifier from teamID
+  // Format: "DETROIT_PISTONS_NBA" -> "DETROIT_PISTONS"
   if (team.teamID) {
-    const parts = team.teamID.split('_');
-    if (parts.length >= 2) {
-      // Get the city/first part and create abbreviation
-      const cityName = parts[0];
-      
-      // Special cases for multi-word cities
-      const multiWordCities: Record<string, string> = {
-        'LOS_ANGELES': 'LAL', // Lakers
-        'LOS ANGELES': 'LAL',
-        'NEW_YORK': 'NYK', // Knicks
-        'NEW YORK': 'NYK',
-        'GOLDEN_STATE': 'GSW', // Warriors
-        'GOLDEN STATE': 'GSW',
-      };
-      
-      // Check if it's a two-word city
-      const twoWordKey = `${parts[0]}_${parts[1]}`;
-      if (multiWordCities[twoWordKey]) {
-        return multiWordCities[twoWordKey];
-      }
-      
-      // For single-word cities, take first 3 letters
-      if (cityName.length >= 3) {
-        return cityName.substring(0, 3).toUpperCase();
-      }
+    // Remove league suffix (_NBA, _NFL, _NHL, etc.)
+    const teamKey = team.teamID.replace(/_NBA$|_NFL$|_NHL$|_MLB$/, '').toUpperCase();
+    
+    // Look up in official abbreviations
+    if (officialAbbreviations[teamKey]) {
+      return officialAbbreviations[teamKey];
     }
   }
-  
-  // Fallback to SDK shortName or last word of name
-  return team.shortName || team.name?.split(' ').pop() || team.name || '';
+
+  // Fallback: Try to extract from team name
+  if (team.name) {
+    const normalizedName = team.name.replace(/\s+/g, '_').toUpperCase();
+    if (officialAbbreviations[normalizedName]) {
+      return officialAbbreviations[normalizedName];
+    }
+  }
+
+  // Last resort: use SDK shortName or first 3 letters of last word
+  return team.shortName || team.name?.split(' ').pop()?.substring(0, 3).toUpperCase() || team.name || '';
 }
 
 /**

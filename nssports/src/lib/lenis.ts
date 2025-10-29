@@ -41,7 +41,6 @@ export const initLenis = (_isMobile: boolean = false) => {
     }));
   });
 
-  let rafId: number;
   const raf = (time: number) => {
     lenis.raf(time);
     requestAnimationFrame(raf);

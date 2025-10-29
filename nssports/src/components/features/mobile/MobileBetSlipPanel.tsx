@@ -13,6 +13,7 @@ import { formatSelectionLabel } from "@/components/bets/BetCard";
 import { toast } from "sonner";
 import type { Bet } from "@/types";
 import { MobileCustomBetSlipContent } from "./MobileCustomBetSlipContent";
+import { validateBetPlacement } from "@/lib/betting-rules";
 
 // Minimal mobile betslip panel
 export function MobileBetSlipPanel() {
@@ -24,6 +25,23 @@ export function MobileBetSlipPanel() {
 
   const handlePlaceBets = async () => {
     if (betSlip.bets.length === 0) return;
+
+    // Validate betting rules before placement (treat custom as parlay for validation)
+    const stakes = betSlip.bets.reduce((acc, bet) => {
+      acc[bet.id] = bet.stake || 0;
+      return acc;
+    }, {} as { [betId: string]: number });
+
+    const validationType = betSlip.betType === "custom" ? "parlay" : betSlip.betType;
+    const violation = validateBetPlacement(betSlip.bets, validationType, stakes);
+    if (violation) {
+      toast.error(violation.message, {
+        description: violation.rule.replace(/_/g, " "),
+        duration: 4000,
+      });
+      setPlacing(false);
+      return;
+    }
 
     setPlacing(true);
 

@@ -185,8 +185,8 @@ export function Header() {
     style={{
       height: 'calc(4rem + env(safe-area-inset-top))',
       paddingTop: 'env(safe-area-inset-top)',
-      paddingLeft: 'max(1rem, env(safe-area-inset-left))',
-      paddingRight: 'max(1rem, env(safe-area-inset-right))',
+      paddingLeft: 'max(1.5rem, env(safe-area-inset-left))',
+      paddingRight: 'max(1.5rem, env(safe-area-inset-right))',
     }}
   >
       {/* Desktop Centered Logo */}
@@ -326,7 +326,12 @@ export function Header() {
       </div>
 
       {/* Mobile Account Icon with Dropdown - Top Right */}
-      <div className="md:hidden absolute right-4 top-1/2 -translate-y-1/2 flex items-center">
+      <div 
+        className="md:hidden absolute top-1/2 -translate-y-1/2 flex items-center"
+        style={{
+          right: 'max(1rem, env(safe-area-inset-right))',
+        }}
+      >
         <MobileAccountDropdown 
           balance={balance}
           available={available}

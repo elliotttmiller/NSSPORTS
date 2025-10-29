@@ -1,6 +1,5 @@
 "use client";
 
-import type { Bet } from "@/types";
 import { useBetSlip, useBetHistory } from "@/context";
 import { useLenisScroll } from "@/hooks";
 import { Button, Input, Separator } from "@/components/ui";
@@ -10,24 +9,9 @@ import { toast } from "sonner";
 import { useCallback, useState } from "react";
 import { BetCardSingle, BetCardParlay } from "@/components/bets/BetCard";
 import { CustomBetSlipContent } from "./CustomBetSlipContent";
+import { validateBetPlacement } from "@/lib/betting-rules";
 
 export function BetSlipPanel() {
-  // Restriction: Cannot parlay both team moneylines from the same game
-  function isParlayValid(bets: Bet[]): boolean {
-    const moneylineBetsByGame: Record<string, Set<string>> = {};
-    for (const bet of bets) {
-      if (bet.betType === "moneyline") {
-        if (!moneylineBetsByGame[bet.game.id]) {
-          moneylineBetsByGame[bet.game.id] = new Set<string>();
-        }
-        moneylineBetsByGame[bet.game.id]!.add(bet.selection);
-      }
-    }
-    // If any game has both 'home' and 'away' moneyline in the parlay, return false
-    return !Object.values(moneylineBetsByGame).some((selections: Set<string>) =>
-      selections.has("home") && selections.has("away")
-    );
-  }
   const { betSlip, removeBet, updateStake, setBetType, clearBetSlip } = useBetSlip();
   const { addPlacedBet } = useBetHistory();
   const [placing, setPlacing] = useState(false);
@@ -48,6 +32,22 @@ export function BetSlipPanel() {
 
     if (betSlip.totalStake <= 0) {
       toast.error("Please enter a stake amount");
+      return;
+    }
+
+    // Validate betting rules before placement
+    const stakes = betSlip.bets.reduce((acc, bet) => {
+      acc[bet.id] = bet.stake || 0;
+      return acc;
+    }, {} as { [betId: string]: number });
+
+    const validationType = betSlip.betType === "custom" ? "parlay" : betSlip.betType;
+    const violation = validateBetPlacement(betSlip.bets, validationType, stakes);
+    if (violation) {
+      toast.error(violation.message, {
+        description: violation.rule.replace(/_/g, " "),
+        duration: 4000,
+      });
       return;
     }
 
@@ -227,8 +227,6 @@ export function BetSlipPanel() {
             size="sm"
             onClick={() => setBetType("parlay")}
             className="flex-1"
-            disabled={!isParlayValid(betSlip.bets)}
-            title={!isParlayValid(betSlip.bets) ? "Cannot parlay both team moneylines from the same game" : undefined}
           >
             Parlay ({betSlip.bets.length})
           </Button>
@@ -245,11 +243,6 @@ export function BetSlipPanel() {
         {betSlip.betType === "parlay" && betSlip.bets.length > 0 && (
           <div className="mt-2 text-xs text-muted-foreground">
             Parlay mode: all bets must win
-            {!isParlayValid(betSlip.bets) && (
-              <div className="text-destructive font-semibold mt-1">
-                You cannot parlay both team moneylines from the same game.
-              </div>
-            )}
           </div>
         )}
       </div>
@@ -385,8 +378,7 @@ export function BetSlipPanel() {
           disabled={
             placing ||
             betSlip.bets.length === 0 ||
-            betSlip.totalStake <= 0 ||
-            (betSlip.betType === "parlay" && !isParlayValid(betSlip.bets))
+            betSlip.totalStake <= 0
           }
         >
           {placing ? "Placing..." : `Place ${betSlip.betType === "parlay" ? "Parlay" : betSlip.betType === "custom" ? "Bets" : "Bets"}`}

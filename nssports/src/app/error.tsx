@@ -5,7 +5,7 @@
  * Official Next.js Pattern: https://nextjs.org/docs/app/building-your-application/routing/error-handling
  */
 export default function Error({
-  error,
+  error: _error,
   reset,
 }: {
   error: Error & { digest?: string };
