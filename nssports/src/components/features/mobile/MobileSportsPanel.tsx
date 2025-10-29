@@ -16,7 +16,7 @@ export function MobileSportsPanel() {
   const router = useRouter();
   const [sports, setSports] = useState<Sport[]>([]);
   const [loading, setLoading] = useState(true);
-  const [expandedSport, setExpandedSport] = useState<string | null>(null);
+  const [expandedSports, setExpandedSports] = useState<Set<string>>(new Set());
 
   const isOpen = mobilePanel === "navigation";
 
@@ -25,6 +25,8 @@ export function MobileSportsPanel() {
       try {
         const data = await getSports();
         setSports(data);
+        // Expand all sports by default when data is loaded
+        setExpandedSports(new Set(data.map(sport => sport.id)));
       } catch (error) {
         console.error("Failed to load sports:", error);
       } finally {
@@ -47,7 +49,15 @@ export function MobileSportsPanel() {
   };
 
   const toggleSport = (sportId: string) => {
-    setExpandedSport(expandedSport === sportId ? null : sportId);
+    setExpandedSports(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(sportId)) {
+        newSet.delete(sportId);
+      } else {
+        newSet.add(sportId);
+      }
+      return newSet;
+    });
   };
 
   if (!isMobile) return null;
@@ -127,7 +137,7 @@ export function MobileSportsPanel() {
                           <span className="font-medium">{sport.name}</span>
                         </div>
                         <motion.div
-                          animate={{ rotate: expandedSport === sport.id ? 90 : 0 }}
+                          animate={{ rotate: expandedSports.has(sport.id) ? 90 : 0 }}
                           transition={{ duration: 0.2 }}
                         >
                           <CaretRight size={16} className="text-muted-foreground" />
@@ -136,7 +146,7 @@ export function MobileSportsPanel() {
 
                       {/* Leagues */}
                       <AnimatePresence>
-                        {expandedSport === sport.id && (
+                        {expandedSports.has(sport.id) && (
                           <motion.div
                             initial={{ height: 0, opacity: 0 }}
                             animate={{ height: "auto", opacity: 1 }}
