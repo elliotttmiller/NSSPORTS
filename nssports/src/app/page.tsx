@@ -1,6 +1,5 @@
 "use client";
 
-import { TrendUp, Trophy } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { 
@@ -178,7 +177,16 @@ function AuthenticatedHomePage({ session }: { session: Session }) {
           {/* Trending Games Section */}
           <div className="mt-12">
             <div className="flex items-center space-x-2 mb-4">
-              <TrendUp size={20} className="text-accent" />
+              {/* Animated Pulsing Live Indicator */}
+              <div className="relative flex items-center justify-center">
+                {/* Outer pulsing ring */}
+                <div className="absolute w-5 h-5 bg-green-500/30 rounded-full animate-ping" 
+                     style={{ animationDuration: '2s' }}></div>
+                {/* Middle glow */}
+                <div className="absolute w-4 h-4 bg-green-500/50 rounded-full blur-sm"></div>
+                {/* Core dot */}
+                <div className="relative w-2.5 h-2.5 bg-green-500 rounded-full shadow-lg shadow-green-500/50"></div>
+              </div>
               <h2 className="text-lg font-semibold text-foreground">
                 Trending Live Games
               </h2>
@@ -259,8 +267,7 @@ function AuthenticatedHomePage({ session }: { session: Session }) {
           {/* View All Games Button */}
           <div className="text-center py-6">
             <Button asChild size="lg" className="px-8 py-3">
-              <Link href="/games" className="flex items-center space-x-2">
-                <Trophy size={20} />
+              <Link href="/games">
                 <span>View All Sports & Games</span>
               </Link>
             </Button>
