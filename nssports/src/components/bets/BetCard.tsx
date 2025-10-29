@@ -4,6 +4,7 @@ import { Badge, Card, CardContent } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
 import { formatCurrencyNoCents, formatOdds } from "@/lib/formatters";
+import { formatStatType } from "@/lib/formatStatType";
 
 export type BetStatus = "pending" | "won" | "lost";
 
@@ -87,9 +88,7 @@ export function formatSelectionLabel(
   // Handle player props
   if (betType === 'player_prop' && playerProp) {
     const sel = selection.toUpperCase();
-    const statType = playerProp.statType 
-      ? playerProp.statType.charAt(0).toUpperCase() + playerProp.statType.slice(1).toLowerCase()
-      : '';
+    const statType = playerProp.statType ? formatStatType(playerProp.statType) : '';
     const lineStr = typeof line === 'number' ? ` ${Math.abs(line)}` : '';
     return `${playerProp.playerName}\n${sel}${lineStr} ${statType}`.trim();
   }
@@ -232,7 +231,7 @@ export function BetCardSingle({
                       </span>
                     )}
                     <span className="text-[10px] sm:text-xs text-muted-foreground/60 font-semibold uppercase tracking-[0.05em]">
-                      {playerProp.statType}
+                      {playerProp.statType ? formatStatType(playerProp.statType) : ''}
                     </span>
                   </div>
                 </div>
@@ -400,7 +399,7 @@ export function BetCardParlay({
                           </span>
                         )}
                         <span className="text-[9px] sm:text-[10px] text-muted-foreground/60 font-semibold uppercase tracking-[0.05em]">
-                          {leg.playerProp.statType}
+                          {leg.playerProp.statType ? formatStatType(leg.playerProp.statType) : ''}
                         </span>
                       </div>
                     </div>

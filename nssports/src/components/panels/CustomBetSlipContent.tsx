@@ -4,6 +4,7 @@ import { useBetSlip } from "@/context";
 import { Button, Input, Separator, Checkbox } from "@/components/ui";
 import { X } from "@phosphor-icons/react/dist/ssr";
 import { formatOdds, formatCurrency } from "@/lib/formatters";
+import { formatStatType } from "@/lib/formatStatType";
 import { BetCardSingle } from "@/components/bets/BetCard";
 import { calculatePayout } from "@/services/api";
 import { useBetHistory } from "@/context";
@@ -455,7 +456,8 @@ export function CustomBetSlipContent() {
               let legDisplay = '';
               if (bet.betType === 'player_prop' && bet.playerProp) {
                 const sel = bet.selection.toUpperCase();
-                legDisplay = `${bet.playerProp.playerName} ${sel} ${typeof bet.line === 'number' ? Math.abs(bet.line) : ''} ${bet.playerProp.statType}`;
+                const formattedStatType = bet.playerProp.statType ? formatStatType(bet.playerProp.statType) : '';
+                legDisplay = `${bet.playerProp.playerName} ${sel} ${typeof bet.line === 'number' ? Math.abs(bet.line) : ''} ${formattedStatType}`;
               } else if (bet.betType === 'total' || bet.selection === 'over' || bet.selection === 'under') {
                 legDisplay = `${bet.selection.toUpperCase()} ${typeof bet.line === 'number' ? Math.abs(bet.line) : ''}`;
               } else if (bet.betType === 'moneyline' || (bet.line === undefined || bet.line === null)) {

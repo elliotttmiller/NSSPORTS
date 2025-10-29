@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatStatType } from "@/lib/formatStatType";
 import { PlayerPropRow } from "./PlayerPropRow";
 import { Game } from "@/types";
 import { motion, AnimatePresence } from "framer-motion";
@@ -106,7 +107,7 @@ export function PropCategory({ category, game, defaultOpen = false }: PropCatego
                   >
                     <div className="flex items-center justify-between mb-3">
                       <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                        {statType}
+                        {formatStatType(statType)}
                       </h4>
                       <span className="text-xs text-muted-foreground">
                         {propsByStatType[statType].length} {propsByStatType[statType].length === 1 ? 'player' : 'players'}

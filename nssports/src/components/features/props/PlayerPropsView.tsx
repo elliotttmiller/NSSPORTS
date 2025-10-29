@@ -4,6 +4,7 @@ import { useState, useMemo, useRef, useEffect } from "react";
 import { Game } from "@/types";
 import { PlayerProp } from "@/hooks/usePlayerProps";
 import { StatTypeCategory } from "./StatTypeCategory";
+import { formatStatType } from "@/lib/formatStatType";
 import { cn } from "@/lib/utils";
 import { ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -27,17 +28,6 @@ const statTypePriority: Record<string, number> = {
   "Receiving Yards": 10,
   Receptions: 11,
   Touchdowns: 12,
-};
-
-// Helper function to format category names for display (capitalize first letter of each word)
-const formatCategoryName = (category: string): string => {
-  return category
-    .split(/([+-])/) // Split on + or - while keeping the separators
-    .map(part => {
-      if (part === '+' || part === '-') return part;
-      return part.charAt(0).toUpperCase() + part.slice(1);
-    })
-    .join('');
 };
 
 export function PlayerPropsView({ game, playerProps }: PlayerPropsViewProps) {
@@ -274,7 +264,7 @@ export function PlayerPropsView({ game, playerProps }: PlayerPropsViewProps) {
                 : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
             )}
           >
-            {formatCategoryName(statType)}
+            {formatStatType(statType)}
           </button>
         ))}
       </div>
