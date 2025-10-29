@@ -244,7 +244,8 @@ async function updateOddsCache(gameId: string, oddsData: any) {
                         oddID.startsWith('points-all-');
       
       if (!isTeamOdd) {
-        logger.debug(`Skipping non-team odd: ${oddID}`);
+        // Silently skip non-team odds (player props, fantasy scores, etc.)
+        // These are filtered out to focus on main game betting lines
         return;
       }
       

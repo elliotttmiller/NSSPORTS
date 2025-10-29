@@ -1,21 +1,40 @@
 "use client";
 
-import { ProfessionalGameRow, CompactMobileGameRow, MobileGameTableHeader, DesktopGameTableHeader } from "@/components/features/games";
+import { useState, useEffect } from "react";
+import { 
+  LiveGameRow, 
+  LiveMobileGameRow, 
+  MobileGameTableHeader, 
+  DesktopGameTableHeader 
+} from "@/components/features/games";
 import { useLiveMatches, useIsLoading, useError } from "@/hooks/useStableLiveData";
 import { RefreshButton } from "@/components/ui";
+import { LoadingScreen } from "@/components/LoadingScreen";
 
 export default function LivePage() {
-  // Protocol I: Single Source of Truth - consume from centralized store
-  // Using stable hooks to prevent infinite loops
   const liveGames = useLiveMatches();
   const loading = useIsLoading();
   const error = useError();
+  
+  // Prevent hydration mismatch
+  const [mounted, setMounted] = useState(false);
 
-  // Live data auto-refreshes via LiveDataProvider
-  // Refresh button for visual consistency (data updates automatically)
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Show loading screen until mounted
+  if (!mounted) {
+    return (
+      <LoadingScreen 
+        title="Loading live games..." 
+        subtitle="Getting latest matches" 
+        showLogo={false}
+      />
+    );
+  }
+
   const handleRefresh = async () => {
-    // Live data refreshes automatically via LiveDataProvider
-    // This provides visual feedback for user interaction
     window.location.reload();
   };
 
@@ -67,7 +86,7 @@ export default function LivePage() {
                 <div key={game.id}>
                   {/* Desktop View */}
                   <div className="hidden lg:block">
-                    <ProfessionalGameRow 
+                    <LiveGameRow 
                       game={game} 
                       isFirstInGroup={index === 0}
                       isLastInGroup={index === liveGames.length - 1}
@@ -76,7 +95,7 @@ export default function LivePage() {
 
                   {/* Mobile/Tablet View */}
                   <div className="lg:hidden">
-                    <CompactMobileGameRow game={game} />
+                    <LiveMobileGameRow game={game} />
                   </div>
                 </div>
               ))}

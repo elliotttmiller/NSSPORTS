@@ -23,18 +23,16 @@ export function LiveDataProvider({ children }: LiveDataProviderProps) {
   const initializationStarted = useRef(false);
   const { data: session, status: sessionStatus } = useSession();
   
-  // Use stable selector references
   const fetchMatches = useLiveDataStore.getState().fetchMatches;
   const status = useLiveDataStore((state) => state.status);
   
+  // Set hydration state on mount
   useEffect(() => {
-    // Set hydration state on client
     setIsHydrated(true);
   }, []);
 
+  // Initialize data fetching when authenticated
   useEffect(() => {
-    // ⚠️ CRITICAL: Only initialize if user is authenticated
-    // This prevents expensive API calls for unauthenticated users
     const isAuthenticated = sessionStatus === 'authenticated' && session?.user;
     
     if (
@@ -43,14 +41,11 @@ export function LiveDataProvider({ children }: LiveDataProviderProps) {
       !initializationStarted.current && 
       status === 'idle'
     ) {
-      console.log('[LiveDataProvider] User authenticated - initializing live data');
       initializationStarted.current = true;
-      fetchMatches('basketball_nba');
-    }
-    
-    // Don't fetch data if user is not authenticated
-    if (sessionStatus === 'unauthenticated') {
-      console.log('[LiveDataProvider] User not authenticated - skipping data fetch');
+      // Small delay to prevent race conditions with UI mounting
+      setTimeout(() => {
+        fetchMatches('basketball_nba');
+      }, 100);
     }
   }, [isHydrated, sessionStatus, session, status, fetchMatches]);
 

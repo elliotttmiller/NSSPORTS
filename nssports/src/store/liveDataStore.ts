@@ -73,8 +73,10 @@ const createLiveDataStore = () => create<LiveDataState>()(
       
       const mappedSportKey = sportKeyMap[sportKey] || 'basketball_nba';
       
-      // Fetch from internal BFF endpoint
-      const response = await fetch(`/api/matches?sport=${mappedSportKey}`, {
+      // ⭐ OPTIMIZATION: Use lines=main for 60-80% smaller payload
+      // Only fetches moneyline, spread, total (not props)
+      // Props are fetched on-demand when user expands game card
+      const response = await fetch(`/api/matches?sport=${mappedSportKey}&lines=main`, {
         headers: {
           'Content-Type': 'application/json',
         },

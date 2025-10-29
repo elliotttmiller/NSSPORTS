@@ -3,7 +3,12 @@
 import { TrendUp, Trophy } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ProfessionalGameRow, CompactMobileGameRow, MobileGameTableHeader, DesktopGameTableHeader } from "@/components/features/games";
+import { 
+  LiveGameRow, 
+  LiveMobileGameRow,
+  MobileGameTableHeader, 
+  DesktopGameTableHeader 
+} from "@/components/features/games";
 import { useSession } from "next-auth/react";
 import { useBetHistory } from "@/context";
 import { useAccount } from "@/hooks/useAccount";
@@ -11,26 +16,38 @@ import { formatCurrency } from "@/lib/formatters";
 import { useLiveMatches, useIsLoading, useError } from "@/hooks/useStableLiveData";
 import { useEffect, useState } from "react";
 import { LoadingScreen } from "@/components/LoadingScreen";
-import { useLoadingState } from "@/hooks/useLoadingState";
 import type { Session } from "next-auth";
 
 export default function Home() {
-  // Middleware handles redirect - this page will only render if authenticated
-  // If session is loading, middleware redirect is in progress
   const { data: session, status } = useSession();
+  const [mounted, setMounted] = useState(false);
+  const [isReady, setIsReady] = useState(false);
 
-  // Client-side fallback: if session check completes and user is NOT authenticated,
-  // redirect to login (in case middleware didn't catch it)
+  // Wait for client-side hydration
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      console.log('[CLIENT] Unauthenticated - redirecting to login');
+    setMounted(true);
+  }, []);
+
+  // Add minimum delay to prevent flash
+  useEffect(() => {
+    if (mounted && status !== 'loading') {
+      const timer = setTimeout(() => {
+        setIsReady(true);
+      }, 400); // Minimum display time for smooth transition
+      
+      return () => clearTimeout(timer);
+    }
+  }, [mounted, status]);
+
+  // Redirect unauthenticated users
+  useEffect(() => {
+    if (isReady && status === 'unauthenticated') {
       window.location.href = '/auth/login';
     }
-  }, [status]);
+  }, [status, isReady]);
 
-  // Show loading while session is being verified
-  // Middleware will redirect if not authenticated, or useEffect will catch it
-  if (status === 'loading' || !session) {
+  // Show loading until fully ready
+  if (!mounted || !isReady || status === 'loading' || !session) {
     return (
       <LoadingScreen 
         title="Loading..." 
@@ -39,7 +56,7 @@ export default function Home() {
     );
   }
 
-  // Session confirmed - render authenticated content
+  // Session confirmed and ready - render authenticated content
   return <AuthenticatedHomePage session={session} />;
 }
 
@@ -48,49 +65,45 @@ function AuthenticatedHomePage({ session }: { session: Session }) {
   const { placedBets } = useBetHistory();
   const activeBetsCount = (placedBets || []).filter(b => b.status === 'pending').length;
   
-  // Subscribe to live data store - Protocol I: Single Source of Truth
-  // Using stable hooks to prevent infinite loops
+  // Subscribe to live data store
   const liveMatches = useLiveMatches();
   const isDataLoading = useIsLoading();
   const error = useError();
   
-  // API-driven account stats (same as Header component)
-  const { data: account } = useAccount();
+  // API-driven account stats
+  const { data: account, isLoading: accountLoading } = useAccount();
   const balance = account?.balance ?? 0;
   const available = account?.available ?? 0;
   const risk = account?.risk ?? 0;
 
-  // Use proper loading state with minimum display time
-  const showDataLoading = useLoadingState(isDataLoading, 600);
-  
-  // Track if content is ready to render
-  const [isContentReady, setIsContentReady] = useState(false);
+  // Track if component is mounted and data is ready
+  const [isComponentReady, setIsComponentReady] = useState(false);
 
-  // Check if all critical data is loaded and ready
+  // Wait for data to be ready with minimum display time
   useEffect(() => {
-    const dataReady = !isDataLoading && liveMatches.length >= 0;
-    
-    if (dataReady) {
-      // Small delay to ensure smooth transition
-      setTimeout(() => {
-        setIsContentReady(true);
-      }, 200);
-    } else {
-      setIsContentReady(false);
+    if (!isDataLoading && !accountLoading) {
+      // Small delay for smooth transition
+      const timer = setTimeout(() => {
+        setIsComponentReady(true);
+      }, 300);
+      
+      return () => clearTimeout(timer);
     }
-  }, [isDataLoading, liveMatches]);
+  }, [isDataLoading, accountLoading]);
 
-  // Show loading while data is being fetched (with proper timing)
-  if (showDataLoading || !isContentReady) {
-    return <LoadingScreen title="Loading games..." subtitle="Getting latest odds and matches" showLogo={false} />;
+  // Show loading while data loads - smooth transition
+  if (!isComponentReady) {
+    return (
+      <LoadingScreen 
+        title="Loading games..." 
+        subtitle="Getting latest odds and matches" 
+        showLogo={false} 
+      />
+    );
   }
 
-  // Data is now fetched by LiveDataProvider at the app level
-  // No need to fetch here - Protocol II: Efficient State Hydration
-  
   // Display first 5 live matches as trending
   const trendingGames = liveMatches.slice(0, 5);
-
   const displayName = session?.user?.name || 'NorthStar User';
 
   return (
@@ -187,7 +200,7 @@ function AuthenticatedHomePage({ session }: { session: Session }) {
                     <div key={game.id}>
                       {/* Desktop View */}
                       <div className="hidden lg:block">
-                        <ProfessionalGameRow 
+                        <LiveGameRow 
                           game={game} 
                           isFirstInGroup={index === 0}
                           isLastInGroup={index === trendingGames.length - 1}
@@ -196,7 +209,7 @@ function AuthenticatedHomePage({ session }: { session: Session }) {
 
                       {/* Mobile/Tablet View */}
                       <div className="lg:hidden">
-                        <CompactMobileGameRow game={game} />
+                        <LiveMobileGameRow game={game} />
                       </div>
                     </div>
                   ))}
