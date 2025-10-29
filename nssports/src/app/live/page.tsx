@@ -94,7 +94,19 @@ export default function LivePage() {
   {/* Page Header */}
         <div className="mb-6 flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Live Games</h1>
+            <div className="flex items-center space-x-2">
+              {/* Animated Pulsing Live Indicator */}
+              <div className="relative flex items-center justify-center">
+                {/* Outer pulsing ring */}
+                <div className="absolute w-5 h-5 bg-green-500/30 rounded-full animate-ping" 
+                     style={{ animationDuration: '2s' }}></div>
+                {/* Middle glow */}
+                <div className="absolute w-4 h-4 bg-green-500/50 rounded-full blur-sm"></div>
+                {/* Core dot */}
+                <div className="relative w-2.5 h-2.5 bg-green-500 rounded-full shadow-lg shadow-green-500/50"></div>
+              </div>
+              <h1 className="text-3xl font-bold text-foreground">Live Games</h1>
+            </div>
             <p className="text-muted-foreground mt-1">
               {displayGames.length} game{displayGames.length !== 1 ? "s" : ""} in progress
             </p>
