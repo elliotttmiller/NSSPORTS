@@ -342,15 +342,6 @@ export function BetCardParlay({
         <div className="flex items-center justify-between mb-2.5">
           <div className="flex items-center gap-1.5 flex-wrap">
             <Badge 
-              variant={isWon ? "default" : "outline"} 
-              className={cn(
-                "text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 uppercase tracking-[0.06em]",
-                isWon ? "bg-green-100 text-green-800 border-green-200" : ""
-              )}
-            >
-              PARLAY
-            </Badge>
-            <Badge 
               variant={isWon ? "default" : status === "lost" ? "destructive" : "outline"} 
               className={cn(
                 "text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 uppercase tracking-[0.06em]",
@@ -358,6 +349,15 @@ export function BetCardParlay({
               )}
             >
               {status.toUpperCase()}
+            </Badge>
+            <Badge 
+              variant={isWon ? "default" : "outline"} 
+              className={cn(
+                "text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 uppercase tracking-[0.06em]",
+                isWon ? "bg-accent/10 text-accent border-accent/30" : ""
+              )}
+            >
+              PARLAY
             </Badge>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
@@ -382,10 +382,53 @@ export function BetCardParlay({
                   <div className="text-[9px] text-muted-foreground/50 uppercase tracking-[0.06em] font-semibold leading-tight">
                     {leg.game.awayTeam.shortName} @ {leg.game.homeTeam.shortName}
                   </div>
-                  {/* Bet Selection - Bottom */}
-                  <div className="text-[13px] sm:text-sm font-bold leading-tight text-white">
-                    {formatSelectionLabel(leg.betType, leg.selection, leg.line, leg.game, leg.playerProp, leg.gameProp)}
-                  </div>
+                  {/* Player Prop Enhanced Display */}
+                  {leg.betType === 'player_prop' && leg.playerProp ? (
+                    <div className="space-y-0.5">
+                      {/* Player Name */}
+                      <div className="text-[13px] sm:text-sm font-bold leading-tight text-white">
+                        {leg.playerProp.playerName}
+                      </div>
+                      {/* Selection, Line, Stat Type */}
+                      <div className="flex flex-wrap items-center gap-1">
+                        <span className="text-[9px] sm:text-[10px] font-bold uppercase text-accent">
+                          {leg.selection}
+                        </span>
+                        {typeof leg.line === 'number' && (
+                          <span className="text-xs sm:text-sm font-extrabold text-white tabular-nums">
+                            {Math.abs(leg.line)}
+                          </span>
+                        )}
+                        <span className="text-[9px] sm:text-[10px] text-muted-foreground/60 font-semibold uppercase tracking-[0.05em]">
+                          {leg.playerProp.statType}
+                        </span>
+                      </div>
+                    </div>
+                  ) : leg.betType === 'game_prop' && leg.gameProp ? (
+                    /* Game Prop Enhanced Display */
+                    <div className="space-y-0.5">
+                      {/* Prop Description */}
+                      <div className="text-[13px] sm:text-sm font-bold leading-tight text-white">
+                        {leg.gameProp.description || leg.gameProp.propType}
+                      </div>
+                      {/* Selection, Line */}
+                      <div className="flex flex-wrap items-center gap-1">
+                        <span className="text-[9px] sm:text-[10px] font-bold uppercase text-accent">
+                          {leg.selection}
+                        </span>
+                        {typeof leg.line === 'number' && (
+                          <span className="text-xs sm:text-sm font-extrabold text-white tabular-nums">
+                            {Math.abs(leg.line)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    /* Regular Bet Display */
+                    <div className="text-[13px] sm:text-sm font-bold leading-tight text-white">
+                      {formatSelectionLabel(leg.betType, leg.selection, leg.line, leg.game, leg.playerProp, leg.gameProp)}
+                    </div>
+                  )}
                 </div>
                 <Badge 
                   variant="outline" 
