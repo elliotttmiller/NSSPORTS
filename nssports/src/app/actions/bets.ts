@@ -26,6 +26,19 @@ const betLegSchema = z.object({
   selection: z.string(),
   odds: z.number(),
   line: z.number().nullable().optional(),
+  // Player prop metadata for parlay legs
+  playerProp: z.object({
+    playerId: z.string().optional(),
+    playerName: z.string().optional(),
+    statType: z.string().optional(),
+    category: z.string().optional(),
+  }).optional(),
+  // Game prop metadata for parlay legs
+  gameProp: z.object({
+    propType: z.string().optional(),
+    description: z.string().optional(),
+    marketCategory: z.string().optional(),
+  }).optional(),
 });
 
 const singleBetSchema = z.object({

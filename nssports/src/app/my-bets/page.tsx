@@ -4,11 +4,14 @@ import type { PlacedBet } from "@/context/BetHistoryContext";
 import { Card, CardContent, CardHeader, CardTitle, PullToRefresh } from "@/components/ui";
 import { BetCardParlay, BetCardSingle } from "@/components/bets/BetCard";
 import type { BetLeg } from "@/components/bets/BetCard";
+import { MobileParlayBetCard } from "@/components/features/mobile/MobileParlayBetCard";
 import { useCallback, useEffect, useState } from "react";
+import { useIsMobile } from "@/hooks";
 
 export default function MyBetsPage() {
   const { placedBets, loading, refreshBetHistory } = useBetHistory();
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     // mark last updated whenever data changes
@@ -82,7 +85,13 @@ export default function MyBetsPage() {
                     {activeBets.map((bet: PlacedBet) => {
                       const betType = typeof bet.betType === "string" ? bet.betType : "single";
                       if (betType === "parlay" && bet.legs && Array.isArray(bet.legs)) {
-                        return (
+                        // Use mobile-optimized parlay card on mobile, desktop card on desktop
+                        return isMobile ? (
+                          <MobileParlayBetCard
+                            key={bet.id}
+                            bet={bet}
+                          />
+                        ) : (
                           <BetCardParlay
                             key={bet.id}
                             id={bet.id}
@@ -138,7 +147,13 @@ export default function MyBetsPage() {
                     {settledBets.map((bet: PlacedBet) => {
                       const betType = typeof bet.betType === "string" ? bet.betType : "single";
                       if (betType === "parlay" && bet.legs && Array.isArray(bet.legs)) {
-                        return (
+                        // Use mobile-optimized parlay card on mobile, desktop card on desktop
+                        return isMobile ? (
+                          <MobileParlayBetCard
+                            key={bet.id}
+                            bet={bet}
+                          />
+                        ) : (
                           <BetCardParlay
                             key={bet.id}
                             id={bet.id}

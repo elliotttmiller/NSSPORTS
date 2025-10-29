@@ -47,6 +47,9 @@ export function usePlaceBetWithActions() {
             selection: bet.selection,
             odds: bet.odds,
             line: bet.line ?? null,
+            // ✅ Include player prop and game prop metadata for parlay legs
+            playerProp: bet.playerProp,
+            gameProp: bet.gameProp,
           })),
           stake: totalStake,
           potentialPayout: totalPayout,

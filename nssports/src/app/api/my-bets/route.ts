@@ -16,6 +16,19 @@ type ParlayLeg = {
   selection?: string;
   odds?: number;
   line?: number | null;
+  // Player prop metadata for parlay legs
+  playerProp?: {
+    playerId?: string;
+    playerName?: string;
+    statType?: string;
+    category?: string;
+  };
+  // Game prop metadata for parlay legs
+  gameProp?: {
+    propType?: string;
+    description?: string;
+    marketCategory?: string;
+  };
 };
 
 function toLegArray(input: unknown): ParlayLeg[] | null {
@@ -43,6 +56,19 @@ function toLegArray(input: unknown): ParlayLeg[] | null {
             : typeof obj.line === "string"
             ? Number(obj.line)
             : null,
+        // Parse player prop metadata
+        playerProp: obj.playerProp && typeof obj.playerProp === 'object' ? {
+          playerId: typeof (obj.playerProp as any).playerId === 'string' ? (obj.playerProp as any).playerId : undefined,
+          playerName: typeof (obj.playerProp as any).playerName === 'string' ? (obj.playerProp as any).playerName : undefined,
+          statType: typeof (obj.playerProp as any).statType === 'string' ? (obj.playerProp as any).statType : undefined,
+          category: typeof (obj.playerProp as any).category === 'string' ? (obj.playerProp as any).category : undefined,
+        } : undefined,
+        // Parse game prop metadata
+        gameProp: obj.gameProp && typeof obj.gameProp === 'object' ? {
+          propType: typeof (obj.gameProp as any).propType === 'string' ? (obj.gameProp as any).propType : undefined,
+          description: typeof (obj.gameProp as any).description === 'string' ? (obj.gameProp as any).description : undefined,
+          marketCategory: typeof (obj.gameProp as any).marketCategory === 'string' ? (obj.gameProp as any).marketCategory : undefined,
+        } : undefined,
       }));
     console.log('[toLegArray] Input:', input);
     console.log('[toLegArray] Parsed:', parsed);
@@ -161,6 +187,9 @@ export async function GET() {
                     : undefined,
                 game: gameData ? JSON.parse(JSON.stringify(gameData)) : undefined,
         betType: leg.betType, // Ensure betType is preserved
+        // ✅ Preserve player prop and game prop metadata for parlay legs
+        playerProp: leg.playerProp,
+        gameProp: leg.gameProp,
         displaySelection: computeSelectionLabel(leg.betType, leg.selection, leg.line ?? undefined, gameData as any),
               };
             })
@@ -246,6 +275,9 @@ export async function GET() {
           ? b.legs.map((leg: any) => ({
               ...leg,
               game: transformGameForBetCard(leg.game),
+              // Ensure player prop and game prop metadata is preserved
+              playerProp: leg.playerProp,
+              gameProp: leg.gameProp,
             }))
           : b.betType === 'parlay' ? b.legs : null, // Keep parlay legs, null out single bet metadata
       };
