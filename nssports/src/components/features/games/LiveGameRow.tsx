@@ -6,7 +6,7 @@ import { formatOdds, formatSpreadLine, formatGameTime } from "@/lib/formatters";
 import { Button } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import { useBetSlip } from "@/context";
-import { useCallback, useState } from "react";
+import { useCallback, useState, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PlayerPropsView, GamePropsView } from "@/components/features/props";
 import { usePlayerProps, useGameProps } from "@/hooks";
@@ -428,3 +428,6 @@ export function LiveGameRow({
     </motion.div>
   );
 }
+
+// Memoize component to prevent unnecessary re-renders
+export const MemoizedLiveGameRow = memo(LiveGameRow);

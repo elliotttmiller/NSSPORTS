@@ -21,45 +21,11 @@ import { LoadingScreen } from "@/components/LoadingScreen";
 import type { Session } from "next-auth";
 
 export default function Home() {
-  const { data: session, status } = useSession();
-  const [mounted, setMounted] = useState(false);
-  const [isReady, setIsReady] = useState(false);
-
-  // Wait for client-side hydration
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // Add minimum delay to prevent flash
-  useEffect(() => {
-    if (mounted && status !== 'loading') {
-      const timer = setTimeout(() => {
-        setIsReady(true);
-      }, 400); // Minimum display time for smooth transition
-      
-      return () => clearTimeout(timer);
-    }
-  }, [mounted, status]);
-
-  // Redirect unauthenticated users
-  useEffect(() => {
-    if (isReady && status === 'unauthenticated') {
-      window.location.href = '/auth/login';
-    }
-  }, [status, isReady]);
-
-  // Show loading until fully ready
-  if (!mounted || !isReady || status === 'loading' || !session) {
-    return (
-      <LoadingScreen 
-        title="Loading..." 
-        subtitle="Preparing your dashboard" 
-      />
-    );
-  }
-
-  // Session confirmed and ready - render authenticated content
-  return <AuthenticatedHomePage session={session} />;
+  const { data: session } = useSession();
+  
+  // At this point, AuthProvider guarantees we're authenticated
+  // No need for additional loading checks
+  return <AuthenticatedHomePage session={session!} />;
 }
 
 // Separate component that only renders when authenticated
@@ -100,19 +66,20 @@ function AuthenticatedHomePage({ session }: { session: Session }) {
   useEffect(() => {
     const liveGamesCount = filteredLiveGames.filter(g => g.status === 'live').length;
     
-    if (liveGamesCount > 0 && !streamingEnabled) {
+    if (liveGamesCount > 0 && !streamingEnabled && typeof enableStreaming === 'function') {
       console.log('[HomePage] Enabling real-time streaming for', liveGamesCount, 'live games');
       enableStreaming(); // GLOBAL: No sport parameter needed
     }
     
     // Cleanup: disable streaming when component unmounts
     return () => {
-      if (streamingEnabled) {
+      if (streamingEnabled && typeof disableStreaming === 'function') {
         console.log('[HomePage] Disabling streaming on unmount');
         disableStreaming();
       }
     };
-  }, [filteredLiveGames, streamingEnabled, enableStreaming, disableStreaming]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredLiveGames, streamingEnabled]); // Zustand functions are stable
 
   // Wait for data to be ready with minimum display time
   useEffect(() => {

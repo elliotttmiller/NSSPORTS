@@ -154,18 +154,23 @@ export async function placeSingleBetAction(
 
     console.log("[placeSingleBetAction] Creating bet in database...");
 
-    // Check if user has sufficient balance
-    const account = await prisma.account.findUnique({
+    // Check if user has sufficient balance (create account if doesn't exist)
+    let account = await prisma.account.findUnique({
       where: { userId: session.user.id },
       select: { balance: true },
     });
 
+    // Auto-create account if it doesn't exist (for legacy users)
     if (!account) {
-      console.error("[placeSingleBetAction] Account not found for user:", session.user.id);
-      return {
-        success: false,
-        error: "Account not found. Please contact support.",
-      };
+      console.warn("[placeSingleBetAction] Account not found, creating new account for user:", session.user.id);
+      account = await prisma.account.create({
+        data: {
+          userId: session.user.id,
+          balance: 1000.0, // Starting balance for legacy users
+        },
+        select: { balance: true },
+      });
+      console.log("[placeSingleBetAction] Account created with balance:", account.balance);
     }
 
     if (account.balance < stake) {
@@ -313,18 +318,23 @@ export async function placeParlayBetAction(
 
     console.log("[placeParlayBetAction] Creating parlay bet in database...");
 
-    // Check if user has sufficient balance
-    const account = await prisma.account.findUnique({
+    // Check if user has sufficient balance (create account if doesn't exist)
+    let account = await prisma.account.findUnique({
       where: { userId: session.user.id },
       select: { balance: true },
     });
 
+    // Auto-create account if it doesn't exist (for legacy users)
     if (!account) {
-      console.error("[placeParlayBetAction] Account not found for user:", session.user.id);
-      return {
-        success: false,
-        error: "Account not found. Please contact support.",
-      };
+      console.warn("[placeParlayBetAction] Account not found, creating new account for user:", session.user.id);
+      account = await prisma.account.create({
+        data: {
+          userId: session.user.id,
+          balance: 1000.0, // Starting balance for legacy users
+        },
+        select: { balance: true },
+      });
+      console.log("[placeParlayBetAction] Account created with balance:", account.balance);
     }
 
     if (account.balance < stake) {

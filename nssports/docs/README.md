@@ -11,6 +11,7 @@ Welcome to the NSSPORTS documentation. This directory contains comprehensive tec
 - **[ABSOLUTE_ZERO_REPORT.md](./ABSOLUTE_ZERO_REPORT.md)** - Comprehensive transformation report documenting the achievement of Absolute Zero Standard
 - **[ARCHITECTURE.md](./ARCHITECTURE.md)** - Complete system architecture, data flow, and technical decisions
 - **[GOLD_STANDARD_QUICK_REFERENCE.md](./GOLD_STANDARD_QUICK_REFERENCE.md)** - Quick reference guide for development
+- **[SMART_CACHE_STRATEGY.md](./SMART_CACHE_STRATEGY.md)** - Dynamic time-based caching system for real-time odds accuracy
 
 ### Legacy Reports (Archive)
 

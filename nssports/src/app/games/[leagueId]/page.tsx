@@ -33,18 +33,19 @@ export default function LeaguePage() {
   
   // Enable streaming when component mounts (for real-time odds updates)
   useEffect(() => {
-    if (games.length > 0 && !streamingEnabled) {
+    if (games.length > 0 && !streamingEnabled && typeof enableStreaming === 'function') {
       console.log('[LeaguePage] Enabling real-time streaming for', games.length, 'games');
       enableStreaming();
     }
     
     return () => {
-      if (streamingEnabled) {
+      if (streamingEnabled && typeof disableStreaming === 'function') {
         console.log('[LeaguePage] Disabling streaming on unmount');
         disableStreaming();
       }
     };
-  }, [games.length, streamingEnabled, enableStreaming, disableStreaming]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [games.length, streamingEnabled]); // Zustand functions are stable, excluded from deps
   
   // Manual refresh handler for pull-to-refresh
   const handleRefresh = useCallback(async () => {
@@ -98,9 +99,6 @@ export default function LeaguePage() {
                 <h1 className="text-3xl md:text-4xl font-bold text-foreground leading-tight mb-1">{leagueName} Games</h1>
                 <p className="text-muted-foreground text-base md:text-lg font-medium leading-tight" style={{marginTop: '-2px'}}>
                   {games.length} game{games.length !== 1 ? "s" : ""} available
-                </p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  📊 Real-time odds • Auto-migrate to Live when game starts
                 </p>
               </div>
             </div>

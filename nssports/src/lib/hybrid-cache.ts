@@ -1,18 +1,31 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /**
- * Hybrid SDK + Prisma Caching Service
+ * Hybrid SDK + Prisma Caching Service with Smart Conditional TTL
  * 
  * Architecture:
  * - SDK is the ONLY source of truth for real-time odds
- * - Prisma provides intelligent performance caching ONLY
+ * - Prisma provides intelligent performance caching with dynamic TTL
  * - Database stores user-specific data (bets, preferences, history)
  * - NO fallback logic - if SDK fails, request fails (no mock/stale data)
+ * 
+ * Smart Caching Strategy (Time-Based TTL):
+ * - Games starting within 1 hour: 30s cache (CRITICAL - odds change rapidly)
+ * - Games starting 1-24 hours: 60s cache (ACTIVE - moderate updates)
+ * - Games starting 24+ hours: 120s cache (STANDARD - stable odds)
+ * - LIVE games: WebSocket streaming only (liveDataStore handles real-time)
+ * 
+ * Why This Works:
+ * - Critical window (< 1hr): Users need freshest data as odds fluctuate rapidly
+ * - Active window (1-24hr): Balanced approach for moderate activity
+ * - Far future (24hr+): Odds stable, cache maximizes performance
+ * - Real-time accuracy: Fresh data when it matters most
+ * - API efficiency: Reduces calls for far-future games
  * 
  * Note: Using `any` types for SDK responses as the sports-odds-api package
  * doesn't export proper TypeScript types. This is acceptable for external API data.
  * 
  * Flow:
- * 1. Check cache (Prisma) - if fresh, return from cache
+ * 1. Check cache (Prisma) - if fresh within smart TTL, return from cache
  * 2. If cache miss or stale, fetch from SDK
  * 3. Update cache (Prisma) - store for next request
  * 4. Return SDK data - always real-time, never fallback
@@ -27,12 +40,67 @@ import {
 } from './sportsgameodds-sdk';
 
 // Cache TTL in seconds - optimized for development/testing
+/**
+ * Smart Cache TTL Strategy - Adjusts based on game timing
+ * 
+ * CRITICAL WINDOW (< 1 hour to start):
+ * - Odds change rapidly as game approaches
+ * - Users need the freshest possible data
+ * - Minimal caching (30s) to balance freshness with performance
+ * 
+ * ACTIVE WINDOW (1-24 hours to start):
+ * - Moderate betting activity
+ * - Odds updates are less frequent
+ * - Short cache (60s) balances freshness and API calls
+ * 
+ * FAR FUTURE (24+ hours to start):
+ * - Odds relatively stable
+ * - Lower betting activity
+ * - Standard cache (120s) optimizes performance
+ * 
+ * LIVE GAMES:
+ * - WebSocket streaming handles real-time updates
+ * - Cache bypassed entirely (handled by liveDataStore)
+ */
 const CACHE_TTL = {
-  events: 120, // 2 minutes for events/games (was 30s)
-  odds: 120, // 2 minutes for odds (was 30s)
-  playerProps: 120, // 2 minutes for player props (was 30s)
-  gameProps: 120, // 2 minutes for game props (was 30s)
+  // Base TTL values for different time windows
+  critical: 30,    // Games starting within 1 hour
+  active: 60,      // Games starting within 1-24 hours
+  standard: 120,   // Games starting 24+ hours away
+  
+  // Legacy fallback (should not be used directly)
+  events: 120,
+  odds: 120,
+  playerProps: 120,
+  gameProps: 120,
 };
+
+/**
+ * Calculate dynamic TTL based on game start time
+ * Returns appropriate cache duration in seconds
+ */
+function getSmartCacheTTL(startTime: Date): number {
+  const now = new Date();
+  const hoursUntilStart = (startTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+  
+  // LIVE or already started - should use streaming, but if cached return minimal TTL
+  if (hoursUntilStart <= 0) {
+    return CACHE_TTL.critical;
+  }
+  
+  // CRITICAL WINDOW: < 1 hour to start
+  if (hoursUntilStart < 1) {
+    return CACHE_TTL.critical;
+  }
+  
+  // ACTIVE WINDOW: 1-24 hours to start
+  if (hoursUntilStart < 24) {
+    return CACHE_TTL.active;
+  }
+  
+  // FAR FUTURE: 24+ hours to start
+  return CACHE_TTL.standard;
+}
 
 /**
  * Fetch events with intelligent caching
@@ -54,13 +122,17 @@ export async function getEventsWithCache(options: {
   startsAfter?: string;
   startsBefore?: string;
 }) {
-  // 1. Check cache first for performance
+  // 1. Check cache first for performance (with smart TTL)
   try {
     const cachedEvents = await getEventsFromCache(options);
     if (cachedEvents.length > 0) {
-      logger.info(`Returning ${cachedEvents.length} events from cache (within TTL)`);
+      logger.info(
+        `✅ Smart Cache HIT: Returning ${cachedEvents.length} events ` +
+        `(dynamic TTL: 30s critical, 60s active, 120s standard)`
+      );
       return { data: cachedEvents, source: 'cache' as const };
     }
+    logger.info('Smart Cache MISS: Fetching fresh data from SDK');
   } catch (cacheError) {
     logger.warn('Cache check failed, will fetch from SDK', { error: cacheError });
     // Continue to SDK fetch - cache errors shouldn't break the flow
@@ -343,7 +415,8 @@ async function updateOddsCache(gameId: string, oddsData: any) {
 }
 
 /**
- * Get events from Prisma cache
+ * Get events from Prisma cache with smart TTL filtering
+ * Uses dynamic cache duration based on game start time
  */
 async function getEventsFromCache(options: {
   leagueID?: string;
@@ -372,10 +445,7 @@ async function getEventsFromCache(options: {
     }
   }
   
-  // Only return recently updated games (within TTL)
-  const ttlDate = new Date(Date.now() - CACHE_TTL.events * 1000);
-  where.updatedAt = { gte: ttlDate };
-  
+  // Fetch all matching games (we'll filter by smart TTL per game)
   const games = await prisma.game.findMany({
     where,
     include: {
@@ -386,8 +456,27 @@ async function getEventsFromCache(options: {
     orderBy: { startTime: 'asc' },
   });
   
-  // Transform to SDK format
-  return games.map(game => ({
+  // Apply smart TTL filtering - each game gets its own cache duration
+  const now = new Date();
+  const validGames = games.filter(game => {
+    const smartTTL = getSmartCacheTTL(game.startTime);
+    const ttlDate = new Date(now.getTime() - smartTTL * 1000);
+    
+    // Game is valid if it was updated within its smart TTL window
+    const isValid = game.updatedAt >= ttlDate;
+    
+    if (!isValid) {
+      const hoursUntilStart = (game.startTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+      logger.debug(
+        `Game ${game.id} cache expired (TTL: ${smartTTL}s, hours until start: ${hoursUntilStart.toFixed(1)}h)`
+      );
+    }
+    
+    return isValid;
+  });
+  
+  // Transform valid games to SDK format
+  return validGames.map(game => ({
     eventID: game.id,
     leagueID: game.leagueId.toUpperCase(),
     commence: game.startTime.toISOString(),
@@ -459,13 +548,17 @@ function transformOddsFromCache(odds: any[]) {
  * - NO fallback logic - only returns fresh SDK data or cached data within TTL
  */
 export async function getPlayerPropsWithCache(eventID: string) {
-  // 1. Check cache first for performance
+  // 1. Check cache first for performance (with smart TTL)
   try {
     const cachedProps = await getPlayerPropsFromCache(eventID);
     if (cachedProps.length > 0) {
-      logger.info(`Returning ${cachedProps.length} player props from cache (within TTL)`);
+      logger.info(
+        `✅ Smart Cache HIT: Returning ${cachedProps.length} player props ` +
+        `(dynamic TTL based on game start time)`
+      );
       return { data: cachedProps, source: 'cache' as const };
     }
+    logger.info('Smart Cache MISS: Fetching fresh player props from SDK');
   } catch (cacheError) {
     logger.warn('Cache check failed for player props, will fetch from SDK', { error: cacheError });
     // Continue to SDK fetch
@@ -493,10 +586,22 @@ async function updatePlayerPropsCache(gameId: string, props: any[]) {
     // Delete old props for this game
     await prisma.playerProp.deleteMany({ where: { gameId } });
     
-    // Create new props
+    // Create new props - with validation
     const propsToCreate: any[] = [];
     
     for (const prop of props) {
+      // Skip if prop doesn't have required fields
+      if (!prop.player || !prop.player.playerID || !prop.player.name || !prop.propType) {
+        logger.warn(`Skipping invalid player prop for game ${gameId}:`, prop);
+        continue;
+      }
+      
+      // Skip if odds are invalid
+      if (typeof prop.overOdds !== 'number' && typeof prop.underOdds !== 'number') {
+        logger.warn(`Skipping player prop with no valid odds for game ${gameId}:`, prop);
+        continue;
+      }
+      
       // Ensure player exists
       await prisma.player.upsert({
         where: { id: prop.player.playerID },
@@ -516,19 +621,22 @@ async function updatePlayerPropsCache(gameId: string, props: any[]) {
         gameId,
         playerId: prop.player.playerID,
         statType: prop.propType,
-        line: prop.line || 0,
-        overOdds: prop.overOdds || 0, // Keep precise odds value (e.g., -110, +125)
-        underOdds: prop.underOdds || 0, // Keep precise odds value
+        line: prop.line ?? 0, // Allow 0 as valid line
+        overOdds: prop.overOdds ?? 0, // Keep precise odds value (e.g., -110, +125)
+        underOdds: prop.underOdds ?? 0, // Keep precise odds value
         category: prop.propType,
         lastUpdated: new Date(),
       });
     }
     
     if (propsToCreate.length > 0) {
+      logger.info(`Creating ${propsToCreate.length} valid player props for ${gameId}`);
       await prisma.playerProp.createMany({
         data: propsToCreate,
         skipDuplicates: true,
       });
+    } else {
+      logger.warn(`No valid player props to create for ${gameId}`);
     }
   } catch (error) {
     logger.error('Error updating player props cache', error);
@@ -536,10 +644,23 @@ async function updatePlayerPropsCache(gameId: string, props: any[]) {
 }
 
 /**
- * Get player props from Prisma cache
+ * Get player props from Prisma cache with smart TTL
  */
 async function getPlayerPropsFromCache(gameId: string) {
-  const ttlDate = new Date(Date.now() - CACHE_TTL.playerProps * 1000);
+  // Get game to determine smart TTL based on start time
+  const game = await prisma.game.findUnique({
+    where: { id: gameId },
+    select: { startTime: true },
+  });
+  
+  if (!game) {
+    logger.warn(`Game ${gameId} not found in cache for player props lookup`);
+    return [];
+  }
+  
+  // Use smart TTL based on game start time
+  const smartTTL = getSmartCacheTTL(game.startTime);
+  const ttlDate = new Date(Date.now() - smartTTL * 1000);
   
   const props = await prisma.playerProp.findMany({
     where: {
@@ -584,13 +705,17 @@ async function getPlayerPropsFromCache(gameId: string) {
  * - NO fallback logic - only returns fresh SDK data or cached data within TTL
  */
 export async function getGamePropsWithCache(eventID: string) {
-  // 1. Check cache first for performance
+  // 1. Check cache first for performance (with smart TTL)
   try {
     const cachedProps = await getGamePropsFromCache(eventID);
     if (cachedProps.length > 0) {
-      logger.info(`Returning ${cachedProps.length} game props from cache (within TTL)`);
+      logger.info(
+        `✅ Smart Cache HIT: Returning ${cachedProps.length} game props ` +
+        `(dynamic TTL based on game start time)`
+      );
       return { data: cachedProps, source: 'cache' as const };
     }
+    logger.info('Smart Cache MISS: Fetching fresh game props from SDK');
   } catch (cacheError) {
     logger.warn('Cache check failed for game props, will fetch from SDK', { error: cacheError });
     // Continue to SDK fetch
@@ -618,28 +743,43 @@ async function updateGamePropsCache(gameId: string, props: any[]) {
     // Delete old props for this game
     await prisma.gameProp.deleteMany({ where: { gameId } });
     
-    // Create new props
+    // Create new props - with validation to prevent undefined fields
     const propsToCreate: any[] = [];
     
     for (const market of props) {
-      for (const outcome of market.outcomes || []) {
+      // Skip if market doesn't have required fields
+      if (!market.marketType || !market.outcomes || !Array.isArray(market.outcomes)) {
+        logger.warn(`Skipping invalid market for game ${gameId}:`, market);
+        continue;
+      }
+      
+      for (const outcome of market.outcomes) {
+        // Skip if outcome doesn't have required fields
+        if (!outcome.name || typeof outcome.price !== 'number') {
+          logger.warn(`Skipping invalid outcome for game ${gameId}:`, outcome);
+          continue;
+        }
+        
         propsToCreate.push({
           gameId,
           propType: market.marketType,
           description: outcome.name,
           selection: outcome.name,
-          odds: outcome.price || 0, // Keep precise odds value (e.g., -110, +125)
-          line: outcome.point,
+          odds: outcome.price, // Keep precise odds value (e.g., -110, +125)
+          line: outcome.point ?? null, // Allow null for props without lines
           lastUpdated: new Date(),
         });
       }
     }
     
     if (propsToCreate.length > 0) {
+      logger.info(`Creating ${propsToCreate.length} valid game props for ${gameId}`);
       await prisma.gameProp.createMany({
         data: propsToCreate,
         skipDuplicates: true,
       });
+    } else {
+      logger.warn(`No valid game props to create for ${gameId}`);
     }
   } catch (error) {
     logger.error('Error updating game props cache', error);
@@ -647,10 +787,23 @@ async function updateGamePropsCache(gameId: string, props: any[]) {
 }
 
 /**
- * Get game props from Prisma cache
+ * Get game props from Prisma cache with smart TTL
  */
 async function getGamePropsFromCache(gameId: string) {
-  const ttlDate = new Date(Date.now() - CACHE_TTL.gameProps * 1000);
+  // Get game to determine smart TTL based on start time
+  const game = await prisma.game.findUnique({
+    where: { id: gameId },
+    select: { startTime: true },
+  });
+  
+  if (!game) {
+    logger.warn(`Game ${gameId} not found in cache for game props lookup`);
+    return [];
+  }
+  
+  // Use smart TTL based on game start time
+  const smartTTL = getSmartCacheTTL(game.startTime);
+  const ttlDate = new Date(Date.now() - smartTTL * 1000);
   
   const props = await prisma.gameProp.findMany({
     where: {

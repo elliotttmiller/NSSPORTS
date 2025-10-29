@@ -359,14 +359,23 @@ export async function POST(req: Request) {
 
     // Use transaction to ensure data consistency
     const result = await prisma.$transaction(async (tx) => {
-      // Check if user has sufficient balance
-      const account = await tx.account.findUnique({
+      // Check if user has sufficient balance (create account if doesn't exist)
+      let account = await tx.account.findUnique({
         where: { userId },
         select: { balance: true },
       });
 
+      // Auto-create account if it doesn't exist (for legacy users)
       if (!account) {
-        throw new Error("Account not found");
+        console.warn("[POST /api/my-bets] Account not found, creating new account for user:", userId);
+        account = await tx.account.create({
+          data: {
+            userId,
+            balance: 1000.0, // Starting balance for legacy users
+          },
+          select: { balance: true },
+        });
+        console.log("[POST /api/my-bets] Account created with balance:", account.balance);
       }
 
       const currentBalance = Number(account.balance);

@@ -26,7 +26,7 @@ export function LoadingScreen({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.3, ease: "easeInOut" }}
-      className="flex items-center justify-center min-h-screen bg-background"
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-background"
     >
       <div className="text-center px-6">
         {/* Logo */}

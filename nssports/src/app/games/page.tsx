@@ -18,20 +18,21 @@ export default function GamesPage() {
   const disableStreaming = useLiveDataStore((state) => state.disableStreaming);
   const streamingEnabled = useLiveDataStore((state) => state.streamingEnabled);
   
-  // Enable streaming when component mounts
+  // Enable streaming when component mounts - optimized to avoid unnecessary re-runs
   useEffect(() => {
-    if (totalGames !== null && totalGames > 0 && !streamingEnabled) {
+    if (totalGames !== null && totalGames > 0 && !streamingEnabled && typeof enableStreaming === 'function') {
       console.log('[GamesPage] Enabling real-time streaming for', totalGames, 'games');
       enableStreaming();
     }
     
     return () => {
-      if (streamingEnabled) {
+      if (streamingEnabled && typeof disableStreaming === 'function') {
         console.log('[GamesPage] Disabling streaming on unmount');
         disableStreaming();
       }
     };
-  }, [totalGames, streamingEnabled, enableStreaming, disableStreaming]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [totalGames, streamingEnabled]); // Functions are stable in Zustand, don't include them
   
   // No leagueId passed: fetch all games from all leagues
   // GameList will automatically filter out games that transition to live status
@@ -44,9 +45,6 @@ export default function GamesPage() {
           <h1 className="text-3xl font-bold text-foreground">All Sports & Games</h1>
           <p className="text-muted-foreground mt-1 text-base">
             {totalGames !== null ? `${totalGames} Available Games` : "Loading games..."}
-          </p>
-          <p className="text-sm text-muted-foreground mt-1">
-            📊 Real-time odds updates • Games auto-migrate to Live when they start
           </p>
         </div>
 

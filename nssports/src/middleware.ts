@@ -41,9 +41,6 @@ function getAllowedOrigins(): string[] {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
-  // Log every request the middleware sees
-  console.log('[MIDDLEWARE] Processing:', pathname);
-  
   // Allow Next.js internal routes, static assets, and files
   if (pathname.startsWith('/_next') || 
       pathname.startsWith('/favicon.ico') ||
@@ -54,7 +51,6 @@ export async function middleware(request: NextRequest) {
       pathname.startsWith('/public') ||
       pathname.startsWith('/logos/') ||
       pathname.match(/\.(png|jpg|jpeg|gif|svg|ico|webp|woff|woff2|ttf|eot)$/)) {
-    console.log('[MIDDLEWARE] Skipping static asset:', pathname);
     return NextResponse.next();
   }
 
@@ -79,18 +75,13 @@ export async function middleware(request: NextRequest) {
 
   // Skip auth check for public routes and public APIs
   if (isPublicRoute || isPublicApi) {
-    console.log('[MIDDLEWARE] Public route, allowing:', pathname);
     return NextResponse.next();
   }
-
-  console.log('[MIDDLEWARE] Protected route, checking auth:', pathname);
 
   // ⚠️ STRICT AUTHENTICATION CHECK - All other routes require auth
   const session = await auth();
   
   if (!session || !session.user) {
-    console.warn('[AUTH] Blocked unauthenticated access to:', pathname);
-    
     // Block API routes with 401
     if (pathname.startsWith('/api/')) {
       return new NextResponse(
@@ -100,7 +91,6 @@ export async function middleware(request: NextRequest) {
     }
     
     // Redirect ALL page requests to login (including root /)
-    console.log('[AUTH] Redirecting to login with callback:', pathname);
     const loginUrl = new URL('/auth/login', request.url);
     if (pathname !== '/' && pathname !== '/auth/login') {
       loginUrl.searchParams.set('callbackUrl', pathname);
@@ -109,8 +99,6 @@ export async function middleware(request: NextRequest) {
   }
 
   // User is authenticated - allow access
-  console.log('[AUTH] Authenticated user access:', session.user.email, '→', pathname);
-
   // Get origin from request
   const origin = request.headers.get('origin');
   const allowedOrigins = getAllowedOrigins();

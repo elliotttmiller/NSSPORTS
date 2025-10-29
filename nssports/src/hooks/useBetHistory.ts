@@ -20,9 +20,10 @@ export const betQueryKeys = {
  * - Returns empty array on authentication errors (graceful degradation)
  * - Retries on network errors with exponential backoff
  * - Refetches on window focus when data is stale (30s)
+ * - Waits for session to be fully loaded before fetching
  */
 export function useBetHistoryQuery() {
-  const { status } = useSession();
+  const { status, data: session } = useSession();
   
   return useQuery({
     queryKey: betQueryKeys.history(),
@@ -30,8 +31,8 @@ export function useBetHistoryQuery() {
       const data = await getBetHistory();
       return data as PlacedBet[];
     },
-    // Only fetch when authenticated
-    enabled: status === "authenticated",
+    // Only fetch when authenticated AND session has user data
+    enabled: status === "authenticated" && !!session?.user?.id,
     // Refetch when user returns to tab (if stale)
     refetchOnWindowFocus: true,
     // Keep data in cache for 5 minutes

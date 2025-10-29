@@ -47,13 +47,57 @@ npx tsx ../scripts/clearBetHistoryDetailed.ts --yes
 
 ---
 
-### 3️⃣ **Update User Balance**
+### 3️⃣ **Update User Balance** (Interactive)
 ```bash
 cd nssports
-npx tsx ../scripts/updateBalance.ts
+npx tsx scripts/updateBalance.ts
 ```
 
-Manually adjust user account balances for testing.
+**What it does:**
+- ✅ Lists all registered user accounts
+- ✅ Shows current balance for each user
+- ✅ Select user by number or username
+- ✅ Set any balance amount
+- ✅ Confirmation before updating
+- ✅ Shows before/after summary
+
+**Example Session:**
+```
+💰 ACCOUNT BALANCE MANAGEMENT TOOL
+
+📋 REGISTERED USER ACCOUNTS
+
+════════════════════════════════════════════════════════════
+1. slime                | Balance:   $1000.00 | ID: abc123
+2. testuser             | Balance:    $500.00 | ID: def456
+3. admin                | Balance:   $5000.00 | ID: ghi789
+════════════════════════════════════════════════════════════
+
+Enter the number of the account to update (or username): 1
+
+✅ Selected: slime
+   Current Balance: $1000.00
+
+Enter the new balance amount (e.g., 1000.00): $2500
+
+⚠️  CONFIRM BALANCE UPDATE
+════════════════════════════════════════════════════════════
+Account: slime
+Current Balance: $1000.00
+New Balance: $2500.00
+Change: +$1500.00
+════════════════════════════════════════════════════════════
+
+Proceed with balance update? (yes/no): yes
+
+✅ BALANCE UPDATED SUCCESSFULLY
+════════════════════════════════════════════════════════════
+Account: slime
+Previous Balance: $1000.00
+New Balance: $2500.00
+Difference: +$1500.00
+════════════════════════════════════════════════════════════
+```
 
 ---
 

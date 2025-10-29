@@ -37,19 +37,20 @@ export default function LivePage() {
   
   useEffect(() => {
     // Enable streaming if we have live games and it's not already enabled
-    if (displayGames.length > 0 && !streamingEnabled) {
+    if (displayGames.length > 0 && !streamingEnabled && typeof enableStreaming === 'function') {
       console.log('[LivePage] Enabling real-time streaming for', displayGames.length, 'live games');
       enableStreaming(); // GLOBAL: No sport parameter needed
     }
     
     // Cleanup: disable streaming when component unmounts
     return () => {
-      if (streamingEnabled) {
+      if (streamingEnabled && typeof disableStreaming === 'function') {
         console.log('[LivePage] Disabling streaming on unmount');
         disableStreaming();
       }
     };
-  }, [displayGames.length, streamingEnabled, enableStreaming, disableStreaming]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [displayGames.length, streamingEnabled]); // Zustand functions are stable
   
   // Prevent hydration mismatch
   const [mounted, setMounted] = useState(false);
