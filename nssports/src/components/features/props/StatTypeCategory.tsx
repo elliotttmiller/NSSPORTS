@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { PlayerPropRow } from "./PlayerPropRow";
 import { Game } from "@/types";
 import { motion, AnimatePresence } from "framer-motion";
+import { formatStatType } from "@/lib/formatStatType";
 
 interface StatTypeCategoryProps {
   statType: {
@@ -29,39 +30,11 @@ interface StatTypeCategoryProps {
   defaultOpen?: boolean;
 }
 
-// Stat type metadata with display names (no emoji icons)
-const statTypeMetadata: Record<string, { displayName: string }> = {
-  Points: { displayName: "Points" },
-  Rebounds: { displayName: "Rebounds" },
-  Assists: { displayName: "Assists" },
-  Steals: { displayName: "Steals" },
-  Blocks: { displayName: "Blocks" },
-  "Three-Pointers Made": { displayName: "Three-Pointers Made" },
-  "Receiving Yards": { displayName: "Receiving Yards" },
-  Receptions: { displayName: "Receptions" },
-  "Rushing Yards": { displayName: "Rushing Yards" },
-  "Passing Yards": { displayName: "Passing Yards" },
-  "Passing TDs": { displayName: "Passing TDs" },
-  Touchdowns: { displayName: "Touchdowns" },
-};
-
-// Helper function to format category names for display (capitalize first letter of each word)
-const formatCategoryName = (category: string): string => {
-  return category
-    .split(/([+-])/) // Split on + or - while keeping the separators
-    .map(part => {
-      if (part === '+' || part === '-') return part;
-      return part.charAt(0).toUpperCase() + part.slice(1);
-    })
-    .join('');
-};
-
 export function StatTypeCategory({ statType, game, defaultOpen = false }: StatTypeCategoryProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
   
-  const metadata = statTypeMetadata[statType.name] || {
-    displayName: formatCategoryName(statType.name),
-  };
+  // Use the formatStatType utility for consistent naming across all sports
+  const displayName = formatStatType(statType.name);
 
   return (
     <div className="relative z-0 border border-border rounded-lg overflow-hidden bg-card/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-all duration-200">
@@ -77,7 +50,7 @@ export function StatTypeCategory({ statType, game, defaultOpen = false }: StatTy
           <div className="w-2 h-2 rounded-full bg-accent flex-shrink-0"></div>
           <div className="text-left">
             <h3 className="text-sm md:text-base font-semibold text-foreground">
-              {metadata.displayName}
+              {displayName}
             </h3>
             <p className="text-xs text-muted-foreground">
               {statType.props.length} {statType.props.length === 1 ? 'player' : 'players'} available

@@ -56,6 +56,28 @@ export async function GET(request: NextRequest) {
         });
       });
 
+      // Listen for props updates (NEW)
+      streamingService.on('props:updated', (data: { eventID: string }) => {
+        logger.info('[Streaming API] Broadcasting props update to client', {
+          eventID: data.eventID,
+        });
+
+        const message = `data: ${JSON.stringify({
+          type: 'props_update',
+          eventID: data.eventID,
+          propsType: 'both',
+          timestamp: new Date().toISOString(),
+        })}\n\n`;
+        
+        try {
+          controller.enqueue(encoder.encode(message));
+        } catch (err) {
+          logger.warn('[Streaming API] Failed to send props update', { 
+            error: err instanceof Error ? err.message : String(err) 
+          });
+        }
+      });
+
       // Listen for state changes
       streamingService.on('state_change', (states: { previous: string; current: string }) => {
         const message = `data: ${JSON.stringify({

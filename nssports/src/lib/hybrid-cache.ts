@@ -63,16 +63,10 @@ import {
  * - Cache bypassed entirely (handled by liveDataStore)
  */
 const CACHE_TTL = {
-  // Base TTL values for different time windows
+  // Smart TTL values based on game timing (seconds)
   critical: 30,    // Games starting within 1 hour
   active: 60,      // Games starting within 1-24 hours
   standard: 120,   // Games starting 24+ hours away
-  
-  // Legacy fallback (should not be used directly)
-  events: 120,
-  odds: 120,
-  playerProps: 120,
-  gameProps: 120,
 };
 
 /**

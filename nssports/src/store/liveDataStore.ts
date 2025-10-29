@@ -232,14 +232,15 @@ const createLiveDataStore = () => create<LiveDataState>()(
       // Connect to official streaming API
       // GLOBAL: 'events:live' stream includes ALL live games across all sports
       // The official API automatically filters to games with active odds
-      await streaming.connect('events:live', {});
+      // NEW: Enable props streaming for real-time player and game props updates
+      await streaming.connect('events:live', { enablePropsStreaming: true });
       
       set({
         streamingEnabled: true,
         streamingStatus: 'connected',
       });
       
-      logger.info('[LiveDataStore] Streaming enabled successfully for ALL live games');
+      logger.info('[LiveDataStore] Streaming enabled successfully for ALL live games (including props)');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.error('[LiveDataStore] Failed to enable streaming:', error);

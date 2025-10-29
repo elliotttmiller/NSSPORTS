@@ -184,28 +184,13 @@ export async function getEvents(options: {
       async () => {
         logger.info('Fetching events with odds from SportsGameOdds SDK', options);
         
-        // TEMPORARY TEST: Try without oddIDs filter to see if we get ANY data
-        const params = { ...options } as any;
-        
-        // Remove oddIDs and includeOpposingOddIDs temporarily for testing
-        const testParams: any = {
-          leagueID: params.leagueID,
-          oddsAvailable: params.oddsAvailable,
-          startsAfter: params.startsAfter,
-          startsBefore: params.startsBefore,
-          limit: params.limit,
-        };
-        
-        logger.info('TEST: Fetching WITHOUT oddIDs filter', testParams);
-        
         // Convert eventIDs array to comma-separated string if needed
+        const params = { ...options } as any;
         if (params.eventIDs && Array.isArray(params.eventIDs)) {
-          testParams.eventIDs = params.eventIDs.join(',');
-        } else if (params.eventIDs) {
-          testParams.eventIDs = params.eventIDs;
+          params.eventIDs = params.eventIDs.join(',');
         }
         
-        const page = await client.events.get(testParams);
+        const page = await client.events.get(params);
         logger.info(`Fetched ${page.data.length} events from SDK`);
         
         // Debug: Log first event's odds structure to understand what we're getting
@@ -473,11 +458,13 @@ export function extractPlayerProps(event: any, playerDataMap?: Map<string, any>)
     // Skip team/game totals (they use 'all', 'away', 'home' instead of player IDs)
     if (['all', 'away', 'home'].includes(playerID)) return;
     
-    // Skip if this doesn't look like a player prop stat
-    const playerPropStats = ['points', 'assists', 'rebounds', 'threes', 'steals', 'blocks', 
-                             'points+assists', 'points+rebounds', 'points+rebounds+assists',
-                             'blocks+steals', 'doubles', 'triples'];
-    if (!playerPropStats.includes(statType)) return;
+    // Accept ALL player stat types from the API
+    // The SDK provides stat types dynamically based on sport:
+    // NBA: points, assists, rebounds, threes, steals, blocks, etc.
+    // NFL: passing_yards, rushing_yards, receiving_yards, touchdowns, etc.
+    // NHL: goals, assists, shots, saves, etc.
+    // We trust the API to only return valid player props
+    // No need for a hardcoded whitelist - if it has a player ID, it's a player prop
     
     // Skip if not main game (we want -game-, not -1q-, -1h-, etc.)
     if (!oddID.includes('-game-')) return;
@@ -607,13 +594,21 @@ export function extractGameProps(event: any): any[] {
     let description = '';
     let line: number | undefined;
     
-    // Categorize by period
+    // Categorize by period - OFFICIAL FORMAT per https://sportsgameodds.com/docs/data-types/periods
+    // NBA/NFL use quarters (1q, 2q, 3q, 4q) and halves (1h, 2h)
+    // NHL uses periods (1p, 2p, 3p), regulation (reg), overtime (ot), shootout (so)
     if (periodID === '1q') marketCategory = '1st Quarter';
     else if (periodID === '2q') marketCategory = '2nd Quarter';
     else if (periodID === '3q') marketCategory = '3rd Quarter';
     else if (periodID === '4q') marketCategory = '4th Quarter';
     else if (periodID === '1h') marketCategory = '1st Half';
     else if (periodID === '2h') marketCategory = '2nd Half';
+    else if (periodID === '1p') marketCategory = '1st Period'; // NHL
+    else if (periodID === '2p') marketCategory = '2nd Period'; // NHL
+    else if (periodID === '3p') marketCategory = '3rd Period'; // NHL
+    else if (periodID === 'reg') marketCategory = 'Regulation'; // NHL
+    else if (periodID === 'ot') marketCategory = 'Overtime'; // NHL
+    else if (periodID === 'so') marketCategory = 'Shootout'; // NHL
     else if (periodID === 'game') marketCategory = 'Team Totals';
     else marketCategory = 'Other Props';
     
