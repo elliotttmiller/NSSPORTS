@@ -84,9 +84,6 @@ export default function LivePage() {
             <p className="text-muted-foreground mt-1">
               {displayGames.length} game{displayGames.length !== 1 ? "s" : ""} in progress
             </p>
-            <p className="text-sm text-muted-foreground mt-1">
-              📡 Real-time streaming • Auto-updated from /games pages
-            </p>
           </div>
           <RefreshButton onRefresh={handleRefresh} isLoading={loading} />
         </div>

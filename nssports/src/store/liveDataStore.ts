@@ -54,7 +54,7 @@ interface LiveDataState {
   streamingStatus: 'disconnected' | 'connecting' | 'connected' | 'error';
   
   // Actions
-  fetchMatches: (sportKey?: string) => Promise<void>;
+  fetchAllMatches: () => Promise<void>;
   enableStreaming: () => Promise<void>;
   disableStreaming: () => void;
   clearError: () => void;
@@ -82,10 +82,10 @@ const createLiveDataStore = () => create<LiveDataState>()(
       ...initialState,
   
   /**
-   * Fetch matches from the internal BFF API
-   * @param sportKey - Optional sport key (defaults to 'basketball_nba')
+   * Fetch matches from ALL leagues (NBA, NFL, NHL) in parallel
+   * Used for home/live/games pages to show all available games
    */
-  fetchMatches: async (sportKey = 'basketball_nba') => {
+  fetchAllMatches: async () => {
     // Prevent duplicate fetches if already loading
     if (get().status === 'loading') {
       return;
@@ -94,19 +94,9 @@ const createLiveDataStore = () => create<LiveDataState>()(
     set({ status: 'loading', error: null });
     
     try {
-      // Map sport keys to API endpoints
-      const sportKeyMap: Record<string, string> = {
-        'basketball_nba': 'basketball_nba',
-        'americanfootball_nfl': 'americanfootball_nfl',
-        'icehockey_nhl': 'icehockey_nhl',
-      };
-      
-      const mappedSportKey = sportKeyMap[sportKey] || 'basketball_nba';
-      
-      // ⭐ OPTIMIZATION: Use lines=main for 60-80% smaller payload
-      // Only fetches moneyline, spread, total (not props)
-      // Props are fetched on-demand when user expands game card
-      const response = await fetch(`/api/matches?sport=${mappedSportKey}&lines=main`, {
+      // Use /api/games endpoint which fetches all leagues in parallel
+      // This is more efficient than making separate /api/matches calls
+      const response = await fetch('/api/games?page=1&pageSize=100', {
         headers: {
           'Content-Type': 'application/json',
         },
@@ -114,13 +104,13 @@ const createLiveDataStore = () => create<LiveDataState>()(
       });
       
       if (!response.ok) {
-        throw new Error(`Failed to fetch matches: ${response.statusText}`);
+        throw new Error(`Failed to fetch games: ${response.statusText}`);
       }
       
       const json = await response.json();
       
-      // Handle both direct array and envelope response formats
-      const matches = Array.isArray(json) ? json : (json.data || []);
+      // Handle paginated response from /api/games
+      const matches = json.data || [];
       
       set({
         matches,
@@ -134,10 +124,9 @@ const createLiveDataStore = () => create<LiveDataState>()(
         status: 'error',
         error: errorMessage,
       });
-      console.error('Error fetching matches:', error);
+      console.error('Error fetching all matches:', error);
     }
   },
-  
   /**
    * Clear error state
    */
@@ -163,6 +152,12 @@ const createLiveDataStore = () => create<LiveDataState>()(
     
     if (state.streamingEnabled) {
       logger.info('[LiveDataStore] Streaming already enabled');
+      return;
+    }
+    
+    // ✅ OPTIMIZATION: Only connect if there are games to stream
+    if (!Array.isArray(state.matches) || state.matches.length === 0) {
+      logger.info('[LiveDataStore] No games available - skipping streaming connection');
       return;
     }
     
@@ -367,9 +362,9 @@ export const selectUpcomingMatches = (state: LiveDataState) =>
   state.matches.filter((match) => match.status === 'upcoming');
 
 /**
- * Select fetchMatches function
+ * Select fetchAllMatches function
  */
-export const selectFetchMatches = (state: LiveDataState) => state.fetchMatches;
+export const selectFetchAllMatches = (state: LiveDataState) => state.fetchAllMatches;
 
 /**
  * Select all matches (alias for selectAllMatches)

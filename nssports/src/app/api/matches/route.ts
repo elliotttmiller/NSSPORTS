@@ -81,16 +81,11 @@ export async function GET(request: NextRequest) {
       
       // ⭐ CRITICAL OPTIMIZATION: Separate LIVE vs UPCOMING games
       // Official SDK Method: Use live=true for in-progress games, finalized=false for not finished
+      // FORWARD-LOOKING: Wider window to find available games (14 days)
       const now = new Date();
-      const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+      const fourteenDaysFromNow = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000); // 14 days ahead
       
       logger.info(`Fetching events for ${sport} (lines=${lines}) using hybrid cache with live/upcoming separation`);
-      
-      // Optimize API payload based on lines parameter
-      // ⭐ KEY OPTIMIZATION: Only fetch what we need
-      const oddIDs = lines === 'main' 
-        ? 'game-ml,game-ats,game-ou'  // Main lines only: 60-80% smaller payload
-        : undefined;                    // All odds: includes props (for admin/testing)
       
       // Query 1: LIVE GAMES (in-progress, need real-time updates via WebSocket)
       // Official SDK Parameter: live=true returns only games that have started but not finished
@@ -98,22 +93,17 @@ export async function GET(request: NextRequest) {
         leagueID,
         live: true,                     // ✅ OFFICIAL: Only in-progress games
         finalized: false,               // ✅ OFFICIAL: Exclude finished games
-        oddsAvailable: true,
-        oddIDs,                         // Main lines only
-        includeOpposingOddIDs: true,   // Get both sides of markets
         limit: 50,
       });
       
       // Query 2: UPCOMING GAMES (not started yet, can use longer cache TTL)
-      // Official SDK Pattern: Not live, not finalized, future start times
+      // Official SDK Pattern: Not live, not finalized, future start times only
+      // FORWARD-LOOKING: From now to 14 days ahead (wider window to find games)
       const upcomingGamesResponse = await getEventsWithCache({
         leagueID,
-        finalized: false,               // ✅ OFFICIAL: Not finished
-        startsAfter: now.toISOString(), // ✅ Future games only
-        startsBefore: sevenDaysFromNow.toISOString(),
-        oddsAvailable: true,
-        oddIDs,                         // Main lines only
-        includeOpposingOddIDs: true,
+        finalized: false,                          // ✅ OFFICIAL: Not finished
+        startsAfter: now.toISOString(),           // ✅ From current time forward
+        startsBefore: fourteenDaysFromNow.toISOString(), // ✅ Max 14 days ahead
         limit: 100,
       });
       

@@ -19,45 +19,37 @@ export const dynamic = 'force-dynamic';
 async function getCachedAllGames() {
   logger.info('Fetching all games from hybrid cache');
   
-  // Define time range - optimized for real-world game schedules
+  // Define time range - FORWARD-LOOKING with wider window to find available games
   const now = new Date();
-  const startsAfter = new Date(now.getTime() - 12 * 60 * 60 * 1000); // 12 hours ago (catch games in progress)
-  const startsBefore = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000); // 14 days from now (2 weeks ahead)
+  const startsAfter = now; // Start from current time
+  const startsBefore = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000); // 14 days ahead (2 weeks)
   
   // Development-friendly limits: fetch only what we need (3-5 games per league)
   const isDevelopment = process.env.NODE_ENV === 'development';
-  const fetchLimit = isDevelopment ? 5 : 100; // Only fetch 5 games per league in dev mode
+  const fetchLimit = isDevelopment ? 10 : 100; // Fetch more games in dev to find any available
+  
+  logger.info(`Searching for games from ${startsAfter.toISOString()} to ${startsBefore.toISOString()}`);
   
   // Fetch from multiple leagues in parallel
-  // CRITICAL: Use oddID filter for main game lines only per official docs
-  // https://sportsgameodds.com/docs/guides/response-speed
-  // Format: "game-ml,game-ats,game-ou" (moneyline, spread, total)
+  // ⭐ SIMPLIFIED: Fetch ALL scheduled games, let streaming handle odds updates
+  // Don't filter by oddsAvailable - games may not have odds yet but will stream when available
   const [nbaResult, nflResult, nhlResult] = await Promise.allSettled([
     getEventsWithCache({ 
       leagueID: 'NBA',
       startsAfter: startsAfter.toISOString(),
       startsBefore: startsBefore.toISOString(),
-      oddsAvailable: true,
-      oddIDs: 'game-ml,game-ats,game-ou', // Main lines only
-      includeOpposingOddIDs: true, // Get both sides of each market
       limit: fetchLimit,
     }),
     getEventsWithCache({ 
       leagueID: 'NFL',
       startsAfter: startsAfter.toISOString(),
       startsBefore: startsBefore.toISOString(),
-      oddsAvailable: true,
-      oddIDs: 'game-ml,game-ats,game-ou', // Main lines only
-      includeOpposingOddIDs: true,
       limit: fetchLimit,
     }),
     getEventsWithCache({ 
       leagueID: 'NHL',
       startsAfter: startsAfter.toISOString(),
       startsBefore: startsBefore.toISOString(),
-      oddsAvailable: true,
-      oddIDs: 'game-ml,game-ats,game-ou', // Main lines only
-      includeOpposingOddIDs: true,
       limit: fetchLimit,
     }),
   ]);

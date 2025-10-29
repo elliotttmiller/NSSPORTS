@@ -10,24 +10,30 @@ import { Game } from '@/types';
  */
 
 /**
- * Hook to get fetchMatches function
+ * Hook to get fetchAllMatches function (fetches all leagues: NBA, NFL, NHL)
  */
-export function useFetchMatches() {
-  const [fetchMatches] = useState(() => useLiveDataStore.getState().fetchMatches);
-  return fetchMatches;
+export function useFetchAllMatches() {
+  const [fetchAllMatches] = useState(() => useLiveDataStore.getState().fetchAllMatches);
+  return fetchAllMatches;
 }
 
 /**
  * Hook to get live matches
  */
 export function useLiveMatches(): Game[] {
-  const [matches, setMatches] = useState<Game[]>(() => 
-    useLiveDataStore.getState().matches.filter(match => match.status === 'live')
-  );
+  const [matches, setMatches] = useState<Game[]>(() => {
+    const state = useLiveDataStore.getState();
+    return Array.isArray(state.matches) 
+      ? state.matches.filter(match => match.status === 'live')
+      : [];
+  });
 
   useEffect(() => {
     const unsubscribe = useLiveDataStore.subscribe((state) => {
-      setMatches(state.matches.filter(match => match.status === 'live'));
+      const filtered = Array.isArray(state.matches)
+        ? state.matches.filter(match => match.status === 'live')
+        : [];
+      setMatches(filtered);
     });
     return unsubscribe;
   }, []);
@@ -39,11 +45,15 @@ export function useLiveMatches(): Game[] {
  * Hook to get all matches
  */
 export function useAllMatches(): Game[] {
-  const [matches, setMatches] = useState<Game[]>(() => useLiveDataStore.getState().matches);
+  const [matches, setMatches] = useState<Game[]>(() => {
+    const state = useLiveDataStore.getState();
+    return Array.isArray(state.matches) ? state.matches : [];
+  });
 
   useEffect(() => {
     const unsubscribe = useLiveDataStore.subscribe((state) => {
-      setMatches(state.matches);
+      const validMatches = Array.isArray(state.matches) ? state.matches : [];
+      setMatches(validMatches);
     });
     return unsubscribe;
   }, []);
@@ -91,7 +101,10 @@ export function useError(): string | null {
 export function useMatchById(matchId: string | undefined): Game | undefined {
   const [match, setMatch] = useState<Game | undefined>(() => {
     if (!matchId) return undefined;
-    return useLiveDataStore.getState().matches.find(m => m.id === matchId);
+    const state = useLiveDataStore.getState();
+    return Array.isArray(state.matches) 
+      ? state.matches.find(m => m.id === matchId)
+      : undefined;
   });
 
   useEffect(() => {
@@ -100,7 +113,10 @@ export function useMatchById(matchId: string | undefined): Game | undefined {
         setMatch(undefined);
         return;
       }
-      setMatch(state.matches.find(m => m.id === matchId));
+      const foundMatch = Array.isArray(state.matches)
+        ? state.matches.find(m => m.id === matchId)
+        : undefined;
+      setMatch(foundMatch);
     });
     return unsubscribe;
   }, [matchId]);

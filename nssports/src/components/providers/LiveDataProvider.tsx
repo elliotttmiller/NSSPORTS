@@ -23,7 +23,7 @@ export function LiveDataProvider({ children }: LiveDataProviderProps) {
   const initializationStarted = useRef(false);
   const { data: session, status: sessionStatus } = useSession();
   
-  const fetchMatches = useLiveDataStore.getState().fetchMatches;
+  const fetchAllMatches = useLiveDataStore.getState().fetchAllMatches;
   const status = useLiveDataStore((state) => state.status);
   
   // Set hydration state on mount
@@ -31,7 +31,7 @@ export function LiveDataProvider({ children }: LiveDataProviderProps) {
     setIsHydrated(true);
   }, []);
 
-  // Initialize data fetching when authenticated
+  // Initialize data fetching when authenticated - fetch ALL leagues
   useEffect(() => {
     const isAuthenticated = sessionStatus === 'authenticated' && session?.user;
     
@@ -44,10 +44,10 @@ export function LiveDataProvider({ children }: LiveDataProviderProps) {
       initializationStarted.current = true;
       // Small delay to prevent race conditions with UI mounting
       setTimeout(() => {
-        fetchMatches('basketball_nba');
+        fetchAllMatches(); // ⭐ Fetch ALL leagues (NBA, NFL, NHL) in parallel
       }, 100);
     }
-  }, [isHydrated, sessionStatus, session, status, fetchMatches]);
+  }, [isHydrated, sessionStatus, session, status, fetchAllMatches]);
 
   return (
     <LiveDataContext.Provider value={{ 
