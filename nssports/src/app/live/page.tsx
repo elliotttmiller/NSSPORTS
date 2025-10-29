@@ -18,9 +18,10 @@ export default function LivePage() {
   const loading = useIsLoading();
   const error = useError();
   
-  // ⭐ PHASE 4: WebSocket Streaming for Real-Time Odds Updates
+  // ⭐ PHASE 4: WebSocket Streaming for Real-Time ODDS Updates ONLY
   // Automatically enable streaming when live games are present
-  // This provides <1s updates vs 30s polling (87% reduction in API calls)
+  // Streaming updates: odds/lines/props (<1s latency)
+  // NO live scores/stats/times streaming (those come from scheduled API fetches)
   // GLOBAL: Streams ALL live games across all sports (NBA, NFL, NHL, etc.)
   const enableStreaming = useLiveDataStore((state) => state.enableStreaming);
   const disableStreaming = useLiveDataStore((state) => state.disableStreaming);
@@ -52,15 +53,27 @@ export default function LivePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [displayGames.length, streamingEnabled]); // Zustand functions are stable
   
-  // Prevent hydration mismatch
+  // Prevent hydration mismatch with timeout fallback
   const [mounted, setMounted] = useState(false);
+  const [showTimeoutWarning, setShowTimeoutWarning] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-  }, []);
+    
+    // Safety timeout - show content after 3 seconds even if still loading
+    const timer = setTimeout(() => {
+      if (!mounted) {
+        console.warn('[LivePage] Mount timeout - forcing render');
+        setMounted(true);
+        setShowTimeoutWarning(true);
+      }
+    }, 3000);
+    
+    return () => clearTimeout(timer);
+  }, [mounted]);
 
-  // Show loading screen until mounted
-  if (!mounted) {
+  // Show loading screen only for first 3 seconds
+  if (!mounted && !showTimeoutWarning) {
     return (
       <LoadingScreen 
         title="Loading live games..." 
@@ -71,7 +84,8 @@ export default function LivePage() {
   }
 
   const handleRefresh = async () => {
-    window.location.reload();
+    const fetchAllMatches = useLiveDataStore.getState().fetchAllMatches;
+    await fetchAllMatches();
   };
 
   return (

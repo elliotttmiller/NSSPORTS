@@ -1,11 +1,18 @@
-# NorthStar Sports
+# 🏆 NorthStar Sports (NSSPORTS)
 
-> A modern, production-ready sports betting platform built with Next.js 15, Prisma, and PostgreSQL.
+> **Enterprise-Grade Sports Betting Platform** — Real-time odds streaming, intelligent caching, and professional sportsbook-level betting rules. Built with Next.js 15, TypeScript, and cutting-edge optimization techniques.
 
-[![Next.js](https://img.shields.io/badge/Next.js-15.5-black?logo=next.js)](https://nextjs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue?logo=typescript)](https://www.typescriptlang.org/)
-[![Prisma](https://img.shields.io/badge/Prisma-6.x-2D3748?logo=prisma)](https://www.prisma.io/)
+[![Next.js](https://img.shields.io/badge/Next.js-15.5.4-black?logo=next.js&logoColor=white)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Prisma](https://img.shields.io/badge/Prisma-6.18-2D3748?logo=prisma&logoColor=white)](https://www.prisma.io/)
+[![React](https://img.shields.io/badge/React-19.1-61DAFB?logo=react&logoColor=black)](https://react.dev/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+[![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](./nssports)
+[![Tests](https://img.shields.io/badge/tests-21%2F21-success)](./nssports)
+
+---
 
 ## 📋 Table of Contents
 

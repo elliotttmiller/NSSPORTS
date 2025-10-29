@@ -61,6 +61,7 @@ function AuthenticatedHomePage({ session }: { session: Session }) {
 
   // Track if component is mounted and data is ready
   const [isComponentReady, setIsComponentReady] = useState(false);
+  const [showTimeout, setShowTimeout] = useState(false);
   
   // Enable streaming when live games are present
   useEffect(() => {
@@ -81,20 +82,35 @@ function AuthenticatedHomePage({ session }: { session: Session }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filteredLiveGames, streamingEnabled]); // Zustand functions are stable
 
-  // Wait for data to be ready with minimum display time
+  // Smart loading with timeout fallback
   useEffect(() => {
+    // Set timeout warning after 5 seconds
+    const timeoutTimer = setTimeout(() => {
+      if (!isComponentReady) {
+        console.warn('[HomePage] Loading timeout - showing content anyway');
+        setShowTimeout(true);
+        setIsComponentReady(true);
+      }
+    }, 5000);
+    
+    // Normal loading check
     if (!isDataLoading && !accountLoading) {
       // Small delay for smooth transition
       const timer = setTimeout(() => {
         setIsComponentReady(true);
       }, 300);
       
-      return () => clearTimeout(timer);
+      return () => {
+        clearTimeout(timer);
+        clearTimeout(timeoutTimer);
+      };
     }
-  }, [isDataLoading, accountLoading]);
+    
+    return () => clearTimeout(timeoutTimer);
+  }, [isDataLoading, accountLoading, isComponentReady]);
 
-  // Show loading while data loads - smooth transition
-  if (!isComponentReady) {
+  // Show loading only for first 5 seconds, then render content regardless
+  if (!isComponentReady && !showTimeout) {
     return (
       <LoadingScreen 
         title="Loading games..." 
@@ -178,8 +194,19 @@ function AuthenticatedHomePage({ session }: { session: Session }) {
                 </div>
               ) : error ? (
                 <div className="text-center py-12">
-                  <p className="text-destructive">Error loading games</p>
+                  <p className="text-destructive font-semibold">Error loading games</p>
                   <p className="text-sm text-muted-foreground mt-2">{error}</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-4"
+                    onClick={() => {
+                      const fetchAllMatches = useLiveDataStore.getState().fetchAllMatches;
+                      fetchAllMatches();
+                    }}
+                  >
+                    Retry
+                  </Button>
                 </div>
               ) : trendingGames.length === 0 ? (
                 <div className="text-center py-12">

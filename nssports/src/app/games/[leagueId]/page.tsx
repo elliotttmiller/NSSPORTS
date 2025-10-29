@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams } from "next/navigation";
 import Image from "next/image";
 import { ProfessionalGameRow, CompactMobileGameRow, MobileGameTableHeader, DesktopGameTableHeader } from "@/components/features/games";
 import { getLeague } from "@/services/api";
 import { usePaginatedGames } from "@/hooks/usePaginatedGames";
 import { useLiveDataStore } from "@/store/liveDataStore";
+import { useGameTransitions } from "@/hooks/useGameTransitions";
 import { PullToRefresh, RefreshButton } from "@/components/ui";
 import type { Game, League } from "@/types";
 
@@ -19,22 +20,32 @@ export default function LeaguePage() {
   const limit = 100;
   const { data, isLoading, refetch } = usePaginatedGames({ leagueId, page, limit });
   
-  // ⭐ CRITICAL FIX: Enable streaming for ALL games (live + upcoming)
+  // ⭐ CRITICAL FIX: Enable streaming for real-time ODDS updates ONLY
   // Odds change in real-time even for upcoming games (betting lines move constantly)
+  // NO live scores/stats/times - those come from scheduled API fetches
   const enableStreaming = useLiveDataStore((state) => state.enableStreaming);
   const disableStreaming = useLiveDataStore((state) => state.disableStreaming);
   const streamingEnabled = useLiveDataStore((state) => state.streamingEnabled);
   
-  let games: Game[] = [];
-  if (data && typeof data === 'object' && data !== null) {
-    // FIXED: Remove historical/finished games filter - they should never be here
-    games = ((data as { data?: Game[] }).data ?? []).filter(g => g.status !== 'finished');
-  }
+  // Parse games from API response and filter out finished games
+  const games = useMemo(() => {
+    if (data && typeof data === 'object' && data !== null) {
+      return ((data as { data?: Game[] }).data ?? []).filter(g => g.status !== 'finished');
+    }
+    return [];
+  }, [data]);
+  
+  // 🚨 CRITICAL: Filter out LIVE games - they belong on /live page only
+  // Use game transitions hook to ensure live games don't appear on /games pages
+  const { shouldShowInCurrentContext } = useGameTransitions(games, 'upcoming');
+  const upcomingOnlyGames = useMemo(() => {
+    return games.filter(game => shouldShowInCurrentContext(game, 'upcoming'));
+  }, [games, shouldShowInCurrentContext]);
   
   // Enable streaming when component mounts (for real-time odds updates)
   useEffect(() => {
-    if (games.length > 0 && !streamingEnabled && typeof enableStreaming === 'function') {
-      console.log('[LeaguePage] Enabling real-time streaming for', games.length, 'games');
+    if (upcomingOnlyGames.length > 0 && !streamingEnabled && typeof enableStreaming === 'function') {
+      console.log('[LeaguePage] Enabling real-time streaming for', upcomingOnlyGames.length, 'upcoming games');
       enableStreaming();
     }
     
@@ -45,7 +56,7 @@ export default function LeaguePage() {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [games.length, streamingEnabled]); // Zustand functions are stable, excluded from deps
+  }, [upcomingOnlyGames.length, streamingEnabled]); // Zustand functions are stable, excluded from deps
   
   // Manual refresh handler for pull-to-refresh
   const handleRefresh = useCallback(async () => {
@@ -71,7 +82,7 @@ export default function LeaguePage() {
     return groups;
   };
 
-  const groupedGames = groupGamesByDate(games);
+  const groupedGames = groupGamesByDate(upcomingOnlyGames);
   const sortedDates = Object.keys(groupedGames).sort((a, b) => {
     return new Date(groupedGames[a][0].startTime).getTime() - new Date(groupedGames[b][0].startTime).getTime();
   });
@@ -98,7 +109,7 @@ export default function LeaguePage() {
               <div className="flex flex-col justify-center items-start">
                 <h1 className="text-3xl md:text-4xl font-bold text-foreground leading-tight mb-1">{leagueName} Games</h1>
                 <p className="text-muted-foreground text-base md:text-lg font-medium leading-tight" style={{marginTop: '-2px'}}>
-                  {games.length} game{games.length !== 1 ? "s" : ""} available
+                  {upcomingOnlyGames.length} upcoming game{upcomingOnlyGames.length !== 1 ? "s" : ""} available
                 </p>
               </div>
             </div>
@@ -106,7 +117,7 @@ export default function LeaguePage() {
           </div>
 
           {/* Horizontal date tabs bar */}
-          {games.length > 0 && (
+          {upcomingOnlyGames.length > 0 && (
             <div className="flex items-center gap-2 overflow-x-auto py-2 px-1 bg-background border-b border-border sticky top-0 z-20">
               {/* Date Filters */}
               {sortedDates.map((dateStr) => (
@@ -136,11 +147,11 @@ export default function LeaguePage() {
                 <div className="animate-spin w-8 h-8 border-2 border-accent border-t-transparent rounded-full mx-auto mb-4"></div>
                 <p className="text-muted-foreground">Loading {leagueName} games...</p>
               </div>
-            ) : games.length === 0 ? (
+            ) : upcomingOnlyGames.length === 0 ? (
               <div className="text-center py-12">
-                <p className="text-muted-foreground">No {leagueName} games available.</p>
+                <p className="text-muted-foreground">No upcoming {leagueName} games available.</p>
                 <p className="text-sm text-muted-foreground mt-2">
-                  Check back later for upcoming games
+                  Check back later for upcoming games or visit the /live page for live games
                 </p>
               </div>
             ) : (

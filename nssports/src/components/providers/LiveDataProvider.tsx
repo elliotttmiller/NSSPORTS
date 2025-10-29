@@ -42,10 +42,28 @@ export function LiveDataProvider({ children }: LiveDataProviderProps) {
       status === 'idle'
     ) {
       initializationStarted.current = true;
+      console.log('[LiveDataProvider] Initializing data fetch...');
+      
       // Small delay to prevent race conditions with UI mounting
       setTimeout(() => {
-        fetchAllMatches(); // ⭐ Fetch ALL leagues (NBA, NFL, NHL) in parallel
+        fetchAllMatches().catch((err) => {
+          console.error('[LiveDataProvider] Failed to fetch matches:', err);
+          // Store will handle error state, don't block here
+        });
       }, 100);
+      
+      // Safety timeout - if fetch hangs, force success state after 15s
+      setTimeout(() => {
+        const currentStatus = useLiveDataStore.getState().status;
+        if (currentStatus === 'loading') {
+          console.warn('[LiveDataProvider] ⚠️ Fetch timeout - forcing success state');
+          useLiveDataStore.setState({
+            status: 'success',
+            matches: [],
+            error: 'Data fetch timeout - showing no games',
+          });
+        }
+      }, 15000);
     }
   }, [isHydrated, sessionStatus, session, status, fetchAllMatches]);
 

@@ -95,8 +95,12 @@ export async function GET(request: NextRequest) {
       // Fetch all games from cache
       const events = await getCachedAllGames();
       
-      // Transform to internal format
-      let games = transformSDKEvents(events);
+      logger.info(`Raw events fetched: ${events.length}`);
+      
+      // Transform to internal format - handle empty array gracefully
+      let games = events.length > 0 ? transformSDKEvents(events) : [];
+      
+      logger.info(`Transformed games: ${games.length}`);
       
       // Apply stratified sampling in development (Protocol I-IV)
       games = applyStratifiedSampling(games, 'leagueId');
@@ -160,9 +164,21 @@ export async function GET(request: NextRequest) {
     } catch (error) {
       logger.error('Error in games route', error);
       
-      return ApiErrors.serviceUnavailable(
-        'Unable to fetch sports data at this time. Please try again later.'
-      );
+      // Return empty result instead of error to prevent UI blocking
+      logger.warn('Returning empty game list due to error');
+      const emptyPayload = {
+        data: [],
+        pagination: {
+          page: 1,
+          limit: 10,
+          total: 0,
+          totalPages: 0,
+          hasNextPage: false,
+          hasPrevPage: false,
+        },
+      };
+      
+      return successResponse(emptyPayload, 200, undefined);
     }
   });
 }

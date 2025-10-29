@@ -1,14 +1,17 @@
 "use client";
 
 /**
- * Real-Time Streaming Context for Live Odds Updates
+ * Real-Time Streaming Context for Live Odds Updates ONLY
  * 
- * Provides WebSocket-based streaming of odds updates from SportsGameOdds API
+ * Provides WebSocket-based streaming of ODDS/LINES/PROPS updates from SportsGameOdds API
  * Uses the official SDK streaming service with Pusher protocol
  * 
+ * ⚠️ IMPORTANT: This does NOT stream live scores, stats, or game times
+ * Those come from scheduled API fetches. This is exclusively for betting odds.
+ * 
  * NEW: Props Streaming Support
- * - Real-time player props updates (<1s latency)
- * - Real-time game props updates (<1s latency)
+ * - Real-time player props odds updates (<1s latency)
+ * - Real-time game props odds updates (<1s latency)
  * - Automatic React Query cache invalidation
  * - Works globally across all sports (NFL, NHL, NBA, MLB, etc.)
  * 

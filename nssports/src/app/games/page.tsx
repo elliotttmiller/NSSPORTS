@@ -12,8 +12,9 @@ import { useState, useEffect } from "react";
 export default function GamesPage() {
   const [totalGames, setTotalGames] = useState<number | null>(null);
   
-  // ⭐ CRITICAL FIX: Enable streaming for real-time odds updates
+  // ⭐ CRITICAL FIX: Enable streaming for real-time ODDS updates ONLY
   // Even upcoming games need streaming (betting lines move constantly)
+  // NO live scores/stats/times - those come from scheduled API fetches
   const enableStreaming = useLiveDataStore((state) => state.enableStreaming);
   const disableStreaming = useLiveDataStore((state) => state.disableStreaming);
   const streamingEnabled = useLiveDataStore((state) => state.streamingEnabled);

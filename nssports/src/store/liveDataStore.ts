@@ -88,29 +88,39 @@ const createLiveDataStore = () => create<LiveDataState>()(
   fetchAllMatches: async () => {
     // Prevent duplicate fetches if already loading
     if (get().status === 'loading') {
+      console.log('[LiveDataStore] Already loading, skipping duplicate fetch');
       return;
     }
     
     set({ status: 'loading', error: null });
+    console.log('[LiveDataStore] 🔄 Starting fetchAllMatches...');
     
     try {
       // Use /api/games endpoint which fetches all leagues in parallel
       // This is more efficient than making separate /api/matches calls
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+      
       const response = await fetch('/api/games?page=1&pageSize=100', {
         headers: {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
+        signal: controller.signal,
       });
       
+      clearTimeout(timeoutId);
+      
       if (!response.ok) {
-        throw new Error(`Failed to fetch games: ${response.statusText}`);
+        throw new Error(`Failed to fetch games: ${response.status} ${response.statusText}`);
       }
       
       const json = await response.json();
       
       // Handle paginated response from /api/games
-      const matches = json.data || [];
+      const matches = Array.isArray(json.data) ? json.data : [];
+      
+      console.log(`[LiveDataStore] ✅ Fetched ${matches.length} games successfully`);
       
       set({
         matches,
@@ -118,13 +128,34 @@ const createLiveDataStore = () => create<LiveDataState>()(
         error: null,
         lastFetch: Date.now(),
       });
+      
+      // Enable streaming if we have live games
+      const liveGamesCount = matches.filter((g: Game) => g.status === 'live').length;
+      if (liveGamesCount > 0) {
+        console.log(`[LiveDataStore] Found ${liveGamesCount} live games, will enable streaming`);
+      }
+      
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      set({
-        status: 'error',
-        error: errorMessage,
-      });
-      console.error('Error fetching all matches:', error);
+      
+      // Don't block UI on timeout - set empty state and allow render
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.warn('[LiveDataStore] ⚠️ Fetch timeout - rendering with no games');
+        set({
+          matches: [],
+          status: 'success', // Set success to unblock UI
+          error: 'Request timeout - no games available',
+          lastFetch: Date.now(),
+        });
+      } else {
+        console.error('[LiveDataStore] ❌ Error fetching matches:', error);
+        set({
+          matches: [],
+          status: 'error',
+          error: errorMessage,
+          lastFetch: Date.now(),
+        });
+      }
     }
   },
   /**
