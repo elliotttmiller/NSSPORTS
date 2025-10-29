@@ -14,7 +14,9 @@ import { useBetHistory } from "@/context";
 import { useAccount } from "@/hooks/useAccount";
 import { formatCurrency } from "@/lib/formatters";
 import { useLiveMatches, useIsLoading, useError } from "@/hooks/useStableLiveData";
-import { useEffect, useState } from "react";
+import { useLiveDataStore } from "@/store/liveDataStore";
+import { useGameTransitions } from "@/hooks/useGameTransitions";
+import { useEffect, useState, useMemo } from "react";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import type { Session } from "next-auth";
 
@@ -70,6 +72,21 @@ function AuthenticatedHomePage({ session }: { session: Session }) {
   const isDataLoading = useIsLoading();
   const error = useError();
   
+  // ⭐ PHASE 4: WebSocket Streaming for Real-Time Odds Updates
+  // GLOBAL: Streams ALL live games across all sports (NBA, NFL, NHL, etc.)
+  const enableStreaming = useLiveDataStore((state) => state.enableStreaming);
+  const disableStreaming = useLiveDataStore((state) => state.disableStreaming);
+  const streamingEnabled = useLiveDataStore((state) => state.streamingEnabled);
+  
+  // ⭐ Game Transition Hook: Monitor status changes
+  // Automatically filter out games that transition to 'finished'
+  const { shouldShowInCurrentContext } = useGameTransitions(liveMatches, 'live');
+  
+  // Filter to only show truly live games (not upcoming, not finished)
+  const filteredLiveGames = useMemo(() => {
+    return liveMatches.filter(game => shouldShowInCurrentContext(game, 'live'));
+  }, [liveMatches, shouldShowInCurrentContext]);
+  
   // API-driven account stats
   const { data: account, isLoading: accountLoading } = useAccount();
   const balance = account?.balance ?? 0;
@@ -78,6 +95,24 @@ function AuthenticatedHomePage({ session }: { session: Session }) {
 
   // Track if component is mounted and data is ready
   const [isComponentReady, setIsComponentReady] = useState(false);
+  
+  // Enable streaming when live games are present
+  useEffect(() => {
+    const liveGamesCount = filteredLiveGames.filter(g => g.status === 'live').length;
+    
+    if (liveGamesCount > 0 && !streamingEnabled) {
+      console.log('[HomePage] Enabling real-time streaming for', liveGamesCount, 'live games');
+      enableStreaming(); // GLOBAL: No sport parameter needed
+    }
+    
+    // Cleanup: disable streaming when component unmounts
+    return () => {
+      if (streamingEnabled) {
+        console.log('[HomePage] Disabling streaming on unmount');
+        disableStreaming();
+      }
+    };
+  }, [filteredLiveGames, streamingEnabled, enableStreaming, disableStreaming]);
 
   // Wait for data to be ready with minimum display time
   useEffect(() => {
@@ -102,8 +137,8 @@ function AuthenticatedHomePage({ session }: { session: Session }) {
     );
   }
 
-  // Display first 5 live matches as trending
-  const trendingGames = liveMatches.slice(0, 5);
+  // Display first 5 live matches as trending (only truly live games)
+  const trendingGames = filteredLiveGames.slice(0, 5);
   const displayName = session?.user?.name || 'NorthStar User';
 
   return (

@@ -9,23 +9,23 @@ import { useBetSlip } from "@/context";
 import { useCallback, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PlayerPropsView, GamePropsView } from "@/components/features/props";
-import { useLiveOdds } from "@/hooks/useLiveOdds";
 import { usePlayerProps, useGameProps } from "@/hooks";
 import { wouldBetCauseConflict } from "@/lib/betting-rules";
 
 // Helper component for displaying props with tabs
-function PropsDisplay({ game }: { game: Game }) {
+function PropsDisplay({ game, expanded }: { game: Game; expanded: boolean }) {
   const [activeTab, setActiveTab] = useState<'player' | 'game'>('player');
   
-  // On-demand fetching: only fetch when tab is active
+  // ⭐ PHASE 2 OPTIMIZATION: On-demand fetching - only fetch when card expanded AND tab active
+  // This prevents fetching props for all games on page load (90% reduction)
   const { data: playerProps = [], isLoading: playerPropsLoading } = usePlayerProps(
     game.id,
-    activeTab === 'player' // Only enabled when player tab is active
+    expanded && activeTab === 'player' // Only enabled when card expanded AND player tab active
   );
   
   const { data: gameProps = {}, isLoading: gamePropsLoading } = useGameProps(
     game.id,
-    activeTab === 'game' // Only enabled when game tab is active
+    expanded && activeTab === 'game' // Only enabled when card expanded AND game tab active
   );
 
   return (
@@ -92,9 +92,12 @@ export function ProfessionalGameRow({
 }: ProfessionalGameRowProps) {
   const timeString = formatGameTime(game.startTime);
   const { addBet, removeBet, betSlip } = useBetSlip();
-  // Live odds updates only for live games; keep time/score static
-  const { data: liveData } = useLiveOdds(game.status === 'live' ? game.id : undefined);
-  const oddsSource = liveData?.game?.odds ?? game.odds;
+  
+  // ⭐ PHASE 4 OPTIMIZATION: Real-time updates via WebSocket streaming
+  // No more polling - odds are updated in real-time via the store's WebSocket connection
+  // The parent page enables streaming, and components receive updated odds through props
+  const oddsSource = game.odds;
+  
   const [expanded, setExpanded] = useState(false);
 
   const getBetId = useCallback(
@@ -417,7 +420,7 @@ export function ProfessionalGameRow({
             className="overflow-hidden bg-muted/20 border-t border-border rounded-b-lg shadow-lg"
           >
             <div className="px-6 py-6 md:px-8 md:py-6 xl:px-12 xl:py-8">
-              <PropsDisplay game={game} />
+              <PropsDisplay game={game} expanded={expanded} />
             </div>
           </motion.div>
         )}

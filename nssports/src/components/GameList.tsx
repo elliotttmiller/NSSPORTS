@@ -9,6 +9,7 @@ import { MobileGameTableHeader } from '@/components/features/games/MobileGameTab
 import { ProfessionalGameRow } from '@/components/features/games/ProfessionalGameRow';
 import { CompactMobileGameRow } from '@/components/features/games/CompactMobileGameRow';
 import { RefreshButton } from '@/components/ui/RefreshButton';
+import { useGameTransitions } from '@/hooks/useGameTransitions';
 import type { Game } from '@/types';
 
 export type GameListProps = Partial<UsePaginatedGamesParams> & {
@@ -108,11 +109,21 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange }: G
     if (status === 'finished') {
       return allGames.filter(g => g.status === 'finished');
     }
-    // Default: exclude finished games
+    // Default: exclude finished games (never show historical)
     return allGames.filter(g => g.status !== 'finished');
   }, [allGames, status]);
 
-  const groupedByLeague = useMemo(() => groupGamesByLeagueAndDate(visibleGames), [visibleGames]);
+  // ⭐ Game Transition Hook: Monitor status changes and auto-migrate games
+  // - Upcoming → Live: Remove from /games pages, will appear on /live page
+  // - Live → Finished: Remove from all pages (never show historical)
+  const { shouldShowInCurrentContext } = useGameTransitions(visibleGames, 'upcoming');
+
+  // Filter games based on context (upcoming games only for /games pages)
+  const contextFilteredGames = useMemo(() => {
+    return visibleGames.filter(game => shouldShowInCurrentContext(game, 'upcoming'));
+  }, [visibleGames, shouldShowInCurrentContext]);
+
+  const groupedByLeague = useMemo(() => groupGamesByLeagueAndDate(contextFilteredGames), [contextFilteredGames]);
   // Use official uppercase league IDs per SportsGameOdds API specification
   const leagueOrder = useMemo(() => ['NBA', 'NFL', 'NHL'], []);
   const leagueNames: Record<string, string> = {

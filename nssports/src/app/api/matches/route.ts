@@ -79,12 +79,12 @@ export async function GET(request: NextRequest) {
     try {
       const leagueID = SPORT_TO_LEAGUE_MAP[sport] || "NBA";
       
-      // Fetch events for the next 7 days and past 4 hours using hybrid cache
+      // ⭐ CRITICAL OPTIMIZATION: Separate LIVE vs UPCOMING games
+      // Official SDK Method: Use live=true for in-progress games, finalized=false for not finished
       const now = new Date();
-      const startsAfter = new Date(now.getTime() - 4 * 60 * 60 * 1000); // 4 hours ago
-      const startsBefore = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
+      const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
       
-      logger.info(`Fetching events for ${sport} (lines=${lines}) using hybrid cache`);
+      logger.info(`Fetching events for ${sport} (lines=${lines}) using hybrid cache with live/upcoming separation`);
       
       // Optimize API payload based on lines parameter
       // ⭐ KEY OPTIMIZATION: Only fetch what we need
@@ -92,17 +92,40 @@ export async function GET(request: NextRequest) {
         ? 'game-ml,game-ats,game-ou'  // Main lines only: 60-80% smaller payload
         : undefined;                    // All odds: includes props (for admin/testing)
       
-      // Use hybrid cache (checks Prisma first, then SDK)
-      const response = await getEventsWithCache({
+      // Query 1: LIVE GAMES (in-progress, need real-time updates via WebSocket)
+      // Official SDK Parameter: live=true returns only games that have started but not finished
+      const liveGamesResponse = await getEventsWithCache({
         leagueID,
-        startsAfter: startsAfter.toISOString(),
-        startsBefore: startsBefore.toISOString(),
+        live: true,                     // ✅ OFFICIAL: Only in-progress games
+        finalized: false,               // ✅ OFFICIAL: Exclude finished games
         oddsAvailable: true,
-        oddIDs,                         // ⭐ Optimized: Filter odds by type
-        includeOpposingOddIDs: true,   // CRITICAL: Get both sides of markets (over/under, home/away)
+        oddIDs,                         // Main lines only
+        includeOpposingOddIDs: true,   // Get both sides of markets
+        limit: 50,
+      });
+      
+      // Query 2: UPCOMING GAMES (not started yet, can use longer cache TTL)
+      // Official SDK Pattern: Not live, not finalized, future start times
+      const upcomingGamesResponse = await getEventsWithCache({
+        leagueID,
+        finalized: false,               // ✅ OFFICIAL: Not finished
+        startsAfter: now.toISOString(), // ✅ Future games only
+        startsBefore: sevenDaysFromNow.toISOString(),
+        oddsAvailable: true,
+        oddIDs,                         // Main lines only
+        includeOpposingOddIDs: true,
         limit: 100,
-      });      const events = response.data;
-      logger.info(`Fetched ${events.length} events for ${sport} (source: ${response.source})`);
+      });
+      
+      // Combine results, with live games first (priority for UI)
+      const liveEvents = liveGamesResponse.data;
+      const upcomingEvents = upcomingGamesResponse.data;
+      const events = [...liveEvents, ...upcomingEvents];
+      
+      logger.info(`Fetched ${liveEvents.length} LIVE and ${upcomingEvents.length} UPCOMING events for ${sport}`, {
+        liveSource: liveGamesResponse.source,
+        upcomingSource: upcomingGamesResponse.source,
+      });
 
       // Transform to our internal format
       let games = transformSDKEvents(events);
@@ -113,7 +136,11 @@ export async function GET(request: NextRequest) {
       // Validate transformed data
       const validatedGames = games.map((game) => GameSchema.parse(game));
 
-      logger.info(`Returning ${validatedGames.length} matches for ${sport} (lines=${lines}, source=${response.source})`);
+      // Separate for metadata
+      const liveGamesCount = validatedGames.filter(g => g.status === 'live').length;
+      const upcomingGamesCount = validatedGames.filter(g => g.status === 'upcoming').length;
+
+      logger.info(`Returning ${validatedGames.length} matches: ${liveGamesCount} live, ${upcomingGamesCount} upcoming (lines=${lines})`);
 
       return successResponse(
         validatedGames,
@@ -122,8 +149,11 @@ export async function GET(request: NextRequest) {
           sport,
           lines,
           count: validatedGames.length,
-          source: response.source,
+          liveGames: liveGamesCount,
+          upcomingGames: upcomingGamesCount,
           optimization: lines === 'main' ? 'Payload reduced by ~60-80%' : 'Full odds data',
+          liveSource: liveGamesResponse.source,
+          upcomingSource: upcomingGamesResponse.source,
         }
       );
     } catch (error) {

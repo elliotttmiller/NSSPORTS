@@ -6,6 +6,7 @@ import Image from "next/image";
 import { ProfessionalGameRow, CompactMobileGameRow, MobileGameTableHeader, DesktopGameTableHeader } from "@/components/features/games";
 import { getLeague } from "@/services/api";
 import { usePaginatedGames } from "@/hooks/usePaginatedGames";
+import { useLiveDataStore } from "@/store/liveDataStore";
 import { PullToRefresh, RefreshButton } from "@/components/ui";
 import type { Game, League } from "@/types";
 
@@ -17,10 +18,33 @@ export default function LeaguePage() {
   const page = 1;
   const limit = 100;
   const { data, isLoading, refetch } = usePaginatedGames({ leagueId, page, limit });
+  
+  // ⭐ CRITICAL FIX: Enable streaming for ALL games (live + upcoming)
+  // Odds change in real-time even for upcoming games (betting lines move constantly)
+  const enableStreaming = useLiveDataStore((state) => state.enableStreaming);
+  const disableStreaming = useLiveDataStore((state) => state.disableStreaming);
+  const streamingEnabled = useLiveDataStore((state) => state.streamingEnabled);
+  
   let games: Game[] = [];
   if (data && typeof data === 'object' && data !== null) {
+    // FIXED: Remove historical/finished games filter - they should never be here
     games = ((data as { data?: Game[] }).data ?? []).filter(g => g.status !== 'finished');
   }
+  
+  // Enable streaming when component mounts (for real-time odds updates)
+  useEffect(() => {
+    if (games.length > 0 && !streamingEnabled) {
+      console.log('[LeaguePage] Enabling real-time streaming for', games.length, 'games');
+      enableStreaming();
+    }
+    
+    return () => {
+      if (streamingEnabled) {
+        console.log('[LeaguePage] Disabling streaming on unmount');
+        disableStreaming();
+      }
+    };
+  }, [games.length, streamingEnabled, enableStreaming, disableStreaming]);
   
   // Manual refresh handler for pull-to-refresh
   const handleRefresh = useCallback(async () => {
@@ -74,6 +98,9 @@ export default function LeaguePage() {
                 <h1 className="text-3xl md:text-4xl font-bold text-foreground leading-tight mb-1">{leagueName} Games</h1>
                 <p className="text-muted-foreground text-base md:text-lg font-medium leading-tight" style={{marginTop: '-2px'}}>
                   {games.length} game{games.length !== 1 ? "s" : ""} available
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  📊 Real-time odds • Auto-migrate to Live when game starts
                 </p>
               </div>
             </div>

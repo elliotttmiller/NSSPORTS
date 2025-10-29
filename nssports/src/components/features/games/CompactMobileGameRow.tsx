@@ -8,24 +8,23 @@ import { useBetSlip } from "@/context";
 import { formatOdds, formatSpreadLine } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import { PlayerPropsView, GamePropsView } from "@/components/features/props";
-import { useLiveOdds } from "@/hooks/useLiveOdds";
 import { usePlayerProps, useGameProps } from "@/hooks";
 import type { Game } from "@/types";
 import { wouldBetCauseConflict } from "@/lib/betting-rules";
 
 // Helper component for displaying props with tabs - same as desktop
-function PropsDisplay({ game }: { game: Game }) {
+function PropsDisplay({ game, expanded }: { game: Game; expanded: boolean }) {
   const [activeTab, setActiveTab] = useState<'player' | 'game'>('player');
   
-  // On-demand fetching: only fetch when tab is active
+  // ⭐ PHASE 2 OPTIMIZATION: On-demand fetching - only fetch when card expanded AND tab active
   const { data: playerProps = [], isLoading: playerPropsLoading } = usePlayerProps(
     game.id,
-    activeTab === 'player'
+    expanded && activeTab === 'player'
   );
   
   const { data: gameProps = {}, isLoading: gamePropsLoading } = useGameProps(
     game.id,
-    activeTab === 'game'
+    expanded && activeTab === 'game'
   );
 
   return (
@@ -85,8 +84,11 @@ export const CompactMobileGameRow = memo(({ game }: Props) => {
   const { betSlip, addBet, removeBet } = useBetSlip();
   const [expanded, setExpanded] = useState(false);
   const [shouldRenderDropdown, setShouldRenderDropdown] = useState(false);
-  const { data: liveData } = useLiveOdds(game.status === 'live' ? game.id : undefined);
-  const oddsSource = liveData?.game?.odds ?? game.odds;
+  
+  // ⭐ PHASE 4 OPTIMIZATION: Real-time updates via WebSocket streaming
+  // No more polling - odds are updated in real-time via the store's WebSocket connection
+  // The parent page enables streaming, and components receive updated odds through props
+  const oddsSource = game.odds;
 
   const gameDate = new Date(game.startTime);
   const timeString = gameDate.toLocaleTimeString("en-US", {
@@ -439,7 +441,7 @@ export const CompactMobileGameRow = memo(({ game }: Props) => {
             }}
           >
             <div className="px-4 py-4">
-              <PropsDisplay game={game} />
+              <PropsDisplay game={game} expanded={expanded} />
             </div>
           </motion.div>
         )}
