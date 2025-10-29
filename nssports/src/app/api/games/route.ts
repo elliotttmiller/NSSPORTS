@@ -102,14 +102,17 @@ export async function GET(request: NextRequest) {
       
       logger.info(`Transformed games: ${games.length}`);
       
-      // Apply stratified sampling in development (Protocol I-IV)
-      games = applyStratifiedSampling(games, 'leagueId');
-      
-      // Filter by leagueId if specified (case-insensitive)
+      // Filter by leagueId FIRST if specified (case-insensitive)
+      // This ensures sampling doesn't exclude the requested league
       if (leagueId) {
         const normalizedLeagueId = leagueId.toUpperCase();
         games = games.filter(game => game.leagueId?.toUpperCase() === normalizedLeagueId);
+        logger.info(`Filtered to ${games.length} games for league: ${leagueId}`);
       }
+      
+      // Apply stratified sampling in development (Protocol I-IV)
+      // Only applies to multi-league requests (no leagueId filter)
+      games = applyStratifiedSampling(games, 'leagueId');
       
       // Filter by status if specified
       if (status) {

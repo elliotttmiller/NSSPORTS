@@ -30,6 +30,20 @@ function AuthGuard({ children }: { children: ReactNode }) {
     setIsHydrated(true);
   }, []);
 
+  // Hard timeout: Force ready state after 10 seconds to prevent infinite loading
+  useEffect(() => {
+    const hardTimeout = setTimeout(() => {
+      if (!isReady && status === 'loading') {
+        console.warn('[AuthGuard] ⚠️ Hard timeout reached - forcing ready state');
+        setIsReady(true);
+        // Try to refresh session one more time
+        router.refresh();
+      }
+    }, 10000); // 10 second hard timeout
+
+    return () => clearTimeout(hardTimeout);
+  }, [isReady, status, router]);
+
   // Define public routes that don't require authentication
   const PUBLIC_ROUTES = [
     '/auth/login',

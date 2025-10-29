@@ -42,25 +42,25 @@ export function LiveDataProvider({ children }: LiveDataProviderProps) {
       status === 'idle'
     ) {
       initializationStarted.current = true;
-      console.log('[LiveDataProvider] Initializing data fetch...');
+      console.log('[LiveDataProvider] 🚀 Initializing data fetch (authenticated)...');
       
-      // Small delay to prevent race conditions with UI mounting
+      // Reduced delay for faster initial load after login
       setTimeout(() => {
         fetchAllMatches().catch((err) => {
-          console.error('[LiveDataProvider] Failed to fetch matches:', err);
+          console.error('[LiveDataProvider] ❌ Failed to fetch matches:', err);
           // Store will handle error state, don't block here
         });
-      }, 100);
+      }, 50); // Reduced from 100ms
       
       // Safety timeout - if fetch hangs, force success state after 15s
       setTimeout(() => {
         const currentStatus = useLiveDataStore.getState().status;
         if (currentStatus === 'loading') {
-          console.warn('[LiveDataProvider] ⚠️ Fetch timeout - forcing success state');
+          console.warn('[LiveDataProvider] ⚠️ Fetch timeout (15s) - forcing success state');
           useLiveDataStore.setState({
             status: 'success',
             matches: [],
-            error: 'Data fetch timeout - showing no games',
+            error: 'Data fetch timeout - please refresh',
           });
         }
       }, 15000);
