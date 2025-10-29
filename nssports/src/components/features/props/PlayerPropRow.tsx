@@ -71,12 +71,9 @@ export function PlayerPropRow({ prop, game }: PlayerPropRowProps) {
   return (
     <div className="grid grid-cols-[1fr_auto_auto] md:grid-cols-[1.5fr_auto_auto] gap-2 md:gap-3 items-center py-3 border-b border-border/50 hover:bg-muted/20 transition-colors px-2 md:px-3 -mx-2 md:-mx-3 last:border-b-0">
       <div className="flex flex-col min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs md:text-sm font-semibold text-foreground truncate">
+        <div className="flex items-center gap-2">
+          <span className="text-xs md:text-sm font-semibold text-foreground break-words leading-tight">
             {prop.playerName}
-          </span>
-          <span className="text-xs text-muted-foreground flex-shrink-0">
-            {prop.position}
           </span>
         </div>
         <div className="text-xs text-muted-foreground mt-0.5">
