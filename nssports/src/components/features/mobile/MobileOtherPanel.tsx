@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Lightning } from "@phosphor-icons/react";
+import { X } from "@phosphor-icons/react";
 import { useNavigation } from "@/context";
 import { useIsMobile } from "@/hooks";
 
@@ -10,7 +10,7 @@ import { useIsMobile } from "@/hooks";
  * 
  * Displays advanced betting options that will be implemented:
  * - Bet It All
- * - Teaser (already implemented, shown here for easy access)
+ * - Teaser
  * - Round Robin
  * - If Win Only
  * - If Win or Tie
@@ -33,50 +33,42 @@ export function MobileOtherPanel() {
     { 
       id: "bet-it-all", 
       name: "Bet It All", 
-      description: "Wager all winnings on next bet",
-      implemented: false 
+      description: "Wager all winnings on next bet"
     },
     { 
       id: "teaser", 
       name: "Teaser", 
-      description: "Adjust spreads in your favor",
-      implemented: true 
+      description: "Adjust spreads in your favor"
     },
     { 
       id: "round-robin", 
       name: "Round Robin", 
-      description: "Multiple parlay combinations",
-      implemented: false 
+      description: "Multiple parlay combinations"
     },
     { 
       id: "if-win-only", 
       name: "If Win Only", 
-      description: "Conditional bet on win",
-      implemented: false 
+      description: "Conditional bet on win"
     },
     { 
       id: "if-win-or-tie", 
       name: "If Win or Tie", 
-      description: "Conditional bet on win/tie",
-      implemented: false 
+      description: "Conditional bet on win/tie"
     },
     { 
       id: "win-reverse", 
       name: "Win Reverse", 
-      description: "Reverse action on win",
-      implemented: false 
+      description: "Reverse action on win"
     },
     { 
       id: "action-reverse", 
       name: "Action Reverse", 
-      description: "Reverse action regardless",
-      implemented: false 
+      description: "Reverse action regardless"
     },
     { 
       id: "fill-open", 
       name: "Fill Open", 
-      description: "Fill remaining positions",
-      implemented: false 
+      description: "Fill remaining positions"
     },
   ];
 
@@ -124,37 +116,14 @@ export function MobileOtherPanel() {
                   <button
                     key={betType.id}
                     onClick={() => {
-                      if (betType.implemented) {
-                        // For implemented types (like Teaser), could navigate or trigger action
-                        handleClose();
-                      } else {
-                        // For not yet implemented
-                        // Just close for now, will be wired up later
-                        handleClose();
-                      }
+                      // Close panel for now, will be wired up later
+                      handleClose();
                     }}
-                    className={`w-full text-left p-3 rounded-lg border transition-all ${
-                      betType.implemented
-                        ? "border-accent/30 bg-accent/5 hover:bg-accent/10 hover:border-accent/50"
-                        : "border-border bg-card hover:bg-accent/5 opacity-60"
-                    }`}
+                    className="w-full text-left p-3 rounded-lg border border-border bg-card hover:bg-accent/5 hover:border-accent/30 transition-all"
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-sm">{betType.name}</span>
-                          {betType.implemented && (
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-accent/20 text-accent text-[10px] rounded-md">
-                              <Lightning size={10} weight="fill" />
-                              Active
-                            </span>
-                          )}
-                          {!betType.implemented && (
-                            <span className="inline-flex items-center px-1.5 py-0.5 bg-muted text-muted-foreground text-[10px] rounded-md">
-                              Coming Soon
-                            </span>
-                          )}
-                        </div>
+                        <span className="font-medium text-sm block">{betType.name}</span>
                         <p className="text-xs text-muted-foreground mt-1 leading-snug">
                           {betType.description}
                         </p>
