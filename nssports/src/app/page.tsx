@@ -121,7 +121,7 @@ function AuthenticatedHomePage({ session }: { session: Session }) {
 
   // Display first 5 live matches as trending (only truly live games)
   const trendingGames = filteredLiveGames.slice(0, 5);
-  const displayName = session?.user?.name || 'NorthStar User';
+  const displayName = session?.user?.name || session?.user?.username || 'NorthStar User';
 
   return (
     <div className="bg-background text-foreground">

@@ -65,6 +65,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       // Initial sign in
       if (user) {
         token.id = user.id as string;
+        token.username = user.username;
+        token.name = user.name;
+        token.picture = user.image;
         
         // Ensure account exists for this user with default balance
         try {
@@ -101,6 +104,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string;
+        session.user.name = token.name as string;
+        session.user.username = token.username as string;
+        session.user.image = token.picture as string;
       }
       return session;
     },
