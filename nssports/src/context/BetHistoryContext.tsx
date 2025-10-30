@@ -99,7 +99,7 @@ interface BetHistoryContextType {
   refreshBetHistory: () => Promise<void>;
   addPlacedBet: (
     bets: Bet[],
-    betType: "single" | "parlay",
+    betType: "single" | "parlay" | "teaser",
     totalStake: number,
     totalPayout: number,
     totalOdds: number,
@@ -144,10 +144,10 @@ export function BetHistoryProvider({ children }: BetHistoryProviderProps) {
     await refetch();
   };
 
-  // Professional addPlacedBet: supports single and parlay bets with optimistic updates
+  // Professional addPlacedBet: supports single, parlay and teaser bets with optimistic updates
   const addPlacedBet = async (
     bets: Bet[],
-    betType: "single" | "parlay",
+    betType: "single" | "parlay" | "teaser",
     totalStake: number,
     totalPayout: number,
     totalOdds: number,

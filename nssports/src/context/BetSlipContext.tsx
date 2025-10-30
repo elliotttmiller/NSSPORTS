@@ -8,8 +8,14 @@ import {
   useCallback,
 } from "react";
 import { Bet, BetSlip, Game } from "@/types";
+import type { TeaserType } from "@/types/teaser";
 import { calculatePayout } from "@/services/api";
 import { validateBetAddition } from "@/lib/betting-rules";
+import { 
+  getTeaserConfig, 
+  calculateTeaserPayout,
+  calculateAdjustedLine 
+} from "@/types/teaser";
 import { toast } from "sonner";
 
 interface BetSlipContextType {
@@ -48,12 +54,15 @@ interface BetSlipContextType {
   ) => void;
   removeBet: (betId: string) => void;
   updateStake: (betId: string, stake: number) => void;
-  setBetType: (betType: "single" | "parlay" | "custom") => void;
+  setBetType: (betType: "single" | "parlay" | "custom" | "teaser") => void;
   clearBetSlip: () => void;
   // Custom mode specific actions
   toggleCustomStraight: (betId: string) => void;
   toggleCustomParlay: (betId: string) => void;
   updateCustomStake: (betId: string, stake: number) => void;
+  // Teaser mode specific actions
+  setTeaserType: (teaserType: TeaserType) => void;
+  toggleTeaserLeg: (betId: string) => void;
 }
 
 export const BetSlipContext = createContext<BetSlipContextType | undefined>(
@@ -90,10 +99,12 @@ export function BetSlipProvider({ children }: BetSlipProviderProps) {
 
   const calculateBetSlipTotals = (
     bets: Bet[],
-    betType: "single" | "parlay" | "custom",
+    betType: "single" | "parlay" | "custom" | "teaser",
     customStraightBets?: string[],
     customParlayBets?: string[],
     customStakes?: { [betId: string]: number },
+    teaserType?: string,
+    teaserLegs?: string[],
   ) => {
     if (bets.length === 0) {
       return { totalStake: 0, totalPayout: 0, totalOdds: 0 };
@@ -106,6 +117,17 @@ export function BetSlipProvider({ children }: BetSlipProviderProps) {
         0,
       );
       return { totalStake, totalPayout, totalOdds: 0 };
+    } else if (betType === "teaser") {
+      // Teaser calculation
+      if (!teaserType || !teaserLegs || teaserLegs.length === 0) {
+        return { totalStake: 0, totalPayout: 0, totalOdds: 0 };
+      }
+      
+      const config = getTeaserConfig(teaserType as TeaserType);
+      const totalStake = bets[0]?.stake || 0;
+      const totalPayout = totalStake + calculateTeaserPayout(totalStake, config.odds);
+      
+      return { totalStake, totalPayout, totalOdds: config.odds };
     } else if (betType === "parlay") {
       // Parlay calculation
       const totalStake = bets[0]?.stake || 0;
@@ -208,7 +230,7 @@ export function BetSlipProvider({ children }: BetSlipProviderProps) {
         }
 
         const newBets = [...prev.bets, newBet];
-        const totals = calculateBetSlipTotals(newBets, prev.betType, prev.customStraightBets, prev.customParlayBets, prev.customStakes);
+        const totals = calculateBetSlipTotals(newBets, prev.betType, prev.customStraightBets, prev.customParlayBets, prev.customStakes, prev.teaserType, prev.teaserLegs);
 
         // Success toast for parlay mode
         if (prev.betType === "parlay") {
@@ -273,7 +295,7 @@ export function BetSlipProvider({ children }: BetSlipProviderProps) {
         }
 
         const newBets = [...prev.bets, newBet];
-        const totals = calculateBetSlipTotals(newBets, prev.betType, prev.customStraightBets, prev.customParlayBets, prev.customStakes);
+        const totals = calculateBetSlipTotals(newBets, prev.betType, prev.customStraightBets, prev.customParlayBets, prev.customStakes, prev.teaserType, prev.teaserLegs);
 
         // Success toast for parlay mode
         if (prev.betType === "parlay") {
@@ -337,7 +359,7 @@ export function BetSlipProvider({ children }: BetSlipProviderProps) {
         }
 
         const newBets = [...prev.bets, newBet];
-        const totals = calculateBetSlipTotals(newBets, prev.betType, prev.customStraightBets, prev.customParlayBets, prev.customStakes);
+        const totals = calculateBetSlipTotals(newBets, prev.betType, prev.customStraightBets, prev.customParlayBets, prev.customStakes, prev.teaserType, prev.teaserLegs);
 
         // Success toast for parlay mode
         if (prev.betType === "parlay") {
@@ -364,7 +386,7 @@ export function BetSlipProvider({ children }: BetSlipProviderProps) {
       const customStakes = { ...(prev.customStakes || {}) };
       delete customStakes[betId];
       
-      const totals = calculateBetSlipTotals(newBets, prev.betType, customStraightBets, customParlayBets, customStakes);
+      const totals = calculateBetSlipTotals(newBets, prev.betType, customStraightBets, customParlayBets, customStakes, prev.teaserType, prev.teaserLegs);
       
       return {
         ...prev,
@@ -398,7 +420,7 @@ export function BetSlipProvider({ children }: BetSlipProviderProps) {
         });
       }
 
-      const totals = calculateBetSlipTotals(newBets, prev.betType, prev.customStraightBets, prev.customParlayBets, prev.customStakes);
+      const totals = calculateBetSlipTotals(newBets, prev.betType, prev.customStraightBets, prev.customParlayBets, prev.customStakes, prev.teaserType, prev.teaserLegs);
 
       return {
         ...prev,
@@ -408,9 +430,9 @@ export function BetSlipProvider({ children }: BetSlipProviderProps) {
     });
   }, []);
 
-  const setBetType = useCallback((betType: "single" | "parlay" | "custom") => {
+  const setBetType = useCallback((betType: "single" | "parlay" | "custom" | "teaser") => {
     setBetSlip((prev) => {
-      const totals = calculateBetSlipTotals(prev.bets, betType, prev.customStraightBets, prev.customParlayBets, prev.customStakes);
+      const totals = calculateBetSlipTotals(prev.bets, betType, prev.customStraightBets, prev.customParlayBets, prev.customStakes, prev.teaserType, prev.teaserLegs);
       return {
         ...prev,
         betType,
@@ -454,7 +476,9 @@ export function BetSlipProvider({ children }: BetSlipProviderProps) {
         prev.betType, 
         newStraightBets, 
         newParlayBets, 
-        customStakes
+        customStakes,
+        prev.teaserType,
+        prev.teaserLegs
       );
       
       return {
@@ -498,7 +522,9 @@ export function BetSlipProvider({ children }: BetSlipProviderProps) {
         prev.betType, 
         newStraightBets, 
         newParlayBets, 
-        customStakes
+        customStakes,
+        prev.teaserType,
+        prev.teaserLegs
       );
       
       return {
@@ -519,12 +545,67 @@ export function BetSlipProvider({ children }: BetSlipProviderProps) {
         prev.betType, 
         prev.customStraightBets, 
         prev.customParlayBets, 
-        customStakes
+        customStakes,
+        prev.teaserType,
+        prev.teaserLegs
       );
       
       return {
         ...prev,
         customStakes,
+        ...totals,
+      };
+    });
+  }, []);
+
+  // Teaser-specific functions
+  const setTeaserType = useCallback((teaserType: TeaserType) => {
+    setBetSlip((prev) => {
+      const totals = calculateBetSlipTotals(
+        prev.bets, 
+        prev.betType, 
+        prev.customStraightBets, 
+        prev.customParlayBets, 
+        prev.customStakes,
+        teaserType,
+        prev.teaserLegs
+      );
+      
+      return {
+        ...prev,
+        teaserType,
+        ...totals,
+      };
+    });
+  }, []);
+
+  const toggleTeaserLeg = useCallback((betId: string) => {
+    setBetSlip((prev) => {
+      const teaserLegs = prev.teaserLegs || [];
+      const isInTeaser = teaserLegs.includes(betId);
+      
+      let newTeaserLegs: string[];
+      if (isInTeaser) {
+        // Remove from teaser
+        newTeaserLegs = teaserLegs.filter((id) => id !== betId);
+      } else {
+        // Add to teaser
+        newTeaserLegs = [...teaserLegs, betId];
+      }
+      
+      const totals = calculateBetSlipTotals(
+        prev.bets, 
+        prev.betType, 
+        prev.customStraightBets, 
+        prev.customParlayBets, 
+        prev.customStakes,
+        prev.teaserType,
+        newTeaserLegs
+      );
+      
+      return {
+        ...prev,
+        teaserLegs: newTeaserLegs,
         ...totals,
       };
     });
@@ -544,6 +625,8 @@ export function BetSlipProvider({ children }: BetSlipProviderProps) {
         toggleCustomStraight,
         toggleCustomParlay,
         updateCustomStake,
+        setTeaserType,
+        toggleTeaserLeg,
       }}
     >
       {children}
