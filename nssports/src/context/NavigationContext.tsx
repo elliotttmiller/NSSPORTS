@@ -8,7 +8,7 @@ import {
   useCallback,
 } from "react";
 
-type MobilePanel = "navigation" | "betslip" | null;
+type MobilePanel = "navigation" | "betslip" | "other" | null;
 
 interface NavigationContextType {
   sideNavOpen: boolean;

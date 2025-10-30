@@ -33,9 +33,13 @@ export function BottomNav() {
     router.push("/live");
   };
 
-  const handleAccountClick = () => {
-    setMobilePanel(null);
-    router.push("/account");
+  const handleOtherClick = () => {
+    // On mobile, toggle other panel for additional bet types
+    if (mobilePanel === "other") {
+      setMobilePanel(null);
+    } else {
+      setMobilePanel("other");
+    }
   };
 
   const handleHomeClick = () => {
@@ -117,11 +121,11 @@ export function BottomNav() {
         Bets
       </motion.button>
 
-      {/* Account - Text Only */}
+      {/* Other - Text Only */}
       <motion.button
-        onClick={handleAccountClick}
+        onClick={handleOtherClick}
         className={`px-3 py-2 rounded-md transition-all duration-200 text-[15px] font-medium min-w-[48px] flex-1 flex items-center justify-center mx-1 ${
-          pathname === "/account"
+          mobilePanel === "other"
             ? "bg-accent text-accent-foreground"
             : "text-muted-foreground hover:text-foreground hover:bg-accent/10"
         }`}
@@ -129,7 +133,7 @@ export function BottomNav() {
         whileTap={{ scale: 0.98 }}
         type="button"
       >
-        Account
+        Other
       </motion.button>
     </nav>
   );

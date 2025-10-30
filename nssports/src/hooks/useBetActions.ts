@@ -30,7 +30,7 @@ export function usePlaceBetWithActions() {
       totalOdds,
     }: {
       bets: Bet[];
-      betType: "single" | "parlay";
+      betType: "single" | "parlay" | "teaser";
       totalStake: number;
       totalPayout: number;
       totalOdds: number;
@@ -39,7 +39,8 @@ export function usePlaceBetWithActions() {
         throw new Error("No bets to place");
       }
 
-      if (betType === "parlay") {
+      // For now, treat teasers like parlays (will need server action update later)
+      if (betType === "parlay" || betType === "teaser") {
         const result = await placeParlayBetAction({
           legs: bets.map((bet) => ({
             gameId: bet.gameId,

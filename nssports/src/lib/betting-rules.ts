@@ -4,6 +4,12 @@
  */
 
 import type { Bet } from "@/types";
+import type { TeaserType } from "@/types/teaser";
+import { 
+  getTeaserConfig, 
+  isBetEligibleForTeaser,
+  validateTeaserBet as validateTeaserBetCore
+} from "@/types/teaser";
 
 export interface BettingRuleViolation {
   rule: string;
@@ -27,12 +33,24 @@ export function wouldBetCauseConflict(
       statType: string;
     };
   },
-  betSlipType: "single" | "parlay"
+  betSlipType: "single" | "parlay" | "teaser"
 ): boolean {
   // Single bets never conflict with each other
   if (betSlipType === "single") return false;
   
-  // Check for same game conflicts
+  // Teasers only allow spread and total, so check eligibility
+  if (betSlipType === "teaser") {
+    // Only spread and total bets allowed in teasers
+    if (newBet.betType !== "spread" && newBet.betType !== "total") {
+      return true; // Conflict: ineligible bet type
+    }
+    // No line means ineligible
+    if (newBet.line === undefined || newBet.line === null) {
+      return true;
+    }
+  }
+  
+  // Check for same game conflicts (applies to both parlay and teaser)
   const sameGameBets = existingBets.filter(b => b.gameId === newBet.gameId);
   
   if (sameGameBets.length === 0) return false;
@@ -406,12 +424,62 @@ export function validateParlayBets(bets: Bet[]): BettingRuleViolation | null {
 }
 
 /**
+ * TEASER RULES
+ */
+
+/**
+ * Validate teaser bet
+ */
+export function validateTeaserBets(
+  bets: Bet[], 
+  teaserType: TeaserType
+): BettingRuleViolation | null {
+  const result = validateTeaserBetCore(bets, teaserType);
+  
+  if (!result.valid) {
+    return {
+      rule: "TEASER_VALIDATION",
+      message: result.error || "Invalid teaser bet",
+    };
+  }
+  
+  return null;
+}
+
+/**
+ * Check if bet would be eligible for teaser
+ */
+export function checkTeaserEligibility(
+  bet: Bet,
+  teaserType: TeaserType
+): BettingRuleViolation | null {
+  if (!isBetEligibleForTeaser(bet, teaserType)) {
+    const config = getTeaserConfig(teaserType);
+    return {
+      rule: "TEASER_ELIGIBILITY",
+      message: `Only spread and total bets from ${config.eligibleLeagues.join(", ")} are eligible for ${config.displayName}`,
+    };
+  }
+  
+  return null;
+}
+
+/**
  * Validate Single Bet Addition
  */
-export function validateBetAddition(existingBets: Bet[], newBet: Bet, betType: "single" | "parlay"): BettingRuleViolation | null {
+export function validateBetAddition(existingBets: Bet[], newBet: Bet, betType: "single" | "parlay" | "teaser", teaserType?: TeaserType): BettingRuleViolation | null {
   // Check for duplicate
   const duplicateCheck = checkDuplicateBetRule(existingBets, newBet);
   if (duplicateCheck) return duplicateCheck;
+  
+  // If teaser mode, check teaser eligibility and rules
+  if (betType === "teaser" && teaserType) {
+    const eligibilityCheck = checkTeaserEligibility(newBet, teaserType);
+    if (eligibilityCheck) return eligibilityCheck;
+    
+    const allBets = [...existingBets, newBet];
+    return validateTeaserBets(allBets, teaserType);
+  }
   
   // If parlay mode, check if adding this bet would create conflicts
   if (betType === "parlay") {
@@ -425,7 +493,12 @@ export function validateBetAddition(existingBets: Bet[], newBet: Bet, betType: "
 /**
  * Validate Bet Placement (before submission)
  */
-export function validateBetPlacement(bets: Bet[], betType: "single" | "parlay", stakes: { [betId: string]: number }): BettingRuleViolation | null {
+export function validateBetPlacement(
+  bets: Bet[], 
+  betType: "single" | "parlay" | "teaser", 
+  stakes: { [betId: string]: number },
+  teaserType?: TeaserType
+): BettingRuleViolation | null {
   // Validate stakes
   for (const bet of bets) {
     const stake = stakes[bet.id] || bet.stake || 0;
@@ -435,6 +508,11 @@ export function validateBetPlacement(bets: Bet[], betType: "single" | "parlay", 
     
     const maxStakeCheck = checkMaximumStakeRule(stake, bet.potentialPayout);
     if (maxStakeCheck) return maxStakeCheck;
+  }
+  
+  // If teaser, validate teaser rules
+  if (betType === "teaser" && teaserType) {
+    return validateTeaserBets(bets, teaserType);
   }
   
   // If parlay, validate parlay rules

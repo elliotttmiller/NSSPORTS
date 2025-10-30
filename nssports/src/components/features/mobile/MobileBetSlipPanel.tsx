@@ -10,6 +10,7 @@ import { useBetSlip, useNavigation } from "@/context";
 import { useIsMobile } from "@/hooks";
 import { formatOdds } from "@/lib/formatters";
 import { formatSelectionLabel } from "@/components/bets/BetCard";
+import { TeaserSelector } from "@/components/betting/TeaserSelector";
 import { toast } from "sonner";
 import type { Bet } from "@/types";
 import { MobileCustomBetSlipContent } from "./MobileCustomBetSlipContent";
@@ -33,12 +34,24 @@ export function MobileBetSlipPanel() {
     }, {} as { [betId: string]: number });
 
     const validationType = betSlip.betType === "custom" ? "parlay" : betSlip.betType;
-    const violation = validateBetPlacement(betSlip.bets, validationType, stakes);
+    const violation = validateBetPlacement(
+      betSlip.bets, 
+      validationType, 
+      stakes,
+      betSlip.betType === "teaser" ? betSlip.teaserType : undefined
+    );
     if (violation) {
       toast.error(violation.message, {
         description: violation.rule.replace(/_/g, " "),
         duration: 4000,
       });
+      setPlacing(false);
+      return;
+    }
+    
+    // Validate teaser type selection
+    if (betSlip.betType === "teaser" && !betSlip.teaserType) {
+      toast.error("Please select a teaser type");
       setPlacing(false);
       return;
     }
@@ -193,25 +206,33 @@ export function MobileBetSlipPanel() {
           {betSlip.bets.length > 0 && (
             <div className="px-4 py-2">
               <Tabs className="w-full">
-                <TabsList className="grid w-full grid-cols-3 h-9">
+                <TabsList className="grid w-full grid-cols-4 h-9">
                   <TabsTrigger
                     value="single"
-                    className={`text-sm ${betSlip.betType === "single" ? "bg-background text-foreground shadow-sm" : ""}`}
+                    className={`text-xs ${betSlip.betType === "single" ? "bg-background text-foreground shadow-sm" : ""}`}
                     onClick={() => setBetType("single")}
                   >
-                    Straight
+                    Single
                   </TabsTrigger>
                   <TabsTrigger
                     value="parlay"
-                    className={`text-sm ${betSlip.betType === "parlay" ? "bg-background text-foreground shadow-sm" : ""}`}
+                    className={`text-xs ${betSlip.betType === "parlay" ? "bg-background text-foreground shadow-sm" : ""}`}
                     disabled={betSlip.bets.length < 2}
                     onClick={() => setBetType("parlay")}
                   >
-                    Parlay {betSlip.bets.length < 2 && "(2+)"}
+                    Parlay
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="teaser"
+                    className={`text-xs ${betSlip.betType === "teaser" ? "bg-background text-foreground shadow-sm" : ""}`}
+                    disabled={betSlip.bets.length < 2}
+                    onClick={() => setBetType("teaser")}
+                  >
+                    Teaser
                   </TabsTrigger>
                   <TabsTrigger
                     value="custom"
-                    className={`text-sm ${betSlip.betType === "custom" ? "bg-background text-foreground shadow-sm" : ""}`}
+                    className={`text-xs ${betSlip.betType === "custom" ? "bg-background text-foreground shadow-sm" : ""}`}
                     onClick={() => setBetType("custom")}
                   >
                     Custom
@@ -235,6 +256,103 @@ export function MobileBetSlipPanel() {
                 </div>
               ) : betSlip.betType === "custom" ? (
                 <MobileCustomBetSlipContent />
+              ) : betSlip.betType === "teaser" ? (
+                <div className="space-y-3">
+                  <TeaserSelector />
+                  
+                  {betSlip.teaserType && betSlip.bets.length > 0 && (
+                    <div className="bg-card border-2 border-blue-500/20 rounded-xl p-3 space-y-3">
+                      {/* Teaser header */}
+                      <div className="flex items-center justify-between">
+                        <div className="font-semibold text-base">
+                          Teaser
+                        </div>
+                        <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/20 font-mono px-3 py-1 text-sm font-bold">
+                          {formatOdds(betSlip.totalOdds)}
+                        </Badge>
+                      </div>
+
+                      {/* Teaser legs */}
+                      <div className="space-y-2">
+                        {betSlip.bets.map((bet, index) => (
+                          <div
+                            key={bet.id}
+                            className="flex items-start justify-between py-2 border-b border-border/10 last:border-b-0"
+                          >
+                            <div className="flex items-start gap-2 flex-1 min-w-0">
+                              <div className="w-5 h-5 bg-blue-500/20 text-blue-400 rounded-full flex items-center justify-center text-xs font-bold mt-0.5">
+                                {index + 1}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm font-medium leading-tight whitespace-pre-line">
+                                  {formatBetDescription(bet)}
+                                </div>
+                                <div className="text-xs text-muted-foreground leading-tight">
+                                  {formatMatchup(bet)}
+                                </div>
+                              </div>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeBet(bet.id)}
+                              className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                            >
+                              <Trash size={10} />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Teaser Summary */}
+                      <div className="flex items-center justify-between pt-3 border-t border-border/20 mt-3">
+                        <div className="flex items-end gap-4 flex-1">
+                          {/* Teaser Stake */}
+                          <div className="flex-1 min-w-0">
+                            <div className="text-xs text-muted-foreground mb-2">
+                              Stake
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span className="text-sm text-muted-foreground">$</span>
+                              <Input
+                                type="number"
+                                value={betSlip.bets[0]?.stake || 10}
+                                onChange={(e) =>
+                                  updateStake(
+                                    betSlip.bets[0].id,
+                                    parseFloat(e.target.value) || 0
+                                  )
+                                }
+                                className="h-9 text-sm text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                              />
+                            </div>
+                          </div>
+
+                          {/* To Win */}
+                          <div className="flex-1 text-center">
+                            <div className="text-xs text-muted-foreground mb-2">
+                              To Win
+                            </div>
+                            <div className="text-sm font-bold text-white py-2.5 px-3 bg-white/10 rounded-md border border-white/30">
+                              $
+                              {(betSlip.totalPayout - betSlip.totalStake).toFixed(2)}
+                            </div>
+                          </div>
+
+                          {/* Total */}
+                          <div className="flex-1 text-center">
+                            <div className="text-xs text-muted-foreground mb-2">
+                              Total
+                            </div>
+                            <div className="text-sm font-bold text-blue-400 py-2.5 px-3 bg-blue-500/10 rounded-md border border-blue-500/30">
+                              ${betSlip.totalPayout.toFixed(2)}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
               ) : betSlip.betType === "single" ? (
                 betSlip.bets.map((bet) => (
                   <div
@@ -495,20 +613,22 @@ export function MobileBetSlipPanel() {
                   {placing
                     ? "Placing..."
                     : betSlip.betType === "parlay"
-                      ? "Place Bet"
-                      : betSlip.betType === "single"
-                        ? (betSlip.bets.length === 1
-                            ? "Place Bet"
-                            : `Place ${betSlip.bets.length} Bets`)
-                        : (() => {
-                            // Custom mode: count single bets + parlay (if selected)
-                            const customStraightBets = betSlip.customStraightBets ?? [];
-                            const customParlayBets = betSlip.customParlayBets ?? [];
-                            const numBetSlips = customStraightBets.length + (customParlayBets.length > 0 ? 1 : 0);
-                            return numBetSlips === 1
+                      ? "Place Parlay"
+                      : betSlip.betType === "teaser"
+                        ? "Place Teaser"
+                        : betSlip.betType === "single"
+                          ? (betSlip.bets.length === 1
                               ? "Place Bet"
-                              : `Place ${numBetSlips} Bets`;
-                          })()
+                              : `Place ${betSlip.bets.length} Bets`)
+                          : (() => {
+                              // Custom mode: count single bets + parlay (if selected)
+                              const customStraightBets = betSlip.customStraightBets ?? [];
+                              const customParlayBets = betSlip.customParlayBets ?? [];
+                              const numBetSlips = customStraightBets.length + (customParlayBets.length > 0 ? 1 : 0);
+                              return numBetSlips === 1
+                                ? "Place Bet"
+                                : `Place ${numBetSlips} Bets`;
+                            })()
                   }
                 </Button>
               </div>

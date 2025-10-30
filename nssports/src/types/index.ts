@@ -131,7 +131,7 @@ export interface Bet {
 
 export interface BetSlip {
   bets: Bet[];
-  betType: "single" | "parlay" | "custom";
+  betType: "single" | "parlay" | "custom" | "teaser";
   totalStake: number;
   totalPayout: number;
   totalOdds: number;
@@ -139,6 +139,9 @@ export interface BetSlip {
   customStraightBets?: string[]; // Array of bet IDs designated as straight bets
   customParlayBets?: string[]; // Array of bet IDs included in the parlay
   customStakes?: { [betId: string]: number }; // Individual stakes for custom mode
+  // Teaser mode specific state
+  teaserType?: string; // Selected teaser type (2T_TEASER, 3T_TEASER, etc.)
+  teaserLegs?: string[]; // Array of bet IDs included in the teaser
 }
 
 export interface NavigationState {
@@ -180,3 +183,4 @@ export interface PropCategory {
 }
 
 export type { Account } from "./account";
+export type { TeaserType, TeaserConfig, TeaserBet, TeasedLeg, TeaserPushRule } from "./teaser";
