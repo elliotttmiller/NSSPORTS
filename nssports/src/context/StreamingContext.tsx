@@ -65,7 +65,11 @@ export function StreamingProvider({ children }: StreamingProviderProps) {
   const [subscribers, setSubscribers] = useState<Map<string, Set<(data: OddsUpdateData) => void>>>(new Map());
   const [propsSubscribers, setPropsSubscribers] = useState<Map<string, Set<(data: PropsUpdateData) => void>>>(new Map());
 
-  // Start streaming for a specific league or all live games
+  // Start streaming for real-time odds updates (live OR upcoming games)
+  // Per official docs: https://sportsgameodds.com/docs/guides/realtime-streaming-api
+  // - 'events:live' → Stream all live/in-progress games (highest frequency, <1s latency)
+  // - 'events:upcoming' → Stream upcoming games odds for specific league (line movements, odds adjustments)
+  // Both feeds provide real-time odds updates as betting markets move
   const startStreaming = useCallback(async (leagueID?: string) => {
     if (isStreaming) {
       logger.warn('[Streaming] Already streaming, ignoring duplicate request');
@@ -73,16 +77,20 @@ export function StreamingProvider({ children }: StreamingProviderProps) {
     }
 
     try {
-      logger.info('[Streaming] Starting streaming connection', { leagueID });
+      logger.info('[Streaming] Starting real-time odds streaming (props included)', { leagueID });
       setIsStreaming(true);
 
-      // Call our API endpoint to establish streaming connection
+      // ✅ OFFICIAL SDK PATTERN per https://sportsgameodds.com/docs/guides/realtime-streaming-api
+      // - If leagueID provided: Use 'events:upcoming' to stream upcoming games odds for that league
+      // - If no leagueID: Use 'events:live' to stream all live games across all sports
+      // Both provide real-time WebSocket updates as odds/lines change in betting markets
       const response = await fetch('/api/streaming/connect', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          feed: leagueID ? 'events:upcoming' : 'events:live',
-          leagueID,
+          feed: leagueID ? 'events:upcoming' : 'events:live', // ⭐ OFFICIAL: upcoming for league-specific, live for all in-progress
+          leagueID, // Required for 'events:upcoming' feed
+          enablePropsStreaming: true, // ⭐ Enable real-time player/game props updates
         }),
       });
 

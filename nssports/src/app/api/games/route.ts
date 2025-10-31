@@ -7,6 +7,7 @@ import { getEventsWithCache } from '@/lib/hybrid-cache';
 import { transformSDKEvents } from '@/lib/transformers/sportsgameodds-sdk';
 import { logger } from '@/lib/logger';
 import { applyStratifiedSampling } from '@/lib/devDataLimit';
+import { MAIN_LINE_ODDIDS } from '@/lib/sportsgameodds-sdk';
 
 export const revalidate = 120; // 2 minutes - matches hybrid cache TTL
 export const runtime = 'nodejs';
@@ -17,11 +18,12 @@ export const dynamic = 'force-dynamic';
  * The getEventsWithCache function already handles Prisma-level caching with TTL
  */
 async function getCachedAllGames() {
-  logger.info('Fetching all games from hybrid cache');
+  logger.info('[/api/games] Fetching all games (live + upcoming) from hybrid cache');
   
-  // Define time range - FORWARD-LOOKING with wider window to find available games
+  // Define time range - look back 6 hours to catch live games that started earlier today
   const now = new Date();
-  const startsAfter = now; // Start from current time
+  const sixHoursAgo = new Date(now.getTime() - 6 * 60 * 60 * 1000); // Look back 6 hours
+  const startsAfter = sixHoursAgo; // Include games that started up to 6 hours ago (live games)
   const startsBefore = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000); // 14 days ahead (2 weeks)
   
   // Development-friendly limits: fetch only what we need (3-5 games per league)
@@ -30,26 +32,38 @@ async function getCachedAllGames() {
   
   logger.info(`Searching for games from ${startsAfter.toISOString()} to ${startsBefore.toISOString()}`);
   
-  // Fetch from multiple leagues in parallel
-  // ⭐ SIMPLIFIED: Fetch ALL scheduled games, let streaming handle odds updates
-  // Don't filter by oddsAvailable - games may not have odds yet but will stream when available
+  // ⭐ OFFICIAL SDK METHOD: Use `finalized: false` to get both live AND upcoming games
+  // Per official docs: https://sportsgameodds.com/docs/sdk#filtering-and-query-parameters
+  // - finalized: false → Exclude finished games (includes both live and upcoming)
+  // - oddIDs: Official market IDs (reduces payload 50-90%)
+  // - includeOpposingOddIDs: true → Get both sides automatically (home/away, over/under)
+  // Note: NOT using `live` parameter here - we want both live AND upcoming
   const [nbaResult, nflResult, nhlResult] = await Promise.allSettled([
     getEventsWithCache({ 
       leagueID: 'NBA',
+      finalized: false,                // ✅ OFFICIAL: Exclude finished (includes live + upcoming)
       startsAfter: startsAfter.toISOString(),
       startsBefore: startsBefore.toISOString(),
+      oddIDs: MAIN_LINE_ODDIDS,        // ✅ OFFICIAL: Main lines only (ML, spread, total)
+      includeOpposingOddIDs: true,     // ✅ OFFICIAL: Auto-include opposing sides
       limit: fetchLimit,
     }),
     getEventsWithCache({ 
       leagueID: 'NFL',
+      finalized: false,                // ✅ OFFICIAL: Exclude finished (includes live + upcoming)
       startsAfter: startsAfter.toISOString(),
       startsBefore: startsBefore.toISOString(),
+      oddIDs: MAIN_LINE_ODDIDS,        // ✅ OFFICIAL: Main lines only
+      includeOpposingOddIDs: true,     // ✅ OFFICIAL: Auto-include opposing sides
       limit: fetchLimit,
     }),
     getEventsWithCache({ 
       leagueID: 'NHL',
+      finalized: false,                // ✅ OFFICIAL: Exclude finished (includes live + upcoming)
       startsAfter: startsAfter.toISOString(),
       startsBefore: startsBefore.toISOString(),
+      oddIDs: MAIN_LINE_ODDIDS,        // ✅ OFFICIAL: Main lines only
+      includeOpposingOddIDs: true,     // ✅ OFFICIAL: Auto-include opposing sides
       limit: fetchLimit,
     }),
   ]);
@@ -101,6 +115,36 @@ export async function GET(request: NextRequest) {
       let games = events.length > 0 ? transformSDKEvents(events) : [];
       
       logger.info(`Transformed games: ${games.length}`);
+      
+      // ⭐ CRITICAL: Filter out finished games UNLESS explicitly requested
+      // Finished games should never be sent to frontend for display
+      // They're only used internally to update game lists when games end
+      if (status !== 'finished') {
+        const beforeFilter = games.length;
+        games = games.filter(game => game.status !== 'finished');
+        logger.info(`Filtered out ${beforeFilter - games.length} finished games (only show upcoming + live)`);
+      }
+      
+      // ⭐ CRITICAL: Additional time-based filter to catch historical data
+      // This prevents any games older than 4 hours from being displayed
+      // even if SDK incorrectly marks them as live/upcoming
+      const fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000);
+      const beforeHistoricalFilter = games.length;
+      games = games.filter(game => {
+        const gameTime = new Date(game.startTime);
+        // Keep upcoming games (any future time)
+        if (game.status === 'upcoming' && gameTime > new Date()) return true;
+        // Keep live games only if they started within last 4 hours
+        if (game.status === 'live' && gameTime > fourHoursAgo) return true;
+        // Filter out everything else (historical data)
+        return false;
+      });
+      if (beforeHistoricalFilter > games.length) {
+        logger.warn(`Filtered out ${beforeHistoricalFilter - games.length} historical games (older than 4 hours)`, {
+          beforeFilter: beforeHistoricalFilter,
+          afterFilter: games.length
+        });
+      }
       
       // Filter by leagueId FIRST if specified (case-insensitive)
       // This ensures sampling doesn't exclude the requested league

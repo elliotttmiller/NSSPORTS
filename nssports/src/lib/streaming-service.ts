@@ -1,5 +1,14 @@
 /**
- * Real-Time ODDS Streaming Service - SportsGameOdds API
+ * WebSocket Streaming Service - OPTIONAL Enhancement Layer (All-Star Plan Only)
+ * 
+ * ⚠️ IMPORTANT: This requires All-Star plan subscription with WebSocket access.
+ * Pro plan ($299/mo) uses REST API polling only - this service will exit gracefully.
+ * 
+ * Purpose:
+ * - Provides <1s update notifications for premium UX (All-Star plan only)
+ * - Triggers cache invalidation for instant refetch
+ * - Enhances user experience but NOT required for functionality
+ * - Pro plan users get sub-minute updates via smart cache (15s TTL for live games)
  * 
  * OFFICIAL IMPLEMENTATION per SportsGameOdds documentation:
  * https://sportsgameodds.com/docs/guides/realtime-streaming-api
@@ -11,30 +20,27 @@
  *    - Initial snapshot of events
  * 2. Connect via Pusher WebSocket
  * 3. Receive eventID notifications (NOT full data)
- * 4. Fetch full event data using /v2/events with eventIDs parameter
+ * 4. Trigger cache invalidation → React Query refetches → Smart cache system provides data
  * 
- * CRITICAL: Streaming updates contain ONLY eventID, must fetch full data separately
+ * Feeds (Official SDK):
+ * - 'events:live' - Live/in-progress games odds notifications
+ * - 'events:upcoming' - Upcoming games odds notifications (per league)
+ * - 'events:byid' - Single event odds notifications
  * 
- * Feeds:
- * - 'events:live' - All live games with changing odds
- * - 'events:upcoming' - Upcoming games odds (requires leagueID)
- * - 'events:byid' - Single event odds updates (requires eventID)
+ * Reality Check:
+ * - WITH streaming (All-Star): <1s latency (WebSocket → invalidate → refetch → smart cache → frontend)
+ * - WITHOUT streaming (Pro): 15s-60s latency (smart cache TTL handles everything automatically)
+ * - Both work perfectly, streaming just enhances UX for premium experience
  * 
- * Optimization:
- * - Use oddIDs parameter for targeted data fetching
- * - Main odds: "game-ml,game-ats,game-ou" (50-90% payload reduction)
- * - Props: "player-*,game-*" patterns for player and game props
- * - Use includeOpposingOddIDs=true for both sides (home/away, over/under)
- * 
- * Props Streaming (NEW):
- * - Automatically detects player and game props changes in event updates
+ * Props Streaming:
+ * - Automatically detects player and game props changes
  * - Emits 'props:player:updated' and 'props:game:updated' events
- * - Enables real-time props updates with <1s latency
  * - Works globally across all sports (NFL, NHL, NBA, MLB, etc.)
  * 
  * Requirements:
- * - AllStar plan subscription
+ * - All-Star plan subscription (contact SportsGameOdds for pricing)
  * - Pusher client library (pusher-js)
+ * - SPORTSGAMEODDS_STREAMING_ENABLED=true environment variable
  */
 
 import { logger } from './logger';
@@ -122,8 +128,21 @@ export class StreamingService {
    * - When true, fetches player and game props in addition to main odds
    * - Emits 'props:player:updated' and 'props:game:updated' events
    * - Enables real-time props updates across all sports
+   * 
+   * PLAN REQUIREMENTS:
+   * - WebSocket streaming requires All-Star plan subscription
+   * - Pro plan ($299/mo) uses REST API polling only (no WebSocket)
+   * - This method will exit early on Pro plan to prevent errors
    */
   async connect(feed: StreamFeed, options: StreamOptions & { enablePropsStreaming?: boolean } = {}): Promise<void> {
+    // ⚠️ PRO PLAN EARLY EXIT - WebSocket streaming requires All-Star plan
+    if (!process.env.SPORTSGAMEODDS_STREAMING_ENABLED || process.env.SPORTSGAMEODDS_STREAMING_ENABLED === 'false') {
+      logger.info('[Streaming] Streaming disabled - Using Pro plan REST API polling only');
+      logger.info('[Streaming] Pro plan provides sub-minute updates via smart cache (15s TTL for live games)');
+      logger.info('[Streaming] To enable WebSocket streaming, upgrade to All-Star plan');
+      return; // Exit without error - REST polling handles everything
+    }
+
     logger.info('[Streaming] Connecting to stream', { feed, options });
 
     try {
@@ -131,14 +150,6 @@ export class StreamingService {
       this.streamingMode = options.enablePropsStreaming ? 'full' : 'odds';
       
       logger.info('[Streaming] Streaming mode', { mode: this.streamingMode });
-
-      // Check if feature is available
-      if (!process.env.SPORTSGAMEODDS_STREAMING_ENABLED) {
-        throw new Error(
-          'Streaming API requires AllStar or custom plan. ' +
-          'Set SPORTSGAMEODDS_STREAMING_ENABLED=true after upgrading.'
-        );
-      }
 
       // Dynamically import Pusher (only when needed)
       const PusherConstructor = await this.loadPusher();

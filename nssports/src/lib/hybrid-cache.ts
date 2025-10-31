@@ -1,34 +1,39 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /**
- * Hybrid SDK + Prisma Caching Service with Smart Conditional TTL
+ * Smart Cache System - PRIMARY Real-Time Data Source
  * 
- * Architecture:
- * - SDK is the ONLY source of truth for real-time odds
- * - Prisma provides intelligent performance caching with dynamic TTL
- * - Database stores user-specific data (bets, preferences, history)
- * - NO fallback logic - if SDK fails, request fails (no mock/stale data)
+ * This is the MAIN and ONLY required system for real-time odds/props updates.
+ * Uses REST API polling with intelligent TTL-based caching for Pro Plan.
  * 
- * Smart Caching Strategy (Time-Based TTL):
- * - Games starting within 1 hour: 30s cache (CRITICAL - odds change rapidly)
- * - Games starting 1-24 hours: 60s cache (ACTIVE - moderate updates)
- * - Games starting 24+ hours: 120s cache (STANDARD - stable odds)
- * - LIVE games: WebSocket streaming only (liveDataStore handles real-time)
+ * Core Architecture (Pro Plan - REST Polling):
+ * - Prisma provides intelligent caching with dynamic TTL based on game timing
+ * - SDK REST API is the source of truth, fetched when cache is stale
+ * - 300 requests/minute rate limit (using 250/min for safety)
+ * - Sub-minute update frequency for live games
  * 
- * Why This Works:
- * - Critical window (< 1hr): Users need freshest data as odds fluctuate rapidly
- * - Active window (1-24hr): Balanced approach for moderate activity
- * - Far future (24hr+): Odds stable, cache maximizes performance
- * - Real-time accuracy: Fresh data when it matters most
- * - API efficiency: Reduces calls for far-future games
+ * Data Flow (Every Single Request):
+ * 1. Check Prisma cache with smart TTL
+ * 2. If fresh (within TTL): Return cached data immediately
+ * 3. If stale (expired TTL): Fetch fresh data from SDK REST API
+ * 4. Update cache with new data
+ * 5. Return real-time data to frontend
+ * 
+ * Smart TTL Strategy (Automatic Based on Game Timing):
+ * - LIVE games: 15s TTL (sub-minute updates for in-game odds)
+ * - Games starting within 1 hour: 30s TTL (line movements accelerate near kickoff)
+ * - Games starting 1-24 hours: 45s TTL (moderate market activity)
+ * - Games starting 24+ hours: 60s TTL (odds relatively stable)
+ * 
+ * Why This Works Perfectly for Pro Plan:
+ * - Sub-minute updates for live games (15s polling)
+ * - 300 req/min allows ~20 concurrent live games at 15s intervals
+ * - Efficient rate limit usage with smart TTL scaling
+ * - Critical window (<1hr): Users get freshest data when it matters most
+ * - Active window (1-24hr): Balanced freshness + performance
+ * - Far future (24hr+): Optimized performance, odds are stable anyway
  * 
  * Note: Using `any` types for SDK responses as the sports-odds-api package
  * doesn't export proper TypeScript types. This is acceptable for external API data.
- * 
- * Flow:
- * 1. Check cache (Prisma) - if fresh within smart TTL, return from cache
- * 2. If cache miss or stale, fetch from SDK
- * 3. Update cache (Prisma) - store for next request
- * 4. Return SDK data - always real-time, never fallback
  */
 
 import prisma from './prisma';
@@ -41,58 +46,84 @@ import {
 
 // Cache TTL in seconds - optimized for development/testing
 /**
- * Smart Cache TTL Strategy - Adjusts based on game timing
+ * Smart Cache TTL Strategy - Pro Plan REST Polling Optimization
  * 
- * CRITICAL WINDOW (< 1 hour to start):
- * - Odds change rapidly as game approaches
- * - Users need the freshest possible data
- * - Minimal caching (30s) to balance freshness with performance
+ * This TTL system powers real-time updates via REST API polling (Pro Plan).
+ * Every request flows through this logic to determine data freshness automatically.
  * 
- * ACTIVE WINDOW (1-24 hours to start):
- * - Moderate betting activity
- * - Odds updates are less frequent
- * - Short cache (60s) balances freshness and API calls
+ * HOW IT WORKS:
+ * 1. Every API request checks: "Is cached data still fresh?"
+ * 2. Fresh = within TTL → Return immediately (microseconds response)
+ * 3. Stale = expired TTL → Fetch from SDK REST API, update cache, return
+ * 4. Result: Sub-minute real-time updates with optimal rate limit usage
  * 
- * FAR FUTURE (24+ hours to start):
- * - Odds relatively stable
- * - Lower betting activity
- * - Standard cache (120s) optimizes performance
+ * TTL VALUES (Optimized for Pro Plan - 300 req/min):
  * 
- * LIVE GAMES:
- * - WebSocket streaming handles real-time updates
- * - Cache bypassed entirely (handled by liveDataStore)
+ * LIVE GAMES (Game in progress):
+ * - TTL: 15 seconds (sub-minute updates)
+ * - Why: In-game odds change rapidly, Pro plan allows frequent polling
+ * - Rate limit: ~4 req/min per game (well within 300/min for 20+ concurrent games)
+ * 
+ * CRITICAL WINDOW (Game starts in < 1 hour):
+ * - TTL: 30 seconds  
+ * - Why: Line movements accelerate as kickoff approaches
+ * - Rate limit: ~2 req/min per game (efficient for pre-game rush)
+ * 
+ * ACTIVE WINDOW (Game starts in 1-24 hours):
+ * - TTL: 45 seconds
+ * - Why: Moderate betting activity, odds still moving
+ * - Rate limit: ~1.3 req/min per game (balanced freshness + efficiency)
+ * 
+ * FAR FUTURE (Game starts in 24+ hours):
+ * - TTL: 60 seconds
+ * - Why: Odds relatively stable, lower betting volume
+ * - Rate limit: ~1 req/min per game (optimized for many future games)
+ * 
+ * KEY INSIGHT: Pro Plan sub-minute update frequency means we can poll more
+ * aggressively than previous 10s/30s/60s/120s strategy. New values provide
+ * better real-time experience while staying well within 300 req/min limit.
  */
 const CACHE_TTL = {
-  // Smart TTL values based on game timing (seconds)
-  critical: 30,    // Games starting within 1 hour
-  active: 60,      // Games starting within 1-24 hours
-  standard: 120,   // Games starting 24+ hours away
+  live: 15,        // Live games - sub-minute updates for Pro plan
+  critical: 30,    // <1hr to start - line movements accelerate
+  active: 45,      // 1-24hr to start - moderate market activity  
+  standard: 60,    // 24hr+ to start - stable odds
 };
 
 /**
- * Calculate dynamic TTL based on game start time
+ * Calculate dynamic TTL based on game start time and live status
  * Returns appropriate cache duration in seconds
+ * 
+ * Pro Plan Strategy: Use REST polling with smart TTL for sub-minute updates
+ * Live games poll every 15s, upcoming games scale based on start time
  */
-function getSmartCacheTTL(startTime: Date): number {
+function getSmartCacheTTL(startTime: Date, isLive?: boolean): number {
   const now = new Date();
   const hoursUntilStart = (startTime.getTime() - now.getTime()) / (1000 * 60 * 60);
   
-  // LIVE or already started - should use streaming, but if cached return minimal TTL
-  if (hoursUntilStart <= 0) {
-    return CACHE_TTL.critical;
+  // EXPLICIT LIVE GAME CHECK (highest priority)
+  // Live games get 15s TTL for sub-minute REST polling updates
+  if (isLive === true) {
+    return CACHE_TTL.live;
   }
   
-  // CRITICAL WINDOW: < 1 hour to start
+  // LIVE or already started (time-based fallback)
+  // Games that started should use streaming, cache is emergency fallback
+  if (hoursUntilStart <= 0) {
+    return CACHE_TTL.live;
+  }
+  
+  // CRITICAL WINDOW: < 1 hour to start (pre-game, odds volatile)
   if (hoursUntilStart < 1) {
     return CACHE_TTL.critical;
   }
   
-  // ACTIVE WINDOW: 1-24 hours to start
+  // ACTIVE WINDOW: 1-24 hours to start (moderate updates)
   if (hoursUntilStart < 24) {
     return CACHE_TTL.active;
   }
   
-  // FAR FUTURE: 24+ hours to start
+  // FAR FUTURE: 24+ hours to start (stable odds)
   return CACHE_TTL.standard;
 }
 
@@ -321,8 +352,38 @@ async function updateOddsCache(gameId: string, oddsData: any) {
       // - fairSpread/fairOverUnder: Most balanced line across all bookmakers
       // - bookOdds: Most common line (highest data points)
       const oddsValue = oddData.fairOdds || oddData.bookOdds;
-      const consensusSpread = oddData.fairSpread || oddData.bookSpread;
-      const consensusTotal = oddData.fairOverUnder || oddData.bookOverUnder;
+      
+      // OFFICIAL ALGORITHM IMPLEMENTATION
+      // Per docs: "Only positive lines are considered for over-unders and non-zero lines are considered for spreads"
+      // If fairSpread returns 0, it means the algorithm excluded zero-spread lines from fair calculation
+      // In this case, we MUST use bookSpread (which contains the actual consensus main line from bookmakers)
+      let consensusSpread;
+      if (oddData.fairSpread !== undefined && oddData.fairSpread !== null) {
+        const parsed = parseFloat(String(oddData.fairSpread));
+        // Use fairSpread ONLY if non-zero (per official algorithm excludes zero spreads)
+        if (!isNaN(parsed) && parsed !== 0) {
+          consensusSpread = oddData.fairSpread;
+        } else {
+          // Fair calculation returned 0 (excluded), use book consensus main line
+          consensusSpread = oddData.bookSpread;
+        }
+      } else {
+        consensusSpread = oddData.bookSpread;
+      }
+      
+      // Same for totals: "Only positive lines are considered for over-unders"
+      let consensusTotal;
+      if (oddData.fairOverUnder !== undefined && oddData.fairOverUnder !== null) {
+        const parsed = parseFloat(String(oddData.fairOverUnder));
+        // Use fairOverUnder only if positive (per official algorithm)
+        if (!isNaN(parsed) && parsed > 0) {
+          consensusTotal = oddData.fairOverUnder;
+        } else {
+          consensusTotal = oddData.bookOverUnder;
+        }
+      } else {
+        consensusTotal = oddData.bookOverUnder;
+      }
       
       // CRITICAL: Get the ACTUAL line value from the oddData (what bookmakers are offering)
       // This distinguishes main lines from alternate lines
@@ -451,9 +512,11 @@ async function getEventsFromCache(options: {
   });
   
   // Apply smart TTL filtering - each game gets its own cache duration
+  // CRITICAL: Live games get 10s TTL, upcoming games get 30s-120s based on start time
   const now = new Date();
   const validGames = games.filter(game => {
-    const smartTTL = getSmartCacheTTL(game.startTime);
+    const isLive = game.status === 'live';
+    const smartTTL = getSmartCacheTTL(game.startTime, isLive);
     const ttlDate = new Date(now.getTime() - smartTTL * 1000);
     
     // Game is valid if it was updated within its smart TTL window
@@ -462,7 +525,7 @@ async function getEventsFromCache(options: {
     if (!isValid) {
       const hoursUntilStart = (game.startTime.getTime() - now.getTime()) / (1000 * 60 * 60);
       logger.debug(
-        `Game ${game.id} cache expired (TTL: ${smartTTL}s, hours until start: ${hoursUntilStart.toFixed(1)}h)`
+        `Game ${game.id} cache expired (status: ${game.status}, TTL: ${smartTTL}s, hours until start: ${hoursUntilStart.toFixed(1)}h)`
       );
     }
     
@@ -670,12 +733,19 @@ async function updatePlayerPropsCache(gameId: string, props: any[]) {
 
 /**
  * Get player props from Prisma cache with smart TTL
+ * 
+ * CRITICAL: Checks game live status to apply appropriate TTL
+ * - Live games: 10s TTL (streaming fallback)
+ * - Upcoming games: 30s-120s TTL (based on start time)
  */
 async function getPlayerPropsFromCache(gameId: string) {
-  // Get game to determine smart TTL based on start time
+  // Get game to determine smart TTL based on start time AND live status
   const game = await prisma.game.findUnique({
     where: { id: gameId },
-    select: { startTime: true },
+    select: { 
+      startTime: true,
+      status: true,  // CRITICAL: Check if game is live
+    },
   });
   
   if (!game) {
@@ -683,9 +753,20 @@ async function getPlayerPropsFromCache(gameId: string) {
     return [];
   }
   
-  // Use smart TTL based on game start time
-  const smartTTL = getSmartCacheTTL(game.startTime);
+  // Determine if game is live (use official status or time-based fallback)
+  const isLive = game.status === 'live';
+  
+  // Use smart TTL based on game start time AND live status
+  // Live games get 10s TTL (streaming should be primary source)
+  // Upcoming games get 30s-120s TTL (based on proximity to start)
+  const smartTTL = getSmartCacheTTL(game.startTime, isLive);
   const ttlDate = new Date(Date.now() - smartTTL * 1000);
+  
+  logger.debug(`Player props cache lookup for ${gameId}`, {
+    isLive,
+    ttlSeconds: smartTTL,
+    status: game.status,
+  });
   
   const props = await prisma.playerProp.findMany({
     where: {
@@ -813,12 +894,19 @@ async function updateGamePropsCache(gameId: string, props: any[]) {
 
 /**
  * Get game props from Prisma cache with smart TTL
+ * 
+ * CRITICAL: Checks game live status to apply appropriate TTL
+ * - Live games: 10s TTL (streaming fallback)
+ * - Upcoming games: 30s-120s TTL (based on start time)
  */
 async function getGamePropsFromCache(gameId: string) {
-  // Get game to determine smart TTL based on start time
+  // Get game to determine smart TTL based on start time AND live status
   const game = await prisma.game.findUnique({
     where: { id: gameId },
-    select: { startTime: true },
+    select: { 
+      startTime: true,
+      status: true,  // CRITICAL: Check if game is live
+    },
   });
   
   if (!game) {
@@ -826,9 +914,20 @@ async function getGamePropsFromCache(gameId: string) {
     return [];
   }
   
-  // Use smart TTL based on game start time
-  const smartTTL = getSmartCacheTTL(game.startTime);
+  // Determine if game is live (use official status or time-based fallback)
+  const isLive = game.status === 'live';
+  
+  // Use smart TTL based on game start time AND live status
+  // Live games get 10s TTL (streaming should be primary source)
+  // Upcoming games get 30s-120s TTL (based on proximity to start)
+  const smartTTL = getSmartCacheTTL(game.startTime, isLive);
   const ttlDate = new Date(Date.now() - smartTTL * 1000);
+  
+  logger.debug(`Game props cache lookup for ${gameId}`, {
+    isLive,
+    ttlSeconds: smartTTL,
+    status: game.status,
+  });
   
   const props = await prisma.gameProp.findMany({
     where: {

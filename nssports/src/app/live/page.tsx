@@ -1,46 +1,85 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { 
   LiveGameRow, 
   LiveMobileGameRow, 
   MobileGameTableHeader, 
   DesktopGameTableHeader 
 } from "@/components/features/games";
-import { useLiveMatches, useIsLoading, useError } from "@/hooks/useStableLiveData";
+import type { Game } from "@/types";
 import { useLiveDataStore } from "@/store/liveDataStore";
 import { useGameTransitions } from "@/hooks/useGameTransitions";
 import { RefreshButton } from "@/components/ui";
 import { LoadingScreen } from "@/components/LoadingScreen";
 
 export default function LivePage() {
-  const liveGames = useLiveMatches();
-  const loading = useIsLoading();
-  const error = useError();
+  const [liveGamesData, setLiveGamesData] = useState<Game[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // ⭐ Fetch live games directly from /api/games/live endpoint
+  const fetchLiveGames = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      console.log('[LivePage] Fetching live games from /api/games/live...');
+      const response = await fetch('/api/games/live');
+      if (!response.ok) {
+        throw new Error(`Failed to fetch: ${response.status}`);
+      }
+      const json = await response.json();
+      const games = Array.isArray(json.data) ? json.data : [];
+      console.log(`[LivePage] Fetched ${games.length} live games`);
+      setLiveGamesData(games);
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Failed to fetch live games';
+      console.error('[LivePage] Error:', errorMsg);
+      setError(errorMsg);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+  
+  // Fetch on mount
+  useEffect(() => {
+    fetchLiveGames();
+  }, [fetchLiveGames]);
+  
+  // ⭐ Auto-refresh live games every 30 seconds to catch new live games
+  useEffect(() => {
+    const interval = setInterval(() => {
+      console.log('[LivePage] Auto-refreshing live games...');
+      fetchLiveGames();
+    }, 30000); // 30 seconds
+    
+    return () => clearInterval(interval);
+  }, [fetchLiveGames]);
   
   // ⭐ PHASE 4: WebSocket Streaming for Real-Time ODDS Updates ONLY
-  // Automatically enable streaming when live games are present
-  // Streaming updates: odds/lines/props (<1s latency)
-  // NO live scores/stats/times streaming (those come from scheduled API fetches)
-  // GLOBAL: Streams ALL live games across all sports (NBA, NFL, NHL, etc.)
+  // OPTIONAL ENHANCEMENT: WebSocket streaming for instant updates
+  // - When enabled: <1s update latency via 'events:live' feed
+  // - When disabled: Smart cache system still provides real-time data (10s TTL for live games)
+  // - Reality: System works perfectly either way, streaming is optimization for premium UX
   const enableStreaming = useLiveDataStore((state) => state.enableStreaming);
   const disableStreaming = useLiveDataStore((state) => state.disableStreaming);
   const streamingEnabled = useLiveDataStore((state) => state.streamingEnabled);
   
   // ⭐ Game Transition Hook: Monitor status changes
   // Automatically filter out games that transition to 'finished'
-  const { shouldShowInCurrentContext } = useGameTransitions(liveGames, 'live');
+  const { shouldShowInCurrentContext } = useGameTransitions(liveGamesData, 'live');
   
   // Filter to only show truly live games (not upcoming, not finished)
   const displayGames = useMemo(() => {
-    return liveGames.filter(game => shouldShowInCurrentContext(game, 'live'));
-  }, [liveGames, shouldShowInCurrentContext]);
+    return liveGamesData.filter(game => shouldShowInCurrentContext(game, 'live'));
+  }, [liveGamesData, shouldShowInCurrentContext]);
   
   useEffect(() => {
-    // Enable streaming if we have live games and it's not already enabled
+    // OPTIONAL: Enable WebSocket for <1s latency (smart cache still works without this)
     if (displayGames.length > 0 && !streamingEnabled && typeof enableStreaming === 'function') {
-      console.log('[LivePage] Enabling real-time streaming for', displayGames.length, 'live games');
-      enableStreaming(); // GLOBAL: No sport parameter needed
+      console.log('[LivePage] Enabling WebSocket streaming for', displayGames.length, 'live games');
+      console.log('[LivePage] Note: Smart cache (10s TTL) is primary system, streaming enhances it');
+      enableStreaming(); // Connects to 'events:live' feed (all sports)
     }
     
     // Cleanup: disable streaming when component unmounts
@@ -84,8 +123,7 @@ export default function LivePage() {
   }
 
   const handleRefresh = async () => {
-    const fetchAllMatches = useLiveDataStore.getState().fetchAllMatches;
-    await fetchAllMatches();
+    await fetchLiveGames();
   };
 
   return (
@@ -127,7 +165,7 @@ export default function LivePage() {
               <p className="text-destructive">Error loading games</p>
               <p className="text-sm text-muted-foreground mt-2">{error}</p>
             </div>
-          ) : liveGames.length === 0 ? (
+          ) : liveGamesData.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-muted-foreground">No live games right now.</p>
               <p className="text-sm text-muted-foreground mt-2">

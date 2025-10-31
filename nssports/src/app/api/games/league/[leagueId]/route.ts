@@ -56,8 +56,15 @@ export async function GET(
       const events = response.data;
       logger.info(`Fetched ${events.length} events for league ${leagueId} (source: ${response.source})`);
       
-      // Transform and apply development limit (Protocol I-IV)
+      // Transform events using official SDK status fields
       let transformedGames = transformSDKEvents(events);
+      
+      // ⭐ Filter out finished games (never send to frontend)
+      const beforeFilter = transformedGames.length;
+      transformedGames = transformedGames.filter(game => game.status !== 'finished');
+      logger.info(`Filtered out ${beforeFilter - transformedGames.length} finished games for league ${leagueId}`);
+      
+      // Apply development limit (Protocol I-IV)
       transformedGames = applySingleLeagueLimit(transformedGames);
       
       const parsed = z.array(GameSchema).parse(transformedGames);

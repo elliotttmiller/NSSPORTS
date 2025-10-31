@@ -6,7 +6,7 @@ import Image from "next/image";
 import { ProfessionalGameRow, CompactMobileGameRow, MobileGameTableHeader, DesktopGameTableHeader } from "@/components/features/games";
 import { getLeague } from "@/services/api";
 import { usePaginatedGames } from "@/hooks/usePaginatedGames";
-import { useLiveDataStore } from "@/store/liveDataStore";
+import { useStreaming } from "@/context/StreamingContext";
 import { useGameTransitions } from "@/hooks/useGameTransitions";
 import { PullToRefresh, RefreshButton } from "@/components/ui";
 import type { Game, League } from "@/types";
@@ -20,12 +20,11 @@ export default function LeaguePage() {
   const limit = 100;
   const { data, isLoading, refetch } = usePaginatedGames({ leagueId, page, limit });
   
-  // ⭐ CRITICAL FIX: Enable streaming for real-time ODDS updates ONLY
-  // Odds change in real-time even for upcoming games (betting lines move constantly)
-  // NO live scores/stats/times - those come from scheduled API fetches
-  const enableStreaming = useLiveDataStore((state) => state.enableStreaming);
-  const disableStreaming = useLiveDataStore((state) => state.disableStreaming);
-  const streamingEnabled = useLiveDataStore((state) => state.streamingEnabled);
+  // OPTIONAL ENHANCEMENT: WebSocket streaming for instant cache invalidation
+  // - When enabled: <1s update latency via 'events:upcoming' feed for this league
+  // - When disabled: Smart cache system still provides real-time data (30s-120s TTL)
+  // - Reality: System works perfectly either way, streaming is just optimization
+  const { startStreaming, stopStreaming, isStreaming } = useStreaming();
   
   // Parse games from API response and filter out finished games
   const games = useMemo(() => {
@@ -42,21 +41,23 @@ export default function LeaguePage() {
     return games.filter(game => shouldShowInCurrentContext(game, 'upcoming'));
   }, [games, shouldShowInCurrentContext]);
   
-  // Enable streaming when component mounts (for real-time odds updates)
+  // OPTIONAL: Enable WebSocket streaming for <1s update latency
+  // Smart cache system (30s-120s TTL) works perfectly without this
+  // Streaming just provides instant invalidation for premium UX
   useEffect(() => {
-    if (upcomingOnlyGames.length > 0 && !streamingEnabled && typeof enableStreaming === 'function') {
-      console.log('[LeaguePage] Enabling real-time streaming for', upcomingOnlyGames.length, 'upcoming games');
-      enableStreaming();
+    if (upcomingOnlyGames.length > 0 && !isStreaming) {
+      console.log(`[LeaguePage] Enabling WebSocket streaming for ${leagueId} (${upcomingOnlyGames.length} games)`);
+      console.log('[LeaguePage] Note: Smart cache (30s-120s TTL) is primary system, streaming enhances it');
+      startStreaming(leagueId.toUpperCase()); // Uses 'events:upcoming' feed for this league
     }
     
     return () => {
-      if (streamingEnabled && typeof disableStreaming === 'function') {
-        console.log('[LeaguePage] Disabling streaming on unmount');
-        disableStreaming();
+      if (isStreaming) {
+        console.log(`[LeaguePage] Stopping streaming for ${leagueId}`);
+        stopStreaming();
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [upcomingOnlyGames.length, streamingEnabled]); // Zustand functions are stable, excluded from deps
+  }, [upcomingOnlyGames.length, leagueId, isStreaming, startStreaming, stopStreaming]);
   
   // Manual refresh handler for pull-to-refresh
   const handleRefresh = useCallback(async () => {

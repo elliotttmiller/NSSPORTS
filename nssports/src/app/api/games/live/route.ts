@@ -5,6 +5,7 @@ import { getEventsWithCache } from '@/lib/hybrid-cache';
 import { transformSDKEvents } from '@/lib/transformers/sportsgameodds-sdk';
 import { logger } from '@/lib/logger';
 import { applyStratifiedSampling } from '@/lib/devDataLimit';
+import { MAIN_LINE_ODDIDS } from '@/lib/sportsgameodds-sdk';
 
 export const revalidate = 30; // Increased from 15 to reduce API calls
 export const runtime = 'nodejs';
@@ -13,65 +14,109 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   return withErrorHandling(async () => {
     try {
-      logger.info('Fetching live games using hybrid cache');
+      logger.info('Fetching live games - checking all events for live/started status');
       
-      // Define time range for live games
-      const now = new Date();
-      const fourHoursAgo = new Date(now.getTime() - 4 * 60 * 60 * 1000);
-      const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
-      
-      // Development-friendly limits: fetch only what we need (3-5 games per league)
+      // Development-friendly limits
       const isDevelopment = process.env.NODE_ENV === 'development';
-      const fetchLimit = isDevelopment ? 5 : 50; // Only fetch 5 games per league in dev mode
+      const fetchLimit = isDevelopment ? 50 : 100;
       
-      // Fetch from multiple leagues in parallel using hybrid cache
-      // Use main lines with proper oddID format for 50-90% payload reduction
+      // Fetch recent games and let SDK status fields determine which are live
+      // No artificial time windows - just get games and filter by official status fields
+      // ⭐ OFFICIAL SDK METHOD: Use `live: true` and `finalized: false` query parameters
+      // Per official docs: https://sportsgameodds.com/docs/sdk#filtering-and-query-parameters
+      // - live: true → Only return games that are currently in progress
+      // - finalized: false → Exclude games that have finished
+      // - oddIDs: Official market IDs (reduces payload 50-90%)
+      // - includeOpposingOddIDs: true → Get both sides automatically
       const [nbaResult, nflResult, nhlResult] = await Promise.allSettled([
         getEventsWithCache({ 
           leagueID: 'NBA',
-          startsAfter: fourHoursAgo.toISOString(),
-          startsBefore: oneHourFromNow.toISOString(),
-          live: true,
-          oddIDs: 'game-ml,game-ats,game-ou', // Main lines: moneyline, spread, total
-          includeOpposingOddIDs: true, // Get both sides of each market
+          live: true,                      // ✅ OFFICIAL: Only live/in-progress games
+          finalized: false,                // ✅ OFFICIAL: Exclude finished games
+          oddIDs: MAIN_LINE_ODDIDS,        // ✅ OFFICIAL: Main lines only (ML, spread, total)
+          includeOpposingOddIDs: true,     // ✅ OFFICIAL: Auto-include opposing sides
           limit: fetchLimit,
         }),
         getEventsWithCache({ 
           leagueID: 'NFL',
-          startsAfter: fourHoursAgo.toISOString(),
-          startsBefore: oneHourFromNow.toISOString(),
-          live: true,
-          oddIDs: 'game-ml,game-ats,game-ou', // Main lines: moneyline, spread, total
-          includeOpposingOddIDs: true,
+          live: true,                      // ✅ OFFICIAL: Only live/in-progress games
+          finalized: false,                // ✅ OFFICIAL: Exclude finished games
+          oddIDs: MAIN_LINE_ODDIDS,        // ✅ OFFICIAL: Main lines only
+          includeOpposingOddIDs: true,     // ✅ OFFICIAL: Auto-include opposing sides
           limit: fetchLimit,
         }),
         getEventsWithCache({ 
           leagueID: 'NHL',
-          startsAfter: fourHoursAgo.toISOString(),
-          startsBefore: oneHourFromNow.toISOString(),
-          live: true,
-          oddIDs: 'game-ml,game-ats,game-ou', // Main lines: moneyline, spread, total
-          includeOpposingOddIDs: true,
+          live: true,                      // ✅ OFFICIAL: Only live/in-progress games
+          finalized: false,                // ✅ OFFICIAL: Exclude finished games
+          oddIDs: MAIN_LINE_ODDIDS,        // ✅ OFFICIAL: Main lines only
+          includeOpposingOddIDs: true,     // ✅ OFFICIAL: Auto-include opposing sides
           limit: fetchLimit,
         }),
       ]);
       
-      const allEvents = [
+      const liveEvents = [
         ...(nbaResult.status === 'fulfilled' ? nbaResult.value.data : []),
         ...(nflResult.status === 'fulfilled' ? nflResult.value.data : []),
         ...(nhlResult.status === 'fulfilled' ? nhlResult.value.data : []),
       ];
       
-      // Filter to only games that are live (started but not finished)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const liveEvents = allEvents.filter((event: any) => {
-        const startTime = new Date(event.status?.startsAt || event.commence || event.startTime);
-        return startTime >= fourHoursAgo && startTime <= now;
+      logger.info(`[/api/games/live] ✅ SDK returned ${liveEvents.length} LIVE events using official filters`, {
+        filters: { live: true, finalized: false, oddIDs: 'MAIN_LINE_ODDIDS' }
       });
       
-      logger.info(`Found ${liveEvents.length} live events out of ${allEvents.length} total`);
-      
+      // Transform SDK events to internal format
+      // The transformer will use official Event.status fields to map status
       let games = transformSDKEvents(liveEvents);
+      
+      // ⭐ CRITICAL: Time-based filter to ensure ONLY recent games
+      // Live games MUST have started within the last 4 hours
+      // This catches any SDK errors or historical data leakage
+      const fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000);
+      const now = new Date();
+      const beforeFilter = games.length;
+      
+      games = games.filter(game => {
+        const gameTime = new Date(game.startTime);
+        
+        // Game must have started (not upcoming)
+        if (gameTime > now) {
+          logger.debug(`Filtered out upcoming game incorrectly marked as live`, {
+            gameId: game.id,
+            startTime: game.startTime,
+            status: game.status
+          });
+          return false;
+        }
+        
+        // Game must have started within last 4 hours (not historical)
+        if (gameTime <= fourHoursAgo) {
+          logger.debug(`Filtered out historical game incorrectly marked as live`, {
+            gameId: game.id,
+            startTime: game.startTime,
+            hoursAgo: (now.getTime() - gameTime.getTime()) / (1000 * 60 * 60)
+          });
+          return false;
+        }
+        
+        // Game must be marked as live (not finished)
+        if (game.status !== 'live') {
+          logger.debug(`Filtered out non-live game from live endpoint`, {
+            gameId: game.id,
+            status: game.status
+          });
+          return false;
+        }
+        
+        return true;
+      });
+      
+      if (beforeFilter > games.length) {
+        logger.warn(`Filtered out ${beforeFilter - games.length} invalid games from live endpoint`, {
+          beforeFilter,
+          afterFilter: games.length
+        });
+      }
       
       // Apply stratified sampling in development (Protocol I-IV)
       games = applyStratifiedSampling(games, 'leagueId');

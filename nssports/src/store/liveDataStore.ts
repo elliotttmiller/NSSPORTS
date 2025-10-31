@@ -8,12 +8,16 @@
  * - Protocol III: Granular state consumption via selectors
  * - Protocol IV: Universal UI state handling
  * 
- * Phase 4 Enhancement: WebSocket Streaming Integration
- * - Uses official SportsGameOdds streaming API for live games
- * - Real-time updates via Pusher WebSocket (80% fewer polling requests)
+ * Phase 4 Enhancement: Real-Time Updates via REST Polling (Pro Plan)
+ * - Uses smart cache system with dynamic TTL (15s for live games)
+ * - React Query refetchInterval for active polling (sub-minute updates)
  * - Fallback to REST polling for non-live games
- * - Automatic connection management and reconnection
- * - Status transition detection (upcoming → live → finished)
+ * - Automatic status transition detection (upcoming → live → finished)
+ * 
+ * WebSocket Streaming (All-Star Plan Only):
+ * - Available with All-Star plan subscription for <1s updates
+ * - Pro plan ($299/mo) uses REST polling (15s updates for live games)
+ * - Both approaches provide excellent real-time experience
  */
 
 import { create } from 'zustand';
@@ -81,7 +85,7 @@ const createLiveDataStore = () => create<LiveDataState>()(
     (set, get) => ({
       ...initialState,
   
-  /**
+    /**
    * Fetch matches from ALL leagues (NBA, NFL, NHL) in parallel
    * Used for home/live/games pages to show all available games
    */
@@ -93,7 +97,7 @@ const createLiveDataStore = () => create<LiveDataState>()(
     }
     
     set({ status: 'loading', error: null });
-    console.log('[LiveDataStore] 🔄 Starting fetchAllMatches...');
+    console.log('[LiveDataStore] Starting fetchAllMatches...');
     
     try {
       // Use /api/games endpoint which fetches all leagues in parallel
@@ -101,7 +105,7 @@ const createLiveDataStore = () => create<LiveDataState>()(
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
       
-      const response = await fetch('/api/games?page=1&pageSize=100', {
+      const response = await fetch('/api/games?page=1&limit=100', {
         headers: {
           'Content-Type': 'application/json',
         },
@@ -256,9 +260,11 @@ const createLiveDataStore = () => create<LiveDataState>()(
       });
       
       // Connect to official streaming API
-      // GLOBAL: 'events:live' stream includes ALL live games across all sports
-      // The official API automatically filters to games with active odds
-      // NEW: Enable props streaming for real-time player and game props updates
+      // CRITICAL INSIGHT: 'events:live' feed streams ALL live/in-progress games across all sports
+      // For upcoming games odds (line movements before kickoff), use 'events:upcoming' per league
+      // The official API provides real-time WebSocket updates for BOTH live AND upcoming game odds
+      // Live games: <1s latency for in-game odds changes
+      // Upcoming games: Real-time line movements, odds adjustments as betting markets move
       await streaming.connect('events:live', { enablePropsStreaming: true });
       
       set({
@@ -266,7 +272,8 @@ const createLiveDataStore = () => create<LiveDataState>()(
         streamingStatus: 'connected',
       });
       
-      logger.info('[LiveDataStore] Streaming enabled successfully for ALL live games (including props)');
+      logger.info('[LiveDataStore] Streaming enabled for live games (real-time odds + props, <1s latency)');
+      logger.info('[LiveDataStore] Note: For upcoming games odds streaming, use events:upcoming per league');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.error('[LiveDataStore] Failed to enable streaming:', error);

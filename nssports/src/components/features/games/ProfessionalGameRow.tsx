@@ -1,5 +1,22 @@
 "use client";
 
+/**
+ * ProfessionalGameRow Component (Desktop)
+ * 
+ * ⭐ PRIMARILY FOR UPCOMING GAMES ⭐
+ * 
+ * This component is the desktop version primarily designed for displaying UPCOMING games.
+ * It can handle both upcoming and live games, but is optimized for pre-game information.
+ * 
+ * Key Features:
+ * - Full desktop layout with expandable details
+ * - Comprehensive odds display
+ * - Props integration (player & game props)
+ * 
+ * For mobile live games, use LiveMobileGameRow instead.
+ * For mobile upcoming games, use CompactMobileGameRow instead.
+ */
+
 import { Game } from "@/types";
 import { TeamLogo } from "./TeamLogo";
 import { formatOdds, formatSpreadLine, formatGameTime } from "@/lib/formatters";

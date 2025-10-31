@@ -23,63 +23,70 @@ export async function GET() {
       const isDevelopment = process.env.NODE_ENV === 'development';
       const fetchLimit = isDevelopment ? 5 : 50; // Only fetch 5 games per league in dev mode
       
-      // Fetch from multiple leagues in parallel using hybrid cache
-      // Use main lines with proper oddID format for 50-90% payload reduction
+      // ⭐ OFFICIAL SDK METHOD: Use `live: false` and `finalized: false` for upcoming games
+      // Per official docs: https://sportsgameodds.com/docs/sdk#filtering-and-query-parameters
+      // - live: false → Only return games that haven't started yet
+      // - finalized: false → Exclude games that have finished
+      // - oddsAvailable: true → Only games with betting odds
+      // - startsAfter/startsBefore → Time window for upcoming games
       const [nbaResult, nflResult, nhlResult] = await Promise.allSettled([
         getEventsWithCache({ 
           leagueID: 'NBA',
+          live: false,                     // ✅ OFFICIAL: Only non-live (upcoming) games
+          finalized: false,                // ✅ OFFICIAL: Exclude finished games
+          oddsAvailable: true,             // ✅ OFFICIAL: Only games with odds
           startsAfter: now.toISOString(),
           startsBefore: sevenDaysFromNow.toISOString(),
-          oddsAvailable: true,
           oddIDs: 'game-ml,game-ats,game-ou', // Main lines: moneyline, spread, total
           includeOpposingOddIDs: true, // Get both sides of each market
           limit: fetchLimit,
         }),
         getEventsWithCache({ 
           leagueID: 'NFL',
+          live: false,                     // ✅ OFFICIAL: Only non-live (upcoming) games
+          finalized: false,                // ✅ OFFICIAL: Exclude finished games
+          oddsAvailable: true,             // ✅ OFFICIAL: Only games with odds
           startsAfter: now.toISOString(),
           startsBefore: sevenDaysFromNow.toISOString(),
-          oddsAvailable: true,
           oddIDs: 'game-ml,game-ats,game-ou', // Main lines: moneyline, spread, total
           includeOpposingOddIDs: true,
           limit: fetchLimit,
         }),
         getEventsWithCache({ 
           leagueID: 'NHL',
+          live: false,                     // ✅ OFFICIAL: Only non-live (upcoming) games
+          finalized: false,                // ✅ OFFICIAL: Exclude finished games
+          oddsAvailable: true,             // ✅ OFFICIAL: Only games with odds
           startsAfter: now.toISOString(),
           startsBefore: sevenDaysFromNow.toISOString(),
-          oddsAvailable: true,
           oddIDs: 'game-ml,game-ats,game-ou', // Main lines: moneyline, spread, total
           includeOpposingOddIDs: true,
           limit: fetchLimit,
         }),
       ]);
       
-      const allEvents = [
+      const upcomingEvents = [
         ...(nbaResult.status === 'fulfilled' ? nbaResult.value.data : []),
         ...(nflResult.status === 'fulfilled' ? nflResult.value.data : []),
         ...(nhlResult.status === 'fulfilled' ? nhlResult.value.data : []),
       ];
       
-      // Filter to only upcoming games (not yet started)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const upcomingEvents = allEvents.filter((event: any) => {
-        const startTime = new Date(event.status?.startsAt || event.commence || event.startTime);
-        return startTime > now;
+      logger.info(`[/api/games/upcoming] ✅ SDK returned ${upcomingEvents.length} UPCOMING events using official filters`, {
+        filters: { live: false, finalized: false, oddsAvailable: true }
       });
       
-      // Sort by start time and limit to 20
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      upcomingEvents.sort((a: any, b: any) => {
-        const aTime = new Date(a.status?.startsAt || a.commence || a.startTime).getTime();
-        const bTime = new Date(b.status?.startsAt || b.commence || b.startTime).getTime();
-        return aTime - bTime;
-      });
+      // Transform SDK events to internal format
+      let games = transformSDKEvents(upcomingEvents);
       
-      logger.info(`Found ${upcomingEvents.length} upcoming events out of ${allEvents.length} total`);
+      // Sort by start time
+      games.sort((a, b) => 
+        new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+      );
       
-      const limitedEvents = upcomingEvents.slice(0, 20);
-      let games = transformSDKEvents(limitedEvents);
+      // Limit to 20 games
+      games = games.slice(0, 20);
+      
+      logger.info(`Found ${games.length} upcoming games`);
       
       // Apply stratified sampling in development (Protocol I-IV)
       games = applyStratifiedSampling(games, 'leagueId');

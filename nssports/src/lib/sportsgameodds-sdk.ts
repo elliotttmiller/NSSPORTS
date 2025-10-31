@@ -1,27 +1,32 @@
 /**
- * SportsGameOdds SDK Integration - ODDS-FOCUSED
+ * SportsGameOdds SDK Integration - ODDS-FOCUSED with Official oddIDs
  * 
  * Official SDK-based implementation for REAL-TIME ODDS & BETTING LINES ONLY:
  * - ✅ Moneyline, Spread, Total (Over/Under) odds
  * - ✅ Player props odds (points, rebounds, assists, etc.)
  * - ✅ Game props odds (team totals, quarters, etc.)
- * - ✅ Real-time WebSocket streaming for odds updates
- * - ❌ NO live scores/stats (we don't need game state tracking)
+ * - ❌ NO live scores/stats (we don't display game state)
  * - ❌ NO activity/period/clock data (odds-only focus)
  * 
+ * ⭐ OFFICIAL OPTIMIZATION: oddIDs Parameter (50-90% payload reduction)
+ * Per official docs: https://sportsgameodds.com/docs/guides/response-speed
+ * 
+ * Official oddID Format: {statID}-{statEntityID}-{periodID}-{betTypeID}-{sideID}
+ * Examples:
+ * - Moneyline: points-home-game-ml-home, points-away-game-ml-away
+ * - Spread: points-home-game-sp-home, points-away-game-sp-away
+ * - Total: points-all-game-ou-over, points-all-game-ou-under
+ * - Player Props: points-PLAYER_ID-game-ou-over (PLAYER_ID wildcard)
+ * 
  * Key Official SDK Patterns:
- * 1. Odds Filtering: oddIDs parameter for 50-90% payload reduction
- *    - Main lines: "game-ml,game-ats,game-ou" (moneyline, spread, total)
- *    - Player props: "points-PLAYER_ID-game-ou" (wildcard for all players)
- * 2. Streaming: client.stream.events({ feed: 'events:live' }) for real-time odds
- * 3. Markets: Fetch specific bet types (moneyline, spread, total, props)
- * 4. Bookmakers: Multi-sportsbook odds aggregation
- * 5. includeOpposingOddIDs: Get both sides of markets (home/away, over/under)
+ * 1. oddIDs: Comma-separated list of specific markets to fetch
+ * 2. includeOpposingOddIDs: true → Auto-fetch both sides (home/away, over/under)
+ * 3. PLAYER_ID wildcard: Fetch props for ALL players at once
+ * 4. Response size: Reduces payload by 50-90% vs fetching all markets
  * 
  * Documentation:
  * - SDK: https://sportsgameodds.com/docs/sdk
  * - Odds Filtering: https://sportsgameodds.com/docs/guides/response-speed
- * - Streaming: https://sportsgameodds.com/docs/guides/realtime-streaming-api
  * - Markets: https://sportsgameodds.com/docs/data-types/markets
  * 
  * Supported Leagues (UPPERCASE per official spec):
@@ -34,6 +39,84 @@
 import SportsGameOdds from 'sports-odds-api';
 import { logger } from "./logger";
 import { rateLimiter } from "./rate-limiter";
+
+// ========================================
+// OFFICIAL oddID CONSTANTS
+// Per: https://sportsgameodds.com/docs/data-types/markets
+// Format: {statID}-{statEntityID}-{periodID}-{betTypeID}-{sideID}
+// ========================================
+
+/**
+ * Main betting lines (game-level)
+ * Used for: Homepage, game lists, main betting interface
+ * 
+ * Official Format Examples:
+ * - points-home-game-ml-home → Home team moneyline
+ * - points-away-game-sp-away → Away team spread
+ * - points-all-game-ou-over → Total points over
+ * 
+ * With includeOpposingOddIDs: true, only need to specify ONE side:
+ * - Requesting "home" side automatically includes "away" side
+ * - Requesting "over" side automatically includes "under" side
+ */
+export const MAIN_LINE_ODDIDS = [
+  // Moneyline (ML) - Winner of the game
+  'points-home-game-ml-home',     // Home team to win (auto-includes away)
+  
+  // Spread (SP/ATS) - Point spread betting
+  'points-home-game-sp-home',     // Home team spread (auto-includes away)
+  
+  // Total (OU) - Over/Under total points
+  'points-all-game-ou-over',      // Total points over (auto-includes under)
+].join(',');
+
+/**
+ * Player props (individual player performance)
+ * Used for: Player props page, detailed betting
+ * 
+ * Official PLAYER_ID Wildcard:
+ * - "points-PLAYER_ID-game-ou-over" fetches props for ALL players
+ * - SDK automatically expands wildcard to all available players
+ * - Significantly more efficient than individual player requests
+ * 
+ * Common prop types:
+ * - points: Player points scored
+ * - rebounds: Player rebounds
+ * - assists: Player assists
+ * - threes: Three-pointers made
+ * - pts-rebs-asts: Combo props
+ */
+export const PLAYER_PROP_ODDIDS = [
+  'points-PLAYER_ID-game-ou-over',           // Points (auto-includes under)
+  'rebounds-PLAYER_ID-game-ou-over',         // Rebounds
+  'assists-PLAYER_ID-game-ou-over',          // Assists
+  'threes-PLAYER_ID-game-ou-over',           // Three-pointers
+  'pts-rebs-asts-PLAYER_ID-game-ou-over',   // Combo prop
+].join(',');
+
+/**
+ * Game props (team/quarter-specific betting)
+ * Used for: Advanced betting, quarter/half markets
+ * 
+ * Examples:
+ * - Team totals: Individual team point totals
+ * - Quarter/Half: Specific period betting
+ * - First half spread, second half total, etc.
+ */
+export const GAME_PROP_ODDIDS = [
+  // Team totals
+  'points-home-game-ou-over',      // Home team total points
+  'points-away-game-ou-over',      // Away team total points
+  
+  // First half betting
+  'points-home-1h-ml-home',        // First half moneyline
+  'points-home-1h-sp-home',        // First half spread
+  'points-all-1h-ou-over',         // First half total
+  
+  // First quarter betting (NBA/NHL specific)
+  'points-home-1q-ml-home',        // Q1 moneyline
+  'points-all-1q-ou-over',         // Q1 total
+].join(',');
 
 /**
  * Get configured SDK client instance
@@ -78,6 +161,41 @@ export async function getLeagues(options: {
     throw error;
   }
 }
+
+// ========================================
+// RESPONSE SIZE OPTIMIZATION
+// ========================================
+/**
+ * ⭐ OFFICIAL METHOD: Use oddIDs parameter to reduce response size
+ * 
+ * Per official docs (https://sportsgameodds.com/docs/guides/response-speed):
+ * "The most common cause of high response times is fetching a large number of 
+ * odds at once. To reduce this, use the oddIDs parameter to fetch only the 
+ * odds you need. This can reduce response payload by 50-90%."
+ * 
+ * HOW IT WORKS:
+ * - oddIDs parameter filters which BETTING MARKETS are included
+ * - Significantly reduces the size of the odds object
+ * - Event metadata (teams, status, startTime) is always included
+ * - Scores/stats are part of the Event structure (cannot be filtered)
+ * 
+ * PROPER USAGE:
+ * ```typescript
+ * await client.events.get({
+ *   leagueID: 'NBA',
+ *   oddIDs: MAIN_LINE_ODDIDS,              // Use constants defined above
+ *   includeOpposingOddIDs: true,           // Get both sides automatically
+ * });
+ * ```
+ * 
+ * WHAT WE DON'T USE:
+ * - ❌ Manual data stripping (not official, prone to errors)
+ * - ❌ Post-processing to remove fields (wastes bandwidth already spent)
+ * - ✅ ONLY official oddIDs parameter for optimization
+ * 
+ * NOTE: Event objects include scores/status fields by design (for game identification).
+ * We simply don't display these fields in our UI - they're used only for filtering.
+ */
 
 /**
  * Fetch ALL events across multiple pages (use with caution for large datasets)
@@ -206,6 +324,9 @@ export async function getEvents(options: {
             firstEventKeys: page.data[0] ? Object.keys(page.data[0]) : []
           });
         }
+        
+        // ✅ Response size already optimized via oddIDs parameter (official method)
+        // No manual data stripping needed - oddIDs filters markets at source
         
         return {
           data: page.data,

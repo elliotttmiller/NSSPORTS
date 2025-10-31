@@ -44,14 +44,16 @@ class RateLimiter {
   private inFlightRequests = new Set<string>();
 
   constructor() {
-    // Environment-specific rate limits
+    // Pro Plan rate limits: 300 requests/minute
+    // https://sportsgameodds.com/docs/setup/rate-limiting
     const isDevelopment = process.env.NODE_ENV === 'development';
     
     this.config = {
-      // Conservative limits for development/testing
-      requestsPerMinute: isDevelopment ? 10 : 30,
-      requestsPerHour: isDevelopment ? 200 : 1000,
-      burstSize: isDevelopment ? 3 : 10,
+      // Pro Plan: 300 req/min (we use conservative 250 for safety)
+      // Development: Lower limits to avoid hitting production quotas during testing
+      requestsPerMinute: isDevelopment ? 30 : 250,
+      requestsPerHour: isDevelopment ? 500 : 15000, // Pro plan = ~18k/hour theoretical max
+      burstSize: isDevelopment ? 5 : 20, // Allow bursts for multiple concurrent requests
     };
 
     this.tokens = this.config.burstSize;

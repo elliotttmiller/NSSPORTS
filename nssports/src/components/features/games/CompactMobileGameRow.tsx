@@ -1,5 +1,21 @@
 "use client";
 
+/**
+ * CompactMobileGameRow Component
+ * 
+ * ⭐ STRICTLY FOR UPCOMING GAMES ONLY ⭐
+ * 
+ * This component is specifically designed for displaying UPCOMING (not-yet-started) games.
+ * It should ONLY receive games with status === 'upcoming' from the /api/games/upcoming endpoint.
+ * 
+ * Key Features:
+ * - Displays pre-game odds and lines
+ * - Optimized for upcoming game information
+ * - No real-time streaming (not needed for upcoming games)
+ * 
+ * DO NOT use this component for live games - use LiveMobileGameRow instead.
+ */
+
 import { useState, useCallback, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { TeamLogo } from "./TeamLogo";
@@ -16,15 +32,21 @@ import { wouldBetCauseConflict } from "@/lib/betting-rules";
 function PropsDisplay({ game, expanded }: { game: Game; expanded: boolean }) {
   const [activeTab, setActiveTab] = useState<'player' | 'game'>('player');
   
+  // Determine if this is a live game for proper cache TTL
+  const isLiveGame = game.status === 'live';
+  
   // ⭐ PHASE 2 OPTIMIZATION: On-demand fetching - only fetch when card expanded AND tab active
+  // ⭐ LIVE/UPCOMING DIFFERENTIATION: Live games use 10s TTL + streaming, upcoming use 30s-120s
   const { data: playerProps = [], isLoading: playerPropsLoading } = usePlayerProps(
     game.id,
-    expanded && activeTab === 'player'
+    expanded && activeTab === 'player',
+    isLiveGame  // Pass live status for proper TTL
   );
   
   const { data: gameProps = {}, isLoading: gamePropsLoading } = useGameProps(
     game.id,
-    expanded && activeTab === 'game'
+    expanded && activeTab === 'game',
+    isLiveGame  // Pass live status for proper TTL
   );
 
   return (

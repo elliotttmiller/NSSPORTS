@@ -15,34 +15,61 @@ export type GamePropsMap = Record<string, GameProp[]>;
 /**
  * Fetch game props for a specific game
  * 
- * SMART CACHE STRATEGY INTEGRATION:
- * - Inherits smart TTL from hybrid-cache (30s/60s/120s based on game start time)
- * - Uses React Query staleTime that aligns with backend cache strategy
- * - 2-minute base stale time matches STANDARD window (games 24+ hours away)
- * - 10-minute garbage collection keeps data in memory
+ * SMART CACHE STRATEGY - SYNCHRONIZED FRONTEND + BACKEND (Pro Plan):
  * 
- * REAL-TIME STREAMING (NEW):
- * - Subscribes to WebSocket props updates when streaming enabled
- * - Automatically invalidates cache when props change via streaming
- * - <1s latency for props updates across all sports (NFL, NHL, NBA, MLB)
- * - Works globally with liveDataStore streaming architecture
+ * The real-time update system works via REST API polling synchronized with 
+ * backend smart cache TTL. React Query refetchInterval matches cache refresh rate.
  * 
- * OPTIMIZATION STRATEGY:
- * - Only enabled when explicitly requested (lazy loading)
- * - No refetch on window focus (prevent spam)
- * - No refetch on reconnect (props rarely change)
- * - Streaming invalidation ensures data stays fresh without polling
+ * SMART TTL STRATEGY (Dynamic based on game timing - Pro Plan):
+ * - Live games: 15s (React Query + backend cache) - Sub-minute updates
+ * - Critical (<1hr): 30s (synchronized frontend + backend)
+ * - Active (1-24hr): 45s (Pro plan optimization)
+ * - Standard (24hr+): 60s (Pro plan optimization)
+ * 
+ * Pro Plan: REST API polling only (no WebSocket streaming)
+ * - 300 requests/minute rate limit
+ * - Sub-minute update frequency via smart polling
  */
-export function useGameProps(gameId: string, enabled: boolean = true) {
+export function useGameProps(
+  gameId: string, 
+  enabled: boolean = true,
+  isLiveGame?: boolean,  // Live status from component
+  gameStartTime?: string | Date  // Game start time for smart TTL calculation
+) {
   const queryClient = useQueryClient();
   
-  // Subscribe to real-time props streaming updates
-  // Automatically invalidates cache when props change via WebSocket
+  // WebSocket streaming for instant invalidation (enhances smart TTL system)
   usePropsStream(gameId, () => {
-    // Invalidate game props cache for this game
-    // React Query will refetch on next access
     queryClient.invalidateQueries({ queryKey: ['gameProps', gameId] });
   });
+  
+  // ⭐ CALCULATE SMART STALE TIME - Must match backend cache TTL!
+  const calculateSmartStaleTime = (): number => {
+    // Live games: 15s (Pro plan sub-minute updates)
+    if (isLiveGame) {
+      return 15 * 1000;
+    }
+    
+    // For upcoming games: Calculate based on time until start
+    if (gameStartTime) {
+      const now = new Date();
+      const startTime = new Date(gameStartTime);
+      const hoursUntilStart = (startTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+      
+      if (hoursUntilStart < 1) {
+        return 30 * 1000;  // Critical: <1hr to start
+      } else if (hoursUntilStart < 24) {
+        return 45 * 1000;  // Active: 1-24hr to start (Pro plan)
+      } else {
+        return 60 * 1000; // Standard: 24hr+ to start (Pro plan)
+      }
+    }
+    
+    // Fallback: Use standard TTL if timing unknown
+    return 60 * 1000;
+  };
+  
+  const staleTime = calculateSmartStaleTime();
   
   return useQuery({
     queryKey: ['gameProps', gameId],
@@ -55,9 +82,11 @@ export function useGameProps(gameId: string, enabled: boolean = true) {
       return data.data as GamePropsMap;
     },
     enabled,
-    staleTime: 2 * 60 * 1000,     // 2 minutes (aligns with STANDARD cache window)
+    staleTime,                    // Dynamic: 15s for live, 60s for upcoming (Pro plan)
+    refetchInterval: staleTime,   // Active polling matches staleTime (Pro plan REST polling)
+    refetchIntervalInBackground: true, // Continue polling in background
     gcTime: 10 * 60 * 1000,       // 10 minutes (keep in memory longer)
     refetchOnWindowFocus: false,  // Prevent spam on tab switching
-    refetchOnReconnect: false,    // Props rarely change, streaming handles updates
+    refetchOnReconnect: false,    // REST polling handles updates
   });
 }

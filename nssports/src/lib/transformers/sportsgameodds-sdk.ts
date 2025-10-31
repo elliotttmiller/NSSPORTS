@@ -315,8 +315,15 @@ interface SDKEvent {
   };
   commence?: string;
   startTime?: string;
+  // Official SDK status fields per documentation: https://sportsgameodds.com/docs/explorer
+  status?: {
+    live?: boolean;
+    started?: boolean;
+    completed?: boolean;
+    cancelled?: boolean;
+  };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  activity?: any; // Can be string or Activity object from SDK
+  activity?: any; // Legacy field - use status instead
   venue?: string;
   scores?: {
     home?: number | null;
@@ -394,13 +401,52 @@ function extractOdds(event: SDKEvent) {
     
     const data = oddData as Record<string, unknown>;
     
-    // Use fairOdds (consensus) as recommended by API docs, fallback to bookOdds
+    // OFFICIAL CONSENSUS ALGORITHM IMPLEMENTATION
+    // Per: https://sportsgameodds.com/docs/info/consensus-odds
+    
+    // Step 1: Check if fair/book odds calculations were successful
+    // (Reserved for future use - may want to show unavailable odds differently)
+    const _fairOddsAvailable = data.fairOddsAvailable === true;
+    const _bookOddsAvailable = data.bookOddsAvailable === true;
+    
+    // Step 2: Extract odds values (prefer fair, fallback to book)
     const oddsValue = data.fairOdds || data.bookOdds;
     
-    // For spreads use fairSpread/bookSpread
-    // For totals use fairOverUnder/bookOverUnder
-    const spreadValue = data.fairSpread || data.bookSpread;
-    const totalValue = data.fairOverUnder || data.bookOverUnder;
+    // Step 3: Extract line values (spread or total)
+    // CRITICAL: Per official docs, fair calculation excludes zero spreads
+    // "Only positive lines are considered for over-unders and non-zero lines are considered for spreads"
+    // If fairSpread is 0, it means the algorithm couldn't find a valid non-zero line
+    // In this case, we MUST use bookSpread (which has the actual consensus main line)
+    let spreadValue: string | number | undefined;
+    if (data.fairSpread !== undefined && data.fairSpread !== null) {
+      const parsed = parseFloat(String(data.fairSpread));
+      // Use fairSpread ONLY if it's non-zero (per official algorithm)
+      // Zero means fair calculation excluded it, so use book consensus instead
+      if (!isNaN(parsed) && parsed !== 0) {
+        spreadValue = data.fairSpread as string | number;
+      } else {
+        // Fair calculation returned 0 (excluded zero lines), use book consensus
+        spreadValue = data.bookSpread as string | number | undefined;
+      }
+    } else {
+      spreadValue = data.bookSpread as string | number | undefined;
+    }
+    
+    // Same logic for totals (over/under)
+    // Per docs: "Only positive lines are considered for over-unders"
+    let totalValue: string | number | undefined;
+    if (data.fairOverUnder !== undefined && data.fairOverUnder !== null) {
+      const parsed = parseFloat(String(data.fairOverUnder));
+      // Use fairOverUnder only if positive (per official algorithm)
+      if (!isNaN(parsed) && parsed > 0) {
+        totalValue = data.fairOverUnder as string | number;
+      } else {
+        totalValue = data.bookOverUnder as string | number | undefined;
+      }
+    } else {
+      totalValue = data.bookOverUnder as string | number | undefined;
+    }
+    
     const lineValue = spreadValue || totalValue;
     
     if (!oddsValue) return null;
@@ -471,26 +517,87 @@ function extractOdds(event: SDKEvent) {
 /**
  * Map SDK status to our internal status
  */
+/**
+ * Map SDK status fields to our internal status
+ * 
+ * STRATEGY: Hybrid approach for maximum reliability
+ * 1. Primary: Use official SDK status fields (live, completed, cancelled)
+ * 2. Validation: Time-based sanity check to catch SDK errors
+ * 3. Fallback: Pure time-based logic if SDK status missing
+ * 
+ * TIME-BASED RULES (Applied for validation and fallback):
+ * - startTime > now → "upcoming"
+ * - startTime within last 4 hours → "live" (games typically last 2-3 hours)
+ * - startTime > 4 hours ago → "finished"
+ * 
+ * Per SDK documentation: https://sportsgameodds.com/docs/explorer
+ */
 function mapStatus(
-  activity: string | undefined,
+  sdkStatus: { live?: boolean; started?: boolean; completed?: boolean; cancelled?: boolean } | undefined,
   startTime: Date
 ): "upcoming" | "live" | "finished" {
-  // SDK uses "activity" field
-  if (activity === "in_progress" || activity === "live") return "live";
-  if (activity === "final" || activity === "finished") return "finished";
-  if (activity === "scheduled") {
-    // Check if game should have started
-    const now = new Date();
-    return startTime > now ? "upcoming" : "live";
+  const now = new Date();
+  const gameTime = new Date(startTime);
+  const fourHoursAgo = new Date(now.getTime() - 4 * 60 * 60 * 1000);
+  
+  // Calculate time-based status (used for validation and fallback)
+  let timeBasedStatus: "upcoming" | "live" | "finished";
+  if (gameTime > now) {
+    timeBasedStatus = "upcoming";
+  } else if (gameTime > fourHoursAgo) {
+    timeBasedStatus = "live";
+  } else {
+    timeBasedStatus = "finished";
   }
   
-  // Default based on time
-  const now = new Date();
-  if (startTime > now) return "upcoming";
+  // If SDK status exists, use it BUT validate with time
+  if (sdkStatus) {
+    // SDK says game is live
+    if (sdkStatus.live === true) {
+      // Sanity check: Game can't be live if it hasn't started yet
+      if (timeBasedStatus === "upcoming") {
+        logger.warn(`SDK reports live but game hasn't started yet. Using time-based status.`, {
+          startTime: gameTime.toISOString(),
+          sdkLive: true,
+          timeBasedStatus
+        });
+        return timeBasedStatus;
+      }
+      return "live";
+    }
+    
+    // SDK says game started (but not explicitly live)
+    if (sdkStatus.started === true && !sdkStatus.completed && !sdkStatus.cancelled) {
+      // Sanity check: Started game can't be upcoming
+      if (timeBasedStatus === "upcoming") {
+        logger.warn(`SDK reports started but game hasn't started yet. Using time-based status.`, {
+          startTime: gameTime.toISOString(),
+          sdkStarted: true,
+          timeBasedStatus
+        });
+        return timeBasedStatus;
+      }
+      return "live";
+    }
+    
+    // SDK says game is completed or cancelled
+    if (sdkStatus.completed === true || sdkStatus.cancelled === true) {
+      // Sanity check: Can't be completed if it hasn't started
+      if (timeBasedStatus === "upcoming") {
+        logger.warn(`SDK reports completed/cancelled but game hasn't started yet. Using time-based status.`, {
+          startTime: gameTime.toISOString(),
+          sdkCompleted: sdkStatus.completed,
+          sdkCancelled: sdkStatus.cancelled,
+          timeBasedStatus
+        });
+        return timeBasedStatus;
+      }
+      return "finished";
+    }
+  }
   
-  // If game started within last 4 hours, consider it live
-  const fourHoursAgo = new Date(now.getTime() - 4 * 60 * 60 * 1000);
-  return startTime > fourHoursAgo ? "live" : "finished";
+  // Fallback: No SDK status or SDK status unclear, use pure time-based logic
+  return timeBasedStatus;
 }
 
 /**
@@ -522,8 +629,8 @@ export function transformSDKEvent(event: SDKEvent): GamePayload | null {
     // Parse start time
     const startDateTime = new Date(startTime);
     
-    // Determine game status
-    const status = mapStatus(event.activity, startDateTime);
+    // Determine game status using official SDK status fields
+    const status = mapStatus(event.status, startDateTime);
 
     // Extract odds
     const odds = extractOdds(event);
@@ -561,25 +668,18 @@ export function transformSDKEvent(event: SDKEvent): GamePayload | null {
 }
 
 /**
- * Transform multiple SDK events, filtering out any that fail transformation
+ * Transform multiple SDK events, filtering out only those that fail transformation
+ * 
+ * IMPORTANT: This transformer is used by ALL endpoints:
+ * - /api/games (all games: upcoming + live + recent finished)
+ * - /api/games/[leagueId] (league-specific games)
+ * - /api/games/live (live games only - filtered by endpoint)
+ * 
+ * The transformer should NOT filter by time or status - let endpoints handle that.
+ * We only filter out events that fail transformation (null results).
  */
 export function transformSDKEvents(events: SDKEvent[]): GamePayload[] {
-  // Include both upcoming and live games
-  const now = new Date();
-  const fourHoursAgo = new Date(now.getTime() - 4 * 60 * 60 * 1000);
-  
   return events
-    .filter(e => {
-      try {
-        const time = e.commence || e.startTime;
-        if (!time) return false;
-        const startTime = new Date(time);
-        // Include games that are upcoming or started within the last 4 hours
-        return startTime > fourHoursAgo;
-      } catch {
-        return true; // Include if we can't parse the time
-      }
-    })
     .map(transformSDKEvent)
     .filter((game): game is GamePayload => game !== null);
 }

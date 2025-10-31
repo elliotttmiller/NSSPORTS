@@ -12,12 +12,12 @@ import { useSession } from "next-auth/react";
 import { useBetHistory } from "@/context";
 import { useAccount } from "@/hooks/useAccount";
 import { formatCurrency } from "@/lib/formatters";
-import { useLiveMatches, useIsLoading, useError } from "@/hooks/useStableLiveData";
 import { useLiveDataStore } from "@/store/liveDataStore";
 import { useGameTransitions } from "@/hooks/useGameTransitions";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import type { Session } from "next-auth";
+import type { Game } from "@/types";
 
 export default function Home() {
   const { data: session } = useSession();
@@ -32,25 +32,64 @@ function AuthenticatedHomePage({ session }: { session: Session }) {
   const { placedBets } = useBetHistory();
   const activeBetsCount = (placedBets || []).filter(b => b.status === 'pending').length;
   
-  // Subscribe to live data store
-  const liveMatches = useLiveMatches();
-  const isDataLoading = useIsLoading();
-  const error = useError();
+  // ⭐ Fetch live games from dedicated /api/games/live endpoint
+  const [liveGamesData, setLiveGamesData] = useState<Game[]>([]);
+  const [isDataLoading, setIsDataLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
-  // ⭐ PHASE 4: WebSocket Streaming for Real-Time Odds Updates
-  // GLOBAL: Streams ALL live games across all sports (NBA, NFL, NHL, etc.)
+  // Fetch live games on mount
+  const fetchLiveGames = useCallback(async () => {
+    setIsDataLoading(true);
+    setError(null);
+    try {
+      console.log('[HomePage] Fetching live games from /api/games/live...');
+      const response = await fetch('/api/games/live');
+      if (!response.ok) {
+        throw new Error(`Failed to fetch: ${response.status}`);
+      }
+      const json = await response.json();
+      const games = Array.isArray(json.data) ? json.data : [];
+      console.log(`[HomePage] Fetched ${games.length} live games for trending section`);
+      setLiveGamesData(games);
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Failed to fetch live games';
+      console.error('[HomePage] Error:', errorMsg);
+      setError(errorMsg);
+    } finally {
+      setIsDataLoading(false);
+    }
+  }, []);
+  
+  useEffect(() => {
+    fetchLiveGames();
+  }, [fetchLiveGames]);
+  
+  // ⭐ Auto-refresh live games every 30 seconds to catch new live games
+  useEffect(() => {
+    const interval = setInterval(() => {
+      console.log('[HomePage] Auto-refreshing live games...');
+      fetchLiveGames();
+    }, 30000); // 30 seconds
+    
+    return () => clearInterval(interval);
+  }, [fetchLiveGames]);
+  
+  // OPTIONAL ENHANCEMENT: WebSocket streaming for instant updates
+  // - When enabled: <1s update latency via 'events:live' feed
+  // - When disabled: Smart cache system still provides real-time data (10s TTL for live games)
+  // - Reality: System works perfectly either way, streaming is optimization for premium UX
   const enableStreaming = useLiveDataStore((state) => state.enableStreaming);
   const disableStreaming = useLiveDataStore((state) => state.disableStreaming);
   const streamingEnabled = useLiveDataStore((state) => state.streamingEnabled);
   
   // ⭐ Game Transition Hook: Monitor status changes
   // Automatically filter out games that transition to 'finished'
-  const { shouldShowInCurrentContext } = useGameTransitions(liveMatches, 'live');
+  const { shouldShowInCurrentContext } = useGameTransitions(liveGamesData, 'live');
   
   // Filter to only show truly live games (not upcoming, not finished)
   const filteredLiveGames = useMemo(() => {
-    return liveMatches.filter(game => shouldShowInCurrentContext(game, 'live'));
-  }, [liveMatches, shouldShowInCurrentContext]);
+    return liveGamesData.filter(game => shouldShowInCurrentContext(game, 'live'));
+  }, [liveGamesData, shouldShowInCurrentContext]);
   
   // API-driven account stats
   const { data: account, isLoading: accountLoading } = useAccount();
@@ -62,13 +101,14 @@ function AuthenticatedHomePage({ session }: { session: Session }) {
   const [isComponentReady, setIsComponentReady] = useState(false);
   const [showTimeout, setShowTimeout] = useState(false);
   
-  // Enable streaming when live games are present
+  // OPTIONAL: Enable WebSocket streaming for <1s latency (smart cache still works without this)
   useEffect(() => {
-    const liveGamesCount = filteredLiveGames.filter(g => g.status === 'live').length;
+    const liveGamesCount = filteredLiveGames.length;
     
     if (liveGamesCount > 0 && !streamingEnabled && typeof enableStreaming === 'function') {
-      console.log('[HomePage] Enabling real-time streaming for', liveGamesCount, 'live games');
-      enableStreaming(); // GLOBAL: No sport parameter needed
+      console.log('[HomePage] Enabling WebSocket streaming for', liveGamesCount, 'live games');
+      console.log('[HomePage] Note: Smart cache (10s TTL) is primary system, streaming enhances it');
+      enableStreaming(); // Connects to 'events:live' feed (all sports)
     }
     
     // Cleanup: disable streaming when component unmounts
@@ -79,7 +119,7 @@ function AuthenticatedHomePage({ session }: { session: Session }) {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredLiveGames, streamingEnabled]); // Zustand functions are stable
+  }, [filteredLiveGames.length, streamingEnabled]); // Zustand functions are stable
 
   // Smart loading with timeout fallback
   useEffect(() => {

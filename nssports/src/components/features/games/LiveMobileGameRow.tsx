@@ -1,5 +1,21 @@
 "use client";
 
+/**
+ * LiveMobileGameRow Component
+ * 
+ * ⭐ STRICTLY FOR LIVE GAMES ONLY ⭐
+ * 
+ * This component is specifically designed for displaying LIVE (in-progress) games.
+ * It should ONLY receive games with status === 'live' from the /api/games/live endpoint.
+ * 
+ * Key Features:
+ * - Real-time odds updates via WebSocket streaming
+ * - Live game indicators and status
+ * - Optimized for rapidly changing odds during live games
+ * 
+ * DO NOT use this component for upcoming games - use CompactMobileGameRow instead.
+ */
+
 import { useState, useCallback, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { TeamLogo } from "./TeamLogo";
@@ -16,15 +32,23 @@ import { wouldBetCauseConflict } from "@/lib/betting-rules";
 function PropsDisplay({ game, expanded }: { game: Game; expanded: boolean }) {
   const [activeTab, setActiveTab] = useState<'player' | 'game'>('player');
   
-  // ⭐ PHASE 2 OPTIMIZATION: On-demand fetching - only fetch when card expanded AND tab active
+  // Determine if this is a live game for proper cache TTL
+  const isLiveGame = game.status === 'live';
+  
+  // ⭐ SMART CACHE STRATEGY: Pass game timing to sync frontend/backend TTL
+  // Live games: 10s refetch, Critical (<1hr): 30s, Active (1-24hr): 60s, Standard (24hr+): 120s
   const { data: playerProps = [], isLoading: playerPropsLoading } = usePlayerProps(
     game.id,
-    expanded && activeTab === 'player'
+    expanded && activeTab === 'player',
+    isLiveGame,      // Live status for smart TTL
+    game.startTime   // Start time for smart TTL calculation
   );
   
   const { data: gameProps = {}, isLoading: gamePropsLoading } = useGameProps(
     game.id,
-    expanded && activeTab === 'game'
+    expanded && activeTab === 'game',
+    isLiveGame,      // Live status for smart TTL
+    game.startTime   // Start time for smart TTL calculation
   );
 
   return (
