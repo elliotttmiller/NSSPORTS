@@ -43,11 +43,28 @@ export function BetSlipPanel() {
     }, {} as { [betId: string]: number });
 
     const validationType = betSlip.betType === "custom" ? "parlay" : betSlip.betType;
+    // Validate teaserType to ensure it matches TeaserType
+    const validTeaserTypes = [
+      "2T_TEASER",
+      "3T_SUPER_TEASER",
+      "3T_TEASER",
+      "4T_MONSTER_TEASER",
+      "4T_TEASER",
+      "5T_TEASER",
+      "6T_TEASER",
+      "7T_TEASER",
+      "8T_TEASER"
+    ];
+    const teaserType =
+      betSlip.betType === "teaser" &&
+      validTeaserTypes.includes(betSlip.teaserType as string)
+        ? (betSlip.teaserType as import("@/types/teaser").TeaserType)
+        : undefined;
     const violation = validateBetPlacement(
       betSlip.bets, 
       validationType, 
       stakes,
-      betSlip.betType === "teaser" ? betSlip.teaserType : undefined
+      teaserType
     );
     if (violation) {
       toast.error(violation.message, {

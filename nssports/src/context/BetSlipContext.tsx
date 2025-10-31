@@ -13,8 +13,7 @@ import { calculatePayout } from "@/services/api";
 import { validateBetAddition } from "@/lib/betting-rules";
 import { 
   getTeaserConfig, 
-  calculateTeaserPayout,
-  calculateAdjustedLine 
+  calculateTeaserPayout
 } from "@/types/teaser";
 import { toast } from "sonner";
 

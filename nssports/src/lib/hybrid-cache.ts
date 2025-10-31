@@ -596,20 +596,51 @@ async function updatePlayerPropsCache(gameId: string, props: any[]) {
         continue;
       }
       
+      // Skip if player doesn't have a valid teamID
+      if (!prop.player.teamID) {
+        logger.warn(`Skipping player prop with no teamID for game ${gameId}:`, {
+          player: prop.player.name,
+          playerId: prop.player.playerID
+        });
+        continue;
+      }
+      
+      // Ensure team exists first
+      try {
+        await prisma.team.upsert({
+          where: { id: prop.player.teamID },
+          update: {},
+          create: {
+            id: prop.player.teamID,
+            name: prop.player.teamID, // Use teamID as name if we don't have the actual name
+            shortName: prop.player.teamID,
+            logo: '', // Empty logo for now
+          },
+        });
+      } catch (teamError) {
+        logger.warn(`Failed to upsert team ${prop.player.teamID}, skipping player`, { error: teamError });
+        continue;
+      }
+      
       // Ensure player exists
-      await prisma.player.upsert({
-        where: { id: prop.player.playerID },
-        update: {
-          name: prop.player.name,
-          position: prop.player.position || 'N/A',
-        },
-        create: {
-          id: prop.player.playerID,
-          name: prop.player.name,
-          teamId: prop.player.teamID || 'unknown',
-          position: prop.player.position || 'N/A',
-        },
-      });
+      try {
+        await prisma.player.upsert({
+          where: { id: prop.player.playerID },
+          update: {
+            name: prop.player.name,
+            position: prop.player.position || 'N/A',
+          },
+          create: {
+            id: prop.player.playerID,
+            name: prop.player.name,
+            teamId: prop.player.teamID,
+            position: prop.player.position || 'N/A',
+          },
+        });
+      } catch (playerError) {
+        logger.warn(`Failed to upsert player ${prop.player.name}, skipping prop`, { error: playerError });
+        continue;
+      }
       
       propsToCreate.push({
         gameId,

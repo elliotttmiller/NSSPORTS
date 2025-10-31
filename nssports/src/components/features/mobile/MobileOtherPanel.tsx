@@ -132,17 +132,6 @@ export function MobileOtherPanel() {
                   </button>
                 ))}
               </div>
-
-              {/* Info Section */}
-              <div className="p-4 border-t border-border mt-4">
-                <div className="text-xs text-muted-foreground">
-                  <p className="font-medium mb-2">About These Bet Types</p>
-                  <p className="leading-relaxed">
-                    Advanced betting options provide more ways to structure your wagers. 
-                    Each type will be implemented and integrated professionally with full validation and industry-standard rules.
-                  </p>
-                </div>
-              </div>
             </div>
           </motion.div>
         </>
