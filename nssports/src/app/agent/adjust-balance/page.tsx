@@ -117,10 +117,7 @@ export default function AdjustBalancePage() {
       newErrors.amount = "Please enter a valid amount greater than 0";
     }
 
-    // Reason is optional, but if provided, must be at least 10 characters
-    if (formData.reason.trim() && formData.reason.trim().length < 10) {
-      newErrors.reason = "Reason must be at least 10 characters if provided";
-    }
+    // Reason is optional with no validation rules
 
     // Check if withdrawal exceeds balance
     if (formData.adjustmentType === "withdrawal" && selectedPlayer) {

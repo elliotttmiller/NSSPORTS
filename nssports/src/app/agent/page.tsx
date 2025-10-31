@@ -6,8 +6,7 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { 
   Users, 
-  CurrencyDollar, 
-  ChartBar, 
+  CurrencyDollar,  
   UserPlus,
   ArrowsClockwise
 } from "@phosphor-icons/react";
@@ -122,36 +121,7 @@ export default function AgentDashboard() {
         animate={{ opacity: 1, y: 0 }}
         className="bg-card border-b border-border p-6"
       >
-        <h1 className="text-2xl font-bold text-foreground mb-4">Agent Dashboard</h1>
-
-        {/* Quick Stats */}
-        <div className="grid grid-cols-2 gap-3">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.1 }}
-            className="bg-accent/5 border border-accent/10 rounded-lg p-4"
-          >
-            <div className="flex items-center gap-2 mb-2">
-              <Users size={20} weight="bold" className="text-accent" />
-              <span className="text-xs font-medium text-muted-foreground">Total Players</span>
-            </div>
-            <div className="text-2xl font-bold text-foreground">0</div>
-          </motion.div>
-
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.2 }}
-            className="bg-accent/5 border border-accent/10 rounded-lg p-4"
-          >
-            <div className="flex items-center gap-2 mb-2">
-              <ChartBar size={20} weight="bold" className="text-accent" />
-              <span className="text-xs font-medium text-muted-foreground">Active Today</span>
-            </div>
-            <div className="text-2xl font-bold text-foreground">0</div>
-          </motion.div>
-        </div>
+        <h1 className="text-2xl font-bold text-foreground">Agent Dashboard</h1>
       </motion.div>
 
       {/* Main Content */}
