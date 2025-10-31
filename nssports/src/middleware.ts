@@ -98,6 +98,22 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
+  // 🔐 ROLE-BASED ACCESS CONTROL
+  const isAgent = session.user.isAgent || session.user.isAdmin;
+  const isAgentRoute = pathname.startsWith('/agent');
+  
+  // Agents should only access /agent routes
+  if (isAgent && !isAgentRoute && !pathname.startsWith('/api/') && pathname !== '/auth/login') {
+    console.log('[Middleware] Agent trying to access player route, redirecting to /agent');
+    return NextResponse.redirect(new URL('/agent', request.url));
+  }
+  
+  // Players cannot access /agent routes
+  if (!isAgent && isAgentRoute) {
+    console.log('[Middleware] Player trying to access agent route, redirecting to /');
+    return NextResponse.redirect(new URL('/', request.url));
+  }
+
   // User is authenticated - allow access
   // Get origin from request
   const origin = request.headers.get('origin');

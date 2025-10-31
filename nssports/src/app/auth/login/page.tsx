@@ -31,6 +31,7 @@ function LoginForm() {
   const { update, data: session, status: sessionStatus } = useSession();
   const callbackUrl = searchParams.get("callbackUrl") || "/";
   const [isRedirecting, setIsRedirecting] = useState(false);
+  const [loginType, setLoginType] = useState<"player" | "agent">("player");
   
   const [state, formAction] = useActionState<LoginState, FormData>(
     loginAction,
@@ -41,16 +42,31 @@ function LoginForm() {
   useEffect(() => {
     if (isRedirecting && sessionStatus === 'authenticated' && session?.user) {
       console.log('[Login] ✅ Session authenticated, ready to navigate');
+      
+      // Determine redirect based on user role
+      let redirectUrl = callbackUrl;
+      
+      // If user is agent/admin and logged in via agent button, redirect to agent dashboard
+      if (loginType === "agent" && (session.user.isAgent || session.user.isAdmin)) {
+        redirectUrl = "/agent";
+        console.log('[Login] Agent/Admin detected, redirecting to agent dashboard');
+      }
+      // If user is regular player, redirect to main app
+      else if (!session.user.isAgent && !session.user.isAdmin) {
+        redirectUrl = callbackUrl === "/agent" ? "/" : callbackUrl;
+        console.log('[Login] Player detected, redirecting to main app');
+      }
+      
       // Session is now confirmed - proceed with navigation
       setTimeout(() => {
-        console.log('[Login] Navigating to:', callbackUrl);
-        router.push(callbackUrl);
+        console.log('[Login] Navigating to:', redirectUrl);
+        router.push(redirectUrl);
         setTimeout(() => {
           router.refresh();
         }, 100);
       }, 200);
     }
-  }, [isRedirecting, sessionStatus, session, callbackUrl, router]);
+  }, [isRedirecting, sessionStatus, session, callbackUrl, router, loginType]);
 
   // Show toast notifications and handle redirect
   useEffect(() => {
@@ -138,7 +154,34 @@ function LoginForm() {
           </p>
         </div>
 
+        {/* Agent/Player Toggle */}
+        <div className="flex gap-2 mb-6">
+          <button
+            type="button"
+            onClick={() => setLoginType("player")}
+            className={`flex-1 py-2 px-4 rounded-lg font-medium transition-all duration-200 ${
+              loginType === "player"
+                ? "bg-accent text-accent-foreground shadow-md"
+                : "bg-background border border-border text-muted-foreground hover:border-accent/30"
+            }`}
+          >
+            Player Login
+          </button>
+          <button
+            type="button"
+            onClick={() => setLoginType("agent")}
+            className={`flex-1 py-2 px-4 rounded-lg font-medium transition-all duration-200 ${
+              loginType === "agent"
+                ? "bg-blue-500 text-white shadow-md"
+                : "bg-background border border-border text-muted-foreground hover:border-blue-500/30"
+            }`}
+          >
+            Agent Login
+          </button>
+        </div>
+
         <form action={formAction} className="space-y-4">
+          <input type="hidden" name="loginType" value={loginType} />
           <div>
             <label htmlFor="username" className="block text-sm font-medium text-foreground mb-2">
               Username

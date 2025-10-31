@@ -9,17 +9,37 @@ datasource db {
 }
 
 model User {
-  id        String    @id @default(cuid())
-  username  String    @unique
-  password  String
-  name      String?
-  image     String?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  account   Account?
-  bets      Bet[]
+  id               String    @id @default(cuid())
+  username         String    @unique
+  password         String
+  name             String?
+  image            String?
+  // Admin/Agent Role System
+  userType         String    @default("player") // 'player', 'agent', 'client_admin', 'platform_admin'
+  tenantId         String?   // For multi-tenant support (client association)
+  parentAgentId    String?   // For agent hierarchy
+  createdBy        String?   // Which admin/agent created this user
+  isActive         Boolean   @default(true)
+  lastLogin        DateTime?
+  loginAttempts    Int       @default(0)
+  accountLockedUntil DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  account          Account?
+  bets             Bet[]
+  // Agent relationships
+  registeredPlayers User[]  @relation("AgentPlayers")
+  agent            User?    @relation("AgentPlayers", fields: [parentAgentId], references: [id])
+  agentBalanceAdjustments BalanceAdjustment[] @relation("AgentAdjustments")
+  playerBalanceAdjustments BalanceAdjustment[] @relation("PlayerAdjustments")
+  auditLogs        AuditLog[] @relation("UserActions")
+  targetAuditLogs  AuditLog[] @relation("TargetUser")
 
   @@index([username])
+  @@index([userType])
+  @@index([tenantId])
+  @@index([parentAgentId])
+  @@index([isActive])
   @@map("users")
 }
 
@@ -190,4 +210,51 @@ model GameProp {
   @@index([gameId])
   @@index([propType])
   @@map("game_props")
+}
+
+// Agent/Admin System Models
+
+model BalanceAdjustment {
+  id              String   @id @default(cuid())
+  tenantId        String?
+  playerId        String   // User being adjusted
+  agentId         String   // Agent/Admin performing adjustment
+  adjustmentType  String   // 'deposit', 'withdrawal', 'correction'
+  amount          Float
+  previousBalance Float
+  newBalance      Float
+  reason          String
+  ipAddress       String?
+  createdAt       DateTime @default(now())
+  player          User     @relation("PlayerAdjustments", fields: [playerId], references: [id], onDelete: Cascade)
+  agent           User     @relation("AgentAdjustments", fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@index([playerId])
+  @@index([agentId])
+  @@index([tenantId])
+  @@index([createdAt])
+  @@map("balance_adjustments")
+}
+
+model AuditLog {
+  id            String   @id @default(cuid())
+  tenantId      String?
+  userId        String   // Who performed the action
+  actionType    String   // 'player_registered', 'balance_adjusted', 'agent_created', etc.
+  targetUserId  String?  // Affected user (if applicable)
+  oldValue      String?
+  newValue      String?
+  ipAddress     String?
+  userAgent     String?
+  metadata      Json?    // Additional context
+  createdAt     DateTime @default(now())
+  user          User     @relation("UserActions", fields: [userId], references: [id], onDelete: Cascade)
+  targetUser    User?    @relation("TargetUser", fields: [targetUserId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([targetUserId])
+  @@index([tenantId])
+  @@index([actionType])
+  @@index([createdAt])
+  @@map("audit_logs")
 }
