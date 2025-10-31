@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
@@ -9,12 +9,31 @@ import {
   CurrencyDollar, 
   ChartBar, 
   UserPlus,
-  Eye,
-  ArrowsClockwise,
-  CheckCircle
+  ArrowsClockwise
 } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui";
+
+// Types for the API response
+interface AgentUser {
+  id: string;
+  username: string;
+  name: string | null;
+  balance: number;
+  lastBalanceUpdate: string | null;
+  createdAt: string;
+  lastLogin: string | null;
+  isActive: boolean;
+}
+
+interface AgentUsersResponse {
+  users: AgentUser[];
+  summary: {
+    totalUsers: number;
+    totalBalance: number;
+    activeUsers: number;
+  };
+}
 
 /**
  * Agent Dashboard - Mobile-First Design
@@ -30,6 +49,35 @@ export default function AgentDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
+  const [agentUsers, setAgentUsers] = useState<AgentUser[]>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [usersSummary, setUsersSummary] = useState({
+    totalUsers: 0,
+    totalBalance: 0,
+    activeUsers: 0,
+  });
+
+  // Fetch agent users
+  const fetchAgentUsers = useCallback(async () => {
+    if (!session?.user?.isAgent && !session?.user?.isAdmin) return;
+    
+    setUsersLoading(true);
+    try {
+      const response = await fetch('/api/agent/users');
+      if (response.ok) {
+        const result = await response.json();
+        const data: AgentUsersResponse = result.data;
+        setAgentUsers(data.users);
+        setUsersSummary(data.summary);
+      } else {
+        console.error('Failed to fetch agent users');
+      }
+    } catch (error) {
+      console.error('Error fetching agent users:', error);
+    } finally {
+      setUsersLoading(false);
+    }
+  }, [session?.user?.isAgent, session?.user?.isAdmin]);
 
   // Redirect non-agents
   useEffect(() => {
@@ -47,6 +95,13 @@ export default function AgentDashboard() {
 
     setIsLoading(false);
   }, [session, status, router]);
+
+  // Fetch users when component mounts and user is authenticated
+  useEffect(() => {
+    if (!isLoading && session?.user && (session.user.isAgent || session.user.isAdmin)) {
+      fetchAgentUsers();
+    }
+  }, [isLoading, session, fetchAgentUsers]);
 
   if (isLoading || status === "loading") {
     return (
@@ -67,15 +122,7 @@ export default function AgentDashboard() {
         animate={{ opacity: 1, y: 0 }}
         className="bg-card border-b border-border p-6"
       >
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Agent Dashboard</h1>
-            <p className="text-muted-foreground text-sm">Welcome, {session?.user?.username}</p>
-          </div>
-          <Badge className="bg-accent/10 text-accent border-accent/20 font-semibold">
-            {session?.user?.userType === 'client_admin' ? 'ADMIN' : 'AGENT'}
-          </Badge>
-        </div>
+        <h1 className="text-2xl font-bold text-foreground mb-4">Agent Dashboard</h1>
 
         {/* Quick Stats */}
         <div className="grid grid-cols-2 gap-3">
@@ -119,42 +166,24 @@ export default function AgentDashboard() {
           <h2 className="text-lg font-semibold text-foreground mb-4">Quick Actions</h2>
           <div className="grid grid-cols-2 gap-3">
             <Button 
-              className="h-auto py-4 flex flex-col items-center gap-2 bg-accent hover:bg-accent/90 text-accent-foreground"
+              className="h-auto py-2.5 flex items-center justify-center gap-2 bg-accent hover:bg-accent/90 text-accent-foreground"
               onClick={() => router.push("/agent/register-player")}
             >
-              <UserPlus size={24} weight="bold" />
+              <UserPlus size={20} weight="bold" />
               <span className="text-sm font-medium">Register Player</span>
             </Button>
 
             <Button 
-              className="h-auto py-4 flex flex-col items-center gap-2 bg-accent hover:bg-accent/90 text-accent-foreground"
+              className="h-auto py-2.5 flex items-center justify-center gap-2 bg-accent hover:bg-accent/90 text-accent-foreground"
               onClick={() => router.push("/agent/adjust-balance")}
             >
-              <CurrencyDollar size={24} weight="bold" />
+              <CurrencyDollar size={20} weight="bold" />
               <span className="text-sm font-medium">Adjust Balance</span>
-            </Button>
-
-            <Button 
-              variant="outline"
-              className="h-auto py-4 flex flex-col items-center gap-2"
-              onClick={() => router.push("/agent/players")}
-            >
-              <Eye size={24} weight="bold" />
-              <span className="text-sm font-medium">View Players</span>
-            </Button>
-
-            <Button 
-              variant="outline"
-              className="h-auto py-4 flex flex-col items-center gap-2"
-              onClick={() => router.push("/agent/reports")}
-            >
-              <ChartBar size={24} weight="bold" />
-              <span className="text-sm font-medium">Reports</span>
             </Button>
           </div>
         </motion.div>
 
-        {/* Recent Activity */}
+        {/* Agent Users List */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -162,73 +191,79 @@ export default function AgentDashboard() {
           className="bg-card border border-border rounded-xl p-4"
         >
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-foreground">Recent Activity</h2>
-            <Button variant="ghost" size="sm">
-              <ArrowsClockwise size={16} />
+            <h2 className="text-lg font-semibold text-foreground">Your Players</h2>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={fetchAgentUsers}
+              disabled={usersLoading}
+            >
+              <ArrowsClockwise 
+                size={16} 
+                className={usersLoading ? "animate-spin" : ""}
+              />
             </Button>
           </div>
 
-          {/* Empty State */}
-          <div className="text-center py-8">
-            <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-3">
-              <Users size={32} className="text-muted-foreground" />
+          {/* Users List or Empty State */}
+          {usersLoading && agentUsers.length === 0 ? (
+            <div className="text-center py-8">
+              <div className="w-16 h-16 border-4 border-accent border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+              <p className="text-sm text-muted-foreground">Loading players...</p>
             </div>
-            <p className="text-sm text-muted-foreground">No recent activity</p>
-            <p className="text-xs text-muted-foreground mt-1">Start by registering your first player</p>
-          </div>
-        </motion.div>
+          ) : agentUsers.length === 0 ? (
+            <div className="text-center py-8">
+              <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-3">
+                <Users size={32} className="text-muted-foreground" />
+              </div>
+              <p className="text-sm text-muted-foreground">No players registered</p>
+              <p className="text-xs text-muted-foreground mt-1">Start by registering your first player</p>
+            </div>
+          ) : (
+            <>
+              {/* Summary Stats */}
+              <div className="grid grid-cols-3 gap-2 mb-4 p-3 bg-accent/5 border border-accent/10 rounded-lg">
+                <div className="text-center">
+                  <div className="text-xs text-muted-foreground">Total Players</div>
+                  <div className="text-lg font-bold text-foreground">{usersSummary.totalUsers}</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-xs text-muted-foreground">Total Balance</div>
+                  <div className="text-lg font-bold text-accent">${usersSummary.totalBalance.toFixed(2)}</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-xs text-muted-foreground">Active (7d)</div>
+                  <div className="text-lg font-bold text-foreground">{usersSummary.activeUsers}</div>
+                </div>
+              </div>
 
-        {/* Daily Limits */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="bg-card border border-border rounded-xl p-4"
-        >
-          <h2 className="text-lg font-semibold text-foreground mb-4">Daily Limits</h2>
-          
-          <div className="space-y-3">
-            <div>
-              <div className="flex items-center justify-between text-sm mb-2">
-                <span className="text-muted-foreground">Balance Adjustments</span>
-                <span className="font-medium text-foreground">$0 / $5,000</span>
+              {/* Users List */}
+              <div className="space-y-2 max-h-96 overflow-y-auto">
+                {agentUsers.map((user) => (
+                  <div 
+                    key={user.id}
+                    className="flex items-center justify-between p-3 bg-background border border-border rounded-lg hover:border-accent/30 transition-colors"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium text-foreground truncate">
+                          {user.name || user.username}
+                        </p>
+                        {user.lastLogin && new Date().getTime() - new Date(user.lastLogin).getTime() < 7 * 24 * 60 * 60 * 1000 && (
+                          <Badge variant="secondary" className="text-xs py-0 px-1.5">Active</Badge>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground">@{user.username}</p>
+                    </div>
+                    <div className="text-right ml-4">
+                      <p className="text-sm font-bold text-accent">${user.balance.toFixed(2)}</p>
+                      <p className="text-xs text-muted-foreground">Balance</p>
+                    </div>
+                  </div>
+                ))}
               </div>
-              <div className="h-2 bg-muted rounded-full overflow-hidden">
-                <div className="h-full bg-accent rounded-full" style={{ width: "0%" }}></div>
-              </div>
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between text-sm mb-2">
-                <span className="text-muted-foreground">Max Single Adjustment</span>
-                <span className="font-medium text-foreground">$1,000</span>
-              </div>
-              <div className="flex items-center gap-2 text-xs text-accent">
-                <CheckCircle size={14} weight="fill" />
-                <span>Within limits</span>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* System Status */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-          className="bg-accent/10 border border-accent/30 rounded-xl p-4"
-        >
-          <div className="flex items-start gap-3">
-            <div className="w-10 h-10 bg-accent/20 rounded-full flex items-center justify-center shrink-0">
-              <CheckCircle size={20} weight="fill" className="text-accent" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-foreground mb-1">All Systems Operational</h3>
-              <p className="text-sm text-muted-foreground">
-                Your account is active and ready to manage players
-              </p>
-            </div>
-          </div>
+            </>
+          )}
         </motion.div>
       </div>
     </div>

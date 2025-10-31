@@ -174,14 +174,58 @@ export function BetSlipPanel() {
           });
         }
       } else {
-        // Handle single or parlay mode
-        await addPlacedBet(
-          betSlip.bets,
-          betSlip.betType,
-          betSlip.totalStake,
-          betSlip.totalPayout,
-          betSlip.totalOdds
-        );
+        // Handle single, parlay, or teaser mode
+        if (betSlip.betType === "teaser") {
+          // Construct teaser metadata with adjusted lines
+          const { getTeaserConfig, calculateAdjustedLine } = await import("@/types/teaser");
+          const config = getTeaserConfig(betSlip.teaserType as import("@/types/teaser").TeaserType);
+          
+          const adjustedLines: Record<string, number> = {};
+          const originalLines: Record<string, number> = {};
+          
+          betSlip.bets.forEach((bet) => {
+            if (bet.line !== undefined && bet.line !== null) {
+              originalLines[bet.id] = bet.line;
+              // Get the correct point adjustment for the league
+              const leagueId = bet.game?.leagueId?.toUpperCase();
+              const isNBA = leagueId === "NBA" || leagueId === "NCAAB";
+              const pointAdjustment = isNBA && config.nbaPointAdjustment 
+                ? config.nbaPointAdjustment 
+                : config.pointAdjustment;
+              
+              adjustedLines[bet.id] = calculateAdjustedLine(
+                bet.line,
+                bet.selection,
+                pointAdjustment,
+                bet.betType as "spread" | "total"
+              );
+            }
+          });
+          
+          await addPlacedBet(
+            betSlip.bets,
+            "teaser",
+            betSlip.totalStake,
+            betSlip.totalPayout,
+            betSlip.totalOdds,
+            betSlip.teaserType,
+            {
+              adjustedLines,
+              originalLines,
+              pointAdjustment: config.pointAdjustment,
+              pushRule: config.pushRule,
+            }
+          );
+        } else {
+          // Handle single or parlay mode
+          await addPlacedBet(
+            betSlip.bets,
+            betSlip.betType,
+            betSlip.totalStake,
+            betSlip.totalPayout,
+            betSlip.totalOdds
+          );
+        }
         clearBetSlip();
         const betTypeLabel = betSlip.betType === "parlay" ? "Parlay" : betSlip.betType === "teaser" ? "Teaser" : "Bet";
         toast.success(

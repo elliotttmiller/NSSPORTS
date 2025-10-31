@@ -159,7 +159,7 @@ function LoginForm() {
           <button
             type="button"
             onClick={() => setLoginType("player")}
-            className={`flex-1 py-2 px-4 rounded-lg font-medium transition-all duration-200 ${
+            className={`flex-1 py-1.5 px-3 rounded-lg font-medium text-sm transition-all duration-200 ${
               loginType === "player"
                 ? "bg-accent text-accent-foreground shadow-md"
                 : "bg-background border border-border text-muted-foreground hover:border-accent/30"
@@ -170,10 +170,10 @@ function LoginForm() {
           <button
             type="button"
             onClick={() => setLoginType("agent")}
-            className={`flex-1 py-2 px-4 rounded-lg font-medium transition-all duration-200 ${
+            className={`flex-1 py-1.5 px-3 rounded-lg font-medium text-sm transition-all duration-200 ${
               loginType === "agent"
-                ? "bg-blue-500 text-white shadow-md"
-                : "bg-background border border-border text-muted-foreground hover:border-blue-500/30"
+                ? "bg-accent text-accent-foreground shadow-md"
+                : "bg-background border border-border text-muted-foreground hover:border-accent/30"
             }`}
           >
             Agent Login

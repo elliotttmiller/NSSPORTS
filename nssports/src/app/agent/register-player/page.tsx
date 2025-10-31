@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { ArrowLeft, Eye, EyeSlash, CheckCircle, Warning } from "@phosphor-icons/react";
+import { ArrowLeft, Eye, EyeSlash, Warning } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui";
 import { toast } from "sonner";
@@ -27,7 +27,6 @@ export default function RegisterPlayerPage() {
     displayName: "",
     password: "",
     confirmPassword: "",
-    phoneNumber: "",
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -74,10 +73,6 @@ export default function RegisterPlayerPage() {
       newErrors.confirmPassword = "Passwords do not match";
     }
 
-    if (formData.phoneNumber && !/^\+?[\d\s-()]+$/.test(formData.phoneNumber)) {
-      newErrors.phoneNumber = "Invalid phone number format";
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -93,8 +88,24 @@ export default function RegisterPlayerPage() {
     setIsSubmitting(true);
 
     try {
-      // TODO: Replace with actual API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Call API to register player
+      const response = await fetch('/api/agent/register-player', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: formData.username,
+          displayName: formData.displayName,
+          password: formData.password,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to register player');
+      }
 
       toast.success("Player registered successfully!", {
         description: `Username: ${formData.username}`,
@@ -106,7 +117,6 @@ export default function RegisterPlayerPage() {
         displayName: "",
         password: "",
         confirmPassword: "",
-        phoneNumber: "",
       });
 
       // Navigate to players list after short delay
@@ -259,43 +269,6 @@ export default function RegisterPlayerPage() {
                 <span>{errors.confirmPassword}</span>
               </div>
             )}
-          </div>
-
-          {/* Phone Number (Optional) */}
-          <div className="bg-card border border-border rounded-xl p-4">
-            <label className="block text-sm font-medium text-foreground mb-2">
-              Phone Number <span className="text-muted-foreground text-xs">(Optional)</span>
-            </label>
-            <Input
-              type="tel"
-              value={formData.phoneNumber}
-              onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
-              placeholder="+1 (555) 123-4567"
-              className="w-full"
-              disabled={isSubmitting}
-            />
-            {errors.phoneNumber && (
-              <div className="flex items-center gap-2 mt-2 text-sm text-destructive">
-                <Warning size={14} weight="fill" />
-                <span>{errors.phoneNumber}</span>
-              </div>
-            )}
-          </div>
-
-          {/* Info Box */}
-          <div className="bg-accent/5 border border-accent/20 rounded-xl p-4">
-            <div className="flex items-start gap-3">
-              <CheckCircle size={20} weight="fill" className="text-accent shrink-0 mt-0.5" />
-              <div className="text-sm text-muted-foreground">
-                <p className="font-medium text-foreground mb-1">What happens next?</p>
-                <ul className="space-y-1 text-xs">
-                  <li>• Player account will be created under your agent ID</li>
-                  <li>• Player receives $1,000 starting balance</li>
-                  <li>• You can manage their balance and view activity</li>
-                  <li>• Player can login immediately with these credentials</li>
-                </ul>
-              </div>
-            </div>
           </div>
 
           {/* Submit Button */}

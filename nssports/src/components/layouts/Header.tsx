@@ -5,7 +5,7 @@ import { useRef, useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 import { User, X, SignIn } from "@phosphor-icons/react/dist/ssr";
-import { Button } from "@/components/ui";
+import { Button, Badge } from "@/components/ui";
 import { useAccount } from "@/hooks/useAccount";
 import Image from "next/image";
 import { useSession, signOut } from "next-auth/react";
@@ -57,10 +57,17 @@ function MobileAccountDropdown({ balance, available, risk, isAuthenticated, user
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-border">
               <div>
-                <h3 className="font-semibold text-foreground">Account</h3>
-                  {isAuthenticated && displayName && (
-                    <p className="text-xs text-muted-foreground mt-1">{displayName}</p>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-semibold text-foreground">Account</h3>
+                  {isAuthenticated && session?.user && (session.user.isAgent || session.user.isAdmin) && (
+                    <Badge className="bg-accent/10 text-accent border-accent/20 font-semibold text-[10px] px-1.5 py-0.5 h-4 leading-none">
+                      {session.user.userType === 'client_admin' ? 'ADMIN' : 'AGENT'}
+                    </Badge>
                   )}
+                </div>
+                {isAuthenticated && displayName && (
+                  <p className="text-xs text-muted-foreground mt-1">{displayName}</p>
+                )}
               </div>
               <Button
                 variant="ghost"
