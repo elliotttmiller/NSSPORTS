@@ -11,6 +11,8 @@ import { useIsMobile } from "@/hooks";
 import { formatOdds } from "@/lib/formatters";
 import { formatSelectionLabel } from "@/components/bets/BetCard";
 import { TeaserSelector } from "@/components/betting/TeaserSelector";
+import { getTeaserConfig, getPointAdjustment, calculateAdjustedLine } from "@/types/teaser";
+import type { TeaserType } from "@/types/teaser";
 import { toast } from "sonner";
 import type { Bet } from "@/types";
 import { MobileCustomBetSlipContent } from "./MobileCustomBetSlipContent";
@@ -156,13 +158,12 @@ export function MobileBetSlipPanel() {
         // Prepare teaser metadata if it's a teaser bet
         let teaserMetadata;
         if (betSlip.betType === "teaser" && betSlip.teaserType) {
-          const { getTeaserConfig, getPointAdjustment, calculateAdjustedLine } = await import("@/types/teaser");
-          const config = getTeaserConfig(betSlip.teaserType as import("@/types/teaser").TeaserType);
+          const config = getTeaserConfig(betSlip.teaserType as TeaserType);
           const adjustedLines: Record<string, number> = {};
           const originalLines: Record<string, number> = {};
           
           betSlip.bets.forEach(bet => {
-            const adjustment = getPointAdjustment(betSlip.teaserType as import("@/types/teaser").TeaserType, bet.game.leagueId);
+            const adjustment = getPointAdjustment(betSlip.teaserType as TeaserType, bet.game.leagueId);
             originalLines[bet.id] = bet.line || 0;
             adjustedLines[bet.id] = calculateAdjustedLine(
               bet.line || 0,
@@ -249,10 +250,11 @@ export function MobileBetSlipPanel() {
           </div>
 
           {/* Bet type toggle - always show when there are bets */}
-          {betSlip.bets.length > 0 && (
+          {/* Note: Teaser bets can only be created from /teasers page */}
+          {betSlip.bets.length > 0 && betSlip.betType !== "teaser" && (
             <div className="px-4 py-2">
               <Tabs className="w-full">
-                <TabsList className="grid w-full grid-cols-4 h-9">
+                <TabsList className="grid w-full grid-cols-3 h-9">
                   <TabsTrigger
                     value="single"
                     className={`text-xs ${betSlip.betType === "single" ? "bg-background text-foreground shadow-sm" : ""}`}
@@ -267,14 +269,6 @@ export function MobileBetSlipPanel() {
                     onClick={() => setBetType("parlay")}
                   >
                     Parlay
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="teaser"
-                    className={`text-xs ${betSlip.betType === "teaser" ? "bg-background text-foreground shadow-sm" : ""}`}
-                    disabled={betSlip.bets.length < 2}
-                    onClick={() => setBetType("teaser")}
-                  >
-                    Teaser
                   </TabsTrigger>
                   <TabsTrigger
                     value="custom"
@@ -304,6 +298,16 @@ export function MobileBetSlipPanel() {
                 <MobileCustomBetSlipContent />
               ) : betSlip.betType === "teaser" ? (
                 <div className="space-y-3">
+                  {/* Teaser Page Indicator */}
+                  <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 text-center">
+                    <div className="text-sm font-semibold text-blue-400">
+                      🎯 Teaser Bets
+                    </div>
+                    <div className="text-xs text-blue-400/70 mt-1">
+                      From /teasers page • Adjusted lines
+                    </div>
+                  </div>
+
                   <TeaserSelector />
                   
                   {betSlip.teaserType && betSlip.bets.length > 0 && (
@@ -311,7 +315,7 @@ export function MobileBetSlipPanel() {
                       {/* Teaser header */}
                       <div className="flex items-center justify-between">
                         <div className="font-semibold text-base">
-                          Teaser
+                          Teaser Slip
                         </div>
                         <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/20 font-mono px-3 py-1 text-sm font-bold">
                           {formatOdds(betSlip.totalOdds)}
@@ -320,34 +324,59 @@ export function MobileBetSlipPanel() {
 
                       {/* Teaser legs */}
                       <div className="space-y-2">
-                        {betSlip.bets.map((bet, index) => (
-                          <div
-                            key={bet.id}
-                            className="flex items-start justify-between py-2 border-b border-border/10 last:border-b-0"
-                          >
-                            <div className="flex items-start gap-2 flex-1 min-w-0">
-                              <div className="w-5 h-5 bg-blue-500/20 text-blue-400 rounded-full flex items-center justify-center text-xs font-bold mt-0.5">
-                                {index + 1}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="text-sm font-medium leading-tight whitespace-pre-line">
-                                  {formatBetDescription(bet)}
-                                </div>
-                                <div className="text-xs text-muted-foreground leading-tight">
-                                  {formatMatchup(bet)}
-                                </div>
-                              </div>
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => removeBet(bet.id)}
-                              className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                        {betSlip.bets.map((bet, index) => {
+                          // Calculate adjusted line for display
+                          let adjustedLine = bet.line || 0;
+                          let pointAdjustment = 0;
+                          
+                          if (betSlip.teaserType) {
+                            pointAdjustment = getPointAdjustment(betSlip.teaserType as TeaserType, bet.game.leagueId);
+                            adjustedLine = calculateAdjustedLine(
+                              bet.line || 0,
+                              bet.selection,
+                              pointAdjustment,
+                              bet.betType as "spread" | "total"
+                            );
+                          }
+                          
+                          return (
+                            <div
+                              key={bet.id}
+                              className="flex items-start justify-between py-2 border-b border-border/10 last:border-b-0"
                             >
-                              <Trash size={10} />
-                            </Button>
-                          </div>
-                        ))}
+                              <div className="flex items-start gap-2 flex-1 min-w-0">
+                                <div className="w-5 h-5 bg-blue-500/20 text-blue-400 rounded-full flex items-center justify-center text-xs font-bold mt-0.5">
+                                  {index + 1}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-sm font-medium leading-tight whitespace-pre-line">
+                                    {formatBetDescription(bet)}
+                                  </div>
+                                  {pointAdjustment > 0 && bet.line !== undefined && bet.line !== null && (
+                                    <div className="text-xs text-blue-400 leading-tight mt-0.5">
+                                      <span className="text-muted-foreground line-through">{bet.line > 0 ? '+' : ''}{bet.line}</span>
+                                      {' → '}
+                                      <span className="font-semibold">{adjustedLine > 0 ? '+' : ''}{adjustedLine}</span>
+                                      {' '}
+                                      <span className="text-blue-400/70">({pointAdjustment > 0 ? '+' : ''}{pointAdjustment} pts)</span>
+                                    </div>
+                                  )}
+                                  <div className="text-xs text-muted-foreground leading-tight">
+                                    {formatMatchup(bet)}
+                                  </div>
+                                </div>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => removeBet(bet.id)}
+                                className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                              >
+                                <Trash size={10} />
+                              </Button>
+                            </div>
+                          );
+                        })}
                       </div>
 
                       {/* Teaser Summary */}

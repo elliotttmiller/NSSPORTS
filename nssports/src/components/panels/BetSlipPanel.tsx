@@ -242,43 +242,36 @@ export function BetSlipPanel() {
           </Button>
         </div>
         
-        {/* Bet Type Tabs */}
-        <div className="grid grid-cols-4 gap-1">
-          <Button
-            variant={betSlip.betType === "single" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setBetType("single")}
-            className="text-xs"
-          >
-            Single
-          </Button>
-          <Button
-            variant={betSlip.betType === "parlay" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setBetType("parlay")}
-            disabled={betSlip.bets.length < 2}
-            className="text-xs"
-          >
-            Parlay
-          </Button>
-          <Button
-            variant={betSlip.betType === "teaser" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setBetType("teaser")}
-            disabled={betSlip.bets.length < 2}
-            className="text-xs"
-          >
-            Teaser
-          </Button>
-          <Button
-            variant={betSlip.betType === "custom" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setBetType("custom")}
-            className="text-xs"
-          >
-            Custom
-          </Button>
-        </div>
+        {/* Bet Type Tabs - Teaser bets can only be created from /teasers page */}
+        {betSlip.betType !== "teaser" && (
+          <div className="grid grid-cols-3 gap-1">
+            <Button
+              variant={betSlip.betType === "single" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setBetType("single")}
+              className="text-xs"
+            >
+              Single
+            </Button>
+            <Button
+              variant={betSlip.betType === "parlay" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setBetType("parlay")}
+              disabled={betSlip.bets.length < 2}
+              className="text-xs"
+            >
+              Parlay
+            </Button>
+            <Button
+              variant={betSlip.betType === "custom" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setBetType("custom")}
+              className="text-xs"
+            >
+              Custom
+            </Button>
+          </div>
+        )}
         
         {betSlip.betType === "parlay" && betSlip.bets.length > 0 && (
           <div className="mt-2 text-xs text-muted-foreground">
@@ -394,9 +387,19 @@ export function BetSlipPanel() {
           </BetCardParlay>
         )}
 
-        {/* Teaser Mode */}
+        {/* Teaser Mode - Only from /teasers page */}
         {betSlip.betType === "teaser" && (
           <div className="space-y-3">
+            {/* Teaser Page Indicator */}
+            <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 text-center">
+              <div className="text-sm font-semibold text-blue-400">
+                🎯 Teaser Bets
+              </div>
+              <div className="text-xs text-blue-400/70 mt-1">
+                From /teasers page • Adjusted lines
+              </div>
+            </div>
+
             <TeaserSelector />
             
             {betSlip.teaserType && betSlip.bets.length > 0 && (

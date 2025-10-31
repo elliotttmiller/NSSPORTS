@@ -103,7 +103,7 @@ export function BetSlipProvider({ children }: BetSlipProviderProps) {
     customParlayBets?: string[],
     customStakes?: { [betId: string]: number },
     teaserType?: string,
-    teaserLegs?: string[],
+    _teaserLegs?: string[], // Not used - all bets are teaser legs
   ) => {
     if (bets.length === 0) {
       return { totalStake: 0, totalPayout: 0, totalOdds: 0 };
@@ -117,8 +117,8 @@ export function BetSlipProvider({ children }: BetSlipProviderProps) {
       );
       return { totalStake, totalPayout, totalOdds: 0 };
     } else if (betType === "teaser") {
-      // Teaser calculation
-      if (!teaserType || !teaserLegs || teaserLegs.length === 0) {
+      // Teaser calculation - use all bets in betslip as teaser legs
+      if (!teaserType || bets.length === 0) {
         return { totalStake: 0, totalPayout: 0, totalOdds: 0 };
       }
       
@@ -411,8 +411,8 @@ export function BetSlipProvider({ children }: BetSlipProviderProps) {
         return bet;
       });
 
-      // For parlay, update all bets with the same stake
-      if (prev.betType === "parlay") {
+      // For parlay or teaser, update all bets with the same stake
+      if (prev.betType === "parlay" || prev.betType === "teaser") {
         newBets.forEach((bet) => {
           bet.stake = stake;
           bet.potentialPayout = calculatePayout(stake, bet.odds) + stake;

@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X } from "@phosphor-icons/react";
 import { useNavigation } from "@/context";
 import { useIsMobile } from "@/hooks";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 /**
  * MobileOtherPanel - Right-side panel for additional bet types
@@ -21,6 +23,7 @@ import { useIsMobile } from "@/hooks";
 export function MobileOtherPanel() {
   const { mobilePanel, setMobilePanel } = useNavigation();
   const isMobile = useIsMobile();
+  const router = useRouter();
 
   const isOpen = mobilePanel === "other";
 
@@ -116,8 +119,18 @@ export function MobileOtherPanel() {
                   <button
                     key={betType.id}
                     onClick={() => {
-                      // Close panel for now, will be wired up later
-                      handleClose();
+                      if (betType.id === "teaser") {
+                        // Navigate to teaser page (page will set teaser mode)
+                        handleClose();
+                        router.push("/teasers");
+                      } else {
+                        // Other bet types not yet implemented
+                        toast.info(`${betType.name} coming soon!`, {
+                          description: "This bet type is under development",
+                          duration: 3000,
+                        });
+                        handleClose();
+                      }
                     }}
                     className="w-full text-left p-3 rounded-lg border border-border bg-card hover:bg-accent/5 hover:border-accent/30 transition-all"
                   >
