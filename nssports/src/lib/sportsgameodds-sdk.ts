@@ -36,9 +36,17 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+// ⭐ OFFICIAL SDK IMPORTS - Type-safe integration
+// Per: https://github.com/sportsgameodds/sports-odds-api-typescript
+// Note: SDK types are accessed via SportsGameOdds namespace
 import SportsGameOdds from 'sports-odds-api';
 import { logger } from "./logger";
 import { rateLimiter } from "./rate-limiter";
+
+// Re-export official SDK types for use in other files
+// SDK provides types through the main namespace
+export type SDKEvent = SportsGameOdds.Event;
+export type SDKEventGetParams = SportsGameOdds.EventGetParams;
 
 // ========================================
 // OFFICIAL oddID CONSTANTS

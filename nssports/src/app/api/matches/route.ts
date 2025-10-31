@@ -26,6 +26,7 @@ import { transformSDKEvents } from "@/lib/transformers/sportsgameodds-sdk";
 import { GameSchema } from "@/lib/schemas/game";
 import { logger } from "@/lib/logger";
 import { applySingleLeagueLimit } from "@/lib/devDataLimit";
+import type { ExtendedSDKEvent } from "@/lib/transformers/sportsgameodds-sdk";
 
 // Map sport keys to league IDs
 const SPORT_TO_LEAGUE_MAP: Record<string, string> = {
@@ -118,7 +119,8 @@ export async function GET(request: NextRequest) {
       });
 
       // Transform to our internal format
-      let games = transformSDKEvents(events);
+      // Events from cache/SDK match ExtendedSDKEvent structure
+      let games = transformSDKEvents(events as ExtendedSDKEvent[]);
       
       // Apply single league limit in development (Protocol I-IV)
       games = applySingleLeagueLimit(games);

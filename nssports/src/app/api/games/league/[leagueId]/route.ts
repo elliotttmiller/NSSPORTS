@@ -5,6 +5,7 @@ import { getEventsWithCache } from '@/lib/hybrid-cache';
 import { transformSDKEvents } from '@/lib/transformers/sportsgameodds-sdk';
 import { logger } from '@/lib/logger';
 import { applySingleLeagueLimit } from '@/lib/devDataLimit';
+import type { ExtendedSDKEvent } from '@/lib/transformers/sportsgameodds-sdk';
 
 export const revalidate = 30;
 export const runtime = 'nodejs';
@@ -57,7 +58,8 @@ export async function GET(
       logger.info(`Fetched ${events.length} events for league ${leagueId} (source: ${response.source})`);
       
       // Transform events using official SDK status fields
-      let transformedGames = transformSDKEvents(events);
+      // Events from cache/SDK match ExtendedSDKEvent structure
+      let transformedGames = transformSDKEvents(events as ExtendedSDKEvent[]);
       
       // ⭐ Filter out finished games (never send to frontend)
       const beforeFilter = transformedGames.length;

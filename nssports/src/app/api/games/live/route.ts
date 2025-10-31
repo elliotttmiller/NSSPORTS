@@ -6,6 +6,7 @@ import { transformSDKEvents } from '@/lib/transformers/sportsgameodds-sdk';
 import { logger } from '@/lib/logger';
 import { applyStratifiedSampling } from '@/lib/devDataLimit';
 import { MAIN_LINE_ODDIDS } from '@/lib/sportsgameodds-sdk';
+import type { ExtendedSDKEvent } from '@/lib/transformers/sportsgameodds-sdk';
 
 export const revalidate = 30; // Increased from 15 to reduce API calls
 export const runtime = 'nodejs';
@@ -67,7 +68,8 @@ export async function GET() {
       
       // Transform SDK events to internal format
       // The transformer will use official Event.status fields to map status
-      let games = transformSDKEvents(liveEvents);
+      // Events from cache/SDK match ExtendedSDKEvent structure
+      let games = transformSDKEvents(liveEvents as ExtendedSDKEvent[]);
       
       // ⭐ CRITICAL: Time-based filter to ensure ONLY recent games
       // Live games MUST have started within the last 4 hours

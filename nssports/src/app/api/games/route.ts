@@ -8,6 +8,7 @@ import { transformSDKEvents } from '@/lib/transformers/sportsgameodds-sdk';
 import { logger } from '@/lib/logger';
 import { applyStratifiedSampling } from '@/lib/devDataLimit';
 import { MAIN_LINE_ODDIDS } from '@/lib/sportsgameodds-sdk';
+import type { ExtendedSDKEvent } from '@/lib/transformers/sportsgameodds-sdk';
 
 export const revalidate = 120; // 2 minutes - matches hybrid cache TTL
 export const runtime = 'nodejs';
@@ -68,13 +69,14 @@ async function getCachedAllGames() {
     }),
   ]);
   
-  const allEvents = [
-    ...(nbaResult.status === 'fulfilled' ? nbaResult.value.data : []),
-    ...(nflResult.status === 'fulfilled' ? nflResult.value.data : []),
-    ...(nhlResult.status === 'fulfilled' ? nhlResult.value.data : []),
-  ];
+  const nbaEvents = nbaResult.status === 'fulfilled' ? nbaResult.value.data : [];
+  const nflEvents = nflResult.status === 'fulfilled' ? nflResult.value.data : [];
+  const nhlEvents = nhlResult.status === 'fulfilled' ? nhlResult.value.data : [];
+  
+  const allEvents = [...nbaEvents, ...nflEvents, ...nhlEvents];
   
   logger.info(`Fetched ${allEvents.length} total events from hybrid cache`);
+  logger.info(`Events by league - NBA: ${nbaEvents.length}, NFL: ${nflEvents.length}, NHL: ${nhlEvents.length}`);
   return allEvents;
 }
 
@@ -112,7 +114,8 @@ export async function GET(request: NextRequest) {
       logger.info(`Raw events fetched: ${events.length}`);
       
       // Transform to internal format - handle empty array gracefully
-      let games = events.length > 0 ? transformSDKEvents(events) : [];
+      // Events from cache/SDK match ExtendedSDKEvent structure
+      let games = events.length > 0 ? transformSDKEvents(events as ExtendedSDKEvent[]) : [];
       
       logger.info(`Transformed games: ${games.length}`);
       

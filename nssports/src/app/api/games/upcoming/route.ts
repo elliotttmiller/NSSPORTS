@@ -5,6 +5,7 @@ import { getEventsWithCache } from '@/lib/hybrid-cache';
 import { transformSDKEvents } from '@/lib/transformers/sportsgameodds-sdk';
 import { logger } from '@/lib/logger';
 import { applyStratifiedSampling } from '@/lib/devDataLimit';
+import type { ExtendedSDKEvent } from '@/lib/transformers/sportsgameodds-sdk';
 
 export const revalidate = 60;
 export const runtime = 'nodejs';
@@ -76,7 +77,8 @@ export async function GET() {
       });
       
       // Transform SDK events to internal format
-      let games = transformSDKEvents(upcomingEvents);
+      // Events from cache/SDK match ExtendedSDKEvent structure
+      let games = transformSDKEvents(upcomingEvents as ExtendedSDKEvent[]);
       
       // Sort by start time
       games.sort((a, b) => 

@@ -540,6 +540,14 @@ async function getEventsFromCache(options: {
     startTime: game.startTime.toISOString(),
     activity: game.status === 'live' ? 'in_progress' : 
               game.status === 'finished' ? 'final' : 'scheduled',
+    // ⭐ CRITICAL: Include status object with startsAt for transformer compatibility
+    // The transformer expects status.startsAt (SDK v2 format)
+    status: {
+      startsAt: game.startTime.toISOString(),
+      live: game.status === 'live',
+      completed: game.status === 'finished',
+      ended: game.status === 'finished',
+    },
     teams: {
       home: {
         teamID: game.homeTeamId,

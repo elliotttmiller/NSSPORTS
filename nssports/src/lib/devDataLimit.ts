@@ -24,11 +24,11 @@ interface DevLimitConfig {
  * Get development data limit configuration from environment variables
  */
 function getDevLimitConfig(): DevLimitConfig {
-  const gamesPerLeague = parseInt(process.env.DEV_GAMES_PER_LEAGUE || '3', 10);
+  const gamesPerLeague = parseInt(process.env.DEV_GAMES_PER_LEAGUE || '5', 10);
   const singleLeagueLimit = parseInt(process.env.DEV_SINGLE_LEAGUE_LIMIT || '10', 10);
 
   return {
-    gamesPerLeague: isNaN(gamesPerLeague) ? 3 : gamesPerLeague,
+    gamesPerLeague: isNaN(gamesPerLeague) ? 5 : gamesPerLeague,
     singleLeagueLimit: isNaN(singleLeagueLimit) ? 10 : singleLeagueLimit,
   };
 }
@@ -74,6 +74,12 @@ export function applyStratifiedSampling<T extends Record<string, unknown>>(
     acc[leagueId].push(game);
     return acc;
   }, {} as Record<string, T[]>);
+
+  // Log league distribution for better debugging
+  const leagueDistribution = Object.entries(gamesByLeague)
+    .map(([league, games]) => `${league}: ${games.length}`)
+    .join(', ');
+  logger.info(`[DEV] Games by league - ${leagueDistribution}`);
 
   // Sample from each league
   const sampledGames: T[] = [];

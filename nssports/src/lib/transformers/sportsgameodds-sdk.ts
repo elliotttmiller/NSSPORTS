@@ -23,6 +23,8 @@
 
 import type { GamePayload } from "../schemas/game";
 import { logger } from "../logger";
+// ⭐ OFFICIAL SDK TYPE - Import official Event type from SDK
+import type { SDKEvent } from "../sportsgameodds-sdk";
 
 /**
  * Official League ID Mapping
@@ -302,28 +304,10 @@ function getTeamLogo(team: SDKTeam, leagueId: string): string {
   return `/logos/${leagueId.toLowerCase()}/${teamSlug}.svg`; // Changed from .png to .svg
 }
 
-/**
- * SDK Event interface (subset of properties we use)
- * Matches official SDK Event type structure
- */
-interface SDKEvent {
-  eventID?: string;
-  leagueID?: string;
-  teams?: {
-    home?: SDKTeam;
-    away?: SDKTeam;
-  };
-  commence?: string;
-  startTime?: string;
-  // Official SDK status fields per documentation: https://sportsgameodds.com/docs/explorer
-  status?: {
-    live?: boolean;
-    started?: boolean;
-    completed?: boolean;
-    cancelled?: boolean;
-  };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  activity?: any; // Legacy field - use status instead
+// ⭐ Extend Official SDK Event Type with Additional Properties
+// The official SDK Event type doesn't include all properties we use, so we extend it
+// This maintains type safety while supporting additional fields from the API response
+export interface ExtendedSDKEvent extends SDKEvent {
   venue?: string;
   scores?: {
     home?: number | null;
@@ -331,8 +315,28 @@ interface SDKEvent {
   };
   period?: string | null;
   clock?: string | null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  odds?: any; // SDK odds structure is complex, varies by market type
+  teams?: {
+    home?: ExtendedSDKTeam;
+    away?: ExtendedSDKTeam;
+  };
+}
+
+// Helper interface for team data with all properties we use
+export interface ExtendedSDKTeam {
+  teamID?: string;
+  name?: string;
+  names?: {
+    long?: string;
+    medium?: string;
+    short?: string;
+  };
+  logo?: string;
+  standings?: {
+    wins?: number;
+    losses?: number;
+    ties?: number;
+    record?: string;
+  };
 }
 
 /**
@@ -359,7 +363,7 @@ interface SDKEvent {
  * - sp/ats: Spread (point spread)
  * - ou: Over/Under (total points)
  */
-function extractOdds(event: SDKEvent) {
+function extractOdds(event: ExtendedSDKEvent) {
   const now = new Date();
   
   // Default odds structure
@@ -606,28 +610,57 @@ function mapStatus(
  * IMPORTANT: Preserves official UPPERCASE league IDs from SDK
  * Per official docs: https://sportsgameodds.com/docs/leagues
  * 
- * @param event - Event from SDK (type SDKEvent)
+ * @param event - Event from SDK (type ExtendedSDKEvent - official SDK Event with additional properties)
  */
-export function transformSDKEvent(event: SDKEvent): GamePayload | null {
+export function transformSDKEvent(event: ExtendedSDKEvent): GamePayload | null {
   try {
     // SDK events use official uppercase IDs
     const eventID = event.eventID;
     const leagueID = event.leagueID; // Already uppercase from SDK
     const homeTeam = event.teams?.home;
     const awayTeam = event.teams?.away;
-    const startTime = event.commence || event.startTime;
     
-    if (!eventID || !leagueID || !homeTeam || !awayTeam || !startTime) {
-      logger.warn(`Incomplete event data for event ${eventID}`);
+    // ⭐ OFFICIAL SDK: Start time is in status.startsAt (SDK v2)
+    // Per: https://github.com/sportsgameodds/sports-odds-api-typescript/blob/main/src/resources/events.ts#L105
+    const startTime = event.status?.startsAt;
+    
+    // Check for absolutely required fields (teams and IDs)
+    if (!eventID || !leagueID || !homeTeam || !awayTeam) {
+      logger.warn(`Missing critical event data for event ${eventID}`, {
+        hasEventID: !!eventID,
+        hasLeagueID: !!leagueID,
+        hasHomeTeam: !!homeTeam,
+        hasAwayTeam: !!awayTeam,
+      });
+      return null;
+    }
+    
+    // Handle missing start time - this shouldn't happen with proper SDK usage
+    // but we handle it gracefully just in case
+    if (!startTime) {
+      logger.warn(`Missing status.startsAt for event ${eventID} (${leagueID}). Skipping event.`, {
+        eventID,
+        leagueID,
+        homeTeam: homeTeam.name,
+        awayTeam: awayTeam.name,
+        hasStatus: !!event.status,
+      });
+      // Return null instead of using fallback - if SDK doesn't provide start time, 
+      // the event data is incomplete and shouldn't be displayed
+      return null;
+    }
+    
+    const startDateTime = new Date(startTime);
+    
+    // Validate the parsed date
+    if (isNaN(startDateTime.getTime())) {
+      logger.warn(`Invalid start time format for event ${eventID}: ${startTime}`);
       return null;
     }
     
     // Use official league ID directly (no normalization to lowercase)
     // SDK returns uppercase (NBA, NFL, NHL) per official specification
     const officialLeagueId = LEAGUE_ID_MAPPING[leagueID] || leagueID;
-    
-    // Parse start time
-    const startDateTime = new Date(startTime);
     
     // Determine game status using official SDK status fields
     const status = mapStatus(event.status, startDateTime);
@@ -678,7 +711,7 @@ export function transformSDKEvent(event: SDKEvent): GamePayload | null {
  * The transformer should NOT filter by time or status - let endpoints handle that.
  * We only filter out events that fail transformation (null results).
  */
-export function transformSDKEvents(events: SDKEvent[]): GamePayload[] {
+export function transformSDKEvents(events: ExtendedSDKEvent[]): GamePayload[] {
   return events
     .map(transformSDKEvent)
     .filter((game): game is GamePayload => game !== null);

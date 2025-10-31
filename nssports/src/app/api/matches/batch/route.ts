@@ -39,6 +39,7 @@ import { getEvents } from "@/lib/sportsgameodds-sdk";
 import { transformSDKEvents } from "@/lib/transformers/sportsgameodds-sdk";
 import { GameSchema } from "@/lib/schemas/game";
 import { logger } from "@/lib/logger";
+import type { ExtendedSDKEvent } from "@/lib/transformers/sportsgameodds-sdk";
 
 // Query parameters schema
 const QuerySchema = z.object({
@@ -124,7 +125,8 @@ export async function GET(request: NextRequest) {
       });
 
       // Transform to our internal format
-      const games = transformSDKEvents(events);
+      // Events from SDK match ExtendedSDKEvent structure
+      const games = transformSDKEvents(events as ExtendedSDKEvent[]);
 
       // Validate transformed data
       const validatedGames = games.map((game) => GameSchema.parse(game));
