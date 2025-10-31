@@ -88,10 +88,10 @@ export default function AdminDashboardPage() {
   if (isLoading) {
     return (
       <AdminDashboardLayout>
-        <div className="flex items-center justify-center h-screen">
+        <div className="flex items-center justify-center h-screen bg-background">
           <div className="text-center">
-            <div className="w-12 h-12 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mx-auto mb-4" />
-            <p className="text-muted-foreground">Loading dashboard...</p>
+            <div className="w-16 h-16 border-4 border-accent border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-lg font-medium text-foreground">Loading dashboard...</p>
           </div>
         </div>
       </AdminDashboardLayout>

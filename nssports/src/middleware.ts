@@ -41,6 +41,8 @@ function getAllowedOrigins(): string[] {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
+  console.log('[Middleware] Request to:', pathname);
+  
   // Allow Next.js internal routes, static assets, and files
   if (pathname.startsWith('/_next') || 
       pathname.startsWith('/favicon.ico') ||
@@ -51,6 +53,12 @@ export async function middleware(request: NextRequest) {
       pathname.startsWith('/public') ||
       pathname.startsWith('/logos/') ||
       pathname.match(/\.(png|jpg|jpeg|gif|svg|ico|webp|woff|woff2|ttf|eot)$/)) {
+    return NextResponse.next();
+  }
+
+  // Admin routes have their own authentication system - skip NextAuth checks
+  if (pathname.startsWith('/admin') || pathname.startsWith('/api/admin')) {
+    console.log('[Middleware] Admin route detected, skipping NextAuth check');
     return NextResponse.next();
   }
 
@@ -81,7 +89,10 @@ export async function middleware(request: NextRequest) {
   // ⚠️ STRICT AUTHENTICATION CHECK - All other routes require auth
   const session = await auth();
   
+  console.log('[Middleware] Session check - pathname:', pathname, 'hasSession:', !!session);
+  
   if (!session || !session.user) {
+    console.log('[Middleware] No session, redirecting to /auth/login');
     // Block API routes with 401
     if (pathname.startsWith('/api/')) {
       return new NextResponse(
@@ -95,6 +106,7 @@ export async function middleware(request: NextRequest) {
     if (pathname !== '/' && pathname !== '/auth/login') {
       loginUrl.searchParams.set('callbackUrl', pathname);
     }
+    console.log('[Middleware] Redirecting to:', loginUrl.toString());
     return NextResponse.redirect(loginUrl);
   }
 

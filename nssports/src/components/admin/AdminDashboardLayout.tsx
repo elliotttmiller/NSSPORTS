@@ -42,20 +42,27 @@ export default function AdminDashboardLayout({ children }: AdminDashboardLayoutP
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  console.log('[AdminDashboardLayout] Render - pathname:', pathname, 'isLoading:', isLoading, 'isAuthenticated:', isAuthenticated, 'admin:', admin);
+
   // Redirect to login if not authenticated
   useEffect(() => {
+    console.log('[AdminDashboardLayout] useEffect - isLoading:', isLoading, 'isAuthenticated:', isAuthenticated);
     if (!isLoading && !isAuthenticated) {
+      console.log('[AdminDashboardLayout] useEffect - Not authenticated, redirecting to /admin/login');
       router.push("/admin/login");
+    } else if (!isLoading && isAuthenticated) {
+      console.log('[AdminDashboardLayout] useEffect - Authenticated, staying on dashboard');
     }
   }, [isLoading, isAuthenticated, router]);
 
   // Show loading state
   if (isLoading) {
+    console.log('[AdminDashboardLayout] Showing loading state');
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading dashboard...</p>
+          <div className="w-16 h-16 border-4 border-accent border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-foreground font-medium">Loading dashboard...</p>
         </div>
       </div>
     );
@@ -63,16 +70,19 @@ export default function AdminDashboardLayout({ children }: AdminDashboardLayoutP
 
   // Don't render if not authenticated
   if (!isAuthenticated || !admin) {
+    console.log('[AdminDashboardLayout] Not authenticated or no admin, returning null');
     return null;
   }
 
+  console.log('[AdminDashboardLayout] Rendering full dashboard layout');
+
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+    <div className="min-h-screen bg-background">
       {/* Mobile Header */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-background border-b border-border z-50 flex items-center justify-between px-4">
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-card border-b border-border z-50 flex items-center justify-between px-4">
         <div className="flex items-center gap-2">
-          <Shield className="w-6 h-6 text-blue-600" />
-          <span className="font-bold text-lg">Admin Dashboard</span>
+          <Shield className="w-6 h-6 text-accent" />
+          <span className="font-bold text-lg text-foreground">Admin Dashboard</span>
         </div>
         <Button
           variant="ghost"
@@ -86,7 +96,7 @@ export default function AdminDashboardLayout({ children }: AdminDashboardLayoutP
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed top-0 left-0 h-screen bg-background border-r border-border transition-all duration-300 z-40",
+          "fixed top-0 left-0 h-screen bg-card border-r border-border transition-all duration-300 z-40",
           sidebarOpen ? "w-64" : "w-20",
           "hidden lg:block"
         )}
@@ -96,11 +106,11 @@ export default function AdminDashboardLayout({ children }: AdminDashboardLayoutP
           {sidebarOpen ? (
             <>
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                  <Shield className="w-5 h-5 text-white" />
+                <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center">
+                  <Shield className="w-5 h-5 text-accent-foreground" />
                 </div>
                 <div>
-                  <h1 className="font-bold text-sm">Admin Dashboard</h1>
+                  <h1 className="font-bold text-sm text-foreground">Admin Dashboard</h1>
                   <p className="text-xs text-muted-foreground">Client Portal</p>
                 </div>
               </div>
@@ -136,14 +146,14 @@ export default function AdminDashboardLayout({ children }: AdminDashboardLayoutP
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors font-medium",
+                  "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors font-medium text-sm",
                   isActive
-                    ? "bg-blue-600 text-white"
+                    ? "bg-accent text-accent-foreground"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 )}
               >
-                <Icon size={20} className="flex-shrink-0" />
-                {sidebarOpen && <span className="text-sm">{item.label}</span>}
+                <Icon size={20} className="shrink-0" />
+                {sidebarOpen && <span>{item.label}</span>}
               </Link>
             );
           })}
@@ -197,7 +207,7 @@ export default function AdminDashboardLayout({ children }: AdminDashboardLayoutP
                     className={cn(
                       "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors font-medium",
                       isActive
-                        ? "bg-blue-600 text-white"
+                        ? "bg-accent text-accent-foreground"
                         : "text-muted-foreground hover:bg-muted hover:text-foreground"
                     )}
                   >

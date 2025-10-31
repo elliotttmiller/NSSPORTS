@@ -3,7 +3,6 @@
 import { Suspense, useEffect, useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { useSearchParams, useRouter } from "next/navigation";
-import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -222,15 +221,6 @@ function LoginForm() {
 
           <SubmitButton />
         </form>
-
-        <div className="mt-6 text-center">
-          <p className="text-sm text-muted-foreground">
-            Don&apos;t have an account?{" "}
-            <Link href="/auth/register" className="text-accent hover:underline">
-              Register here
-            </Link>
-          </p>
-        </div>
       </motion.div>
     </motion.div>
   );

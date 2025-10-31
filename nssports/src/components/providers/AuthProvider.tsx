@@ -49,6 +49,7 @@ function AuthGuard({ children }: { children: ReactNode }) {
     '/auth/login',
     '/auth/register',
     '/welcome',
+    '/admin', // Admin routes have their own authentication system
   ];
 
   const isPublicRoute = PUBLIC_ROUTES.some(route => pathname.startsWith(route));

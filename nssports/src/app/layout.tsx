@@ -92,7 +92,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Global soft shadow animation for all game lists/pages */}
         <div
           id="global-scroll-shadow"
-          className="pointer-events-none fixed top-0 left-0 w-full h-6 z-30 bg-gradient-to-b from-[rgba(0,0,0,0.12)] to-transparent opacity-100 transition-opacity duration-300"
+          className="pointer-events-none fixed top-0 left-0 w-full h-6 z-30 bg-linear-to-b from-[rgba(0,0,0,0.12)] to-transparent opacity-100 transition-opacity duration-300"
         />
         <ErrorBoundary>
           <AuthProvider>

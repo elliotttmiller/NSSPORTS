@@ -35,8 +35,11 @@ const nextConfig: NextConfig = {
 
   // Image domains for optimization
   images: {
-    domains: ['localhost', 'nssportsclub.ngrok.app'],
     remotePatterns: [
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+      },
       {
         protocol: 'http',
         hostname: 'nssportsclub.ngrok.app',

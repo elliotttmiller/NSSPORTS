@@ -12,13 +12,9 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body>
-        <AdminAuthProvider>
-          {children}
-          <Toaster position="top-right" richColors />
-        </AdminAuthProvider>
-      </body>
-    </html>
+    <AdminAuthProvider>
+      {children}
+      <Toaster position="top-right" richColors />
+    </AdminAuthProvider>
   );
 }
