@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { ArrowLeft, CurrencyDollar, Warning, CheckCircle } from "@phosphor-icons/react";
+import { ArrowLeft, Warning, CheckCircle } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui";
 import { toast } from "sonner";
@@ -117,10 +117,9 @@ export default function AdjustBalancePage() {
       newErrors.amount = "Please enter a valid amount greater than 0";
     }
 
-    if (!formData.reason.trim()) {
-      newErrors.reason = "Please provide a reason for this adjustment";
-    } else if (formData.reason.trim().length < 10) {
-      newErrors.reason = "Reason must be at least 10 characters";
+    // Reason is optional, but if provided, must be at least 10 characters
+    if (formData.reason.trim() && formData.reason.trim().length < 10) {
+      newErrors.reason = "Reason must be at least 10 characters if provided";
     }
 
     // Check if withdrawal exceeds balance
@@ -363,7 +362,7 @@ export default function AdjustBalancePage() {
           {/* Reason */}
           <div className="bg-card border border-border rounded-xl p-4">
             <label className="block text-sm font-medium text-foreground mb-2">
-              Reason <span className="text-destructive">*</span>
+              Reason <span className="text-muted-foreground text-xs">(Optional)</span>
             </label>
             <textarea
               value={formData.reason}
@@ -384,22 +383,6 @@ export default function AdjustBalancePage() {
               <span className="text-xs text-muted-foreground">
                 {formData.reason.length} characters
               </span>
-            </div>
-          </div>
-
-          {/* Info Box */}
-          <div className="bg-muted/50 border border-border rounded-xl p-4">
-            <div className="flex items-start gap-3">
-              <CurrencyDollar size={20} className="text-muted-foreground shrink-0 mt-0.5" />
-              <div className="text-xs text-muted-foreground space-y-1">
-                <p className="font-medium text-foreground">Balance Adjustment Policy</p>
-                <ul className="list-disc list-inside space-y-1">
-                  <li>All adjustments are logged and auditable</li>
-                  <li>Withdrawal cannot exceed current balance</li>
-                  <li>Detailed reason required for compliance</li>
-                  <li>Changes are applied immediately</li>
-                </ul>
-              </div>
             </div>
           </div>
 

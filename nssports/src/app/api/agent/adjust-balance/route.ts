@@ -14,7 +14,10 @@ const AdjustBalanceSchema = z.object({
     errorMap: () => ({ message: "Invalid adjustment type" }),
   }),
   amount: z.number().positive("Amount must be positive"),
-  reason: z.string().min(10, "Reason must be at least 10 characters"),
+  reason: z.string().optional().refine(
+    (val) => !val || val.length >= 10,
+    { message: "Reason must be at least 10 characters if provided" }
+  ),
 });
 
 /**
@@ -100,7 +103,7 @@ export async function POST(request: Request) {
             amount,
             previousBalance: currentBalance,
             newBalance,
-            reason,
+            reason: reason || null,
             tenantId: session.user.tenantId || null,
           },
         });

@@ -105,7 +105,7 @@ export default function AgentDashboard() {
 
   if (isLoading || status === "loading") {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
+      <div className="flex items-center justify-center h-full bg-background">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-accent border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-lg font-medium text-foreground">Loading Dashboard...</p>
@@ -115,7 +115,7 @@ export default function AgentDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="bg-background">
       {/* Header - Using app's accent color instead of hardcoded blue */}
       <motion.div 
         initial={{ opacity: 0, y: -20 }}

@@ -110,8 +110,17 @@ function MobileAccountDropdown({ balance, available, risk, isAuthenticated, user
                   </div>
                 </div>
 
-                {/* View Account & Logout */}
+                {/* Actions: Agent Dashboard, View Account & Logout */}
                 <div className="p-4 border-t border-border space-y-2">
+                  {session?.user && (session.user.isAgent || session.user.isAdmin) && (
+                    <Link
+                      href="/agent"
+                      onClick={() => setShowDropdown(false)}
+                      className="block text-center text-xs px-3 py-1.5 rounded bg-accent/10 hover:bg-accent/20 text-accent transition-all duration-150 shadow-sm border border-accent/20 font-medium"
+                    >
+                      Agent Dashboard
+                    </Link>
+                  )}
                   <Link
                     href="/account"
                     onClick={() => setShowDropdown(false)}

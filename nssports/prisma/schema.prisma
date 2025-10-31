@@ -223,7 +223,7 @@ model BalanceAdjustment {
   amount          Float
   previousBalance Float
   newBalance      Float
-  reason          String
+  reason          String?  // Optional reason for adjustment
   ipAddress       String?
   createdAt       DateTime @default(now())
   player          User     @relation("PlayerAdjustments", fields: [playerId], references: [id], onDelete: Cascade)
