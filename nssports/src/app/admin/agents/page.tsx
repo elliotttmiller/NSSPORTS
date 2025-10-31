@@ -102,89 +102,90 @@ export default function AgentsPage() {
 
   return (
     <AdminDashboardLayout>
-      <div className="p-6 space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
+      <div className="space-y-4 w-full max-w-7xl mx-auto">
+        {/* Header - PWA Mobile Optimized */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Agent Management</h1>
-            <p className="text-muted-foreground mt-1">
+            <h1 className="text-2xl font-bold text-foreground">Agent Management</h1>
+            <p className="text-xs text-muted-foreground mt-1">
               Manage agent accounts, permissions, and performance
             </p>
           </div>
-          <Link href="/admin/agents/create">
-            <Button className="bg-blue-600 hover:bg-blue-700 gap-2">
+          <Link href="/admin/agents/create" className="touch-action-manipulation">
+            <Button className="bg-blue-600 hover:bg-blue-700 gap-2 w-full sm:w-auto active:scale-95 transition-transform">
               <Plus size={18} />
               Create New Agent
             </Button>
           </Link>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="p-4">
+        {/* Stats Cards - Mobile Grid */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <Card className="p-3 touch-action-manipulation">
             <div className="flex items-center justify-between mb-2">
-              <UserCog className="w-8 h-8 text-blue-600" />
-              <Badge variant="secondary">{agents.length}</Badge>
+              <UserCog className="w-6 h-6 text-blue-600" />
+              <Badge variant="secondary" className="text-xs">{agents.length}</Badge>
             </div>
-            <p className="text-sm text-muted-foreground">Total Agents</p>
-            <p className="text-2xl font-bold">{agents.length}</p>
+            <p className="text-xs text-muted-foreground">Total Agents</p>
+            <p className="text-xl font-bold">{agents.length}</p>
           </Card>
 
-          <Card className="p-4">
+          <Card className="p-3 touch-action-manipulation">
             <div className="flex items-center justify-between mb-2">
-              <CheckCircle className="w-8 h-8 text-green-600" />
-              <Badge className="bg-green-500/10 text-green-600">
+              <CheckCircle className="w-6 h-6 text-green-600" />
+              <Badge className="bg-green-500/10 text-green-600 text-xs">
                 {agents.filter((a) => a.status === "active").length}
               </Badge>
             </div>
-            <p className="text-sm text-muted-foreground">Active Agents</p>
-            <p className="text-2xl font-bold">
+            <p className="text-xs text-muted-foreground">Active Agents</p>
+            <p className="text-xl font-bold">
               {agents.filter((a) => a.status === "active").length}
             </p>
           </Card>
 
-          <Card className="p-4">
+          <Card className="p-3 touch-action-manipulation">
             <div className="flex items-center justify-between mb-2">
-              <Users className="w-8 h-8 text-purple-600" />
-              <Badge variant="secondary">
+              <Users className="w-6 h-6 text-purple-600" />
+              <Badge variant="secondary" className="text-xs">
                 {agents.reduce((sum, a) => sum + a.playerCount, 0)}
               </Badge>
             </div>
-            <p className="text-sm text-muted-foreground">Total Players</p>
-            <p className="text-2xl font-bold">
+            <p className="text-xs text-muted-foreground">Total Players</p>
+            <p className="text-xl font-bold">
               {agents.reduce((sum, a) => sum + a.playerCount, 0)}
             </p>
           </Card>
 
-          <Card className="p-4">
+          <Card className="p-3 touch-action-manipulation">
             <div className="flex items-center justify-between mb-2">
-              <DollarSign className="w-8 h-8 text-emerald-600" />
-              <Badge variant="secondary">Today</Badge>
+              <DollarSign className="w-6 h-6 text-emerald-600" />
+              <Badge variant="secondary" className="text-xs">Today</Badge>
             </div>
-            <p className="text-sm text-muted-foreground">Total Adjustments</p>
-            <p className="text-2xl font-bold">
+            <p className="text-xs text-muted-foreground">Total Adjustments</p>
+            <p className="text-xl font-bold">
               ${agents.reduce((sum, a) => sum + a.todayAdjustments, 0).toLocaleString()}
             </p>
           </Card>
         </div>
 
-        {/* Filters */}
-        <Card className="p-4">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        {/* Filters - Mobile Optimized */}
+        <Card className="p-3">
+          <div className="flex flex-col gap-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
               <Input
-                placeholder="Search agents by username or name..."
+                placeholder="Search agents..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
+                className="pl-10 text-sm touch-action-manipulation"
               />
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 overflow-x-auto scrollbar-hide">
               <Button
                 variant={statusFilter === "all" ? "default" : "outline"}
                 onClick={() => setStatusFilter("all")}
                 size="sm"
+                className="shrink-0 touch-action-manipulation active:scale-95"
               >
                 All
               </Button>
@@ -192,6 +193,7 @@ export default function AgentsPage() {
                 variant={statusFilter === "active" ? "default" : "outline"}
                 onClick={() => setStatusFilter("active")}
                 size="sm"
+                className="shrink-0 touch-action-manipulation active:scale-95"
               >
                 Active
               </Button>
@@ -199,6 +201,7 @@ export default function AgentsPage() {
                 variant={statusFilter === "idle" ? "default" : "outline"}
                 onClick={() => setStatusFilter("idle")}
                 size="sm"
+                className="shrink-0 touch-action-manipulation active:scale-95"
               >
                 Idle
               </Button>
@@ -206,6 +209,7 @@ export default function AgentsPage() {
                 variant={statusFilter === "suspended" ? "default" : "outline"}
                 onClick={() => setStatusFilter("suspended")}
                 size="sm"
+                className="shrink-0 touch-action-manipulation active:scale-95"
               >
                 Suspended
               </Button>
@@ -213,39 +217,39 @@ export default function AgentsPage() {
           </div>
         </Card>
 
-        {/* Agents Table */}
+        {/* Agents Table - Mobile Optimized */}
         <Card className="overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
+          <div className="overflow-x-auto seamless-scroll" data-mobile-scroll>
+            <table className="w-full min-w-[640px]">
               <thead className="bg-muted/50 border-b border-border">
                 <tr>
-                  <th className="text-left p-4 font-semibold text-sm">Username</th>
-                  <th className="text-left p-4 font-semibold text-sm">Status</th>
-                  <th className="text-left p-4 font-semibold text-sm">Players</th>
-                  <th className="text-left p-4 font-semibold text-sm">Last Active</th>
-                  <th className="text-left p-4 font-semibold text-sm">Daily Adjustments</th>
-                  <th className="text-right p-4 font-semibold text-sm">Actions</th>
+                  <th className="text-left p-3 font-semibold text-xs sm:text-sm">Username</th>
+                  <th className="text-left p-3 font-semibold text-xs sm:text-sm">Status</th>
+                  <th className="text-left p-3 font-semibold text-xs sm:text-sm">Players</th>
+                  <th className="text-left p-3 font-semibold text-xs sm:text-sm">Last Active</th>
+                  <th className="text-left p-3 font-semibold text-xs sm:text-sm">Daily Adjustments</th>
+                  <th className="text-right p-3 font-semibold text-xs sm:text-sm">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredAgents.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="text-center py-12 text-muted-foreground">
-                      <UserCog className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                      <p>No agents found</p>
+                    <td colSpan={6} className="text-center py-8 text-muted-foreground">
+                      <UserCog className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">No agents found</p>
                     </td>
                   </tr>
                 ) : (
                   filteredAgents.map((agent) => (
                     <tr
                       key={agent.id}
-                      className="border-b border-border hover:bg-muted/20 transition-colors"
+                      className="border-b border-border hover:bg-muted/20 transition-colors touch-action-manipulation"
                     >
-                      <td className="p-4">
+                      <td className="p-3">
                         <div>
-                          <p className="font-medium text-foreground">{agent.username}</p>
+                          <p className="font-medium text-foreground text-sm">{agent.username}</p>
                           {agent.displayName && (
-                            <p className="text-sm text-muted-foreground">{agent.displayName}</p>
+                            <p className="text-xs text-muted-foreground">{agent.displayName}</p>
                           )}
                         </div>
                       </td>

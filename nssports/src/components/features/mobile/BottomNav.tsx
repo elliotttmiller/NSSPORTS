@@ -60,7 +60,7 @@ export function BottomNav() {
       {/* Sports - Text Only */}
       <motion.button
         onClick={handleSportsClick}
-        className={`px-3 py-2 rounded-md transition-all duration-200 text-[15px] font-medium min-w-[48px] flex-1 flex items-center justify-center mx-1 ${
+        className={`px-3 py-2 rounded-md transition-all duration-200 text-[15px] font-medium min-w-12 flex-1 flex items-center justify-center mx-1 ${
           mobilePanel === "navigation"
             ? "bg-accent text-accent-foreground"
             : "text-muted-foreground hover:text-foreground hover:bg-accent/10"
@@ -75,7 +75,7 @@ export function BottomNav() {
       {/* Live - Text Only */}
       <motion.button
         onClick={handleLiveClick}
-        className={`px-3 py-2 rounded-md transition-all duration-200 text-[15px] font-medium min-w-[48px] flex-1 flex items-center justify-center mx-1 ${
+        className={`px-3 py-2 rounded-md transition-all duration-200 text-[15px] font-medium min-w-12 flex-1 flex items-center justify-center mx-1 ${
           pathname === "/live"
             ? "bg-accent text-accent-foreground"
             : "text-muted-foreground hover:text-foreground hover:bg-accent/10"
@@ -109,7 +109,7 @@ export function BottomNav() {
       {/* Bets - Text Only */}
       <motion.button
         onClick={handleBetsClick}
-        className={`px-3 py-2 rounded-md transition-all duration-200 text-[15px] font-medium min-w-[48px] flex-1 flex items-center justify-center mx-1 ${
+        className={`px-3 py-2 rounded-md transition-all duration-200 text-[15px] font-medium min-w-12 flex-1 flex items-center justify-center mx-1 ${
           pathname === "/my-bets"
             ? "bg-accent text-accent-foreground"
             : "text-muted-foreground hover:text-foreground hover:bg-accent/10"
@@ -124,7 +124,7 @@ export function BottomNav() {
       {/* Other - Text Only */}
       <motion.button
         onClick={handleOtherClick}
-        className={`px-3 py-2 rounded-md transition-all duration-200 text-[15px] font-medium min-w-[48px] flex-1 flex items-center justify-center mx-1 ${
+        className={`px-3 py-2 rounded-md transition-all duration-200 text-[15px] font-medium min-w-12 flex-1 flex items-center justify-center mx-1 ${
           mobilePanel === "other"
             ? "bg-accent text-accent-foreground"
             : "text-muted-foreground hover:text-foreground hover:bg-accent/10"

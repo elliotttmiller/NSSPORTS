@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAdminAuth } from "@/context/AdminAuthContext";
+import { Header } from "@/components/layouts";
 import { 
   LayoutDashboard, 
   Users, 
@@ -10,13 +11,8 @@ import {
   DollarSign, 
   BarChart3, 
   Settings, 
-  Shield,
-  LogOut,
-  Menu,
-  X
+  Shield
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -27,20 +23,18 @@ interface AdminDashboardLayoutProps {
 
 const navigationItems = [
   { href: "/admin/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { href: "/admin/agents", icon: UserCog, label: "Agent Management" },
-  { href: "/admin/players", icon: Users, label: "Player Management" },
-  { href: "/admin/balances", icon: DollarSign, label: "Balance Oversight" },
-  { href: "/admin/reports", icon: BarChart3, label: "Reports & Analytics" },
-  { href: "/admin/config", icon: Settings, label: "System Configuration" },
-  { href: "/admin/security", icon: Shield, label: "Security & Audit" },
+  { href: "/admin/agents", icon: UserCog, label: "Agents" },
+  { href: "/admin/players", icon: Users, label: "Players" },
+  { href: "/admin/balances", icon: DollarSign, label: "Balances" },
+  { href: "/admin/reports", icon: BarChart3, label: "Reports" },
+  { href: "/admin/config", icon: Settings, label: "Config" },
+  { href: "/admin/security", icon: Shield, label: "Security" },
 ];
 
 export default function AdminDashboardLayout({ children }: AdminDashboardLayoutProps) {
-  const { admin, isLoading, isAuthenticated, logout } = useAdminAuth();
+  const { admin, isLoading, isAuthenticated } = useAdminAuth();
   const router = useRouter();
   const pathname = usePathname();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   console.log('[AdminDashboardLayout] Render - pathname:', pathname, 'isLoading:', isLoading, 'isAuthenticated:', isAuthenticated, 'admin:', admin);
 
@@ -78,65 +72,19 @@ export default function AdminDashboardLayout({ children }: AdminDashboardLayoutP
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Mobile Header */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-card border-b border-border z-50 flex items-center justify-between px-4">
-        <div className="flex items-center gap-2">
-          <Shield className="w-6 h-6 text-accent" />
-          <span className="font-bold text-lg text-foreground">Admin Dashboard</span>
-        </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-        >
-          {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
-        </Button>
-      </div>
+      {/* Global Header */}
+      <Header />
 
-      {/* Sidebar */}
-      <aside
-        className={cn(
-          "fixed top-0 left-0 h-screen bg-card border-r border-border transition-all duration-300 z-40",
-          sidebarOpen ? "w-64" : "w-20",
-          "hidden lg:block"
-        )}
+      {/* Admin Navigation Bar - PWA Mobile Optimized with Safe Areas */}
+      <div 
+        className="fixed left-0 right-0 bg-card border-b border-border z-40"
+        style={{
+          top: 'calc(4rem + env(safe-area-inset-top))',
+          paddingLeft: 'max(0.5rem, env(safe-area-inset-left))',
+          paddingRight: 'max(0.5rem, env(safe-area-inset-right))',
+        }}
       >
-        {/* Logo & Brand */}
-        <div className="h-16 flex items-center justify-between px-4 border-b border-border">
-          {sidebarOpen ? (
-            <>
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center">
-                  <Shield className="w-5 h-5 text-accent-foreground" />
-                </div>
-                <div>
-                  <h1 className="font-bold text-sm text-foreground">Admin Dashboard</h1>
-                  <p className="text-xs text-muted-foreground">Client Portal</p>
-                </div>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setSidebarOpen(false)}
-                className="h-8 w-8 p-0"
-              >
-                <X size={16} />
-              </Button>
-            </>
-          ) : (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setSidebarOpen(true)}
-              className="h-8 w-8 p-0 mx-auto"
-            >
-              <Menu size={16} />
-            </Button>
-          )}
-        </div>
-
-        {/* Navigation */}
-        <nav className="p-3 space-y-1">
+        <nav className="flex items-center gap-0.5 sm:gap-1 overflow-x-auto scrollbar-hide py-2 touch-action-pan-x">
           {navigationItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
@@ -146,108 +94,31 @@ export default function AdminDashboardLayout({ children }: AdminDashboardLayoutP
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors font-medium text-sm",
+                  "flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg transition-all shrink-0 text-xs font-medium min-w-fit touch-action-manipulation",
                   isActive
-                    ? "bg-accent text-accent-foreground"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                    ? "bg-accent text-accent-foreground shadow-sm"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground active:scale-95"
                 )}
               >
-                <Icon size={20} className="shrink-0" />
-                {sidebarOpen && <span>{item.label}</span>}
+                <Icon size={16} className="shrink-0" />
+                <span className="whitespace-nowrap">{item.label}</span>
               </Link>
             );
           })}
         </nav>
+      </div>
 
-        {/* User Info & Logout */}
-        <div className="absolute bottom-0 left-0 right-0 p-3 border-t border-border">
-          {sidebarOpen ? (
-            <div className="space-y-2">
-              <div className="px-3 py-2 bg-muted/50 rounded-lg">
-                <p className="text-sm font-medium text-foreground">{admin.username}</p>
-                <p className="text-xs text-muted-foreground capitalize">{admin.role}</p>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={logout}
-                className="w-full justify-start gap-2"
-              >
-                <LogOut size={16} />
-                <span>Logout</span>
-              </Button>
-            </div>
-          ) : (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={logout}
-              className="w-full h-10 p-0"
-            >
-              <LogOut size={16} />
-            </Button>
-          )}
-        </div>
-      </aside>
-
-      {/* Mobile Menu */}
-      {mobileMenuOpen && (
-        <div className="lg:hidden fixed inset-0 z-40 bg-background">
-          <div className="pt-20 pb-6 px-4">
-            <nav className="space-y-1">
-              {navigationItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = pathname === item.href;
-                
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={cn(
-                      "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors font-medium",
-                      isActive
-                        ? "bg-accent text-accent-foreground"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                    )}
-                  >
-                    <Icon size={20} />
-                    <span>{item.label}</span>
-                  </Link>
-                );
-              })}
-            </nav>
-
-            {/* Mobile User Info */}
-            <div className="mt-6 pt-6 border-t border-border">
-              <div className="px-4 py-3 bg-muted/50 rounded-lg mb-3">
-                <p className="font-medium text-foreground">{admin.username}</p>
-                <p className="text-sm text-muted-foreground capitalize">{admin.role}</p>
-              </div>
-              <Button
-                variant="outline"
-                onClick={logout}
-                className="w-full justify-start gap-2"
-              >
-                <LogOut size={16} />
-                <span>Logout</span>
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Main Content */}
-      <main
-        className={cn(
-          "transition-all duration-300",
-          "pt-16 lg:pt-0",
-          sidebarOpen ? "lg:ml-64" : "lg:ml-20"
-        )}
+      {/* Main Content - PWA Mobile Optimized */}
+      <main 
+        className="pb-8 mobile-safe-area"
+        style={{
+          paddingTop: 'calc(8rem + env(safe-area-inset-top))',
+          paddingLeft: 'max(0.75rem, env(safe-area-inset-left))',
+          paddingRight: 'max(0.75rem, env(safe-area-inset-right))',
+          minHeight: 'calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom))',
+        }}
       >
-        <div className="min-h-screen">
-          {children}
-        </div>
+        {children}
       </main>
     </div>
   );
