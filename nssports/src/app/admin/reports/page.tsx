@@ -44,11 +44,11 @@ export default function ReportsPage() {
         throw new Error("Failed to generate report");
       }
 
-      const data = await response.json();
+      const _data = await response.json();
       toast.success(`Report generated successfully! Downloading ${format.toUpperCase()}...`);
       
       // In a real implementation, you'd download the file here
-      // window.open(data.downloadUrl, '_blank');
+      // window.open(_data.downloadUrl, '_blank');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to export report");
     }

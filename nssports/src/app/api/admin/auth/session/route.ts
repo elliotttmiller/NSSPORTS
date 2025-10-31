@@ -28,7 +28,6 @@ export async function GET() {
       select: {
         id: true,
         username: true,
-        email: true,
         role: true,
         status: true,
         createdAt: true,
@@ -46,7 +45,6 @@ export async function GET() {
       admin: {
         id: admin.id,
         username: admin.username,
-        email: admin.email,
         role: admin.role,
         createdAt: admin.createdAt.toISOString(),
       },

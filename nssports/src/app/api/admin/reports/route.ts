@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     await jwtVerify(token, secret);
 
     const body = await req.json();
-    const { reportType, dateFrom, dateTo, format } = body;
+    const { reportType, dateFrom: _dateFrom, dateTo: _dateTo, format } = body;
 
     // TODO: After Prisma regeneration, implement actual report generation
     // Based on reportType (financial, agents, players, system)

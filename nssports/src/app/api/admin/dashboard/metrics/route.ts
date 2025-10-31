@@ -46,13 +46,13 @@ export async function GET() {
       systemStats,
     ] = await Promise.all([
       // Total players count
-      prisma.player.count({ where: { status: "active" } }),
+      prisma.dashboardPlayer.count({ where: { status: "active" } }),
       
       // Total agents count
       prisma.agent.count({ where: { status: { not: "suspended" } } }),
       
       // Active players (logged in today)
-      prisma.player.count({
+      prisma.dashboardPlayer.count({
         where: {
           status: "active",
           lastLogin: {
@@ -92,7 +92,7 @@ export async function GET() {
       Promise.resolve({
         uptime: 99.98,
         responseTime: 87,
-        sessions: await prisma.player.count({
+        sessions: await prisma.dashboardPlayer.count({
           where: { lastLogin: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } },
         }),
       }),
@@ -103,7 +103,7 @@ export async function GET() {
     const todayWithdrawals = todayStats.find(s => s.type === "withdrawal")?._sum.amount || 0;
     
     // Calculate new players today
-    const newPlayersToday = await prisma.player.count({
+    const newPlayersToday = await prisma.dashboardPlayer.count({
       where: {
         registeredAt: {
           gte: new Date(new Date().setHours(0, 0, 0, 0)),
@@ -112,7 +112,7 @@ export async function GET() {
     });
 
     // Get total platform balance
-    const totalBalance = await prisma.player.aggregate({
+    const totalBalance = await prisma.dashboardPlayer.aggregate({
       _sum: { balance: true },
     });
 

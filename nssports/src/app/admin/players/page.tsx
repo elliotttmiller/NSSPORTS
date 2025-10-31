@@ -39,7 +39,6 @@ export default function PlayersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [agentFilter, setAgentFilter] = useState<string>("all");
   const [balanceFilter, setBalanceFilter] = useState<string>("all");
 
   useEffect(() => {
@@ -85,17 +84,14 @@ export default function PlayersPage() {
       player.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
       player.displayName?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "all" || player.status === statusFilter;
-    const matchesAgent = agentFilter === "all" || player.agentUsername === agentFilter;
     
     let matchesBalance = true;
     if (balanceFilter === "100+") matchesBalance = player.balance >= 100;
     else if (balanceFilter === "500+") matchesBalance = player.balance >= 500;
     else if (balanceFilter === "1000+") matchesBalance = player.balance >= 1000;
     
-    return matchesSearch && matchesStatus && matchesAgent && matchesBalance;
+    return matchesSearch && matchesStatus && matchesBalance;
   });
-
-  const uniqueAgents = Array.from(new Set(players.map((p) => p.agentUsername).filter(Boolean)));
 
   if (isLoading) {
     return (

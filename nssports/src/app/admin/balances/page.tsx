@@ -139,7 +139,7 @@ export default function BalancesPage() {
             <div className="flex items-center justify-between mb-2">
               <TrendingUp className="w-8 h-8 text-green-600" />
             </div>
-            <p className="text-sm text-muted-foreground mb-1">Today's Deposits</p>
+            <p className="text-sm text-muted-foreground mb-1">Today&apos;s Deposits</p>
             <p className="text-3xl font-bold text-green-600">$45,230</p>
           </Card>
 
@@ -147,7 +147,7 @@ export default function BalancesPage() {
             <div className="flex items-center justify-between mb-2">
               <TrendingDown className="w-8 h-8 text-red-600" />
             </div>
-            <p className="text-sm text-muted-foreground mb-1">Today's Withdrawals</p>
+            <p className="text-sm text-muted-foreground mb-1">Today&apos;s Withdrawals</p>
             <p className="text-3xl font-bold text-red-600">$18,745</p>
           </Card>
 
