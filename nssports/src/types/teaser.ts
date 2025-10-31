@@ -243,19 +243,46 @@ export function isBetEligibleForTeaser(bet: Bet, teaserType: TeaserType): boolea
   
   // Must be spread or total
   if (!config.eligibleBetTypes.includes(bet.betType as "spread" | "total")) {
+    console.log(`[Teaser Validation] ❌ Bet type "${bet.betType}" not eligible. Must be spread or total.`, {
+      betId: bet.id,
+      betType: bet.betType,
+      game: `${bet.game?.awayTeam?.shortName || 'Unknown'} @ ${bet.game?.homeTeam?.shortName || 'Unknown'}`
+    });
     return false;
   }
   
   // Must have a line
   if (bet.line === undefined || bet.line === null) {
+    console.log(`[Teaser Validation] ❌ No line found for bet`, {
+      betId: bet.id,
+      betType: bet.betType,
+      line: bet.line,
+      game: `${bet.game?.awayTeam?.shortName || 'Unknown'} @ ${bet.game?.homeTeam?.shortName || 'Unknown'}`
+    });
     return false;
   }
   
   // Must be from eligible league
   const leagueId = bet.game?.leagueId?.toUpperCase();
   if (!leagueId || !config.eligibleLeagues.includes(leagueId)) {
+    console.log(`[Teaser Validation] ❌ League "${leagueId || 'undefined'}" not eligible for ${config.displayName}`, {
+      betId: bet.id,
+      leagueId: leagueId || 'undefined',
+      eligibleLeagues: config.eligibleLeagues,
+      game: `${bet.game?.awayTeam?.shortName || 'Unknown'} @ ${bet.game?.homeTeam?.shortName || 'Unknown'}`,
+      hasGame: !!bet.game,
+      hasLeagueId: !!bet.game?.leagueId
+    });
     return false;
   }
+  
+  console.log(`[Teaser Validation] ✅ Bet is eligible`, {
+    betId: bet.id,
+    betType: bet.betType,
+    leagueId: leagueId,
+    line: bet.line,
+    game: `${bet.game?.awayTeam?.shortName || 'Unknown'} @ ${bet.game?.homeTeam?.shortName || 'Unknown'}`
+  });
   
   return true;
 }

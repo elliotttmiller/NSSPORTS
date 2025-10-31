@@ -105,12 +105,12 @@ export async function GET() {
     // Normalize legs for parlay bets and enrich leg.game when possible
     const allLegGameIds: Set<string> = new Set();
     for (const bet of bets) {
-      if (bet.betType === "parlay" && bet.legs) {
+      if ((bet.betType === "parlay" || bet.betType === "teaser") && bet.legs) {
         const legs = toLegArray(bet.legs);
-        logger.debug('[my-bets] Parlay bet legs:', { betId: bet.id, legsRaw: bet.legs, legsParsed: legs });
+        logger.debug('[my-bets] Parlay/Teaser bet legs:', { betId: bet.id, betType: bet.betType, legsRaw: bet.legs, legsParsed: legs });
         if (Array.isArray(legs)) {
           for (const leg of legs) {
-            logger.debug('[my-bets] Parlay leg:', { gameId: leg?.gameId, betType: leg?.betType, selection: leg?.selection });
+            logger.debug('[my-bets] Leg:', { gameId: leg?.gameId, betType: leg?.betType, selection: leg?.selection });
             if (leg?.gameId) allLegGameIds.add(leg.gameId);
           }
         }
@@ -164,7 +164,7 @@ export async function GET() {
     };
 
     const normalized = bets.map((bet: any) => {
-      if (bet.betType !== "parlay") return bet as any;
+      if (bet.betType !== "parlay" && bet.betType !== "teaser") return bet as any;
       const legsRaw = toLegArray(bet.legs);
       // Sanitize legs to avoid downstream validation issues
       const legs = Array.isArray(legsRaw)
@@ -266,6 +266,9 @@ export async function GET() {
         // Include player/game prop metadata for display
         playerProp,
         gameProp,
+        // Include teaser metadata for teaser bets
+        teaserType: b.teaserType || undefined,
+        teaserMetadata: b.teaserMetadata ? (typeof b.teaserMetadata === 'string' ? JSON.parse(b.teaserMetadata) : b.teaserMetadata) : undefined,
         // Provide a server-side label for singles too
         displaySelection: b.betType !== 'parlay'
           ? computeSelectionLabel(b.betType, b.selection, (b as any).line, gameForCard)

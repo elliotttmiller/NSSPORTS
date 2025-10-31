@@ -2,7 +2,7 @@
 import { useBetHistory } from "@/context";
 import type { PlacedBet } from "@/context/BetHistoryContext";
 import { Card, CardContent, CardHeader, CardTitle, PullToRefresh } from "@/components/ui";
-import { BetCardParlay, BetCardSingle } from "@/components/bets/BetCard";
+import { BetCardParlay, BetCardSingle, BetCardTeaser } from "@/components/bets/BetCard";
 import type { BetLeg } from "@/components/bets/BetCard";
 import { MobileParlayBetCard } from "@/components/features/mobile/MobileParlayBetCard";
 import { useCallback, useEffect, useState } from "react";
@@ -84,6 +84,26 @@ export default function MyBetsPage() {
                   <div className="space-y-4">
                     {activeBets.map((bet: PlacedBet) => {
                       const betType = typeof bet.betType === "string" ? bet.betType : "single";
+                      
+                      // Handle teaser bets
+                      if (betType === "teaser" && bet.legs && Array.isArray(bet.legs)) {
+                        return (
+                          <BetCardTeaser
+                            key={bet.id}
+                            id={bet.id}
+                            betType={betType}
+                            placedAt={bet.placedAt}
+                            status={bet.status}
+                            stake={bet.stake}
+                            payout={bet.potentialPayout}
+                            legs={(bet.legs as unknown as BetLeg[]) || []}
+                            teaserType={bet.teaserType}
+                            teaserMetadata={bet.teaserMetadata}
+                          />
+                        );
+                      }
+                      
+                      // Handle parlay bets
                       if (betType === "parlay" && bet.legs && Array.isArray(bet.legs)) {
                         // Use mobile-optimized parlay card on mobile, desktop card on desktop
                         return isMobile ? (
@@ -104,6 +124,8 @@ export default function MyBetsPage() {
                           />
                         );
                       }
+                      
+                      // Handle single bets
                       return (
                         <BetCardSingle
                           key={bet.id}
@@ -146,6 +168,26 @@ export default function MyBetsPage() {
                   <div className="space-y-4">
                     {settledBets.map((bet: PlacedBet) => {
                       const betType = typeof bet.betType === "string" ? bet.betType : "single";
+                      
+                      // Handle teaser bets
+                      if (betType === "teaser" && bet.legs && Array.isArray(bet.legs)) {
+                        return (
+                          <BetCardTeaser
+                            key={bet.id}
+                            id={bet.id}
+                            betType={betType}
+                            placedAt={bet.placedAt}
+                            status={bet.status}
+                            stake={bet.stake}
+                            payout={bet.potentialPayout}
+                            legs={(bet.legs as unknown as BetLeg[]) || []}
+                            teaserType={bet.teaserType}
+                            teaserMetadata={bet.teaserMetadata}
+                          />
+                        );
+                      }
+                      
+                      // Handle parlay bets
                       if (betType === "parlay" && bet.legs && Array.isArray(bet.legs)) {
                         // Use mobile-optimized parlay card on mobile, desktop card on desktop
                         return isMobile ? (
@@ -166,6 +208,8 @@ export default function MyBetsPage() {
                           />
                         );
                       }
+                      
+                      // Handle single bets
                       return (
                         <BetCardSingle
                           key={bet.id}

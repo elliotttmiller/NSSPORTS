@@ -4,7 +4,7 @@ import { z } from "zod";
 // Request schemas (client/server)
 // ----------------------------
 export const BetSelectionSchema = z.enum(["home", "away", "over", "under"]);
-export const BetTypeSchema = z.enum(["spread", "moneyline", "total", "parlay", "player_prop", "game_prop"]);
+export const BetTypeSchema = z.enum(["spread", "moneyline", "total", "parlay", "teaser", "player_prop", "game_prop"]);
 
 export const ParlayLegRequestSchema = z.object({
   gameId: z.string().optional(),
@@ -102,6 +102,23 @@ export const ParlayBetResponseSchema = z.object({
   legs: z.array(ParlayLegSchema).nullable(),
 });
 
+export const TeaserBetResponseSchema = z.object({
+  id: z.string(),
+  betType: z.literal("teaser"),
+  stake: z.number(),
+  potentialPayout: z.number(),
+  status: z.enum(["pending", "won", "lost"]),
+  placedAt: z.string().or(z.date()).optional(),
+  legs: z.array(ParlayLegSchema).nullable(),
+  teaserType: z.string().optional(),
+  teaserMetadata: z.object({
+    adjustedLines: z.record(z.number()).optional(),
+    originalLines: z.record(z.number()).optional(),
+    pointAdjustment: z.number().optional(),
+    pushRule: z.string().optional(),
+  }).optional(),
+});
+
 export const BetsResponseSchema = z.array(
-  z.union([SingleBetResponseSchema, ParlayBetResponseSchema])
+  z.union([SingleBetResponseSchema, ParlayBetResponseSchema, TeaserBetResponseSchema])
 );

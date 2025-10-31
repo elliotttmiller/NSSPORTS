@@ -434,15 +434,34 @@ export function validateTeaserBets(
   bets: Bet[], 
   teaserType: TeaserType
 ): BettingRuleViolation | null {
+  console.log(`[validateTeaserBets] Starting validation for ${bets.length} bets with teaser type: ${teaserType}`, {
+    bets: bets.map(bet => ({
+      id: bet.id,
+      betType: bet.betType,
+      selection: bet.selection,
+      line: bet.line,
+      leagueId: bet.game?.leagueId,
+      hasGame: !!bet.game,
+      game: bet.game ? {
+        id: bet.game.id,
+        leagueId: bet.game.leagueId,
+        homeTeam: bet.game.homeTeam?.shortName,
+        awayTeam: bet.game.awayTeam?.shortName,
+      } : null
+    }))
+  });
+  
   const result = validateTeaserBetCore(bets, teaserType);
   
   if (!result.valid) {
+    console.log(`[validateTeaserBets] ❌ Validation failed:`, result.error);
     return {
       rule: "TEASER_VALIDATION",
       message: result.error || "Invalid teaser bet",
     };
   }
   
+  console.log(`[validateTeaserBets] ✅ Validation passed`);
   return null;
 }
 

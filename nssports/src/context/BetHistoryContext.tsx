@@ -54,6 +54,13 @@ export interface PlacedBet {
     description: string;
     marketCategory: string;
   };
+  teaserType?: string;
+  teaserMetadata?: {
+    adjustedLines?: Record<string, number>;
+    originalLines?: Record<string, number>;
+    pointAdjustment?: number;
+    pushRule?: string;
+  };
   legs?: Array<{
     game?: {
       id: string;

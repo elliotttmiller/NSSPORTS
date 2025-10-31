@@ -10,8 +10,8 @@ export type BetStatus = "pending" | "won" | "lost";
 
 export type BetLeg = {
   game?: {
-    homeTeam?: { shortName?: string };
-    awayTeam?: { shortName?: string };
+    homeTeam?: { shortName?: string; name?: string; logo?: string };
+    awayTeam?: { shortName?: string; name?: string; logo?: string };
   };
   selection: string; // 'home' | 'away' | 'over' | 'under'
   odds: number;
@@ -438,6 +438,177 @@ export function BetCardParlay({
               </div>
             );
           })}
+        </div>
+
+        {children}
+        {showTotals && <BetSummary stake={stake} payout={payout} status={status} />}
+      </CardContent>
+    </Card>
+  );
+}
+
+export type BetCardTeaserProps = BetCardBaseProps & {
+  stake: number;
+  payout: number;
+  legs: BetLeg[];
+  teaserType?: string;
+  teaserMetadata?: {
+    adjustedLines?: Record<string, number>;
+    originalLines?: Record<string, number>;
+    pointAdjustment?: number;
+    pushRule?: string;
+  };
+  children?: ReactNode;
+  showTotals?: boolean;
+  headerActions?: ReactNode;
+};
+
+export function BetCardTeaser({
+  placedAt,
+  status,
+  stake,
+  payout,
+  legs,
+  teaserType,
+  teaserMetadata,
+  children,
+  showTotals = true,
+  headerActions,
+}: BetCardTeaserProps) {
+  const placed = placedAt ? new Date(placedAt) : null;
+  const isWon = status === "won";
+  const pointAdjustment = teaserMetadata?.pointAdjustment || 6;
+  
+  return (
+    <Card 
+      className={cn(
+        "w-full max-w-full mx-auto",
+        "touch-pan-y select-none",
+        "bg-card/40 border-2 border-blue-500/30 ring-2 ring-blue-500/20 overflow-hidden",
+      )}
+      style={{
+        touchAction: 'pan-y',
+        WebkitTouchCallout: 'none',
+        WebkitUserSelect: 'none',
+        userSelect: 'none',
+      }}
+    >
+      {/* Teaser Indicator Badge */}
+      <div className="bg-blue-500/10 border-b border-blue-500/20 px-3 py-1.5">
+        <div className="flex items-center justify-between text-xs">
+          <span className="text-blue-400 font-semibold">
+            ⚡ {pointAdjustment > 0 ? '+' : ''}{pointAdjustment} Point Teaser
+          </span>
+          <span className="text-muted-foreground">
+            {teaserType || 'TEASER'}
+          </span>
+        </div>
+      </div>
+
+      <CardContent className="px-3 py-3 sm:px-4 sm:py-4">
+        {/* Header: Badges and Date */}
+        <div className="flex items-center justify-between mb-2.5">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <Badge 
+              variant={isWon ? "default" : status === "lost" ? "destructive" : "outline"} 
+              className={cn(
+                "text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 uppercase tracking-[0.06em]",
+                isWon ? "bg-green-600 text-white" : status === "lost" ? "bg-red-600 text-white" : "bg-yellow-50 text-yellow-700 border-yellow-200"
+              )}
+            >
+              {status.toUpperCase()}
+            </Badge>
+            <Badge 
+              variant="outline"
+              className="text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 uppercase tracking-[0.06em] bg-blue-500/10 text-blue-400 border-blue-500/30"
+            >
+              TEASER
+            </Badge>
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {headerActions}
+            <span className="text-[9px] sm:text-[10px] text-muted-foreground/60 tabular-nums">
+              {placed ? placed.toLocaleDateString() : "-"}
+            </span>
+          </div>
+        </div>
+
+        {/* Teaser Legs */}
+        <div className="space-y-3 mb-2.5">
+          {legs.map((leg, idx) => {
+            if (!leg.game?.awayTeam?.shortName || !leg.game?.homeTeam?.shortName) {
+              return null;
+            }
+            
+            const betId = `${leg.game.homeTeam.shortName}-${leg.game.awayTeam.shortName}-${idx}`;
+            const originalLine = teaserMetadata?.originalLines?.[betId];
+            const adjustedLine = teaserMetadata?.adjustedLines?.[betId] || leg.line;
+            
+            // Determine which team was selected
+            const selectedTeam = leg.selection === 'home' ? leg.game.homeTeam.shortName : 
+                               leg.selection === 'away' ? leg.game.awayTeam.shortName : 
+                               null;
+            
+            // Format the line display
+            const formatLine = (line: number | undefined, isSpread: boolean) => {
+              if (line === undefined || line === null) return '';
+              if (isSpread) {
+                return line > 0 ? `+${line}` : line.toString();
+              }
+              return line.toString();
+            };
+            
+            const isSpread = leg.betType === 'spread';
+            const isTotal = leg.betType === 'total';
+            const originalFormatted = formatLine(originalLine, isSpread);
+            const adjustedFormatted = formatLine(adjustedLine, isSpread);
+            
+            // Build title based on bet type - USE ADJUSTED LINE
+            let title = '';
+            if (isSpread && selectedTeam) {
+              title = `${selectedTeam} ${adjustedFormatted}`;
+            } else if (isTotal) {
+              const totalLabel = leg.selection === 'over' ? 'O' : leg.selection === 'under' ? 'U' : '';
+              title = `${totalLabel} ${adjustedFormatted}`;
+            }
+            
+            return (
+              <div key={idx} className="pb-3 border-b border-border/20 last:border-0 last:pb-0">
+                {/* Title: "PHI +3" (adjusted line) */}
+                <div className="flex items-center justify-between mb-1">
+                  <div className="font-bold text-base text-white">
+                    {title}
+                  </div>
+                  <Badge 
+                    variant="outline" 
+                    className="text-xs font-bold px-1.5 py-0.5 tabular-nums border"
+                  >
+                    {formatOdds(leg.odds)}
+                  </Badge>
+                </div>
+                
+                {/* Adjusted line: "-1 → +3 (+4 pts)" */}
+                <div className="text-sm mb-1">
+                  <span className="text-muted-foreground/70">{originalFormatted}</span>
+                  <span className="text-muted-foreground/50 mx-1">→</span>
+                  <span className="text-blue-400 font-semibold">{adjustedFormatted}</span>
+                  <span className="text-blue-400/70 ml-1">(+{pointAdjustment} pts)</span>
+                </div>
+                
+                {/* Game matchup: "BOS @ PHI" */}
+                <div className="text-xs text-muted-foreground/60">
+                  {leg.game.awayTeam.shortName} @ {leg.game.homeTeam.shortName}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="mt-2 pt-2 border-t border-border/20 text-center text-[10px] text-blue-400/70">
+          Lines adjusted by <span className="font-semibold">{pointAdjustment > 0 ? '+' : ''}{pointAdjustment} pts</span>
+          {teaserMetadata?.pushRule && (
+            <span className="ml-2">• Push: <span className="font-semibold">{teaserMetadata.pushRule}</span></span>
+          )}
         </div>
 
         {children}

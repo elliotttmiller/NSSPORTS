@@ -48,7 +48,15 @@ export default function TeasersPage() {
   
   // Filter games to only show those eligible for teasers (spread and total bets available)
   const eligibleGames = useMemo(() => {
+    // Teaser eligible leagues: NFL, NBA, NCAAF, NCAAB (no NHL)
+    const eligibleLeagues = ['NFL', 'NBA', 'NCAAF', 'NCAAB'];
+    
     return games.filter(game => {
+      // Must be from an eligible league
+      if (!game.leagueId || !eligibleLeagues.includes(game.leagueId.toUpperCase())) {
+        return false;
+      }
+      
       // Must have odds data
       if (!game.odds) return false;
       

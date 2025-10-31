@@ -29,6 +29,20 @@ export function MobileBetSlipPanel() {
   const handlePlaceBets = async () => {
     if (betSlip.bets.length === 0) return;
 
+    console.log(`[MobileBetSlip] 🎯 Starting bet placement`, {
+      betType: betSlip.betType,
+      teaserType: betSlip.teaserType,
+      betCount: betSlip.bets.length,
+      bets: betSlip.bets.map(b => ({
+        id: b.id,
+        betType: b.betType,
+        selection: b.selection,
+        line: b.line,
+        leagueId: b.game?.leagueId,
+        hasGame: !!b.game,
+      }))
+    });
+
     // Validate betting rules before placement (treat custom as parlay for validation)
     const stakes = betSlip.bets.reduce((acc, bet) => {
       acc[bet.id] = bet.stake || 0;
@@ -53,13 +67,24 @@ export function MobileBetSlipPanel() {
         validTeaserTypes.includes(betSlip.teaserType as string)
           ? (betSlip.teaserType as import("@/types/teaser").TeaserType)
           : undefined;
+
+    console.log(`[MobileBetSlip] 🔍 About to validate`, {
+      validationType,
+      teaserType,
+      hasTeaserType: !!teaserType,
+    });
+
     const violation = validateBetPlacement(
       betSlip.bets, 
       validationType, 
       stakes,
         teaserType
     );
+
+    console.log(`[MobileBetSlip] 📊 Validation result:`, violation);
+
     if (violation) {
+      console.log(`[MobileBetSlip] ❌ Validation failed:`, violation);
       toast.error(violation.message, {
         description: violation.rule.replace(/_/g, " "),
         duration: 4000,
@@ -205,8 +230,10 @@ export function MobileBetSlipPanel() {
   };
 
   // Format bet description for display using the same logic as desktop
-  const formatBetDescription = (bet: Bet) => {
-    return formatSelectionLabel(bet.betType, bet.selection, bet.line, {
+  // For teaser bets, pass the adjusted line instead of original line
+  const formatBetDescription = (bet: Bet, adjustedLine?: number) => {
+    const lineToUse = adjustedLine !== undefined ? adjustedLine : bet.line;
+    return formatSelectionLabel(bet.betType, bet.selection, lineToUse, {
       homeTeam: { shortName: bet.game.homeTeam.shortName },
       awayTeam: { shortName: bet.game.awayTeam.shortName }
     }, bet.playerProp);
@@ -350,7 +377,7 @@ export function MobileBetSlipPanel() {
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <div className="text-sm font-medium leading-tight whitespace-pre-line">
-                                    {formatBetDescription(bet)}
+                                    {formatBetDescription(bet, adjustedLine)}
                                   </div>
                                   {pointAdjustment > 0 && bet.line !== undefined && bet.line !== null && (
                                     <div className="text-xs text-blue-400 leading-tight mt-0.5">

@@ -134,15 +134,15 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange }: G
   };
 
   useEffect(() => {
-    if (!selectedDate && allGames.length > 0) {
+    if (!selectedDate && contextFilteredGames.length > 0) {
       const allDates: string[] = [];
-      Object.values(groupGamesByLeagueAndDate(allGames)).forEach(dateGroups => {
+      Object.values(groupGamesByLeagueAndDate(contextFilteredGames)).forEach(dateGroups => {
         allDates.push(...Object.keys(dateGroups));
       });
       const sortedDates = allDates.sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
       if (sortedDates.length > 0) setSelectedDate(sortedDates[0]);
     }
-  }, [allGames, selectedDate]);
+  }, [contextFilteredGames, selectedDate]);
 
   const uniqueSortedDates = useMemo(() => {
     const dates: string[] = [];
