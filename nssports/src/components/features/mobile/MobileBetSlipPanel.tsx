@@ -153,13 +153,42 @@ export function MobileBetSlipPanel() {
           setIsBetSlipOpen(false);
         }, 1500);
       } else {
-        // Handle single or parlay mode
+        // Prepare teaser metadata if it's a teaser bet
+        let teaserMetadata;
+        if (betSlip.betType === "teaser" && betSlip.teaserType) {
+          const { getTeaserConfig, getPointAdjustment, calculateAdjustedLine } = await import("@/types/teaser");
+          const config = getTeaserConfig(betSlip.teaserType as import("@/types/teaser").TeaserType);
+          const adjustedLines: Record<string, number> = {};
+          const originalLines: Record<string, number> = {};
+          
+          betSlip.bets.forEach(bet => {
+            const adjustment = getPointAdjustment(betSlip.teaserType as import("@/types/teaser").TeaserType, bet.game.leagueId);
+            originalLines[bet.id] = bet.line || 0;
+            adjustedLines[bet.id] = calculateAdjustedLine(
+              bet.line || 0,
+              bet.selection,
+              adjustment,
+              bet.betType as "spread" | "total"
+            );
+          });
+          
+          teaserMetadata = {
+            adjustedLines,
+            originalLines,
+            pointAdjustment: config.nbaPointAdjustment || config.pointAdjustment,
+            pushRule: config.pushRule,
+          };
+        }
+        
+        // Handle single, parlay, or teaser mode
         await addPlacedBet(
           betSlip.bets,
           betSlip.betType,
           betSlip.totalStake,
           betSlip.totalPayout,
-          betSlip.totalOdds
+          betSlip.totalOdds,
+          betSlip.teaserType,
+          teaserMetadata
         );
         toast.success("Bet(s) placed successfully!");
         clearBetSlip();

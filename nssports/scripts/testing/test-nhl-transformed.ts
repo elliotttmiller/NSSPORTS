@@ -1,6 +1,6 @@
 import 'dotenv/config';
-import { transformSDKEvents } from '../src/lib/transformers/sportsgameodds-sdk';
-import { getSportsGameOddsClient } from '../src/lib/sportsgameodds-sdk';
+import { transformSDKEvents } from '../../src/lib/transformers/sportsgameodds-sdk';
+import { getSportsGameOddsClient } from '../../src/lib/sportsgameodds-sdk';
 
 async function testNHLTransformedSpreads() {
   const client = getSportsGameOddsClient();

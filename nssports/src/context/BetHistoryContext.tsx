@@ -93,7 +93,7 @@ export interface PlacedBet {
   }>;
 }
 
-interface BetHistoryContextType {
+type BetHistoryContextType = {
   placedBets: PlacedBet[];
   loading: boolean;
   refreshBetHistory: () => Promise<void>;
@@ -103,8 +103,15 @@ interface BetHistoryContextType {
     totalStake: number,
     totalPayout: number,
     totalOdds: number,
+    teaserType?: string,
+    teaserMetadata?: {
+      adjustedLines: Record<string, number>;
+      originalLines: Record<string, number>;
+      pointAdjustment: number;
+      pushRule: "push" | "lose" | "revert";
+    }
   ) => Promise<void>;
-}
+};
 
 export const BetHistoryContext = createContext<BetHistoryContextType | undefined>(
   undefined,
@@ -151,6 +158,13 @@ export function BetHistoryProvider({ children }: BetHistoryProviderProps) {
     totalStake: number,
     totalPayout: number,
     totalOdds: number,
+    teaserType?: string,
+    teaserMetadata?: {
+      adjustedLines: Record<string, number>;
+      originalLines: Record<string, number>;
+      pointAdjustment: number;
+      pushRule: "push" | "lose" | "revert";
+    }
   ) => {
     await placeBetMutation.mutateAsync({
       bets,
@@ -158,6 +172,8 @@ export function BetHistoryProvider({ children }: BetHistoryProviderProps) {
       totalStake,
       totalPayout,
       totalOdds,
+      teaserType,
+      teaserMetadata,
     });
   };
 

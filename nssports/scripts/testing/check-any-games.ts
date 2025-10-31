@@ -2,7 +2,7 @@
  * Check if ANY games exist (even without odds)
  */
 
-import { getSportsGameOddsClient } from '../src/lib/sportsgameodds-sdk';
+import { getSportsGameOddsClient } from '../../src/lib/sportsgameodds-sdk';
 
 async function checkGames() {
   console.log('🔍 Checking for ANY games (with or without odds)\n');
@@ -27,13 +27,15 @@ async function checkGames() {
       console.log(`  Found ${result.data.length} games (with or without odds)`);
       
       if (result.data.length > 0) {
-        const game: any = result.data[0];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const game = result.data[0] as any;
         console.log(`  Sample: ${game.awayTeam?.displayName || 'Away'} @ ${game.homeTeam?.displayName || 'Home'}`);
         console.log(`  Start: ${game.startDate}`);
         console.log(`  Has odds: ${game.odds ? 'Yes' : 'No'}`);
       }
-    } catch (error: any) {
-      console.log(`  Error: ${error.message}`);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.log(`  Error: ${errorMessage}`);
     }
   }
   

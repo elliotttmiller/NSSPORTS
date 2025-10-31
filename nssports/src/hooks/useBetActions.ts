@@ -28,19 +28,65 @@ export function usePlaceBetWithActions() {
       totalStake,
       totalPayout,
       totalOdds,
+      teaserType,
+      teaserMetadata,
     }: {
       bets: Bet[];
       betType: "single" | "parlay" | "teaser";
       totalStake: number;
       totalPayout: number;
       totalOdds: number;
+      teaserType?: string;
+      teaserMetadata?: {
+        adjustedLines: Record<string, number>;
+        originalLines: Record<string, number>;
+        pointAdjustment: number;
+        pushRule: "push" | "lose" | "revert";
+      };
     }) => {
       if (!bets || bets.length === 0) {
         throw new Error("No bets to place");
       }
 
-      // For now, treat teasers like parlays (will need server action update later)
-      if (betType === "parlay" || betType === "teaser") {
+      if (betType === "teaser") {
+        // Handle teaser bets with special action
+        if (!teaserType || !teaserMetadata) {
+          throw new Error("Teaser type and metadata are required for teaser bets");
+        }
+        
+        const { placeTeaserBetAction } = await import("@/app/actions/bets");
+        const result = await placeTeaserBetAction({
+          legs: bets.map((bet) => ({
+            gameId: bet.gameId,
+            betType: bet.betType,
+            selection: bet.selection,
+            odds: bet.odds,
+            line: bet.line ?? null,
+            playerProp: bet.playerProp,
+            gameProp: bet.gameProp,
+          })),
+          stake: totalStake,
+          potentialPayout: totalPayout,
+          odds: totalOdds,
+          teaserType: teaserType as 
+            | "2T_TEASER"
+            | "3T_SUPER_TEASER"
+            | "3T_TEASER"
+            | "4T_MONSTER_TEASER"
+            | "4T_TEASER"
+            | "5T_TEASER"
+            | "6T_TEASER"
+            | "7T_TEASER"
+            | "8T_TEASER",
+          teaserMetadata: teaserMetadata,
+        });
+
+        if (!result.success) {
+          throw new Error(result.error || "Failed to place teaser bet");
+        }
+
+        return result;
+      } else if (betType === "parlay") {
         const result = await placeParlayBetAction({
           legs: bets.map((bet) => ({
             gameId: bet.gameId,

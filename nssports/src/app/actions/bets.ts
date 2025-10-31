@@ -69,6 +69,30 @@ const parlayBetSchema = z.object({
   odds: z.number(),
 });
 
+const teaserBetSchema = z.object({
+  legs: z.array(betLegSchema).min(2, "Teaser must have at least 2 legs"),
+  stake: z.number().positive(),
+  potentialPayout: z.number().positive(),
+  odds: z.number(),
+  teaserType: z.enum([
+    "2T_TEASER",
+    "3T_SUPER_TEASER", 
+    "3T_TEASER",
+    "4T_MONSTER_TEASER",
+    "4T_TEASER",
+    "5T_TEASER",
+    "6T_TEASER",
+    "7T_TEASER",
+    "8T_TEASER"
+  ]),
+  teaserMetadata: z.object({
+    adjustedLines: z.record(z.number()),
+    originalLines: z.record(z.number()),
+    pointAdjustment: z.number(),
+    pushRule: z.enum(["push", "lose", "revert"]),
+  }),
+});
+
 // Action return types
 export type PlaceBetsState = {
   success: boolean;
@@ -408,17 +432,192 @@ export async function placeParlayBetAction(
 }
 
 /**
+ * Place Teaser Bet Server Action
+ * 
+ * Creates a teaser bet with multiple legs and adjusted lines for the authenticated user.
+ * Automatically revalidates the bet history cache.
+ */
+export async function placeTeaserBetAction(
+  teaserData: z.infer<typeof teaserBetSchema>
+): Promise<PlaceBetsState> {
+  try {
+    console.log("[placeTeaserBetAction] Received teaser data:", JSON.stringify(teaserData, null, 2));
+    
+    // Get authenticated user
+    const session = await auth();
+    if (!session?.user?.id) {
+      console.error("[placeTeaserBetAction] No authenticated user");
+      return {
+        success: false,
+        error: "You must be logged in to place bets",
+      };
+    }
+
+    console.log("[placeTeaserBetAction] User authenticated:", session.user.id);
+
+    // Validate input
+    const validatedData = teaserBetSchema.safeParse(teaserData);
+    if (!validatedData.success) {
+      console.error("[placeTeaserBetAction] Validation failed:", validatedData.error.errors);
+      return {
+        success: false,
+        error: `Invalid teaser data: ${validatedData.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
+      };
+    }
+
+    const { legs, stake, potentialPayout, odds, teaserType, teaserMetadata } = validatedData.data;
+
+    console.log("[placeTeaserBetAction] Validated data:", { 
+      legs: legs.length, 
+      stake, 
+      potentialPayout, 
+      odds, 
+      teaserType,
+      pushRule: teaserMetadata.pushRule 
+    });
+
+    // Ensure odds is an integer as required by Prisma schema
+    const oddsInt = Math.round(odds);
+
+    // Ensure all games in the teaser exist in the database
+    const { fetchGameFromAPI, ensureGameExists } = await import("@/lib/gameHelpers");
+    
+    for (const leg of legs) {
+      if (!leg.gameId) continue;
+      
+      let game = await prisma.game.findUnique({
+        where: { id: leg.gameId },
+        select: { id: true, status: true },
+      });
+      
+      if (!game) {
+        console.log("[placeTeaserBetAction] Game not in database, fetching from API:", leg.gameId);
+        
+        const gameData = await fetchGameFromAPI(leg.gameId);
+        
+        if (!gameData) {
+          console.error("[placeTeaserBetAction] Game not found in API:", leg.gameId);
+          return {
+            success: false,
+            error: `Game not found: ${leg.gameId}. Please refresh and try again.`,
+          };
+        }
+        
+        await ensureGameExists(gameData);
+        
+        game = await prisma.game.findUnique({
+          where: { id: leg.gameId },
+          select: { id: true, status: true },
+        });
+      }
+      
+      if (game?.status === "finished") {
+        console.error("[placeTeaserBetAction] Game already finished:", leg.gameId);
+        return {
+          success: false,
+          error: "Cannot place bet on finished game",
+        };
+      }
+    }
+
+    console.log("[placeTeaserBetAction] Creating teaser bet in database...");
+
+    // Check if user has sufficient balance (create account if doesn't exist)
+    let account = await prisma.account.findUnique({
+      where: { userId: session.user.id },
+      select: { balance: true },
+    });
+
+    // Auto-create account if it doesn't exist (for legacy users)
+    if (!account) {
+      console.warn("[placeTeaserBetAction] Account not found, creating new account for user:", session.user.id);
+      account = await prisma.account.create({
+        data: {
+          userId: session.user.id,
+          balance: 1000.0, // Starting balance for legacy users
+        },
+        select: { balance: true },
+      });
+      console.log("[placeTeaserBetAction] Account created with balance:", account.balance);
+    }
+
+    if (account.balance < stake) {
+      console.error("[placeTeaserBetAction] Insufficient balance:", { balance: account.balance, stake });
+      return {
+        success: false,
+        error: `Insufficient balance. Available: $${account.balance.toFixed(2)}, Required: $${stake.toFixed(2)}`,
+      };
+    }
+
+    // Generate idempotency key for teaser bet
+    const idempotencyKey = `teaser-${session.user.id}-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+
+    // Create teaser bet and deduct stake from account balance in a transaction
+    const [createdBet] = await prisma.$transaction([
+      prisma.bet.create({
+        data: {
+          betType: "teaser",
+          stake,
+          potentialPayout,
+          status: "pending",
+          placedAt: new Date(),
+          userId: session.user.id,
+          selection: `${teaserType} (${legs.length} legs)`,
+          odds: oddsInt,
+          line: null,
+          gameId: null,
+          legs: legs,
+          teaserType: teaserType,
+          teaserMetadata: teaserMetadata,
+          idempotencyKey,
+        },
+      }),
+      prisma.account.update({
+        where: { userId: session.user.id },
+        data: {
+          balance: {
+            decrement: stake,
+          },
+        },
+      }),
+    ]);
+
+    console.log("[placeTeaserBetAction] Teaser bet created successfully:", createdBet.id);
+    console.log("[placeTeaserBetAction] Balance deducted:", stake);
+
+    // Revalidate bet history cache - this triggers React Query refetch
+    revalidatePath("/my-bets");
+    revalidatePath("/");
+
+    return {
+      success: true,
+      message: `Teaser bet placed successfully! (${legs.length} legs)`,
+      betIds: [createdBet.id],
+    };
+  } catch (error) {
+    console.error("[placeTeaserBetAction] Error:", error);
+    console.error("[placeTeaserBetAction] Teaser data:", JSON.stringify(teaserData, null, 2));
+    return {
+      success: false,
+      error: `Failed to place teaser bet: ${error instanceof Error ? error.message : 'Unknown error'}`,
+    };
+  }
+}
+
+/**
  * Settle Bet Server Action
  * 
  * Updates bet status (won/lost/push) and processes payouts for winning bets.
+ * Supports teaser-specific push rules (push/lose/revert).
  * This would typically be called by an admin/cron job after games finish.
  */
 export async function settleBetAction(
   betId: string,
-  status: "won" | "lost" | "push"
+  status: "won" | "lost" | "push",
+  legResults?: { [legId: string]: "won" | "lost" | "push" }
 ): Promise<PlaceBetsState> {
   try {
-    console.log("[settleBetAction] Settling bet:", betId, "Status:", status);
+    console.log("[settleBetAction] Settling bet:", betId, "Status:", status, "Leg results:", legResults);
 
     // Get authenticated user (in production, check admin role)
     const session = await auth();
@@ -429,15 +628,19 @@ export async function settleBetAction(
       };
     }
 
-    // Get bet details
+    // Get bet details with teaser metadata
     const bet = await prisma.bet.findUnique({
       where: { id: betId },
       select: {
         id: true,
         userId: true,
+        betType: true,
         status: true,
         potentialPayout: true,
         stake: true,
+        teaserType: true,
+        teaserMetadata: true,
+        legs: true,
       },
     });
 
@@ -455,14 +658,107 @@ export async function settleBetAction(
       };
     }
 
-    // Calculate payout amount
+    let finalStatus = status;
     let payoutAmount = 0;
-    if (status === "won") {
-      payoutAmount = bet.potentialPayout; // Full payout includes original stake
-    } else if (status === "push") {
-      payoutAmount = bet.stake; // Return only the stake on push
+
+    // Special handling for teaser bets with push rules
+    if (bet.betType === "teaser" && bet.teaserType && legResults) {
+      const metadata = bet.teaserMetadata as { pushRule: "push" | "lose" | "revert" } | null;
+      const pushRule = metadata?.pushRule || "push";
+      const legStatuses = Object.values(legResults);
+      
+      const hasLoss = legStatuses.some(s => s === "lost");
+      const hasPush = legStatuses.some(s => s === "push");
+      const allWins = legStatuses.every(s => s === "won");
+
+      console.log("[settleBetAction] Teaser evaluation:", { 
+        teaserType: bet.teaserType, 
+        pushRule, 
+        hasLoss, 
+        hasPush, 
+        allWins,
+        legCount: legStatuses.length 
+      });
+
+      if (hasLoss) {
+        // Any loss = entire teaser loses
+        finalStatus = "lost";
+        payoutAmount = 0;
+        console.log("[settleBetAction] Teaser lost - has losing leg");
+      } else if (allWins) {
+        // All wins = teaser wins
+        finalStatus = "won";
+        payoutAmount = bet.potentialPayout;
+        console.log("[settleBetAction] Teaser won - all legs won");
+      } else if (hasPush) {
+        // Has push(es), apply push rule
+        console.log("[settleBetAction] Applying push rule:", pushRule);
+        
+        switch (pushRule) {
+          case "push":
+            // Entire teaser pushes, return stake
+            finalStatus = "push";
+            payoutAmount = bet.stake;
+            console.log("[settleBetAction] Push rule: push - returning stake");
+            break;
+            
+          case "lose":
+            // Entire teaser loses
+            finalStatus = "lost";
+            payoutAmount = 0;
+            console.log("[settleBetAction] Push rule: lose - bet marked as lost");
+            break;
+            
+          case "revert":
+            // Revert to lower teaser (e.g., 3T → 2T)
+            const { getTeaserConfig } = await import("@/types/teaser");
+            const remainingLegs = legStatuses.filter(s => s === "won").length;
+            
+            console.log("[settleBetAction] Attempting to revert teaser:", {
+              originalType: bet.teaserType,
+              remainingLegs
+            });
+            
+            // Find teaser config for remaining legs
+            const revertedType = `${remainingLegs}T_TEASER`;
+            
+            try {
+              const revertedConfig = getTeaserConfig(revertedType as import("@/types/teaser").TeaserType);
+              
+              if (revertedConfig && remainingLegs >= revertedConfig.minLegs) {
+                // Calculate new payout with reverted odds
+                const revertedPayout = bet.stake * (
+                  revertedConfig.odds > 0 
+                    ? (revertedConfig.odds / 100) + 1 
+                    : (100 / Math.abs(revertedConfig.odds)) + 1
+                );
+                finalStatus = "won";
+                payoutAmount = revertedPayout;
+                console.log("[settleBetAction] Reverted to:", revertedType, "Payout:", revertedPayout);
+              } else {
+                // Not enough legs to revert, return stake
+                finalStatus = "push";
+                payoutAmount = bet.stake;
+                console.log("[settleBetAction] Cannot revert - not enough legs, returning stake");
+              }
+            } catch (error) {
+              // If reversion fails, return stake
+              console.warn("[settleBetAction] Reversion failed, returning stake:", error);
+              finalStatus = "push";
+              payoutAmount = bet.stake;
+            }
+            break;
+        }
+      }
+    } else {
+      // Standard single/parlay settlement
+      if (finalStatus === "won") {
+        payoutAmount = bet.potentialPayout;
+      } else if (finalStatus === "push") {
+        payoutAmount = bet.stake;
+      }
+      console.log("[settleBetAction] Standard bet settlement:", { finalStatus, payoutAmount });
     }
-    // For lost bets, payoutAmount stays 0 (stake already deducted)
 
     // Update bet status and add payout to account balance in a transaction
     if (payoutAmount > 0) {
@@ -470,7 +766,7 @@ export async function settleBetAction(
         prisma.bet.update({
           where: { id: betId },
           data: {
-            status,
+            status: finalStatus,
             settledAt: new Date(),
           },
         }),
@@ -490,7 +786,7 @@ export async function settleBetAction(
       await prisma.bet.update({
         where: { id: betId },
         data: {
-          status,
+          status: finalStatus,
           settledAt: new Date(),
         },
       });
@@ -504,7 +800,7 @@ export async function settleBetAction(
 
     return {
       success: true,
-      message: `Bet settled as ${status}${payoutAmount > 0 ? ` with payout $${payoutAmount.toFixed(2)}` : ''}`,
+      message: `Bet settled as ${finalStatus}${payoutAmount > 0 ? ` with payout $${payoutAmount.toFixed(2)}` : ''}`,
       betIds: [betId],
     };
   } catch (error) {

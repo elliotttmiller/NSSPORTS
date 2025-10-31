@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { getSportsGameOddsClient } from '../src/lib/sportsgameodds-sdk';
+import { getSportsGameOddsClient } from '../../src/lib/sportsgameodds-sdk';
 
 async function testNHLSpreads() {
   const client = getSportsGameOddsClient();

@@ -132,11 +132,14 @@ model Bet {
   game            Game?     @relation(fields: [gameId], references: [id], onDelete: Cascade)
   user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   legs            Json?
+  teaserType      String?
+  teaserMetadata  Json?
   idempotencyKey  String?   @unique
 
   @@index([userId])
   @@index([gameId])
   @@index([status])
+  @@index([betType])
   @@index([userId, status, placedAt])
   @@map("bets")
 }

@@ -2,7 +2,7 @@
  * Minimal SDK Test - Just get ANY events
  */
 
-import { getSportsGameOddsClient } from '../src/lib/sportsgameodds-sdk';
+import { getSportsGameOddsClient } from '../../src/lib/sportsgameodds-sdk';
 
 async function testMinimal() {
   console.log('🔍 Testing MINIMAL queries (no filters)\n');

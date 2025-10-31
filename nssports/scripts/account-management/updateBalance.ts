@@ -1,4 +1,4 @@
-import prisma from '../src/lib/prisma';
+import prisma from '../../src/lib/prisma';
 import * as readline from 'readline';
 
 const rl = readline.createInterface({
