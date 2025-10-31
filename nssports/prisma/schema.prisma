@@ -258,3 +258,152 @@ model AuditLog {
   @@index([createdAt])
   @@map("audit_logs")
 }
+
+// Separate Admin Dashboard System
+
+model AdminUser {
+  id            String   @id @default(cuid())
+  username      String   @unique
+  password      String
+  role          String   @default("admin") // 'superadmin', 'admin'
+  status        String   @default("active") // 'active', 'suspended', 'inactive'
+  lastLogin     DateTime?
+  loginAttempts Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  activityLogs  AdminActivityLog[]
+  agentsCreated Agent[]
+
+  @@index([username])
+  @@index([status])
+  @@index([role])
+  @@map("admin_users")
+}
+
+model Agent {
+  id                    String   @id @default(cuid())
+  username              String   @unique
+  displayName           String?
+  password              String
+  maxSingleAdjustment   Float    @default(1000)
+  dailyAdjustmentLimit  Float    @default(5000)
+  currentDailyTotal     Float    @default(0) // Track daily usage
+  lastDailyReset        DateTime @default(now())
+  canSuspendPlayers     Boolean  @default(true)
+  commissionRate        Float?
+  ipRestriction         String?
+  regionAssignment      String?
+  notes                 String?
+  permissions           Json?    // Flexible permissions
+  status                String   @default("active") // 'active', 'idle', 'suspended'
+  lastLogin             DateTime?
+  createdBy             String
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  creator               AdminUser @relation(fields: [createdBy], references: [id], onDelete: Restrict)
+  players               DashboardPlayer[]
+  balanceAdjustmentsLog AgentBalanceLog[]
+
+  @@index([username])
+  @@index([status])
+  @@index([createdBy])
+  @@index([lastDailyReset])
+  @@map("agents")
+}
+
+model DashboardPlayer {
+  id              String   @id @default(cuid())
+  username        String   @unique
+  displayName     String?
+  password        String
+  agentId         String?
+  balance         Float    @default(0)
+  bettingLimits   Json?    // { maxBetAmount: 10000, maxDailyBets: 50, minBetAmount: 5 }
+  status          String   @default("active") // 'active', 'suspended', 'idle'
+  totalBets       Int      @default(0)
+  totalWagered    Float    @default(0)
+  totalWinnings   Float    @default(0)
+  lastBetAt       DateTime?
+  lastLogin       DateTime?
+  registeredAt    DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  agent           Agent?   @relation(fields: [agentId], references: [id], onDelete: SetNull)
+  playerBets      PlayerBet[]
+  transactions    PlayerTransaction[]
+
+  @@index([username])
+  @@index([agentId])
+  @@index([status])
+  @@index([balance])
+  @@index([lastBetAt])
+  @@map("dashboard_players")
+}
+
+model PlayerBet {
+  id          String   @id @default(cuid())
+  playerId    String
+  betType     String
+  amount      Float
+  odds        Float
+  potentialWin Float
+  status      String   @default("pending") // 'pending', 'won', 'lost', 'void'
+  placedAt    DateTime @default(now())
+  settledAt   DateTime?
+  player      DashboardPlayer @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([playerId])
+  @@index([status])
+  @@index([placedAt])
+  @@map("player_bets")
+}
+
+model PlayerTransaction {
+  id          String   @id @default(cuid())
+  playerId    String
+  type        String   // 'deposit', 'withdrawal', 'bet_placed', 'bet_won', 'adjustment'
+  amount      Float
+  balanceBefore Float
+  balanceAfter Float
+  reason      String?
+  createdAt   DateTime @default(now())
+  player      DashboardPlayer @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([playerId])
+  @@index([type])
+  @@index([createdAt])
+  @@map("player_transactions")
+}
+
+model AgentBalanceLog {
+  id          String   @id @default(cuid())
+  agentId     String
+  playerId    String
+  playerUsername String
+  type        String   // 'deposit', 'withdrawal', 'correction'
+  amount      Float
+  reason      String?
+  createdAt   DateTime @default(now())
+  agent       Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@index([agentId])
+  @@index([playerId])
+  @@index([createdAt])
+  @@map("agent_balance_logs")
+}
+
+model AdminActivityLog {
+  id          String   @id @default(cuid())
+  adminUserId String
+  action      String   // 'LOGIN', 'LOGOUT', 'CREATE_AGENT', 'SUSPEND_PLAYER', etc.
+  targetId    String?  // ID of affected entity
+  targetType  String?  // 'agent', 'player', 'system'
+  details     Json?
+  ipAddress   String?
+  createdAt   DateTime @default(now())
+  admin       AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+
+  @@index([adminUserId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("admin_activity_logs")
+}

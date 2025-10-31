@@ -378,8 +378,7 @@ export default function ViewPlayersPage() {
                   size="sm"
                   className="flex-1 text-xs"
                   onClick={() => {
-                    // TODO: View player details/history
-                    console.log("View player:", player.id);
+                    router.push(`/agent/players/${player.id}`);
                   }}
                 >
                   View Details
