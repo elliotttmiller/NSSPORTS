@@ -76,9 +76,12 @@ export default function AgentDashboard() {
 
   // Fetch transactions for a specific user
   const fetchUserTransactions = useCallback(async (userId: string) => {
-    if (transactions[userId]) return; // Already loaded
+    setLoadingTransactions(prev => {
+      // Prevent duplicate requests
+      if (prev[userId]) return prev;
+      return { ...prev, [userId]: true };
+    });
 
-    setLoadingTransactions(prev => ({ ...prev, [userId]: true }));
     try {
       const response = await fetch(`/api/agent/users/${userId}/transactions?limit=5`);
       if (response.ok) {
@@ -90,7 +93,7 @@ export default function AgentDashboard() {
     } finally {
       setLoadingTransactions(prev => ({ ...prev, [userId]: false }));
     }
-  }, [transactions]);
+  }, []); // Empty deps - always fetches fresh data
 
   // Toggle player card expansion
   const toggleExpanded = useCallback((userId: string) => {
@@ -114,6 +117,11 @@ export default function AgentDashboard() {
         const data: AgentUsersResponse = result.data;
         setAgentUsers(data.users);
         setUsersSummary(data.summary);
+        
+        // If a user is expanded, refresh their transactions too
+        if (expandedUserId) {
+          fetchUserTransactions(expandedUserId);
+        }
       } else {
         console.error('Failed to fetch agent users');
       }
@@ -122,7 +130,7 @@ export default function AgentDashboard() {
     } finally {
       setUsersLoading(false);
     }
-  }, [session?.user?.isAgent, session?.user?.isAdmin]);
+  }, [session?.user?.isAgent, session?.user?.isAdmin, expandedUserId, fetchUserTransactions]);
 
   // Redirect non-agents
   useEffect(() => {
@@ -302,7 +310,24 @@ export default function AgentDashboard() {
                             className="border-t border-border"
                           >
                             <div className="p-3 bg-muted/20">
-                              <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase">Recent Transactions</h4>
+                              <div className="flex items-center justify-between mb-2">
+                                <h4 className="text-xs font-semibold text-muted-foreground uppercase">Recent Transactions</h4>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  className="h-6 px-2"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    fetchUserTransactions(user.id);
+                                  }}
+                                  disabled={isLoadingTxn}
+                                >
+                                  <ArrowsClockwise 
+                                    size={12} 
+                                    className={isLoadingTxn ? "animate-spin" : ""}
+                                  />
+                                </Button>
+                              </div>
                               
                               {isLoadingTxn ? (
                                 <div className="text-center py-4">
