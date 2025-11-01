@@ -434,7 +434,7 @@ export async function POST(req: Request) {
       }
 
       // Deduct stake from account balance
-      const updatedAccount = await tx.account.update({
+      const _updatedAccount = await tx.account.update({
         where: { userId },
         data: {
           balance: {
@@ -443,61 +443,7 @@ export async function POST(req: Request) {
         },
       });
 
-      // Create transaction record for agent dashboard
-      // Find or create the DashboardPlayer record for this user
-      let dashboardPlayer = await tx.dashboardPlayer.findFirst({
-        where: {
-          username: userExists.username,
-        },
-        select: { id: true },
-      });
-
-      // If no DashboardPlayer exists, create one
-      if (!dashboardPlayer && userExists.parentAgentId) {
-        logger.info('Creating DashboardPlayer for user', { 
-          username: userExists.username,
-          parentAgentId: userExists.parentAgentId 
-        });
-        
-        dashboardPlayer = await tx.dashboardPlayer.create({
-          data: {
-            username: userExists.username,
-            displayName: userExists.name || userExists.username,
-            password: userExists.password, // Reuse existing password hash
-            agentId: userExists.parentAgentId,
-            balance: Number(updatedAccount.balance),
-          },
-          select: { id: true },
-        });
-        
-        logger.info('DashboardPlayer created', { 
-          dashboardPlayerId: dashboardPlayer.id,
-          username: userExists.username 
-        });
-      }
-
-      // Create PlayerTransaction if we have a DashboardPlayer record
-      if (dashboardPlayer) {
-        await tx.playerTransaction.create({
-          data: {
-            playerId: dashboardPlayer.id,
-            type: 'bet_placed',
-            amount: -stakeAmount, // Negative for bet placed (money out)
-            balanceBefore: currentBalance,
-            balanceAfter: Number(updatedAccount.balance),
-            reason: `Bet placed: ${data.betType === 'parlay' ? 'Parlay' : data.betType}`,
-          },
-        });
-        logger.info('PlayerTransaction created for bet', { 
-          playerId: dashboardPlayer.id, 
-          amount: -stakeAmount 
-        });
-      } else {
-        logger.warn('Could not create PlayerTransaction - no DashboardPlayer', {
-          username: userExists.username,
-          hasParentAgent: !!userExists.parentAgentId
-        });
-      }
+      // Transaction record is now automatically created via Prisma extension
 
     // For parlay bets
     if (data.betType === "parlay") {

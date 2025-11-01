@@ -106,15 +106,46 @@ export async function POST(request: Request) {
         });
 
         // Create PlayerTransaction for agent dashboard visibility
-        // Find the DashboardPlayer record for this user
-        const dashboardPlayer = await tx.dashboardPlayer.findFirst({
+        // NOTE: Balance adjustments are manual admin actions, not bets, so they need
+        // direct PlayerTransaction creation. The Prisma extension only handles bet creation.
+        // Find or create the DashboardPlayer record for this user
+        let dashboardPlayer = await tx.dashboardPlayer.findFirst({
           where: {
             username: player.username,
           },
           select: { id: true },
         });
 
-        // Create PlayerTransaction if this user has a DashboardPlayer record
+        // If no DashboardPlayer exists, create one
+        if (!dashboardPlayer && player.parentAgentId) {
+          // Find the Agent record by looking up the parent agent's username
+          let agentId: string | null = null;
+          const parentAgent = await tx.user.findUnique({
+            where: { id: player.parentAgentId },
+            select: { username: true }
+          });
+
+          if (parentAgent) {
+            const agent = await tx.agent.findUnique({
+              where: { username: parentAgent.username },
+              select: { id: true }
+            });
+            agentId = agent?.id || null;
+          }
+
+          dashboardPlayer = await tx.dashboardPlayer.create({
+            data: {
+              username: player.username,
+              displayName: player.name || player.username,
+              password: player.password,
+              agentId, // Can be null if no matching agent found
+              balance: newBalance,
+            },
+            select: { id: true },
+          });
+        }
+
+        // Create PlayerTransaction if we have a DashboardPlayer record
         if (dashboardPlayer) {
           await tx.playerTransaction.create({
             data: {
