@@ -116,30 +116,51 @@ export async function POST(request: NextRequest) {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create player
-    const newPlayer = await prisma.dashboardPlayer.create({
-      data: {
-        username,
-        displayName: displayName || username,
-        password: hashedPassword,
-        agentId: agentId || null,
-        balance: balance || 0,
-        bettingLimits: bettingLimits || {
-          maxBetAmount: 10000,
-          maxDailyBets: 50,
-          minBetAmount: 5,
+    // Create player in BOTH tables (DashboardPlayer for admin, User for NextAuth login)
+    // Use transaction to ensure both are created or neither
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Create in DashboardPlayer table (for admin dashboard)
+      const newPlayer = await tx.dashboardPlayer.create({
+        data: {
+          username,
+          displayName: displayName || username,
+          password: hashedPassword,
+          agentId: agentId || null,
+          balance: balance || 0,
+          bettingLimits: bettingLimits || {
+            maxBetAmount: 10000,
+            maxDailyBets: 50,
+            minBetAmount: 5,
+          },
+          status: "active",
         },
-        status: "active",
-      },
-      include: {
-        agent: {
-          select: {
-            username: true,
-            displayName: true,
+        include: {
+          agent: {
+            select: {
+              username: true,
+              displayName: true,
+            },
           },
         },
-      },
+      });
+
+      // 2. Create in User table (for NextAuth login)
+      await tx.user.create({
+        data: {
+          username,
+          name: displayName || username,
+          password: hashedPassword,
+          userType: "player",
+          isActive: true,
+          parentAgentId: agentId || null,
+          createdBy: admin.adminId as string,
+        },
+      });
+
+      return newPlayer;
     });
+
+    const newPlayer = result;
 
     // Log activity
     await prisma.adminActivityLog.create({

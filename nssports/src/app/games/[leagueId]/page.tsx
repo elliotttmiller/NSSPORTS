@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams } from "next/navigation";
 import Image from "next/image";
-import { ProfessionalGameRow, CompactMobileGameRow, MobileGameTableHeader, DesktopGameTableHeader } from "@/components/features/games";
+import { MemoizedProfessionalGameRow as ProfessionalGameRow, CompactMobileGameRow, MobileGameTableHeader, DesktopGameTableHeader } from "@/components/features/games";
 import { getLeague } from "@/services/api";
 import { usePaginatedGames } from "@/hooks/usePaginatedGames";
 import { useStreaming } from "@/context/StreamingContext";

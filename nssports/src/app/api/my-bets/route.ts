@@ -327,7 +327,14 @@ export async function GET() {
 
 export async function POST(req: Request) {
   return withErrorHandling(async () => {
-  const body = await req.json();
+    // Check if request has a body
+    const contentLength = req.headers.get('content-length');
+    if (!contentLength || contentLength === '0') {
+      logger.warn('Empty request body received');
+      return ApiErrors.badRequest('Request body is required');
+    }
+
+    const body = await req.json();
     logger.info('Placing bet', { betType: body?.betType });
 
     const userId = await getAuthUser();
@@ -336,7 +343,13 @@ export async function POST(req: Request) {
     // Check if user exists in database
     const userExists = await prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, username: true }
+      select: { 
+        id: true, 
+        username: true, 
+        name: true,
+        password: true,
+        parentAgentId: true 
+      }
     });
     
     if (!userExists) {
@@ -421,7 +434,7 @@ export async function POST(req: Request) {
       }
 
       // Deduct stake from account balance
-      await tx.account.update({
+      const updatedAccount = await tx.account.update({
         where: { userId },
         data: {
           balance: {
@@ -429,6 +442,62 @@ export async function POST(req: Request) {
           },
         },
       });
+
+      // Create transaction record for agent dashboard
+      // Find or create the DashboardPlayer record for this user
+      let dashboardPlayer = await tx.dashboardPlayer.findFirst({
+        where: {
+          username: userExists.username,
+        },
+        select: { id: true },
+      });
+
+      // If no DashboardPlayer exists, create one
+      if (!dashboardPlayer && userExists.parentAgentId) {
+        logger.info('Creating DashboardPlayer for user', { 
+          username: userExists.username,
+          parentAgentId: userExists.parentAgentId 
+        });
+        
+        dashboardPlayer = await tx.dashboardPlayer.create({
+          data: {
+            username: userExists.username,
+            displayName: userExists.name || userExists.username,
+            password: userExists.password, // Reuse existing password hash
+            agentId: userExists.parentAgentId,
+            balance: Number(updatedAccount.balance),
+          },
+          select: { id: true },
+        });
+        
+        logger.info('DashboardPlayer created', { 
+          dashboardPlayerId: dashboardPlayer.id,
+          username: userExists.username 
+        });
+      }
+
+      // Create PlayerTransaction if we have a DashboardPlayer record
+      if (dashboardPlayer) {
+        await tx.playerTransaction.create({
+          data: {
+            playerId: dashboardPlayer.id,
+            type: 'bet_placed',
+            amount: -stakeAmount, // Negative for bet placed (money out)
+            balanceBefore: currentBalance,
+            balanceAfter: Number(updatedAccount.balance),
+            reason: `Bet placed: ${data.betType === 'parlay' ? 'Parlay' : data.betType}`,
+          },
+        });
+        logger.info('PlayerTransaction created for bet', { 
+          playerId: dashboardPlayer.id, 
+          amount: -stakeAmount 
+        });
+      } else {
+        logger.warn('Could not create PlayerTransaction - no DashboardPlayer', {
+          username: userExists.username,
+          hasParentAgent: !!userExists.parentAgentId
+        });
+      }
 
     // For parlay bets
     if (data.betType === "parlay") {

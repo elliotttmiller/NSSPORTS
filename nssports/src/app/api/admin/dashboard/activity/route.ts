@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
+import { prisma } from "@/lib/prisma";
 
 const JWT_SECRET = new TextEncoder().encode(
   process.env.ADMIN_JWT_SECRET || "your-admin-secret-key-change-in-production"
@@ -29,51 +30,105 @@ export async function GET() {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    // Mock data for now - will be replaced with Prisma after regeneration
-    const activities = [
-      {
-        id: "1",
-        time: "12:45",
-        type: "agent",
-        message: 'Agent "john_smith" registered player "mike_2024"',
-        icon: "user",
-      },
-      {
-        id: "2",
-        time: "12:32",
-        type: "player",
-        message: 'Player "sara_bets" placed $250 bet on NBA',
-        icon: "bet",
-      },
-      {
-        id: "3",
-        time: "12:28",
-        type: "agent",
-        message: 'Agent "lisa_ops" adjusted balance +$500 for "tom_player"',
-        icon: "dollar",
-      },
-      {
-        id: "4",
-        time: "12:15",
-        type: "system",
-        message: "System: Daily backup completed successfully",
-        icon: "check",
-      },
-      {
-        id: "5",
-        time: "12:03",
-        type: "bet",
-        message: 'Player "david88" won $1,200 on Football',
-        icon: "trophy",
-      },
-      {
-        id: "6",
-        time: "11:54",
-        type: "agent",
-        message: 'Agent "mark_t" suspended player "problem_gambler"',
-        icon: "ban",
-      },
-    ];
+    // Fetch real recent activities from database
+    const recentLogs = await prisma.adminActivityLog.findMany({
+      take: 10,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        admin: {
+          select: { username: true, role: true }
+        }
+      }
+    });
+
+    // Transform logs into activity items with appropriate icons and messages
+    const activities = recentLogs.map(log => {
+      const time = new Date(log.createdAt).toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: false 
+      });
+
+      let type = "system";
+      let icon = "info";
+      let message = `${log.admin.username} performed ${log.action}`;
+
+      // Customize based on action type
+      switch (log.action) {
+        case "LOGIN":
+          type = "system";
+          icon = "user";
+          message = `Admin "${log.admin.username}" logged in`;
+          break;
+        case "LOGOUT":
+          type = "system";
+          icon = "user";
+          message = `Admin "${log.admin.username}" logged out`;
+          break;
+        case "CREATE_AGENT":
+          type = "agent";
+          icon = "user";
+          message = `Admin "${log.admin.username}" created new agent`;
+          if (log.targetId) message += ` "${log.targetId}"`;
+          break;
+        case "SUSPEND_AGENT":
+          type = "agent";
+          icon = "ban";
+          message = `Admin "${log.admin.username}" suspended agent`;
+          if (log.targetId) message += ` "${log.targetId}"`;
+          break;
+        case "ACTIVATE_AGENT":
+          type = "agent";
+          icon = "check";
+          message = `Admin "${log.admin.username}" activated agent`;
+          if (log.targetId) message += ` "${log.targetId}"`;
+          break;
+        case "CREATE_PLAYER":
+          type = "player";
+          icon = "user";
+          message = `Admin "${log.admin.username}" registered new player`;
+          if (log.targetId) message += ` "${log.targetId}"`;
+          break;
+        case "SUSPEND_PLAYER":
+          type = "player";
+          icon = "ban";
+          message = `Admin "${log.admin.username}" suspended player`;
+          if (log.targetId) message += ` "${log.targetId}"`;
+          break;
+        case "ACTIVATE_PLAYER":
+          type = "player";
+          icon = "check";
+          message = `Admin "${log.admin.username}" activated player`;
+          if (log.targetId) message += ` "${log.targetId}"`;
+          break;
+        case "BALANCE_ADJUSTMENT":
+          type = "player";
+          icon = "dollar";
+          const details = log.details as { amount?: number; reason?: string } | null;
+          const amount = details && typeof details === 'object' && 'amount' in details ? details.amount : '';
+          message = `Admin "${log.admin.username}" adjusted balance`;
+          if (amount) message += ` ${amount > 0 ? '+' : ''}$${Math.abs(Number(amount))}`;
+          if (log.targetId) message += ` for "${log.targetId}"`;
+          break;
+        case "CONFIG_UPDATE":
+          type = "system";
+          icon = "settings";
+          message = `Admin "${log.admin.username}" updated system configuration`;
+          break;
+        default:
+          type = "system";
+          icon = "info";
+          message = `Admin "${log.admin.username}" performed ${log.action}`;
+      }
+
+      return {
+        id: log.id,
+        time,
+        type,
+        message,
+        icon,
+      };
+    });
 
     return NextResponse.json({ activities });
   } catch (error) {

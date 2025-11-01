@@ -23,49 +23,51 @@ interface BalanceAdjustment {
   player: string;
   type: string;
   amount: number;
-  reason: string;
+  reason: string | null;
   timestamp: string;
+}
+
+interface BalanceSummary {
+  totalPlatformBalance: number;
+  todayDeposits: number;
+  todayWithdrawals: number;
+  netMovement: number;
 }
 
 export default function BalancesPage() {
   const [recentAdjustments, setRecentAdjustments] = useState<BalanceAdjustment[]>([]);
+  const [summary, setSummary] = useState<BalanceSummary>({
+    totalPlatformBalance: 0,
+    todayDeposits: 0,
+    todayWithdrawals: 0,
+    netMovement: 0,
+  });
+  const [isLoading, setIsLoading] = useState(true);
   const [showAdjustModal, setShowAdjustModal] = useState(false);
   const [playerSearch, setPlayerSearch] = useState("");
   const [adjustmentType, setAdjustmentType] = useState<"deposit" | "withdrawal" | "correction">("deposit");
   const [amount, setAmount] = useState("");
   const [reason, setReason] = useState("");
 
+  const fetchBalanceData = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch("/api/admin/balances?adjustments=true");
+      if (!response.ok) throw new Error("Failed to fetch balance data");
+      
+      const data = await response.json();
+      setSummary(data.summary);
+      setRecentAdjustments(data.recentAdjustments || []);
+    } catch (error) {
+      toast.error("Failed to load balance data");
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    // Mock data
-    setRecentAdjustments([
-      {
-        id: "1",
-        adjuster: "lisa_ops",
-        player: "sara_player",
-        type: "Deposit",
-        amount: 500,
-        reason: "Cash Deposit",
-        timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-      },
-      {
-        id: "2",
-        adjuster: "john_smith",
-        player: "mike_2024",
-        type: "Deposit",
-        amount: 250,
-        reason: "Player Request",
-        timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
-      },
-      {
-        id: "3",
-        adjuster: "admin",
-        player: "tom_bets",
-        type: "Correction",
-        amount: 100,
-        reason: "System Error",
-        timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-      },
-    ]);
+    fetchBalanceData();
   }, []);
 
   const handleAdjustBalance = async () => {
@@ -99,7 +101,7 @@ export default function BalancesPage() {
       setReason("");
       
       // Refresh adjustments list
-      window.location.reload();
+      fetchBalanceData();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to adjust balance");
     }
@@ -132,7 +134,9 @@ export default function BalancesPage() {
               <DollarSign className="w-8 h-8 text-blue-600" />
             </div>
             <p className="text-sm text-muted-foreground mb-1">Total Platform Balance</p>
-            <p className="text-3xl font-bold">$287,654</p>
+            <p className="text-3xl font-bold">
+              {isLoading ? "..." : `$${summary.totalPlatformBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+            </p>
           </Card>
 
           <Card className="p-6">
@@ -140,7 +144,9 @@ export default function BalancesPage() {
               <TrendingUp className="w-8 h-8 text-green-600" />
             </div>
             <p className="text-sm text-muted-foreground mb-1">Today&apos;s Deposits</p>
-            <p className="text-3xl font-bold text-green-600">$45,230</p>
+            <p className="text-3xl font-bold text-green-600">
+              {isLoading ? "..." : `$${summary.todayDeposits.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+            </p>
           </Card>
 
           <Card className="p-6">
@@ -148,7 +154,9 @@ export default function BalancesPage() {
               <TrendingDown className="w-8 h-8 text-red-600" />
             </div>
             <p className="text-sm text-muted-foreground mb-1">Today&apos;s Withdrawals</p>
-            <p className="text-3xl font-bold text-red-600">$18,745</p>
+            <p className="text-3xl font-bold text-red-600">
+              {isLoading ? "..." : `$${summary.todayWithdrawals.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+            </p>
           </Card>
 
           <Card className="p-6">
@@ -156,7 +164,9 @@ export default function BalancesPage() {
               <DollarSign className="w-8 h-8 text-emerald-600" />
             </div>
             <p className="text-sm text-muted-foreground mb-1">Net Movement</p>
-            <p className="text-3xl font-bold text-emerald-600">+$26,485</p>
+            <p className={`text-3xl font-bold ${summary.netMovement >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+              {isLoading ? "..." : `${summary.netMovement >= 0 ? "+" : ""}$${summary.netMovement.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+            </p>
           </Card>
         </div>
 
@@ -279,7 +289,7 @@ export default function BalancesPage() {
                     placeholder="Reason for adjustment..."
                     value={reason}
                     onChange={(e) => setReason(e.target.value)}
-                    className="w-full min-h-[80px] px-3 py-2 bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full min-h-20 px-3 py-2 bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
 

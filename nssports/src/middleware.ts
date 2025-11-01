@@ -43,7 +43,9 @@ export async function middleware(request: NextRequest) {
   
   console.log('[Middleware] Request to:', pathname);
   
-  // Allow Next.js internal routes, static assets, and files
+  // ============================================================
+  // 🔹 STEP 1: BYPASS - Static Assets & Internal Routes
+  // ============================================================
   if (pathname.startsWith('/_next') || 
       pathname.startsWith('/favicon.ico') ||
       pathname.startsWith('/icon.') ||
@@ -56,12 +58,41 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Admin routes have their own authentication system - skip NextAuth checks
+  // ============================================================
+  // 🔹 STEP 2: ADMIN AUTH SYSTEM - Separate from NextAuth
+  // ============================================================
+  // Admin routes use custom JWT authentication (admin_token cookie)
+  // Completely isolated from user/agent NextAuth system
   if (pathname.startsWith('/admin') || pathname.startsWith('/api/admin')) {
-    console.log('[Middleware] Admin route detected, skipping NextAuth check');
+    console.log('[Middleware] 🔐 Admin route - using custom JWT auth system');
+    
+    // Public admin routes (no auth required)
+    const isAdminLoginPage = pathname === '/admin/login' || pathname === '/admin';
+    const isAdminAuthAPI = pathname.startsWith('/api/admin/auth');
+    
+    if (isAdminLoginPage || isAdminAuthAPI) {
+      console.log('[Middleware] ✅ Admin public route, allowing access');
+      return NextResponse.next();
+    }
+    
+    // Protected admin routes - check for admin_token cookie
+    const adminToken = request.cookies.get('admin_token');
+    
+    if (!adminToken) {
+      console.log('[Middleware] ❌ No admin token, redirecting to /admin/login');
+      return NextResponse.redirect(new URL('/admin/login', request.url));
+    }
+    
+    console.log('[Middleware] ✅ Admin token found, allowing access');
     return NextResponse.next();
   }
 
+  // ============================================================
+  // 🔹 STEP 3: USER/AGENT AUTH SYSTEM - NextAuth (JWT Sessions)
+  // ============================================================
+  // User and agent routes use NextAuth with JWT sessions
+  console.log('[Middleware] 👤 User/Agent route - using NextAuth system');
+  
   // Define public routes (no auth required)
   const PUBLIC_ROUTES = [
     '/auth/login',
@@ -83,16 +114,17 @@ export async function middleware(request: NextRequest) {
 
   // Skip auth check for public routes and public APIs
   if (isPublicRoute || isPublicApi) {
+    console.log('[Middleware] ✅ Public route, allowing access');
     return NextResponse.next();
   }
 
-  // ⚠️ STRICT AUTHENTICATION CHECK - All other routes require auth
+  // ⚠️ STRICT AUTHENTICATION CHECK - All other routes require NextAuth session
   const session = await auth();
   
   console.log('[Middleware] Session check - pathname:', pathname, 'hasSession:', !!session);
   
   if (!session || !session.user) {
-    console.log('[Middleware] No session, redirecting to /auth/login');
+    console.log('[Middleware] ❌ No NextAuth session, redirecting to /auth/login');
     // Block API routes with 401
     if (pathname.startsWith('/api/')) {
       return new NextResponse(

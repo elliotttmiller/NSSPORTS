@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { 
-  LiveGameRow, 
+  MemoizedLiveGameRow as LiveGameRow, 
   LiveMobileGameRow,
   MobileGameTableHeader, 
   DesktopGameTableHeader 
@@ -197,7 +197,7 @@ function AuthenticatedHomePage({ session }: { session: Session }) {
                     key={stat.label}
                     href="/my-bets"
                     aria-label="View my active bets"
-                    className="bg-card/50 backdrop-blur-sm border border-border/30 ring-1 ring-white/10 rounded-lg shadow-sm min-h-[48px] md:min-h-[56px] p-2 md:p-3 flex flex-col items-center justify-center gap-0.5 hover:bg-accent/5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 transition-colors"
+                    className="bg-card/50 backdrop-blur-sm border border-border/30 ring-1 ring-white/10 rounded-lg shadow-sm min-h-12 md:min-h-14 p-2 md:p-3 flex flex-col items-center justify-center gap-0.5 hover:bg-accent/5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 transition-colors"
                   >
                     {content}
                   </Link>
@@ -206,7 +206,7 @@ function AuthenticatedHomePage({ session }: { session: Session }) {
               return (
                 <div
                   key={stat.label}
-                  className="bg-card/50 backdrop-blur-sm border border-border/30 ring-1 ring-white/10 rounded-lg shadow-sm min-h-[48px] md:min-h-[56px] p-2 md:p-3 flex flex-col items-center justify-center gap-0.5"
+                  className="bg-card/50 backdrop-blur-sm border border-border/30 ring-1 ring-white/10 rounded-lg shadow-sm min-h-12 md:min-h-14 p-2 md:p-3 flex flex-col items-center justify-center gap-0.5"
                 >
                   {content}
                 </div>

@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback, memo } from 'react';
 import { UsePaginatedGamesParams } from '@/hooks/usePaginatedGames';
 import { useInfiniteGames } from '@/hooks/useInfiniteGames';
 import { useWindowVirtualizer } from '@tanstack/react-virtual';
 import { DesktopGameTableHeader } from '@/components/features/games/DesktopGameTableHeader';
 import { MobileGameTableHeader } from '@/components/features/games/MobileGameTableHeader';
-import { ProfessionalGameRow } from '@/components/features/games/ProfessionalGameRow';
+import { MemoizedProfessionalGameRow as ProfessionalGameRow } from '@/components/features/games/ProfessionalGameRow';
 import { CompactMobileGameRow } from '@/components/features/games/CompactMobileGameRow';
 import { RefreshButton } from '@/components/ui/RefreshButton';
 import { useGameTransitions } from '@/hooks/useGameTransitions';
@@ -16,6 +16,37 @@ export type GameListProps = Partial<UsePaginatedGamesParams> & {
   limit?: number;
   onTotalGamesChange?: (total: number) => void;
 };
+
+// ⭐ MEMOIZED: League header to prevent re-renders
+const LeagueHeader = memo(({ leagueName, isFirst }: { leagueName: string; isFirst: boolean }) => (
+  <div className={`py-2 px-4 bg-muted/20 border-b border-border text-base font-semibold text-accent rounded shadow-sm mb-2 ${isFirst ? '' : 'mt-6'}`}>
+    {leagueName}
+  </div>
+));
+LeagueHeader.displayName = 'LeagueHeader';
+
+// ⭐ MEMOIZED: Date filter button to prevent re-renders
+const DateFilterButton = memo(({ 
+  dateStr, 
+  isSelected, 
+  onClick 
+}: { 
+  dateStr: string; 
+  isSelected: boolean; 
+  onClick: () => void;
+}) => (
+  <button
+    className={`px-4 py-2 rounded-full font-medium whitespace-nowrap transition-all duration-150 ${
+      isSelected 
+        ? 'bg-accent text-accent-foreground shadow' 
+        : 'bg-muted/10 text-muted-foreground hover:bg-accent/10'
+    }`}
+    onClick={onClick}
+  >
+    {dateStr}
+  </button>
+));
+DateFilterButton.displayName = 'DateFilterButton';
 
 export function GameList({ leagueId, status, limit = 10, onTotalGamesChange }: GameListProps) {
   const [allGames, setAllGames] = useState<Game[]>([]);
@@ -88,7 +119,8 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange }: G
     };
   }, []);
 
-  const groupGamesByLeagueAndDate = (games: Game[]) => {
+  // ⭐ MEMOIZED: Group games by league and date - expensive operation
+  const groupGamesByLeagueAndDate = useCallback((games: Game[]) => {
     const leagueGroups: { [leagueId: string]: { [date: string]: Game[] } } = {};
     games.forEach((game) => {
       // Use official uppercase league IDs from SportsGameOdds API (NBA, NFL, NHL)
@@ -102,7 +134,7 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange }: G
       leagueGroups[league][dateStr].push(game);
     });
     return leagueGroups;
-  };
+  }, []);
 
   // Always filter out finished games unless status is explicitly 'finished'
   const visibleGames = useMemo(() => {
@@ -123,15 +155,15 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange }: G
     return visibleGames.filter(game => shouldShowInCurrentContext(game, 'upcoming'));
   }, [visibleGames, shouldShowInCurrentContext]);
 
-  const groupedByLeague = useMemo(() => groupGamesByLeagueAndDate(contextFilteredGames), [contextFilteredGames]);
+  const groupedByLeague = useMemo(() => groupGamesByLeagueAndDate(contextFilteredGames), [contextFilteredGames, groupGamesByLeagueAndDate]);
   // Use official uppercase league IDs per SportsGameOdds API specification
   const leagueOrder = useMemo(() => ['NBA', 'NFL', 'NHL'], []);
-  const leagueNames: Record<string, string> = {
+  const leagueNames: Record<string, string> = useMemo(() => ({
     NBA: 'NBA',
     NFL: 'NFL',
     NHL: 'NHL',
     other: 'Other',
-  };
+  }), []);
 
   useEffect(() => {
     if (!selectedDate && contextFilteredGames.length > 0) {
@@ -142,7 +174,7 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange }: G
       const sortedDates = allDates.sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
       if (sortedDates.length > 0) setSelectedDate(sortedDates[0]);
     }
-  }, [contextFilteredGames, selectedDate]);
+  }, [contextFilteredGames, selectedDate, groupGamesByLeagueAndDate]);
 
   const uniqueSortedDates = useMemo(() => {
     const dates: string[] = [];
@@ -222,15 +254,14 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange }: G
           <div className="flex items-center gap-2 overflow-x-auto py-2 px-1 bg-background border-b border-border sticky top-0 z-20" style={{ willChange: 'scroll-position', WebkitOverflowScrolling: 'touch' }}>
             {/* Refresh Button */}
             <RefreshButton onRefresh={handleRefresh} isLoading={isRefreshing} />
-            {/* Date Filters */}
+            {/* Date Filters - Memoized */}
             {uniqueSortedDates.map((dateStr) => (
-              <button
+              <DateFilterButton
                 key={dateStr}
-                className={`px-4 py-2 rounded-full font-medium whitespace-nowrap transition-all duration-150 ${selectedDate === dateStr ? 'bg-accent text-accent-foreground shadow' : 'bg-muted/10 text-muted-foreground hover:bg-accent/10'}`}
+                dateStr={dateStr}
+                isSelected={selectedDate === dateStr}
                 onClick={() => setSelectedDate(dateStr)}
-              >
-                {dateStr}
-              </button>
+              />
             ))}
           </div>
           {/* Virtualized list of league headers + games for selected date */}
@@ -254,9 +285,10 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange }: G
                   ref={virtualizer.measureElement as unknown as React.Ref<HTMLDivElement>}
                 >
                   {it.kind === 'league-header' ? (
-                    <div className={`py-2 px-4 bg-muted/20 border-b border-border text-base font-semibold text-accent rounded shadow-sm mb-2 ${vi.index === 0 ? '' : 'mt-6'}`}>
-                      {leagueNames[it.leagueId] || it.leagueId}
-                    </div>
+                    <LeagueHeader 
+                      leagueName={leagueNames[it.leagueId] || it.leagueId}
+                      isFirst={vi.index === 0}
+                    />
                   ) : it.kind === 'table-header' ? (
                     <>
                       <DesktopGameTableHeader />

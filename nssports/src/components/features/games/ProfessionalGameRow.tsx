@@ -257,7 +257,7 @@ export function ProfessionalGameRow({
                   src={game.awayTeam.logo}
                   alt={game.awayTeam.name}
                   size={20}
-                  className="xl:w-6 xl:h-6 flex-shrink-0"
+                  className="xl:w-6 xl:h-6 shrink-0"
                 />
                 <span className="font-medium text-foreground text-sm xl:text-base truncate">
                   {game.awayTeam.name}
@@ -274,7 +274,7 @@ export function ProfessionalGameRow({
                   src={game.homeTeam.logo}
                   alt={game.homeTeam.name}
                   size={20}
-                  className="xl:w-6 xl:h-6 flex-shrink-0"
+                  className="xl:w-6 xl:h-6 shrink-0"
                 />
                 <span className="font-medium text-foreground text-sm xl:text-base truncate">
                   {game.homeTeam.name}
@@ -288,7 +288,7 @@ export function ProfessionalGameRow({
             </div>
 
             {/* Spread Column */}
-            <div className="space-y-1 min-w-[80px] xl:min-w-[120px]">
+            <div className="space-y-1 min-w-20 xl:min-w-[120px]">
               <Button
                 variant={isBetInSlip("spread", "away") ? "default" : "outline"}
                 size="sm"
@@ -336,7 +336,7 @@ export function ProfessionalGameRow({
             </div>
 
           {/* Total Column */}
-          <div className="space-y-1 min-w-[80px] xl:min-w-[120px]">
+          <div className="space-y-1 min-w-20 xl:min-w-[120px]">
             <Button
               variant={isBetInSlip("total", "over") ? "default" : "outline"}
               size="sm"
@@ -384,7 +384,7 @@ export function ProfessionalGameRow({
           </div>
 
           {/* Moneyline Column */}
-          <div className="space-y-1 min-w-[80px] xl:min-w-[120px]">
+          <div className="space-y-1 min-w-20 xl:min-w-[120px]">
             <Button
               variant={isBetInSlip("moneyline", "away") ? "default" : "outline"}
               size="sm"

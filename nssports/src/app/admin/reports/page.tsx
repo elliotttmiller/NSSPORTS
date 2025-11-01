@@ -27,29 +27,85 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-// Agent Performance Interface
+// Agent Performance Interface - matches API response structure
 interface AgentPerformance {
   agentId: string;
-  agentName: string;
-  agentEmail: string;
-  tier: "Platinum" | "Gold" | "Silver" | "Bronze" | "Inactive";
+  username: string;
+  displayName: string | null;
+  status: string;
+  tier: "platinum" | "gold" | "silver" | "bronze" | "inactive";
   performanceScore: number;
+  rank: number;
+  players: {
+    total: number;
+    active: number;
+    newInPeriod: number;
+    retained: number;
+    retentionRate: number;
+  };
+  financials: {
+    totalAdjustments: number;
+    adjustmentsCount: number;
+    deposits: number;
+    withdrawals: number;
+    corrections: number;
+    grossRevenue: number;
+    commission: number;
+    commissionRate: number;
+  };
+  playerMetrics: {
+    totalBalance: number;
+    totalWagered: number;
+    totalWinnings: number;
+    totalBets: number;
+    avgPlayerValue: number;
+    avgPlayerWagered: number;
+  };
+  activity: {
+    lastLogin: string | null;
+    daysSinceActivity: number;
+    dailyAdjustmentUsage: number;
+    dailyAdjustmentLimit: number;
+    usagePercentage: number;
+  };
+  limits: {
+    maxSingleAdjustment: number;
+    dailyAdjustmentLimit: number;
+    canSuspendPlayers: boolean;
+  };
+  createdAt: string;
+}
+
+interface PlayerReportData {
   totalPlayers: number;
   activePlayers: number;
-  newPlayersThisMonth: number;
-  totalAdjustments: number;
-  totalAdjustmentsAmount: number;
-  positiveAdjustments: number;
-  negativeAdjustments: number;
-  lastAdjustmentAt: string | null;
-  avgPlayerBalance: number;
-  totalCommission: number;
-  retentionRate: number;
-  acquisitionRate: number;
-  activityScore: number;
-  commissionRate: number;
-  createdAt: string;
-  lastActiveAt: string | null;
+  totalBetsPlaced: number;
+  avgBetAmount: number;
+  engagementRate: number;
+  avgBetsPerPlayer: number;
+}
+
+interface SystemReportData {
+  uptime: number;
+  avgResponseTime: number;
+  apiCalls: number;
+  recentApiCalls: number;
+  errorRate: number;
+  totalAgents: number;
+  totalPlayers: number;
+}
+
+interface FinancialReportData {
+  totalRevenue: number;
+  totalPayouts: number;
+  netProfit: number;
+  totalWagered: number;
+  totalBets: number;
+  totalAgents: number;
+  totalPlayers: number;
+  revenueGrowth: number;
+  payoutsGrowth: number;
+  profitGrowth: number;
 }
 
 export default function ReportsPage() {
@@ -63,6 +119,18 @@ export default function ReportsPage() {
   const [expandedAgent, setExpandedAgent] = useState<string | null>(null);
   const [isLoadingAgents, setIsLoadingAgents] = useState(false);
   const [agentPeriod, setAgentPeriod] = useState(30);
+
+  // Players report state
+  const [playerReport, setPlayerReport] = useState<PlayerReportData | null>(null);
+  const [isLoadingPlayers, setIsLoadingPlayers] = useState(false);
+
+  // System report state
+  const [systemReport, setSystemReport] = useState<SystemReportData | null>(null);
+  const [isLoadingSystem, setIsLoadingSystem] = useState(false);
+
+  // Financial report state
+  const [financialReport, setFinancialReport] = useState<FinancialReportData | null>(null);
+  const [isLoadingFinancial, setIsLoadingFinancial] = useState(false);
 
   // Fetch agent performance data
   const fetchAgentPerformance = async () => {
@@ -80,27 +148,102 @@ export default function ReportsPage() {
     }
   };
 
+  // Fetch player report data
+  const fetchPlayerReport = async () => {
+    setIsLoadingPlayers(true);
+    try {
+      const response = await fetch("/api/admin/reports?type=players");
+      if (!response.ok) throw new Error("Failed to fetch player report");
+      const result = await response.json();
+      
+      // Calculate derived metrics
+      const engagementRate = result.data.totalPlayers > 0 
+        ? (result.data.activePlayers / result.data.totalPlayers) * 100 
+        : 0;
+      const avgBetsPerPlayer = result.data.totalPlayers > 0
+        ? Math.round(result.data.totalBetsPlaced / result.data.totalPlayers)
+        : 0;
+
+      setPlayerReport({
+        ...result.data,
+        engagementRate,
+        avgBetsPerPlayer,
+      });
+    } catch (error) {
+      toast.error("Failed to load player report");
+      console.error(error);
+    } finally {
+      setIsLoadingPlayers(false);
+    }
+  };
+
+  // Fetch system report data
+  const fetchSystemReport = async () => {
+    setIsLoadingSystem(true);
+    try {
+      const response = await fetch("/api/admin/reports?type=system");
+      if (!response.ok) throw new Error("Failed to fetch system report");
+      const result = await response.json();
+      setSystemReport(result.data);
+    } catch (error) {
+      toast.error("Failed to load system report");
+      console.error(error);
+    } finally {
+      setIsLoadingSystem(false);
+    }
+  };
+
+  // Fetch financial report data
+  const fetchFinancialReport = async () => {
+    setIsLoadingFinancial(true);
+    try {
+      const response = await fetch("/api/admin/reports?type=financial");
+      if (!response.ok) throw new Error("Failed to fetch financial report");
+      const result = await response.json();
+      setFinancialReport(result.data);
+    } catch (error) {
+      toast.error("Failed to load financial report");
+      console.error(error);
+    } finally {
+      setIsLoadingFinancial(false);
+    }
+  };
+
   useEffect(() => {
     if (reportType === "agents") {
       fetchAgentPerformance();
+    } else if (reportType === "players") {
+      fetchPlayerReport();
+    } else if (reportType === "system") {
+      fetchSystemReport();
+    } else if (reportType === "financial") {
+      fetchFinancialReport();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reportType, agentPeriod]);
 
   const getTierColor = (tier: string) => {
-    switch (tier) {
-      case "Platinum": return "text-purple-500 bg-purple-500/10 border-purple-500/20";
-      case "Gold": return "text-yellow-500 bg-yellow-500/10 border-yellow-500/20";
-      case "Silver": return "text-gray-400 bg-gray-400/10 border-gray-400/20";
-      case "Bronze": return "text-orange-500 bg-orange-500/10 border-orange-500/20";
+    const lowerTier = tier.toLowerCase();
+    switch (lowerTier) {
+      case "platinum": return "text-purple-500 bg-purple-500/10 border-purple-500/20";
+      case "gold": return "text-yellow-500 bg-yellow-500/10 border-yellow-500/20";
+      case "silver": return "text-gray-400 bg-gray-400/10 border-gray-400/20";
+      case "bronze": return "text-orange-500 bg-orange-500/10 border-orange-500/20";
       default: return "text-gray-500 bg-gray-500/10 border-gray-500/20";
     }
   };
 
   const getTierIcon = (tier: string) => {
-    if (tier === "Platinum" || tier === "Gold") return <Trophy size={14} />;
-    if (tier === "Silver") return <Target size={14} />;
-    return <AlertTriangle size={14} />;
+    const lowerTier = tier.toLowerCase();
+    switch (lowerTier) {
+      case "platinum":
+      case "gold":
+        return <Trophy size={14} />;
+      case "silver":
+        return <Target size={14} />;
+      default:
+        return <AlertTriangle size={14} />;
+    }
   };
 
   const reportTypes = [
@@ -266,23 +409,47 @@ export default function ReportsPage() {
                 <DollarSign size={18} className="text-blue-500" />
                 <h3 className="font-semibold text-foreground">Financial Overview</h3>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <Card className="p-3 bg-green-500/10 border-green-500/20">
-                  <p className="text-xs text-muted-foreground mb-1">Total Revenue</p>
-                  <p className="text-2xl font-bold text-green-600">$1,287,456</p>
-                  <p className="text-xs text-green-600/80 mt-1">↑ 12.5% vs last period</p>
-                </Card>
-                <Card className="p-3 bg-red-500/10 border-red-500/20">
-                  <p className="text-xs text-muted-foreground mb-1">Total Payouts</p>
-                  <p className="text-2xl font-bold text-red-600">$987,234</p>
-                  <p className="text-xs text-red-600/80 mt-1">↑ 8.2% vs last period</p>
-                </Card>
-                <Card className="p-3 bg-blue-500/10 border-blue-500/20">
-                  <p className="text-xs text-muted-foreground mb-1">Net Profit</p>
-                  <p className="text-2xl font-bold text-blue-600">$300,222</p>
-                  <p className="text-xs text-blue-600/80 mt-1">↑ 18.7% vs last period</p>
-                </Card>
-              </div>
+              {isLoadingFinancial ? (
+                <div className="text-center py-12">
+                  <RefreshCw className="mx-auto animate-spin text-muted-foreground mb-3" size={32} />
+                  <p className="text-muted-foreground">Loading financial data...</p>
+                </div>
+              ) : financialReport ? (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <Card className="p-3 bg-green-500/10 border-green-500/20">
+                    <p className="text-xs text-muted-foreground mb-1">Total Revenue</p>
+                    <p className="text-2xl font-bold text-green-600">
+                      ${financialReport.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                    </p>
+                    <p className="text-xs text-green-600/80 mt-1">
+                      {financialReport.revenueGrowth > 0 ? "↑" : "↓"} {Math.abs(financialReport.revenueGrowth).toFixed(1)}% vs last period
+                    </p>
+                  </Card>
+                  <Card className="p-3 bg-red-500/10 border-red-500/20">
+                    <p className="text-xs text-muted-foreground mb-1">Total Payouts</p>
+                    <p className="text-2xl font-bold text-red-600">
+                      ${financialReport.totalPayouts.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                    </p>
+                    <p className="text-xs text-red-600/80 mt-1">
+                      {financialReport.payoutsGrowth > 0 ? "↑" : "↓"} {Math.abs(financialReport.payoutsGrowth).toFixed(1)}% vs last period
+                    </p>
+                  </Card>
+                  <Card className="p-3 bg-blue-500/10 border-blue-500/20">
+                    <p className="text-xs text-muted-foreground mb-1">Net Profit</p>
+                    <p className="text-2xl font-bold text-blue-600">
+                      ${financialReport.netProfit.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                    </p>
+                    <p className="text-xs text-blue-600/80 mt-1">
+                      {financialReport.profitGrowth > 0 ? "↑" : "↓"} {Math.abs(financialReport.profitGrowth).toFixed(1)}% vs last period
+                    </p>
+                  </Card>
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <AlertTriangle className="mx-auto text-muted-foreground/50 mb-3" size={32} />
+                  <p className="text-muted-foreground">No financial data available</p>
+                </div>
+              )}
             </div>
           )}
 
@@ -320,14 +487,14 @@ export default function ReportsPage() {
                 <Card className="p-3 bg-emerald-500/10 border-emerald-500/20">
                   <p className="text-xs text-muted-foreground mb-1">Active Agents</p>
                   <p className="text-2xl font-bold text-emerald-600">
-                    {agentPerformance.filter(a => a.tier !== "Inactive").length}
+                    {agentPerformance.filter(a => a.tier !== "inactive").length}
                   </p>
                   <p className="text-xs text-emerald-600/80 mt-1">Currently active</p>
                 </Card>
                 <Card className="p-3 bg-purple-500/10 border-purple-500/20">
                   <p className="text-xs text-muted-foreground mb-1">Total Players</p>
                   <p className="text-2xl font-bold text-purple-600">
-                    {agentPerformance.reduce((sum, a) => sum + a.totalPlayers, 0)}
+                    {agentPerformance.reduce((sum, a) => sum + a.players.total, 0)}
                   </p>
                   <p className="text-xs text-purple-600/80 mt-1">Under management</p>
                 </Card>
@@ -373,12 +540,12 @@ export default function ReportsPage() {
                           {/* Agent Name & Tier */}
                           <div className="flex items-center gap-3 min-w-0 flex-1">
                             <div className="min-w-0">
-                              <p className="font-semibold text-foreground text-sm truncate">{agent.agentName}</p>
-                              <p className="text-xs text-muted-foreground truncate">{agent.agentEmail}</p>
+                              <p className="font-semibold text-foreground text-sm truncate">{agent.displayName || agent.username}</p>
+                              <p className="text-xs text-muted-foreground truncate">@{agent.username}</p>
                             </div>
                             <div className={cn("flex items-center gap-1 px-2 py-1 rounded-md border shrink-0", getTierColor(agent.tier))}>
                               {getTierIcon(agent.tier)}
-                              <span className="text-xs font-semibold">{agent.tier}</span>
+                              <span className="text-xs font-semibold capitalize">{agent.tier}</span>
                             </div>
                           </div>
 
@@ -390,16 +557,16 @@ export default function ReportsPage() {
                             </div>
                             <div className="text-center">
                               <p className="text-xs text-muted-foreground">Players</p>
-                              <p className="text-sm font-bold text-blue-600">{agent.totalPlayers}</p>
+                              <p className="text-sm font-bold text-blue-600">{agent.players.total}</p>
                             </div>
                             <div className="text-center">
                               <p className="text-xs text-muted-foreground">Active</p>
-                              <p className="text-sm font-bold text-emerald-600">{agent.activePlayers}</p>
+                              <p className="text-sm font-bold text-emerald-600">{agent.players.active}</p>
                             </div>
                             <div className="text-center">
                               <p className="text-xs text-muted-foreground">Commission</p>
                               <p className="text-sm font-bold text-purple-600">
-                                ${agent.totalCommission.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                                ${agent.financials.commission.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                               </p>
                             </div>
                           </div>
@@ -419,23 +586,23 @@ export default function ReportsPage() {
                               <div className="space-y-2">
                                 <div className="flex items-center justify-between p-2 rounded bg-background">
                                   <span className="text-xs text-muted-foreground">Total Players</span>
-                                  <span className="text-sm font-semibold text-foreground">{agent.totalPlayers}</span>
+                                  <span className="text-sm font-semibold text-foreground">{agent.players.total}</span>
                                 </div>
                                 <div className="flex items-center justify-between p-2 rounded bg-background">
                                   <span className="text-xs text-muted-foreground">Active Players</span>
-                                  <span className="text-sm font-semibold text-emerald-600">{agent.activePlayers}</span>
+                                  <span className="text-sm font-semibold text-emerald-600">{agent.players.active}</span>
                                 </div>
                                 <div className="flex items-center justify-between p-2 rounded bg-background">
                                   <span className="text-xs text-muted-foreground flex items-center gap-1">
                                     <UserPlus size={12} />
-                                    New This Month
+                                    New This Period
                                   </span>
-                                  <span className="text-sm font-semibold text-blue-600">{agent.newPlayersThisMonth}</span>
+                                  <span className="text-sm font-semibold text-blue-600">{agent.players.newInPeriod}</span>
                                 </div>
                                 <div className="flex items-center justify-between p-2 rounded bg-background">
                                   <span className="text-xs text-muted-foreground">Avg Balance</span>
                                   <span className="text-sm font-semibold text-foreground">
-                                    ${agent.avgPlayerBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    ${agent.playerMetrics.avgPlayerValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                   </span>
                                 </div>
                               </div>
@@ -454,15 +621,19 @@ export default function ReportsPage() {
                                 </div>
                                 <div className="flex items-center justify-between p-2 rounded bg-background">
                                   <span className="text-xs text-muted-foreground">Retention Rate</span>
-                                  <span className="text-sm font-semibold text-emerald-600">{Math.round(agent.retentionRate)}%</span>
+                                  <span className="text-sm font-semibold text-emerald-600">{agent.players.retentionRate.toFixed(1)}%</span>
                                 </div>
                                 <div className="flex items-center justify-between p-2 rounded bg-background">
-                                  <span className="text-xs text-muted-foreground">Acquisition Rate</span>
-                                  <span className="text-sm font-semibold text-blue-600">{Math.round(agent.acquisitionRate)}%</span>
+                                  <span className="text-xs text-muted-foreground">Total Wagered</span>
+                                  <span className="text-sm font-semibold text-blue-600">
+                                    ${agent.playerMetrics.totalWagered.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                                  </span>
                                 </div>
                                 <div className="flex items-center justify-between p-2 rounded bg-background">
-                                  <span className="text-xs text-muted-foreground">Activity Score</span>
-                                  <span className="text-sm font-semibold text-orange-600">{Math.round(agent.activityScore)}/100</span>
+                                  <span className="text-xs text-muted-foreground">Gross Revenue</span>
+                                  <span className="text-sm font-semibold text-orange-600">
+                                    ${agent.financials.grossRevenue.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                                  </span>
                                 </div>
                               </div>
                             </div>
@@ -476,26 +647,30 @@ export default function ReportsPage() {
                               <div className="space-y-2">
                                 <div className="flex items-center justify-between p-2 rounded bg-background">
                                   <span className="text-xs text-muted-foreground">Total Adjustments</span>
-                                  <span className="text-sm font-semibold text-foreground">{agent.totalAdjustments}</span>
+                                  <span className="text-sm font-semibold text-foreground">{agent.financials.adjustmentsCount}</span>
                                 </div>
                                 <div className="flex items-center justify-between p-2 rounded bg-background">
                                   <span className="text-xs text-muted-foreground flex items-center gap-1">
                                     <TrendingUp size={12} className="text-green-600" />
-                                    Positive
+                                    Deposits
                                   </span>
-                                  <span className="text-sm font-semibold text-green-600">{agent.positiveAdjustments}</span>
+                                  <span className="text-sm font-semibold text-green-600">
+                                    ${agent.financials.deposits.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                                  </span>
                                 </div>
                                 <div className="flex items-center justify-between p-2 rounded bg-background">
                                   <span className="text-xs text-muted-foreground flex items-center gap-1">
                                     <TrendingDown size={12} className="text-red-600" />
-                                    Negative
+                                    Withdrawals
                                   </span>
-                                  <span className="text-sm font-semibold text-red-600">{agent.negativeAdjustments}</span>
+                                  <span className="text-sm font-semibold text-red-600">
+                                    ${agent.financials.withdrawals.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                                  </span>
                                 </div>
                                 <div className="flex items-center justify-between p-2 rounded bg-background">
                                   <span className="text-xs text-muted-foreground">Total Commission</span>
                                   <span className="text-sm font-semibold text-purple-600">
-                                    ${agent.totalCommission.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    ${agent.financials.commission.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                   </span>
                                 </div>
                               </div>
@@ -512,28 +687,26 @@ export default function ReportsPage() {
                                   {new Date(agent.createdAt).toLocaleDateString()}
                                 </span>
                               </div>
-                              {agent.lastActiveAt && (
+                              {agent.activity.lastLogin && (
                                 <div className="flex items-center gap-1">
                                   <Activity size={14} className="text-blue-500" />
                                   <span className="text-muted-foreground">Last Active:</span>
                                   <span className="font-medium text-foreground">
-                                    {new Date(agent.lastActiveAt).toLocaleDateString()}
+                                    {new Date(agent.activity.lastLogin).toLocaleDateString()}
                                   </span>
                                 </div>
                               )}
-                              {agent.lastAdjustmentAt && (
-                                <div className="flex items-center gap-1">
-                                  <DollarSign size={14} className="text-purple-500" />
-                                  <span className="text-muted-foreground">Last Adjustment:</span>
-                                  <span className="font-medium text-foreground">
-                                    {new Date(agent.lastAdjustmentAt).toLocaleDateString()}
-                                  </span>
-                                </div>
-                              )}
+                              <div className="flex items-center gap-1">
+                                <Calendar size={14} className="text-purple-500" />
+                                <span className="text-muted-foreground">Days Since Active:</span>
+                                <span className="font-medium text-foreground">
+                                  {agent.activity.daysSinceActivity}
+                                </span>
+                              </div>
                             </div>
                             <div className="flex items-center gap-1 text-xs">
                               <span className="text-muted-foreground">Commission Rate:</span>
-                              <span className="font-semibold text-foreground">{agent.commissionRate}%</span>
+                              <span className="font-semibold text-foreground">{agent.financials.commissionRate}%</span>
                             </div>
                           </div>
                         </div>
@@ -552,23 +725,45 @@ export default function ReportsPage() {
                 <Activity size={18} className="text-purple-500" />
                 <h3 className="font-semibold text-foreground">Player Activity</h3>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <Card className="p-3 bg-blue-500/10 border-blue-500/20">
-                  <p className="text-xs text-muted-foreground mb-1">Total Players</p>
-                  <p className="text-2xl font-bold text-foreground">2,847</p>
-                  <p className="text-xs text-muted-foreground/60 mt-1">Registered accounts</p>
-                </Card>
-                <Card className="p-3 bg-green-500/10 border-green-500/20">
-                  <p className="text-xs text-muted-foreground mb-1">Active Players</p>
-                  <p className="text-2xl font-bold text-green-600">1,234</p>
-                  <p className="text-xs text-green-600/80 mt-1">43% engagement rate</p>
-                </Card>
-                <Card className="p-3 bg-purple-500/10 border-purple-500/20">
-                  <p className="text-xs text-muted-foreground mb-1">Total Bets Placed</p>
-                  <p className="text-2xl font-bold text-purple-600">45,678</p>
-                  <p className="text-xs text-purple-600/80 mt-1">Avg 37 bets/player</p>
-                </Card>
-              </div>
+              {isLoadingPlayers ? (
+                <div className="text-center py-12">
+                  <RefreshCw className="mx-auto animate-spin text-muted-foreground mb-3" size={32} />
+                  <p className="text-muted-foreground">Loading player data...</p>
+                </div>
+              ) : playerReport ? (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <Card className="p-3 bg-blue-500/10 border-blue-500/20">
+                    <p className="text-xs text-muted-foreground mb-1">Total Players</p>
+                    <p className="text-2xl font-bold text-foreground">
+                      {playerReport.totalPlayers.toLocaleString()}
+                    </p>
+                    <p className="text-xs text-muted-foreground/60 mt-1">Registered accounts</p>
+                  </Card>
+                  <Card className="p-3 bg-green-500/10 border-green-500/20">
+                    <p className="text-xs text-muted-foreground mb-1">Active Players</p>
+                    <p className="text-2xl font-bold text-green-600">
+                      {playerReport.activePlayers.toLocaleString()}
+                    </p>
+                    <p className="text-xs text-green-600/80 mt-1">
+                      {playerReport.engagementRate.toFixed(1)}% engagement rate
+                    </p>
+                  </Card>
+                  <Card className="p-3 bg-purple-500/10 border-purple-500/20">
+                    <p className="text-xs text-muted-foreground mb-1">Total Bets Placed</p>
+                    <p className="text-2xl font-bold text-purple-600">
+                      {playerReport.totalBetsPlaced.toLocaleString()}
+                    </p>
+                    <p className="text-xs text-purple-600/80 mt-1">
+                      Avg {playerReport.avgBetsPerPlayer} bets/player
+                    </p>
+                  </Card>
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <AlertTriangle className="mx-auto text-muted-foreground/50 mb-3" size={32} />
+                  <p className="text-muted-foreground">No player data available</p>
+                </div>
+              )}
             </div>
           )}
 
@@ -579,23 +774,50 @@ export default function ReportsPage() {
                 <TrendingUp size={18} className="text-orange-500" />
                 <h3 className="font-semibold text-foreground">System Health</h3>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <Card className="p-3 bg-green-500/10 border-green-500/20">
-                  <p className="text-xs text-muted-foreground mb-1">System Uptime</p>
-                  <p className="text-2xl font-bold text-green-600">99.98%</p>
-                  <p className="text-xs text-green-600/80 mt-1">Excellent reliability</p>
-                </Card>
-                <Card className="p-3 bg-blue-500/10 border-blue-500/20">
-                  <p className="text-xs text-muted-foreground mb-1">Avg Response Time</p>
-                  <p className="text-2xl font-bold text-blue-600">124ms</p>
-                  <p className="text-xs text-blue-600/80 mt-1">Fast performance</p>
-                </Card>
-                <Card className="p-3 bg-purple-500/10 border-purple-500/20">
-                  <p className="text-xs text-muted-foreground mb-1">API Calls</p>
-                  <p className="text-2xl font-bold text-purple-600">1.2M</p>
-                  <p className="text-xs text-purple-600/80 mt-1">Total requests handled</p>
-                </Card>
-              </div>
+              {isLoadingSystem ? (
+                <div className="text-center py-12">
+                  <RefreshCw className="mx-auto animate-spin text-muted-foreground mb-3" size={32} />
+                  <p className="text-muted-foreground">Loading system metrics...</p>
+                </div>
+              ) : systemReport ? (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <Card className="p-3 bg-green-500/10 border-green-500/20">
+                    <p className="text-xs text-muted-foreground mb-1">System Uptime</p>
+                    <p className="text-2xl font-bold text-green-600">
+                      {systemReport.uptime.toFixed(2)}%
+                    </p>
+                    <p className="text-xs text-green-600/80 mt-1">
+                      {systemReport.uptime >= 99.9 ? "Excellent" : systemReport.uptime >= 99 ? "Good" : "Fair"} reliability
+                    </p>
+                  </Card>
+                  <Card className="p-3 bg-blue-500/10 border-blue-500/20">
+                    <p className="text-xs text-muted-foreground mb-1">Avg Response Time</p>
+                    <p className="text-2xl font-bold text-blue-600">
+                      {systemReport.avgResponseTime}ms
+                    </p>
+                    <p className="text-xs text-blue-600/80 mt-1">
+                      {systemReport.avgResponseTime < 200 ? "Fast" : systemReport.avgResponseTime < 500 ? "Good" : "Slow"} performance
+                    </p>
+                  </Card>
+                  <Card className="p-3 bg-purple-500/10 border-purple-500/20">
+                    <p className="text-xs text-muted-foreground mb-1">API Calls</p>
+                    <p className="text-2xl font-bold text-purple-600">
+                      {systemReport.apiCalls >= 1000000 
+                        ? `${(systemReport.apiCalls / 1000000).toFixed(1)}M` 
+                        : systemReport.apiCalls >= 1000 
+                        ? `${(systemReport.apiCalls / 1000).toFixed(1)}K`
+                        : systemReport.apiCalls.toLocaleString()
+                      }
+                    </p>
+                    <p className="text-xs text-purple-600/80 mt-1">Total requests handled</p>
+                  </Card>
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <AlertTriangle className="mx-auto text-muted-foreground/50 mb-3" size={32} />
+                  <p className="text-muted-foreground">No system data available</p>
+                </div>
+              )}
             </div>
           )}
         </Card>

@@ -19,7 +19,7 @@
  * https://sportsgameodds.com/docs/guides/realtime-streaming-api
  */
 
-import React, { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef, ReactNode } from 'react';
 import { logger } from '@/lib/logger';
 
 // Type for streaming odds update data
@@ -313,16 +313,30 @@ export function useGameOddsStream(gameId: string, onUpdate: (data: OddsUpdateDat
  */
 export function usePropsStream(gameId: string, onUpdate: (data: PropsUpdateData) => void) {
   const { subscribeToProps, isConnected } = useStreaming();
+  
+  // ⭐ CRITICAL FIX: Use ref to store latest callback without triggering re-subscriptions
+  // This prevents infinite loops caused by callback recreation
+  const onUpdateRef = useRef(onUpdate);
+  
+  useEffect(() => {
+    onUpdateRef.current = onUpdate;
+  }, [onUpdate]);
 
   useEffect(() => {
     if (!isConnected || !gameId) return;
 
     logger.debug('[usePropsStream] Subscribing to props updates', { gameId });
-    const unsubscribe = subscribeToProps(gameId, onUpdate);
+    
+    // Use stable callback that references the ref
+    const stableCallback = (data: PropsUpdateData) => {
+      onUpdateRef.current(data);
+    };
+    
+    const unsubscribe = subscribeToProps(gameId, stableCallback);
 
     return () => {
       logger.debug('[usePropsStream] Unsubscribing from props updates', { gameId });
       unsubscribe();
     };
-  }, [gameId, onUpdate, subscribeToProps, isConnected]);
+  }, [gameId, subscribeToProps, isConnected]); // ⭐ Removed onUpdate from deps
 }

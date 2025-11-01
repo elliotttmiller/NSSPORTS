@@ -105,6 +105,29 @@ export async function POST(request: Request) {
           },
         });
 
+        // Create PlayerTransaction for agent dashboard visibility
+        // Find the DashboardPlayer record for this user
+        const dashboardPlayer = await tx.dashboardPlayer.findFirst({
+          where: {
+            username: player.username,
+          },
+          select: { id: true },
+        });
+
+        // Create PlayerTransaction if this user has a DashboardPlayer record
+        if (dashboardPlayer) {
+          await tx.playerTransaction.create({
+            data: {
+              playerId: dashboardPlayer.id,
+              type: adjustmentType === 'correction' ? 'adjustment' : adjustmentType,
+              amount: adjustmentType === 'withdrawal' ? -amount : amount,
+              balanceBefore: currentBalance,
+              balanceAfter: newBalance,
+              reason: reason || `Balance ${adjustmentType} by agent`,
+            },
+          });
+        }
+
         // Create audit log entry
         await tx.auditLog.create({
           data: {

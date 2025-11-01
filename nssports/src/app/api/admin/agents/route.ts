@@ -129,24 +129,44 @@ export async function POST(request: NextRequest) {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create agent in database
-    const newAgent = await prisma.agent.create({
-      data: {
-        username,
-        displayName: displayName || username,
-        password: hashedPassword,
-        maxSingleAdjustment: maxSingleAdjustment || 1000,
-        dailyAdjustmentLimit: dailyAdjustmentLimit || 5000,
-        canSuspendPlayers: canSuspendPlayers !== false,
-        commissionRate,
-        ipRestriction,
-        regionAssignment,
-        notes,
-        permissions,
-        createdBy: admin.adminId as string,
-        status: "active",
-      },
+    // Create agent in BOTH tables (Agent table for admin dashboard, User table for NextAuth login)
+    // Use transaction to ensure both are created or neither
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Create in Agent table (for admin dashboard)
+      const newAgent = await tx.agent.create({
+        data: {
+          username,
+          displayName: displayName || username,
+          password: hashedPassword,
+          maxSingleAdjustment: maxSingleAdjustment || 1000,
+          dailyAdjustmentLimit: dailyAdjustmentLimit || 5000,
+          canSuspendPlayers: canSuspendPlayers !== false,
+          commissionRate,
+          ipRestriction,
+          regionAssignment,
+          notes,
+          permissions,
+          createdBy: admin.adminId as string,
+          status: "active",
+        },
+      });
+
+      // 2. Create in User table (for NextAuth login)
+      await tx.user.create({
+        data: {
+          username,
+          name: displayName || username,
+          password: hashedPassword,
+          userType: "agent",
+          isActive: true,
+          createdBy: admin.adminId as string,
+        },
+      });
+
+      return newAgent;
     });
+
+    const newAgent = result;
 
     // Log activity
     await prisma.adminActivityLog.create({

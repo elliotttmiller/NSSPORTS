@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
+import { prisma } from "@/lib/prisma";
+
+const JWT_SECRET = new TextEncoder().encode(
+  process.env.ADMIN_JWT_SECRET || "your-admin-secret-key-change-in-production"
+);
 
 export async function GET(req: NextRequest) {
   try {
@@ -9,120 +14,62 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const secret = new TextEncoder().encode(
-      process.env.JWT_SECRET || "your-secret-key"
-    );
-    await jwtVerify(token, secret);
+    await jwtVerify(token, JWT_SECRET);
 
     const { searchParams } = new URL(req.url);
     const limit = parseInt(searchParams.get("limit") || "50");
+    const action = searchParams.get("action"); // Optional filter by action type
+    const targetType = searchParams.get("targetType"); // Optional filter by target type
 
-    // TODO: After Prisma regeneration, fetch actual audit logs
-    // const logs = await prisma.adminActivityLog.findMany({
-    //   take: limit,
-    //   orderBy: { createdAt: 'desc' },
-    //   include: {
-    //     adminUser: {
-    //       select: { username: true, role: true }
-    //     }
-    //   }
-    // });
+    // Build where clause for filtering
+    const where: {
+      action?: string;
+      targetType?: string;
+    } = {};
+    
+    if (action) {
+      where.action = action;
+    }
+    if (targetType) {
+      where.targetType = targetType;
+    }
 
-    // Mock audit log data
-    const mockLogs = [
-      {
-        id: "log_1",
-        timestamp: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
-        user: "admin",
-        role: "super_admin",
-        action: "LOGIN",
-        resource: "Auth",
-        ipAddress: "192.168.1.100",
-        status: "success",
-        details: "Successful admin login",
-      },
-      {
-        id: "log_2",
-        timestamp: new Date(Date.now() - 25 * 60 * 1000).toISOString(),
-        user: "lisa_ops",
-        role: "agent",
-        action: "BALANCE_ADJUSTMENT",
-        resource: "Player:sara_player",
-        ipAddress: "192.168.1.105",
-        status: "success",
-        details: "Deposited $500",
-      },
-      {
-        id: "log_3",
-        timestamp: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
-        user: "john_smith",
-        role: "agent",
-        action: "LOGIN",
-        resource: "Auth",
-        ipAddress: "192.168.1.110",
-        status: "failure",
-        details: "Invalid credentials",
-      },
-      {
-        id: "log_4",
-        timestamp: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
-        user: "admin",
-        role: "super_admin",
-        action: "CONFIG_UPDATE",
-        resource: "Config:agentDefaults",
-        ipAddress: "192.168.1.100",
-        status: "success",
-        details: "Updated agent default limits",
-      },
-      {
-        id: "log_5",
-        timestamp: new Date(Date.now() - 90 * 60 * 1000).toISOString(),
-        user: "mark_t",
-        role: "agent",
-        action: "BALANCE_ADJUSTMENT",
-        resource: "Player:mike_2024",
-        ipAddress: "192.168.1.115",
-        status: "warning",
-        details: "Adjustment exceeded single transaction limit",
-      },
-      {
-        id: "log_6",
-        timestamp: new Date(Date.now() - 120 * 60 * 1000).toISOString(),
-        user: "admin",
-        role: "super_admin",
-        action: "AGENT_CREATE",
-        resource: "Agent:new_agent",
-        ipAddress: "192.168.1.100",
-        status: "success",
-        details: "Created new agent account",
-      },
-      {
-        id: "log_7",
-        timestamp: new Date(Date.now() - 150 * 60 * 1000).toISOString(),
-        user: "lisa_ops",
-        role: "agent",
-        action: "PLAYER_STATUS_UPDATE",
-        resource: "Player:tom_bets",
-        ipAddress: "192.168.1.105",
-        status: "success",
-        details: "Changed status to active",
-      },
-      {
-        id: "log_8",
-        timestamp: new Date(Date.now() - 180 * 60 * 1000).toISOString(),
-        user: "unknown",
-        role: "unknown",
-        action: "LOGIN",
-        resource: "Auth",
-        ipAddress: "203.0.113.42",
-        status: "failure",
-        details: "Multiple failed login attempts",
-      },
-    ];
+    // Fetch real audit logs from database
+    const [logs, total] = await Promise.all([
+      prisma.adminActivityLog.findMany({
+        where,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          admin: {
+            select: { 
+              username: true, 
+              role: true 
+            }
+          }
+        }
+      }),
+      prisma.adminActivityLog.count({ where })
+    ]);
+
+    // Transform logs to match frontend expectations
+    const transformedLogs = logs.map(log => ({
+      id: log.id,
+      timestamp: log.createdAt.toISOString(),
+      user: log.admin.username,
+      role: log.admin.role,
+      action: log.action,
+      resource: log.targetType && log.targetId ? `${log.targetType}:${log.targetId}` : log.targetType || "System",
+      ipAddress: log.ipAddress || "Unknown",
+      status: "success", // Logged actions are typically successful; failures can be determined from action type
+      details: typeof log.details === 'object' && log.details !== null 
+        ? JSON.stringify(log.details) 
+        : String(log.details || ""),
+    }));
 
     return NextResponse.json({
-      logs: mockLogs,
-      total: mockLogs.length,
+      logs: transformedLogs,
+      total,
       limit,
     });
   } catch (error) {

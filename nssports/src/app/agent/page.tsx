@@ -3,12 +3,17 @@
 import { useEffect, useState, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { 
   Users, 
   CurrencyDollar,  
   UserPlus,
-  ArrowsClockwise
+  ArrowsClockwise,
+  CaretDown,
+  CaretUp,
+  ArrowDown,
+  ArrowUp,
+  Minus
 } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui";
@@ -34,6 +39,16 @@ interface AgentUsersResponse {
   };
 }
 
+interface Transaction {
+  id: string;
+  type: string;
+  amount: number;
+  balanceBefore: number;
+  balanceAfter: number;
+  reason: string | null;
+  createdAt: string;
+}
+
 /**
  * Agent Dashboard - Mobile-First Design
  * 
@@ -55,6 +70,37 @@ export default function AgentDashboard() {
     totalBalance: 0,
     activeUsers: 0,
   });
+  const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
+  const [transactions, setTransactions] = useState<Record<string, Transaction[]>>({});
+  const [loadingTransactions, setLoadingTransactions] = useState<Record<string, boolean>>({});
+
+  // Fetch transactions for a specific user
+  const fetchUserTransactions = useCallback(async (userId: string) => {
+    if (transactions[userId]) return; // Already loaded
+
+    setLoadingTransactions(prev => ({ ...prev, [userId]: true }));
+    try {
+      const response = await fetch(`/api/agent/users/${userId}/transactions?limit=5`);
+      if (response.ok) {
+        const data = await response.json();
+        setTransactions(prev => ({ ...prev, [userId]: data.transactions }));
+      }
+    } catch (error) {
+      console.error('Error fetching transactions:', error);
+    } finally {
+      setLoadingTransactions(prev => ({ ...prev, [userId]: false }));
+    }
+  }, [transactions]);
+
+  // Toggle player card expansion
+  const toggleExpanded = useCallback((userId: string) => {
+    if (expandedUserId === userId) {
+      setExpandedUserId(null);
+    } else {
+      setExpandedUserId(userId);
+      fetchUserTransactions(userId);
+    }
+  }, [expandedUserId, fetchUserTransactions]);
 
   // Fetch agent users
   const fetchAgentUsers = useCallback(async () => {
@@ -209,28 +255,119 @@ export default function AgentDashboard() {
 
               {/* Users List */}
               <div className="space-y-2 max-h-96 overflow-y-auto">
-                {agentUsers.map((user) => (
-                  <div 
-                    key={user.id}
-                    className="flex items-center justify-between p-3 bg-background border border-border rounded-lg hover:border-accent/30 transition-colors"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-medium text-foreground truncate">
-                          {user.name || user.username}
-                        </p>
-                        {user.lastLogin && new Date().getTime() - new Date(user.lastLogin).getTime() < 7 * 24 * 60 * 60 * 1000 && (
-                          <Badge variant="secondary" className="text-xs py-0 px-1.5">Active</Badge>
+                {agentUsers.map((user) => {
+                  const isExpanded = expandedUserId === user.id;
+                  const userTransactions = transactions[user.id] || [];
+                  const isLoadingTxn = loadingTransactions[user.id];
+
+                  return (
+                    <div key={user.id} className="bg-background border border-border rounded-lg overflow-hidden">
+                      {/* Player Header - Clickable */}
+                      <button
+                        onClick={() => toggleExpanded(user.id)}
+                        className="w-full flex items-center justify-between p-3 hover:bg-accent/5 transition-colors"
+                      >
+                        <div className="flex-1 min-w-0 text-left">
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-medium text-foreground truncate">
+                              {user.name || user.username}
+                            </p>
+                            {user.lastLogin && new Date().getTime() - new Date(user.lastLogin).getTime() < 7 * 24 * 60 * 60 * 1000 && (
+                              <Badge variant="secondary" className="text-xs py-0 px-1.5">Active</Badge>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground">@{user.username}</p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="text-right">
+                            <p className="text-sm font-bold text-accent">${user.balance.toFixed(2)}</p>
+                            <p className="text-xs text-muted-foreground">Balance</p>
+                          </div>
+                          {isExpanded ? (
+                            <CaretUp size={16} className="text-muted-foreground" />
+                          ) : (
+                            <CaretDown size={16} className="text-muted-foreground" />
+                          )}
+                        </div>
+                      </button>
+
+                      {/* Expanded Transactions Section */}
+                      <AnimatePresence>
+                        {isExpanded && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="border-t border-border"
+                          >
+                            <div className="p-3 bg-muted/20">
+                              <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase">Recent Transactions</h4>
+                              
+                              {isLoadingTxn ? (
+                                <div className="text-center py-4">
+                                  <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin mx-auto"></div>
+                                </div>
+                              ) : userTransactions.length === 0 ? (
+                                <div className="text-center py-4">
+                                  <p className="text-xs text-muted-foreground">No transactions yet</p>
+                                </div>
+                              ) : (
+                                <div className="space-y-2">
+                                  {userTransactions.map((txn) => {
+                                    const isPositive = txn.type === 'deposit' || txn.type === 'bet_won' || txn.type === 'adjustment' && txn.amount > 0;
+                                    const isNegative = txn.type === 'withdrawal' || txn.type === 'bet_placed' || txn.type === 'adjustment' && txn.amount < 0;
+                                    
+                                    return (
+                                      <div 
+                                        key={txn.id}
+                                        className="flex items-center justify-between p-2 bg-background rounded border border-border"
+                                      >
+                                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                                          <div className={`
+                                            w-6 h-6 rounded-full flex items-center justify-center shrink-0
+                                            ${isPositive ? 'bg-green-500/10' : isNegative ? 'bg-red-500/10' : 'bg-muted'}
+                                          `}>
+                                            {isPositive && <ArrowUp size={14} className="text-green-500" weight="bold" />}
+                                            {isNegative && <ArrowDown size={14} className="text-red-500" weight="bold" />}
+                                            {!isPositive && !isNegative && <Minus size={14} className="text-muted-foreground" />}
+                                          </div>
+                                          <div className="flex-1 min-w-0">
+                                            <p className="text-xs font-medium text-foreground capitalize">
+                                              {txn.type.replace('_', ' ')}
+                                            </p>
+                                            {txn.reason && (
+                                              <p className="text-xs text-muted-foreground truncate">{txn.reason}</p>
+                                            )}
+                                            <p className="text-xs text-muted-foreground">
+                                              {new Date(txn.createdAt).toLocaleString()}
+                                            </p>
+                                          </div>
+                                        </div>
+                                        <div className="text-right ml-2">
+                                          <p className={`text-sm font-bold ${
+                                            isPositive ? 'text-green-500' :
+                                            isNegative ? 'text-red-500' :
+                                            'text-foreground'
+                                          }`}>
+                                            {isPositive ? '+' : isNegative ? '-' : ''}${Math.abs(txn.amount).toFixed(2)}
+                                          </p>
+                                          <p className="text-xs text-muted-foreground">
+                                            ${txn.balanceAfter.toFixed(2)}
+                                          </p>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          </motion.div>
                         )}
-                      </div>
-                      <p className="text-xs text-muted-foreground">@{user.username}</p>
+                      </AnimatePresence>
                     </div>
-                    <div className="text-right ml-4">
-                      <p className="text-sm font-bold text-accent">${user.balance.toFixed(2)}</p>
-                      <p className="text-xs text-muted-foreground">Balance</p>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </>
           )}

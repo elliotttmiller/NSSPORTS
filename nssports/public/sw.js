@@ -5,14 +5,18 @@
  * - Cache static assets for offline access
  * - Network-first strategy for API calls
  * - Cache-first strategy for static assets
- * - Skip authentication requests to prevent redirect issues in Safari
+ * - Skip authentication requests and redirects to prevent conflicts
+ * 
+ * Authentication Handling:
+ * - User/Agent Auth: NextAuth (JWT) → /auth/login
+ * - Admin Auth: Custom JWT → /admin/login
+ * - Service worker bypasses both to allow middleware to handle redirects
  * 
  * Reference: https://nextjs.org/docs/app/guides/progressive-web-apps
  */
 
-const CACHE_NAME = 'nssports-v2';
+const CACHE_NAME = 'nssports-v3';
 const STATIC_CACHE = [
-  '/',
   '/manifest.webmanifest',
 ];
 
@@ -50,11 +54,18 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Skip authentication and auth-related requests - let them go directly to network
-  // This prevents Safari's "response served by service worker has redirections" error
-  if (url.pathname.startsWith('/api/auth') || 
+  // ============================================================
+  // 🔹 BYPASS AUTHENTICATION ROUTES - Let middleware handle them
+  // ============================================================
+  // Skip root URL to allow middleware redirects
+  // Skip all auth routes (both user and admin)
+  // This prevents "redirected response was used for a request whose redirect mode is not follow" error
+  if (url.pathname === '/' ||
       url.pathname.startsWith('/auth/') ||
-      url.pathname === '/auth' ||
+      url.pathname.startsWith('/admin/login') ||
+      url.pathname.startsWith('/admin') && !url.pathname.startsWith('/admin/dashboard') ||
+      url.pathname.startsWith('/api/auth') || 
+      url.pathname.startsWith('/api/admin/auth') ||
       url.pathname.includes('callback') ||
       url.pathname.includes('signin') ||
       url.pathname.includes('signout')) {
@@ -64,7 +75,7 @@ self.addEventListener('fetch', (event) => {
   // API requests - network first, fall back to cache
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(
-      fetch(request)
+      fetch(request, { redirect: 'follow' })
         .then((response) => {
           // Don't cache redirects (Safari compatibility)
           if (response.type === 'opaqueredirect' || response.redirected) {

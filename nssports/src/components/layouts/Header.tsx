@@ -286,7 +286,14 @@ export function Header() {
               >
                 {session?.user?.name && (
                   <div className="px-4 pt-4 pb-2 border-b border-border">
-                    <p className="text-xs text-muted-foreground truncate">{session.user.name}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs text-muted-foreground truncate">{session.user.name}</p>
+                      {(session.user.isAgent || session.user.isAdmin) && (
+                        <Badge className="bg-accent/10 text-accent border-accent/20 font-semibold text-[10px] px-1.5 py-0.5 h-4 leading-none">
+                          {session.user.userType === 'client_admin' ? 'ADMIN' : 'AGENT'}
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                 )}
                 <div className="p-4 space-y-2">
@@ -305,7 +312,16 @@ export function Header() {
                     </div>
                   </div>
                 </div>
-                <div className="px-4 pb-4 pt-2 border-t border-border">
+                <div className="px-4 pb-4 pt-2 border-t border-border space-y-2">
+                  {session?.user && (session.user.isAgent || session.user.isAdmin) && (
+                    <Link
+                      href="/agent"
+                      className="block text-center text-xs px-3 py-1.5 rounded bg-accent/10 hover:bg-accent/20 text-accent transition-all duration-150 shadow-sm border border-accent/20 font-medium"
+                      onClick={() => setShowDropdown(false)}
+                    >
+                      Agent Dashboard
+                    </Link>
+                  )}
                   <button
                     onClick={handleLogout}
                     className="w-full text-center text-xs px-3 py-1.5 rounded bg-destructive/10 hover:bg-destructive/20 text-destructive transition-all duration-150 shadow-sm border border-destructive/20"

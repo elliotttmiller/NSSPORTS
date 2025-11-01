@@ -115,6 +115,9 @@ export async function GET(req: NextRequest) {
     );
     await jwtVerify(token, secret);
 
+    const { searchParams } = new URL(req.url);
+    const includeAdjustments = searchParams.get("adjustments") === "true";
+
     // Calculate total platform balance
     const totalBalance = await prisma.dashboardPlayer.aggregate({
       _sum: { balance: true }
@@ -147,14 +150,59 @@ export async function GET(req: NextRequest) {
     const withdrawals = todayWithdrawals._sum.amount || 0;
     const netMovement = deposits - withdrawals;
 
-    return NextResponse.json({
+    const response: {
+      summary: {
+        totalPlatformBalance: number;
+        todayDeposits: number;
+        todayWithdrawals: number;
+        netMovement: number;
+      };
+      recentAdjustments?: Array<{
+        id: string;
+        adjuster: string;
+        player: string;
+        type: string;
+        amount: number;
+        reason: string | null;
+        timestamp: string;
+      }>;
+    } = {
       summary: {
         totalPlatformBalance,
         todayDeposits: deposits,
         todayWithdrawals: withdrawals,
         netMovement,
       },
-    });
+    };
+
+    // Optionally include recent adjustments
+    if (includeAdjustments) {
+      const recentLogs = await prisma.adminActivityLog.findMany({
+        where: { action: "BALANCE_ADJUSTMENT" },
+        take: 20,
+        orderBy: { createdAt: "desc" },
+        include: {
+          admin: {
+            select: { username: true },
+          },
+        },
+      });
+
+      response.recentAdjustments = recentLogs.map((log) => {
+        const details = log.details as { type?: string; amount?: number; reason?: string } | null;
+        return {
+          id: log.id,
+          adjuster: log.admin.username,
+          player: log.targetId || "Unknown",
+          type: details && typeof details === 'object' && 'type' in details ? String(details.type) : "adjustment",
+          amount: details && typeof details === 'object' && 'amount' in details ? Number(details.amount) : 0,
+          reason: details && typeof details === 'object' && 'reason' in details ? String(details.reason) : null,
+          timestamp: log.createdAt.toISOString(),
+        };
+      });
+    }
+
+    return NextResponse.json(response);
   } catch (error) {
     console.error("Balance summary error:", error);
     return NextResponse.json(

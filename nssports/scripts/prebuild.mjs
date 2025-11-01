@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 
 /**
- * Prebuild Script - Full Clean Cache Clear
+ * Prebuild Script - Full Clean Cache Clear + Prisma Generate
  * 
  * Clears all Next.js, TypeScript, and build caches before building
+ * Regenerates Prisma client after clearing cache
  * Ensures a completely fresh, clean rebuild every time
  * 
  * Usage: npm run prebuild (automatically runs before npm run build)
@@ -12,6 +13,10 @@
 import { rm, access } from 'fs/promises';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
+const execAsync = promisify(exec);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -120,6 +125,25 @@ async function prebuild() {
   log.header('✨ PREBUILD COMPLETE');
   log.info(`Cleared ${clearedCount} cache location(s) in ${duration}s`);
   log.info('Ready for fresh build!\n');
+  
+  // Regenerate Prisma client after clearing cache
+  log.header('🔄 REGENERATING PRISMA CLIENT');
+  try {
+    log.info('Running: npx prisma generate...');
+    const { stdout, stderr } = await execAsync('npx prisma generate', { 
+      cwd: projectRoot,
+      env: { ...process.env, FORCE_COLOR: '1' }
+    });
+    
+    if (stdout) console.log(stdout);
+    if (stderr && !stderr.includes('warn')) console.error(stderr);
+    
+    log.success('Prisma client generated successfully');
+    log.info('Build environment ready!\n');
+  } catch (error) {
+    log.error(`Failed to generate Prisma client: ${error.message}`);
+    throw error;
+  }
 }
 
 // Run the prebuild script

@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
+import { prisma } from "@/lib/prisma";
+
+const JWT_SECRET = new TextEncoder().encode(
+  process.env.ADMIN_JWT_SECRET || "your-admin-secret-key-change-in-production"
+);
 
 export async function POST(req: NextRequest) {
   try {
@@ -9,19 +14,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const secret = new TextEncoder().encode(
-      process.env.JWT_SECRET || "your-secret-key"
-    );
-    await jwtVerify(token, secret);
+    await jwtVerify(token, JWT_SECRET);
 
     const body = await req.json();
     const { reportType, dateFrom: _dateFrom, dateTo: _dateTo, format } = body;
 
-    // TODO: After Prisma regeneration, implement actual report generation
-    // Based on reportType (financial, agents, players, system)
-    // Query relevant data from Prisma
-    // Generate report in requested format (CSV or PDF)
-
+    // TODO: Implement actual report file generation (CSV/PDF)
+    // For now, return download URL placeholder
     return NextResponse.json({
       success: true,
       reportId: `report_${Date.now()}`,
@@ -45,49 +44,145 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const secret = new TextEncoder().encode(
-      process.env.JWT_SECRET || "your-secret-key"
-    );
-    await jwtVerify(token, secret);
+    await jwtVerify(token, JWT_SECRET);
 
     const { searchParams } = new URL(req.url);
     const reportType = searchParams.get("type") || "financial";
 
-    // Mock data for report preview
+    // Fetch real report data from database
     let reportData = {};
 
     if (reportType === "financial") {
+      // Calculate financial metrics from real data
+      const [
+        totalPlayerBets,
+        totalAgents,
+        totalPlayers,
+      ] = await Promise.all([
+        // Total bets statistics
+        prisma.playerBet.aggregate({
+          _sum: { amount: true, potentialWin: true },
+          _count: true,
+        }),
+        prisma.agent.count(),
+        prisma.dashboardPlayer.count(),
+      ]);
+
+      const totalDeposits = await prisma.playerTransaction.aggregate({
+        _sum: { amount: true },
+        where: { type: "deposit" },
+      });
+
+      const totalWagered = totalPlayerBets._sum.amount || 0;
+      const totalPayouts = await prisma.playerBet.aggregate({
+        _sum: { potentialWin: true },
+        where: { status: "won" },
+      });
+
+      const totalRevenue = totalDeposits._sum.amount || 0;
+      const totalPayoutsAmount = totalPayouts._sum.potentialWin || 0;
+      const netProfit = totalRevenue - totalPayoutsAmount;
+
       reportData = {
-        totalRevenue: 1287456,
-        totalPayouts: 987234,
-        netProfit: 300222,
-        revenueGrowth: 12.5,
-        payoutsGrowth: 8.2,
-        profitGrowth: 18.7,
+        totalRevenue: Math.round(totalRevenue * 100) / 100,
+        totalPayouts: Math.round(totalPayoutsAmount * 100) / 100,
+        netProfit: Math.round(netProfit * 100) / 100,
+        totalWagered: Math.round(totalWagered * 100) / 100,
+        totalBets: totalPlayerBets._count || 0,
+        totalAgents,
+        totalPlayers,
+        revenueGrowth: 0, // TODO: Calculate growth from previous period
+        payoutsGrowth: 0,
+        profitGrowth: 0,
       };
     } else if (reportType === "agents") {
+      // Get agent statistics
+      const [agents, totalAdjustments] = await Promise.all([
+        prisma.agent.count({ where: { status: "active" } }),
+        prisma.agentBalanceLog.aggregate({
+          _sum: { amount: true },
+          _count: true,
+        }),
+      ]);
+
+      // Get top agents by player count
+      const topAgents = await prisma.agent.findMany({
+        take: 5,
+        include: {
+          _count: {
+            select: { players: true },
+          },
+          balanceAdjustmentsLog: {
+            select: { amount: true },
+          },
+        },
+        orderBy: {
+          players: {
+            _count: "desc",
+          },
+        },
+      });
+
+      const formattedTopAgents = topAgents.map((agent) => ({
+        username: agent.username,
+        displayName: agent.displayName,
+        players: agent._count.players,
+        adjustments: agent.balanceAdjustmentsLog.reduce(
+          (sum, adj) => sum + Math.abs(adj.amount),
+          0
+        ),
+      }));
+
+      const avgAdjustment =
+        totalAdjustments._count > 0
+          ? (totalAdjustments._sum.amount || 0) / totalAdjustments._count
+          : 0;
+
       reportData = {
-        activeAgents: 37,
-        totalAdjustments: 1245890,
-        avgAdjustment: 3367,
-        topAgents: [
-          { username: "john_smith", adjustments: 245000 },
-          { username: "lisa_ops", adjustments: 198000 },
-        ],
+        activeAgents: agents,
+        totalAdjustments: Math.round((totalAdjustments._sum.amount || 0) * 100) / 100,
+        adjustmentsCount: totalAdjustments._count,
+        avgAdjustment: Math.round(avgAdjustment * 100) / 100,
+        topAgents: formattedTopAgents,
       };
     } else if (reportType === "players") {
+      // Get player statistics
+      const [totalPlayers, activePlayers, totalBets, avgBet] = await Promise.all([
+        prisma.dashboardPlayer.count(),
+        prisma.dashboardPlayer.count({ where: { status: "active" } }),
+        prisma.playerBet.count(),
+        prisma.playerBet.aggregate({ _avg: { amount: true } }),
+      ]);
+
       reportData = {
-        totalPlayers: 2847,
-        activePlayers: 1234,
-        totalBetsPlaced: 45678,
-        avgBetAmount: 125,
+        totalPlayers,
+        activePlayers,
+        totalBetsPlaced: totalBets,
+        avgBetAmount: Math.round((avgBet._avg.amount || 0) * 100) / 100,
       };
     } else if (reportType === "system") {
+      // Get system metrics
+      const [totalLogs, recentLogs, totalAgents, totalPlayers] = await Promise.all([
+        prisma.adminActivityLog.count(),
+        prisma.adminActivityLog.count({
+          where: {
+            createdAt: {
+              gte: new Date(Date.now() - 24 * 60 * 60 * 1000),
+            },
+          },
+        }),
+        prisma.agent.count(),
+        prisma.dashboardPlayer.count(),
+      ]);
+
       reportData = {
-        uptime: 99.98,
-        avgResponseTime: 124,
-        apiCalls: 1200000,
-        errorRate: 0.02,
+        uptime: 99.9, // This would need to be tracked separately
+        avgResponseTime: 120, // This would need to be tracked via monitoring
+        apiCalls: totalLogs,
+        recentApiCalls: recentLogs,
+        errorRate: 0.01, // This would need to be tracked via error logging
+        totalAgents,
+        totalPlayers,
       };
     }
 

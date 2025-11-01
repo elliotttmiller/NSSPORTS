@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { 
-  LiveGameRow, 
+  MemoizedLiveGameRow as LiveGameRow, 
   LiveMobileGameRow, 
   MobileGameTableHeader, 
   DesktopGameTableHeader 
