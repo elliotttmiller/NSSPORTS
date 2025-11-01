@@ -429,19 +429,20 @@ export async function POST(req: Request) {
       const currentBalance = Number(account.balance);
       const stakeAmount = Number(data.stake);
 
-      if (currentBalance < stakeAmount) {
-        throw new Error(`Insufficient balance. Available: $${currentBalance.toFixed(2)}, Required: $${stakeAmount.toFixed(2)}`);
+      // Calculate risk from pending bets
+      const pendingBets = await tx.bet.findMany({
+        where: { userId, status: 'pending' },
+        select: { stake: true },
+      });
+      const currentRisk = pendingBets.reduce((sum, bet) => sum + Number(bet.stake), 0);
+      const availableBalance = currentBalance - currentRisk;
+
+      if (availableBalance < stakeAmount) {
+        throw new Error(`Insufficient available balance. Balance: $${currentBalance.toFixed(2)}, At Risk: $${currentRisk.toFixed(2)}, Available: $${availableBalance.toFixed(2)}, Required: $${stakeAmount.toFixed(2)}`);
       }
 
-      // Deduct stake from account balance
-      const _updatedAccount = await tx.account.update({
-        where: { userId },
-        data: {
-          balance: {
-            decrement: stakeAmount,
-          },
-        },
-      });
+      // DO NOT deduct stake from balance when placing bet
+      // Balance is only adjusted when bet settles (win = add payout, loss = deduct stake)
 
       // Transaction record is now automatically created via Prisma extension
 

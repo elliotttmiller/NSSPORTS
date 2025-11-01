@@ -24,6 +24,8 @@ interface AgentUser {
   username: string;
   name: string | null;
   balance: number;
+  available: number;
+  risk: number;
   lastBalanceUpdate: string | null;
   createdAt: string;
   lastLogin: string | null;
@@ -286,16 +288,39 @@ export default function AgentDashboard() {
                           </div>
                           <p className="text-xs text-muted-foreground">@{user.username}</p>
                         </div>
-                        <div className="flex items-center gap-3">
-                          <div className="text-right">
-                            <p className="text-sm font-bold text-accent">${user.balance.toFixed(2)}</p>
-                            <p className="text-xs text-muted-foreground">Balance</p>
+                        <div className="flex items-center gap-1.5 ml-2">
+                          {/* Available */}
+                          <div className="text-right min-w-[70px]">
+                            <p className="text-xs font-bold text-accent leading-tight">${user.available.toFixed(2)}</p>
+                            <p className="text-[9px] text-muted-foreground uppercase tracking-wide leading-tight mt-0.5">Available</p>
                           </div>
-                          {isExpanded ? (
-                            <CaretUp size={16} className="text-muted-foreground" />
-                          ) : (
-                            <CaretDown size={16} className="text-muted-foreground" />
-                          )}
+                          
+                          {/* Divider */}
+                          <div className="h-8 w-px bg-border mx-0.5"></div>
+                          
+                          {/* Risk */}
+                          <div className="text-right min-w-[70px]">
+                            <p className="text-xs font-bold text-destructive leading-tight">${user.risk.toFixed(2)}</p>
+                            <p className="text-[9px] text-muted-foreground uppercase tracking-wide leading-tight mt-0.5">Risk</p>
+                          </div>
+                          
+                          {/* Divider */}
+                          <div className="h-8 w-px bg-border mx-0.5"></div>
+                          
+                          {/* Balance */}
+                          <div className="text-right min-w-[70px]">
+                            <p className="text-xs font-bold text-foreground leading-tight">${user.balance.toFixed(2)}</p>
+                            <p className="text-[9px] text-muted-foreground uppercase tracking-wide leading-tight mt-0.5">Balance</p>
+                          </div>
+                          
+                          {/* Expand/Collapse Icon */}
+                          <div className="ml-2">
+                            {isExpanded ? (
+                              <CaretUp size={16} className="text-muted-foreground" />
+                            ) : (
+                              <CaretDown size={16} className="text-muted-foreground" />
+                            )}
+                          </div>
                         </div>
                       </button>
 

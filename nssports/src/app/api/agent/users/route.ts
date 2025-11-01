@@ -40,6 +40,14 @@ export async function GET() {
               updatedAt: true,
             },
           },
+          bets: {
+            where: {
+              status: 'pending', // Only pending bets count as risk
+            },
+            select: {
+              stake: true,
+            },
+          },
         },
         orderBy: {
           createdAt: 'desc',
@@ -47,16 +55,26 @@ export async function GET() {
       });
 
       // Transform the data for the frontend
-      const usersWithBalances = users.map(user => ({
-        id: user.id,
-        username: user.username,
-        name: user.name,
-        balance: user.account ? Number(user.account.balance) : 0,
-        lastBalanceUpdate: user.account?.updatedAt,
-        createdAt: user.createdAt,
-        lastLogin: user.lastLogin,
-        isActive: user.isActive,
-      }));
+      const usersWithBalances = users.map(user => {
+        const balance = user.account ? Number(user.account.balance) : 0;
+        // Calculate risk from pending bets (same logic as /api/account)
+        const risk = user.bets.reduce((sum, bet) => sum + Number(bet.stake), 0);
+        // Available = Balance - Risk (money not locked in pending bets)
+        const available = Math.max(0, balance - risk);
+
+        return {
+          id: user.id,
+          username: user.username,
+          name: user.name,
+          balance,
+          available,
+          risk,
+          lastBalanceUpdate: user.account?.updatedAt,
+          createdAt: user.createdAt,
+          lastLogin: user.lastLogin,
+          isActive: user.isActive,
+        };
+      });
 
       // Calculate summary statistics
       const totalUsers = usersWithBalances.length;
