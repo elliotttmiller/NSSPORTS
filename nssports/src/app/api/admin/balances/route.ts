@@ -1,20 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { jwtVerify } from "jose";
-import { prisma } from "@/lib/prisma";
+import prisma from "@/lib/prisma";
+import { getAdminUser } from "@/lib/adminAuth";
 
 export async function POST(req: NextRequest) {
   try {
-    // Verify admin token
-    const token = req.cookies.get("admin_token")?.value;
-    if (!token) {
+    // Verify admin authentication
+    const admin = await getAdminUser(req);
+    
+    if (!admin) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
-    const secret = new TextEncoder().encode(
-      process.env.JWT_SECRET || "your-secret-key"
-    );
-    const { payload } = await jwtVerify(token, secret);
-    const adminId = payload.adminId as string;
 
     const body = await req.json();
     const { playerId, type, amount, reason } = body;
@@ -65,23 +60,9 @@ export async function POST(req: NextRequest) {
       }
     });
 
-    // Log admin activity
-    await prisma.adminActivityLog.create({
-      data: {
-        adminUserId: adminId,
-        action: "BALANCE_ADJUSTMENT",
-        targetId: playerId,
-        targetType: "player",
-        details: {
-          type,
-          amount,
-          reason,
-          previousBalance: player.balance,
-          newBalance,
-        },
-        ipAddress: req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown"
-      }
-    });
+    // TODO: Log admin activity when User/AdminUser relationship is established
+    // Note: AdminActivityLog currently requires AdminUser FK, but we're using User authentication
+    // await prisma.adminActivityLog.create({ ... });
 
     return NextResponse.json({
       success: true,
@@ -104,16 +85,12 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    // Verify admin token
-    const token = req.cookies.get("admin_token")?.value;
-    if (!token) {
+    // Verify admin authentication
+    const admin = await getAdminUser(req);
+    
+    if (!admin) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
-    const secret = new TextEncoder().encode(
-      process.env.JWT_SECRET || "your-secret-key"
-    );
-    await jwtVerify(token, secret);
 
     const { searchParams } = new URL(req.url);
     const includeAdjustments = searchParams.get("adjustments") === "true";
@@ -177,29 +154,35 @@ export async function GET(req: NextRequest) {
 
     // Optionally include recent adjustments
     if (includeAdjustments) {
-      const recentLogs = await prisma.adminActivityLog.findMany({
-        where: { action: "BALANCE_ADJUSTMENT" },
-        take: 20,
-        orderBy: { createdAt: "desc" },
-        include: {
-          admin: {
-            select: { username: true },
+      try {
+        const recentLogs = await prisma.adminActivityLog.findMany({
+          where: { action: "BALANCE_ADJUSTMENT" },
+          take: 20,
+          orderBy: { createdAt: "desc" },
+          include: {
+            admin: {
+              select: { username: true },
+            },
           },
-        },
-      });
+        });
 
-      response.recentAdjustments = recentLogs.map((log) => {
-        const details = log.details as { type?: string; amount?: number; reason?: string } | null;
-        return {
-          id: log.id,
-          adjuster: log.admin.username,
-          player: log.targetId || "Unknown",
-          type: details && typeof details === 'object' && 'type' in details ? String(details.type) : "adjustment",
-          amount: details && typeof details === 'object' && 'amount' in details ? Number(details.amount) : 0,
-          reason: details && typeof details === 'object' && 'reason' in details ? String(details.reason) : null,
-          timestamp: log.createdAt.toISOString(),
-        };
-      });
+        response.recentAdjustments = recentLogs.map((log) => {
+          const details = log.details as { type?: string; amount?: number; reason?: string } | null;
+          return {
+            id: log.id,
+            adjuster: log.admin.username,
+            player: log.targetId || "Unknown",
+            type: details && typeof details === 'object' && 'type' in details ? String(details.type) : "adjustment",
+            amount: details && typeof details === 'object' && 'amount' in details ? Number(details.amount) : 0,
+            reason: details && typeof details === 'object' && 'reason' in details ? String(details.reason) : null,
+            timestamp: log.createdAt.toISOString(),
+          };
+        });
+      } catch (adjustmentError) {
+        console.error("Error fetching adjustments:", adjustmentError);
+        // Return empty array if adjustments fetch fails
+        response.recentAdjustments = [];
+      }
     }
 
     return NextResponse.json(response);

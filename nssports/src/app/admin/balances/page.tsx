@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { MetricCard, MetricCardSection } from "@/components/ui/metric-card";
 import {
   DollarSign,
   TrendingUp,
@@ -16,6 +17,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
+import { handleAuthError } from "@/lib/clientAuthHelpers";
 
 interface BalanceAdjustment {
   id: string;
@@ -53,14 +55,35 @@ export default function BalancesPage() {
     try {
       setIsLoading(true);
       const response = await fetch("/api/admin/balances?adjustments=true");
-      if (!response.ok) throw new Error("Failed to fetch balance data");
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
+        console.error("[BalancesPage] API Error:", {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorData
+        });
+        
+        // Handle authentication errors (401/403) - redirects if needed
+        if (handleAuthError(response)) {
+          toast.error(response.status === 401 ? "Session expired. Redirecting to login..." : "You don't have permission to view balance data.");
+          return;
+        }
+        
+        // Handle other errors
+        const errorMessage = errorData.error || "Failed to fetch balance data";
+        toast.error(errorMessage);
+        return;
+      }
       
       const data = await response.json();
+      console.log("[BalancesPage] Balance data loaded successfully");
       setSummary(data.summary);
       setRecentAdjustments(data.recentAdjustments || []);
     } catch (error) {
-      toast.error("Failed to load balance data");
-      console.error(error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to load balance data";
+      console.error("[BalancesPage] Fetch error:", error);
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -128,47 +151,39 @@ export default function BalancesPage() {
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="p-6">
-            <div className="flex items-center justify-between mb-2">
-              <DollarSign className="w-8 h-8 text-blue-600" />
-            </div>
-            <p className="text-sm text-muted-foreground mb-1">Total Platform Balance</p>
-            <p className="text-3xl font-bold">
-              {isLoading ? "..." : `$${summary.totalPlatformBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-            </p>
-          </Card>
-
-          <Card className="p-6">
-            <div className="flex items-center justify-between mb-2">
-              <TrendingUp className="w-8 h-8 text-green-600" />
-            </div>
-            <p className="text-sm text-muted-foreground mb-1">Today&apos;s Deposits</p>
-            <p className="text-3xl font-bold text-green-600">
-              {isLoading ? "..." : `$${summary.todayDeposits.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-            </p>
-          </Card>
-
-          <Card className="p-6">
-            <div className="flex items-center justify-between mb-2">
-              <TrendingDown className="w-8 h-8 text-red-600" />
-            </div>
-            <p className="text-sm text-muted-foreground mb-1">Today&apos;s Withdrawals</p>
-            <p className="text-3xl font-bold text-red-600">
-              {isLoading ? "..." : `$${summary.todayWithdrawals.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-            </p>
-          </Card>
-
-          <Card className="p-6">
-            <div className="flex items-center justify-between mb-2">
-              <DollarSign className="w-8 h-8 text-emerald-600" />
-            </div>
-            <p className="text-sm text-muted-foreground mb-1">Net Movement</p>
-            <p className={`text-3xl font-bold ${summary.netMovement >= 0 ? "text-emerald-600" : "text-red-600"}`}>
-              {isLoading ? "..." : `${summary.netMovement >= 0 ? "+" : ""}$${summary.netMovement.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-            </p>
-          </Card>
-        </div>
+        <MetricCardSection title="Financial Summary">
+          <MetricCard
+            icon={DollarSign}
+            label="Total Platform Balance"
+            value={isLoading ? "..." : `$${summary.totalPlatformBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+            iconColor="text-foreground"
+            bgColor="bg-foreground/5"
+          />
+          <MetricCard
+            icon={TrendingUp}
+            label="Today's Deposits"
+            value={isLoading ? "..." : `$${summary.todayDeposits.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+            iconColor="text-emerald-600"
+            bgColor="bg-emerald-500/10"
+            trend="up"
+          />
+          <MetricCard
+            icon={TrendingDown}
+            label="Today's Withdrawals"
+            value={isLoading ? "..." : `$${summary.todayWithdrawals.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+            iconColor="text-red-600"
+            bgColor="bg-red-500/10"
+            trend="down"
+          />
+          <MetricCard
+            icon={DollarSign}
+            label="Net Movement"
+            value={isLoading ? "..." : `${summary.netMovement >= 0 ? "+" : ""}$${summary.netMovement.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+            iconColor={summary.netMovement >= 0 ? "text-emerald-600" : "text-red-600"}
+            bgColor={summary.netMovement >= 0 ? "bg-emerald-500/10" : "bg-red-500/10"}
+            trend={summary.netMovement >= 0 ? "up" : "down"}
+          />
+        </MetricCardSection>
 
         {/* Recent Adjustments */}
         <Card className="overflow-hidden">

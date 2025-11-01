@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { MetricCard, MetricCardSection } from "@/components/ui/metric-card";
 import {
   Shield,
   Search,
@@ -99,39 +100,37 @@ export default function SecurityPage() {
         </div>
 
         {/* Security Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="p-6">
-            <div className="flex items-center justify-between mb-2">
-              <Shield className="w-8 h-8 text-green-600" />
-            </div>
-            <p className="text-sm text-muted-foreground mb-1">System Status</p>
-            <p className="text-2xl font-bold text-green-600">Secure</p>
-          </Card>
-
-          <Card className="p-6">
-            <div className="flex items-center justify-between mb-2">
-              <Activity className="w-8 h-8 text-blue-600" />
-            </div>
-            <p className="text-sm text-muted-foreground mb-1">Active Sessions</p>
-            <p className="text-2xl font-bold">47</p>
-          </Card>
-
-          <Card className="p-6">
-            <div className="flex items-center justify-between mb-2">
-              <AlertTriangle className="w-8 h-8 text-yellow-600" />
-            </div>
-            <p className="text-sm text-muted-foreground mb-1">Failed Logins (24h)</p>
-            <p className="text-2xl font-bold text-yellow-600">12</p>
-          </Card>
-
-          <Card className="p-6">
-            <div className="flex items-center justify-between mb-2">
-              <Lock className="w-8 h-8 text-purple-600" />
-            </div>
-            <p className="text-sm text-muted-foreground mb-1">Locked Accounts</p>
-            <p className="text-2xl font-bold">3</p>
-          </Card>
-        </div>
+        <MetricCardSection title="Security Overview">
+          <MetricCard
+            icon={Shield}
+            label="System Status"
+            value="Secure"
+            iconColor="text-emerald-600"
+            bgColor="bg-emerald-500/10"
+            trend="live"
+          />
+          <MetricCard
+            icon={Activity}
+            label="Active Sessions"
+            value="47"
+            iconColor="text-accent"
+            bgColor="bg-accent/10"
+          />
+          <MetricCard
+            icon={AlertTriangle}
+            label="Failed Logins (24h)"
+            value="12"
+            iconColor="text-amber-600"
+            bgColor="bg-amber-500/10"
+          />
+          <MetricCard
+            icon={Lock}
+            label="Locked Accounts"
+            value="3"
+            iconColor="text-red-600"
+            bgColor="bg-red-500/10"
+          />
+        </MetricCardSection>
 
         {/* Filters */}
         <Card className="p-6">

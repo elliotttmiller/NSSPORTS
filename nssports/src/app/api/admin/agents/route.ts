@@ -49,27 +49,53 @@ export async function GET() {
             players: true,
           },
         },
+        players: {
+          select: {
+            username: true,
+          },
+        },
       },
       orderBy: {
         createdAt: 'desc',
       },
     });
 
-    // Format response
-    const formattedAgents = agents.map((agent) => ({
-      id: agent.id,
-      username: agent.username,
-      displayName: agent.displayName,
-      status: agent.status,
-      lastLogin: agent.lastLogin?.toISOString() || null,
-      maxSingleAdjustment: agent.maxSingleAdjustment,
-      dailyAdjustmentLimit: agent.dailyAdjustmentLimit,
-      playerCount: agent._count.players,
-      todayAdjustments: agent.currentDailyTotal,
-      createdAt: agent.createdAt.toISOString(),
-    }));
+    // Calculate real-time total balance for each agent from their players
+    const agentsWithBalance = await Promise.all(
+      agents.map(async (agent) => {
+        // Get all User records for this agent's players
+        const playerUsernames = agent.players.map(p => p.username);
+        
+        let totalBalance = 0;
+        if (playerUsernames.length > 0) {
+          const users = await prisma.user.findMany({
+            where: { username: { in: playerUsernames } },
+            include: {
+              account: { select: { balance: true } },
+            }
+          });
+          totalBalance = users.reduce((sum, user) => 
+            sum + (user.account ? Number(user.account.balance) : 0), 0
+          );
+        }
 
-    return NextResponse.json({ agents: formattedAgents });
+        return {
+          id: agent.id,
+          username: agent.username,
+          displayName: agent.displayName,
+          status: agent.status,
+          lastLogin: agent.lastLogin?.toISOString() || null,
+          maxSingleAdjustment: agent.maxSingleAdjustment,
+          dailyAdjustmentLimit: agent.dailyAdjustmentLimit,
+          playerCount: agent._count.players,
+          totalBalance,
+          todayAdjustments: agent.currentDailyTotal,
+          createdAt: agent.createdAt.toISOString(),
+        };
+      })
+    );
+
+    return NextResponse.json({ agents: agentsWithBalance });
   } catch (error) {
     console.error("Agents fetch error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

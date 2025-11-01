@@ -73,16 +73,16 @@ export default function AdminDashboardLayout({ children }: AdminDashboardLayoutP
       {/* Global Header */}
       <Header />
 
-      {/* Admin Navigation Bar - PWA Mobile Optimized with Safe Areas */}
+      {/* Admin Navigation Bar - Modern Sleek Design with Safe Areas */}
       <div 
-        className="fixed left-0 right-0 bg-card border-b border-border z-40"
+        className="fixed left-0 right-0 bg-card/95 backdrop-blur-md border-b border-border/50 z-40 shadow-sm"
         style={{
           top: 'calc(4rem + env(safe-area-inset-top))',
-          paddingLeft: 'max(0.5rem, env(safe-area-inset-left))',
-          paddingRight: 'max(0.5rem, env(safe-area-inset-right))',
+          paddingLeft: 'max(0.75rem, env(safe-area-inset-left))',
+          paddingRight: 'max(0.75rem, env(safe-area-inset-right))',
         }}
       >
-        <nav className="flex items-center gap-0.5 sm:gap-1 overflow-x-auto scrollbar-hide py-2 touch-action-pan-x">
+        <nav className="flex items-center gap-1 overflow-x-auto scrollbar-hide py-2 touch-action-pan-x max-w-7xl mx-auto">
           {navigationItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
@@ -92,13 +92,13 @@ export default function AdminDashboardLayout({ children }: AdminDashboardLayoutP
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg transition-all shrink-0 text-xs font-medium min-w-fit touch-action-manipulation",
+                  "flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md transition-all shrink-0 text-xs font-medium min-w-fit touch-action-manipulation",
                   isActive
                     ? "bg-accent text-accent-foreground shadow-sm"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground active:scale-95"
+                    : "text-muted-foreground hover:bg-muted/60 hover:text-foreground active:scale-95"
                 )}
               >
-                <Icon size={16} className="shrink-0" />
+                <Icon size={15} className="shrink-0" />
                 <span className="whitespace-nowrap">{item.label}</span>
               </Link>
             );
@@ -106,17 +106,19 @@ export default function AdminDashboardLayout({ children }: AdminDashboardLayoutP
         </nav>
       </div>
 
-      {/* Main Content - PWA Mobile Optimized */}
+      {/* Main Content - Modern Sleek Container */}
       <main 
-        className="pb-8 mobile-safe-area"
+        className="pb-6 mobile-safe-area"
         style={{
-          paddingTop: 'calc(8rem + env(safe-area-inset-top))',
-          paddingLeft: 'max(0.75rem, env(safe-area-inset-left))',
-          paddingRight: 'max(0.75rem, env(safe-area-inset-right))',
+          paddingTop: 'calc(7.5rem + env(safe-area-inset-top))',
+          paddingLeft: 'max(1rem, env(safe-area-inset-left))',
+          paddingRight: 'max(1rem, env(safe-area-inset-right))',
           minHeight: 'calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom))',
         }}
       >
-        {children}
+        <div className="max-w-7xl mx-auto">
+          {children}
+        </div>
       </main>
     </div>
   );

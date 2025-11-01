@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { MetricCard, MetricCardSection } from "@/components/ui/metric-card";
 import {
   DollarSign,
   AlertTriangle,
@@ -18,6 +19,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { handleAuthError } from "@/lib/clientAuthHelpers";
 
 interface ReconciliationData {
   date: string;
@@ -77,12 +79,17 @@ export default function ReconciliationPage() {
       const response = await fetch(
         `/api/admin/reconciliation?date=${selectedDate}`
       );
-      if (response.ok) {
-        const reconciliationData = await response.json();
-        setData(reconciliationData);
-      } else {
+      if (!response.ok) {
+        // Handle authentication errors (401/403) - redirects if needed
+        if (handleAuthError(response)) {
+          toast.error(response.status === 401 ? "Session expired. Redirecting to login..." : "You don't have permission to view reconciliation data.");
+          return;
+        }
         toast.error("Failed to load reconciliation data");
+        return;
       }
+      const reconciliationData = await response.json();
+      setData(reconciliationData);
     } catch (error) {
       console.error("Reconciliation fetch error:", error);
       toast.error("Failed to load reconciliation data");
@@ -234,94 +241,55 @@ export default function ReconciliationPage() {
             </Card>
 
             {/* Transaction Summary */}
-            <div>
-              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                Transaction Summary
-              </h2>
-              <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-                <Card className="p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <TrendingUp className="w-5 h-5 text-green-600" />
-                    <Badge variant="secondary" className="text-xs">
-                      {data.transactionSummary.deposits.count}
-                    </Badge>
-                  </div>
-                  <p className="text-xs text-muted-foreground">Deposits</p>
-                  <p className="text-xl font-bold text-green-600">
-                    +${data.transactionSummary.deposits.amount.toLocaleString()}
-                  </p>
-                </Card>
-
-                <Card className="p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <TrendingDown className="w-5 h-5 text-red-600" />
-                    <Badge variant="secondary" className="text-xs">
-                      {data.transactionSummary.withdrawals.count}
-                    </Badge>
-                  </div>
-                  <p className="text-xs text-muted-foreground">Withdrawals</p>
-                  <p className="text-xl font-bold text-red-600">
-                    -${data.transactionSummary.withdrawals.amount.toLocaleString()}
-                  </p>
-                </Card>
-
-                <Card className="p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <DollarSign className="w-5 h-5 text-purple-600" />
-                    <Badge variant="secondary" className="text-xs">
-                      {data.transactionSummary.betsPlaced.count}
-                    </Badge>
-                  </div>
-                  <p className="text-xs text-muted-foreground">Bets Placed</p>
-                  <p className="text-xl font-bold">
-                    ${data.transactionSummary.betsPlaced.amount.toLocaleString()}
-                  </p>
-                </Card>
-
-                <Card className="p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <TrendingUp className="w-5 h-5 text-emerald-600" />
-                    <Badge variant="secondary" className="text-xs">
-                      {data.transactionSummary.betsWon.count}
-                    </Badge>
-                  </div>
-                  <p className="text-xs text-muted-foreground">Bets Won</p>
-                  <p className="text-xl font-bold text-emerald-600">
-                    +${data.transactionSummary.betsWon.amount.toLocaleString()}
-                  </p>
-                </Card>
-
-                <Card className="p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <TrendingUp className="w-5 h-5 text-blue-600" />
-                    <Badge variant="secondary" className="text-xs">
-                      {data.transactionSummary.adjustments.inflowCount}
-                    </Badge>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Adjustments In
-                  </p>
-                  <p className="text-xl font-bold text-blue-600">
-                    +${data.transactionSummary.adjustments.inflow.toLocaleString()}
-                  </p>
-                </Card>
-
-                <Card className="p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <TrendingDown className="w-5 h-5 text-orange-600" />
-                    <Badge variant="secondary" className="text-xs">
-                      {data.transactionSummary.adjustments.outflowCount}
-                    </Badge>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Adjustments Out
-                  </p>
-                  <p className="text-xl font-bold text-orange-600">
-                    -${data.transactionSummary.adjustments.outflow.toLocaleString()}
-                  </p>
-                </Card>
-              </div>
-            </div>
+            <MetricCardSection title="Transaction Summary">
+              <MetricCard
+                icon={TrendingUp}
+                label="Deposits"
+                value={`+$${data.transactionSummary.deposits.amount.toLocaleString()}`}
+                iconColor="text-emerald-600"
+                bgColor="bg-emerald-500/10"
+                trend="up"
+              />
+              <MetricCard
+                icon={TrendingDown}
+                label="Withdrawals"
+                value={`-$${data.transactionSummary.withdrawals.amount.toLocaleString()}`}
+                iconColor="text-red-600"
+                bgColor="bg-red-500/10"
+                trend="down"
+              />
+              <MetricCard
+                icon={DollarSign}
+                label="Bets Placed"
+                value={`$${data.transactionSummary.betsPlaced.amount.toLocaleString()}`}
+                iconColor="text-accent"
+                bgColor="bg-accent/10"
+              />
+              <MetricCard
+                icon={TrendingUp}
+                label="Bets Won"
+                value={`+$${data.transactionSummary.betsWon.amount.toLocaleString()}`}
+                iconColor="text-emerald-600"
+                bgColor="bg-emerald-500/10"
+                trend="up"
+              />
+              <MetricCard
+                icon={TrendingUp}
+                label="Adjustments In"
+                value={`+$${data.transactionSummary.adjustments.inflow.toLocaleString()}`}
+                iconColor="text-accent"
+                bgColor="bg-accent/10"
+                trend="up"
+              />
+              <MetricCard
+                icon={TrendingDown}
+                label="Adjustments Out"
+                value={`-$${data.transactionSummary.adjustments.outflow.toLocaleString()}`}
+                iconColor="text-red-600"
+                bgColor="bg-red-500/10"
+                trend="down"
+              />
+            </MetricCardSection>
 
             {/* Agent Adjustments */}
             {data.agentAdjustments.length > 0 && (

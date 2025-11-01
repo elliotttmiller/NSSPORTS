@@ -2,10 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { SignJWT } from "jose";
-
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.ADMIN_JWT_SECRET || "your-admin-secret-key-change-in-production"
-);
+import { JWT_SECRET } from "@/lib/adminAuth";
 
 export async function POST(request: NextRequest) {
   console.log('[API /api/admin/auth/login] POST - Request received');

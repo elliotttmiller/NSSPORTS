@@ -2,10 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import { prisma } from "@/lib/prisma";
-
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.ADMIN_JWT_SECRET || "your-admin-secret-key-change-in-production"
-);
+import { JWT_SECRET } from "@/lib/adminAuth";
 
 export async function GET() {
   console.log('[API /api/admin/auth/session] GET - Request received');

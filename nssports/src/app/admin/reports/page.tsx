@@ -5,6 +5,7 @@ import AdminDashboardLayout from "@/components/admin/AdminDashboardLayout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { MetricCard } from "@/components/ui/metric-card";
 import {
   FileText,
   Download,
@@ -247,10 +248,10 @@ export default function ReportsPage() {
   };
 
   const reportTypes = [
-    { id: "financial" as const, label: "Financial", icon: DollarSign, color: "text-blue-500" },
-    { id: "agents" as const, label: "Agents", icon: Users, color: "text-emerald-500" },
-    { id: "players" as const, label: "Players", icon: Activity, color: "text-purple-500" },
-    { id: "system" as const, label: "System", icon: TrendingUp, color: "text-orange-500" },
+    { id: "financial" as const, label: "Financial", icon: DollarSign, color: "text-accent" },
+    { id: "agents" as const, label: "Agents", icon: Users, color: "text-emerald-600" },
+    { id: "players" as const, label: "Players", icon: Activity, color: "text-accent" },
+    { id: "system" as const, label: "System", icon: TrendingUp, color: "text-foreground" },
   ];
 
   const handleExportReport = async (format: "csv" | "pdf") => {
@@ -302,12 +303,12 @@ export default function ReportsPage() {
 
   return (
     <AdminDashboardLayout>
-      <div className="space-y-4 w-full max-w-7xl mx-auto">
+      <div className="space-y-3 w-full">
         {/* Header with Compact Controls */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Reports & Analytics</h1>
-            <p className="text-xs text-muted-foreground mt-1">
+            <h1 className="text-xl font-bold text-foreground">Reports & Analytics</h1>
+            <p className="text-xs text-muted-foreground mt-0.5">
               Generate and export comprehensive platform reports
             </p>
           </div>
@@ -316,29 +317,29 @@ export default function ReportsPage() {
               variant="outline"
               size="sm"
               onClick={() => handleExportReport("csv")}
-              className="gap-1.5 touch-action-manipulation active:scale-95"
+              className="gap-1.5 h-8 text-xs touch-action-manipulation active:scale-95"
             >
-              <Download size={14} />
+              <Download size={13} />
               CSV
             </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={() => handleExportReport("pdf")}
-              className="gap-1.5 touch-action-manipulation active:scale-95"
+              className="gap-1.5 h-8 text-xs touch-action-manipulation active:scale-95"
             >
-              <Download size={14} />
+              <Download size={13} />
               PDF
             </Button>
           </div>
         </div>
 
         {/* Compact Filter Bar */}
-        <Card className="p-4">
-          <div className="flex flex-col lg:flex-row gap-4">
+        <Card className="p-3">
+          <div className="flex flex-col lg:flex-row gap-3">
             {/* Report Type Tabs - Sleek Design */}
             <div className="flex items-center gap-1 flex-wrap lg:flex-nowrap">
-              <Filter size={16} className="text-muted-foreground mr-1 shrink-0" />
+              <Filter size={14} className="text-muted-foreground mr-1 shrink-0" />
               {reportTypes.map((type) => {
                 const Icon = type.icon;
                 return (
@@ -346,13 +347,13 @@ export default function ReportsPage() {
                     key={type.id}
                     onClick={() => setReportType(type.id)}
                     className={cn(
-                      "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all touch-action-manipulation active:scale-95 shrink-0",
+                      "flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all touch-action-manipulation active:scale-95 shrink-0",
                       reportType === type.id
                         ? "bg-accent text-accent-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
                     )}
                   >
-                    <Icon size={14} className={reportType === type.id ? type.color : ""} />
+                    <Icon size={13} className={reportType === type.id ? type.color : ""} />
                     <span>{type.label}</span>
                   </button>
                 );
@@ -366,7 +367,7 @@ export default function ReportsPage() {
                   type="date"
                   value={dateFrom}
                   onChange={(e) => setDateFrom(e.target.value)}
-                  className="text-xs h-9"
+                  className="text-xs h-8"
                   placeholder="From"
                 />
               </div>
@@ -376,7 +377,7 @@ export default function ReportsPage() {
                   type="date"
                   value={dateTo}
                   onChange={(e) => setDateTo(e.target.value)}
-                  className="text-xs h-9"
+                  className="text-xs h-8"
                   placeholder="To"
                 />
               </div>
@@ -384,16 +385,16 @@ export default function ReportsPage() {
                 onClick={handleGenerateReport}
                 size="sm"
                 disabled={isGenerating}
-                className="bg-blue-600 hover:bg-blue-700 gap-1.5 touch-action-manipulation active:scale-95 shrink-0"
+                className="bg-accent hover:bg-accent/90 gap-1.5 h-8 text-xs touch-action-manipulation active:scale-95 shrink-0"
               >
                 {isGenerating ? (
                   <>
-                    <RefreshCw size={14} className="animate-spin" />
+                    <RefreshCw size={13} className="animate-spin" />
                     <span className="hidden sm:inline">Generating</span>
                   </>
                 ) : (
                   <>
-                    <FileText size={14} />
+                    <FileText size={13} />
                     <span className="hidden sm:inline">Generate</span>
                   </>
                 )}
@@ -401,53 +402,50 @@ export default function ReportsPage() {
             </div>
           </div>
         </Card>        {/* Report Preview - Sleek Horizontal Cards */}
-        <Card className="p-4">
+        <Card className="p-3">
           {/* Financial Report */}
           {reportType === "financial" && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 mb-3">
-                <DollarSign size={18} className="text-blue-500" />
-                <h3 className="font-semibold text-foreground">Financial Overview</h3>
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 mb-2">
+                <DollarSign size={16} className="text-accent" />
+                <h3 className="text-sm font-semibold text-foreground">Financial Overview</h3>
               </div>
               {isLoadingFinancial ? (
-                <div className="text-center py-12">
-                  <RefreshCw className="mx-auto animate-spin text-muted-foreground mb-3" size={32} />
-                  <p className="text-muted-foreground">Loading financial data...</p>
+                <div className="text-center py-8">
+                  <RefreshCw className="mx-auto animate-spin text-muted-foreground mb-2" size={28} />
+                  <p className="text-xs text-muted-foreground">Loading financial data...</p>
                 </div>
               ) : financialReport ? (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <Card className="p-3 bg-green-500/10 border-green-500/20">
-                    <p className="text-xs text-muted-foreground mb-1">Total Revenue</p>
-                    <p className="text-2xl font-bold text-green-600">
-                      ${financialReport.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                    </p>
-                    <p className="text-xs text-green-600/80 mt-1">
-                      {financialReport.revenueGrowth > 0 ? "↑" : "↓"} {Math.abs(financialReport.revenueGrowth).toFixed(1)}% vs last period
-                    </p>
-                  </Card>
-                  <Card className="p-3 bg-red-500/10 border-red-500/20">
-                    <p className="text-xs text-muted-foreground mb-1">Total Payouts</p>
-                    <p className="text-2xl font-bold text-red-600">
-                      ${financialReport.totalPayouts.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                    </p>
-                    <p className="text-xs text-red-600/80 mt-1">
-                      {financialReport.payoutsGrowth > 0 ? "↑" : "↓"} {Math.abs(financialReport.payoutsGrowth).toFixed(1)}% vs last period
-                    </p>
-                  </Card>
-                  <Card className="p-3 bg-blue-500/10 border-blue-500/20">
-                    <p className="text-xs text-muted-foreground mb-1">Net Profit</p>
-                    <p className="text-2xl font-bold text-blue-600">
-                      ${financialReport.netProfit.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                    </p>
-                    <p className="text-xs text-blue-600/80 mt-1">
-                      {financialReport.profitGrowth > 0 ? "↑" : "↓"} {Math.abs(financialReport.profitGrowth).toFixed(1)}% vs last period
-                    </p>
-                  </Card>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  <MetricCard
+                    icon={TrendingUp}
+                    label="Total Revenue"
+                    value={`$${financialReport.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
+                    iconColor="text-emerald-600"
+                    bgColor="bg-emerald-500/10"
+                    trend="up"
+                  />
+                  <MetricCard
+                    icon={TrendingDown}
+                    label="Total Payouts"
+                    value={`$${financialReport.totalPayouts.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
+                    iconColor="text-red-600"
+                    bgColor="bg-red-500/10"
+                    trend="down"
+                  />
+                  <MetricCard
+                    icon={DollarSign}
+                    label="Net Profit"
+                    value={`$${financialReport.netProfit.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
+                    iconColor="text-accent"
+                    bgColor="bg-accent/10"
+                    trend={financialReport.profitGrowth > 0 ? "up" : "down"}
+                  />
                 </div>
               ) : (
-                <div className="text-center py-12">
-                  <AlertTriangle className="mx-auto text-muted-foreground/50 mb-3" size={32} />
-                  <p className="text-muted-foreground">No financial data available</p>
+                <div className="text-center py-8">
+                  <AlertTriangle className="mx-auto text-muted-foreground/50 mb-2" size={28} />
+                  <p className="text-xs text-muted-foreground">No financial data available</p>
                 </div>
               )}
             </div>
@@ -455,19 +453,19 @@ export default function ReportsPage() {
 
           {/* Agents Report - Comprehensive Analytics */}
           {reportType === "agents" && (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {/* Header with Period Selector */}
-              <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <Users size={18} className="text-emerald-500" />
-                  <h3 className="font-semibold text-foreground">Agent Performance Analytics</h3>
+                  <Users size={16} className="text-emerald-600" />
+                  <h3 className="text-sm font-semibold text-foreground">Agent Performance Analytics</h3>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Calendar size={14} className="text-muted-foreground" />
+                <div className="flex items-center gap-1.5">
+                  <Calendar size={13} className="text-muted-foreground" />
                   <select
                     value={agentPeriod}
                     onChange={(e) => setAgentPeriod(Number(e.target.value))}
-                    className="text-xs bg-muted border border-border rounded px-2 py-1"
+                    className="text-xs bg-muted border border-border rounded px-2 py-1 h-7"
                   >
                     <option value={7}>Last 7 Days</option>
                     <option value={30}>Last 30 Days</option>
@@ -478,46 +476,49 @@ export default function ReportsPage() {
               </div>
 
               {/* Summary Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-                <Card className="p-3 bg-blue-500/10 border-blue-500/20">
-                  <p className="text-xs text-muted-foreground mb-1">Total Agents</p>
-                  <p className="text-2xl font-bold text-foreground">{agentPerformance.length}</p>
-                  <p className="text-xs text-muted-foreground/60 mt-1">Registered agents</p>
-                </Card>
-                <Card className="p-3 bg-emerald-500/10 border-emerald-500/20">
-                  <p className="text-xs text-muted-foreground mb-1">Active Agents</p>
-                  <p className="text-2xl font-bold text-emerald-600">
-                    {agentPerformance.filter(a => a.tier !== "inactive").length}
-                  </p>
-                  <p className="text-xs text-emerald-600/80 mt-1">Currently active</p>
-                </Card>
-                <Card className="p-3 bg-purple-500/10 border-purple-500/20">
-                  <p className="text-xs text-muted-foreground mb-1">Total Players</p>
-                  <p className="text-2xl font-bold text-purple-600">
-                    {agentPerformance.reduce((sum, a) => sum + a.players.total, 0)}
-                  </p>
-                  <p className="text-xs text-purple-600/80 mt-1">Under management</p>
-                </Card>
-                <Card className="p-3 bg-orange-500/10 border-orange-500/20">
-                  <p className="text-xs text-muted-foreground mb-1">Avg Performance</p>
-                  <p className="text-2xl font-bold text-orange-600">
-                    {agentPerformance.length > 0
-                      ? Math.round(agentPerformance.reduce((sum, a) => sum + a.performanceScore, 0) / agentPerformance.length)
-                      : 0}
-                  </p>
-                  <p className="text-xs text-orange-600/80 mt-1">Performance score</p>
-                </Card>
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-2.5">
+                <MetricCard
+                  icon={Users}
+                  label="Total Agents"
+                  value={agentPerformance.length}
+                  iconColor="text-accent"
+                  bgColor="bg-accent/10"
+                />
+                <MetricCard
+                  icon={CheckCircle}
+                  label="Active Agents"
+                  value={agentPerformance.filter(a => a.tier !== "inactive").length}
+                  iconColor="text-emerald-600"
+                  bgColor="bg-emerald-500/10"
+                  trend="live"
+                />
+                <MetricCard
+                  icon={Users}
+                  label="Total Players"
+                  value={agentPerformance.reduce((sum, a) => sum + a.players.total, 0)}
+                  iconColor="text-accent"
+                  bgColor="bg-accent/10"
+                />
+                <MetricCard
+                  icon={Activity}
+                  label="Avg Performance"
+                  value={agentPerformance.length > 0
+                    ? Math.round(agentPerformance.reduce((sum, a) => sum + a.performanceScore, 0) / agentPerformance.length)
+                    : 0}
+                  iconColor="text-foreground"
+                  bgColor="bg-foreground/5"
+                />
               </div>
 
               {/* Loading State */}
               {isLoadingAgents ? (
-                <div className="flex items-center justify-center py-12">
-                  <RefreshCw size={24} className="animate-spin text-muted-foreground" />
+                <div className="flex items-center justify-center py-8">
+                  <RefreshCw size={20} className="animate-spin text-muted-foreground" />
                 </div>
               ) : agentPerformance.length === 0 ? (
-                <div className="text-center py-12">
-                  <Users size={48} className="mx-auto text-muted-foreground/50 mb-3" />
-                  <p className="text-muted-foreground">No agent data available</p>
+                <div className="text-center py-8">
+                  <Users size={40} className="mx-auto text-muted-foreground/50 mb-2" />
+                  <p className="text-xs text-muted-foreground">No agent data available</p>
                 </div>
               ) : (
                 /* Agent List with Expandable Details */
@@ -527,14 +528,14 @@ export default function ReportsPage() {
                       {/* Collapsed View - Summary Row */}
                       <button
                         onClick={() => setExpandedAgent(expandedAgent === agent.agentId ? null : agent.agentId)}
-                        className="w-full p-4 flex items-center justify-between hover:bg-muted/30 transition-colors"
+                        className="w-full p-3 flex items-center justify-between hover:bg-muted/30 transition-colors"
                       >
                         <div className="flex items-center gap-4 flex-1">
                           {/* Expand Icon */}
                           {expandedAgent === agent.agentId ? (
-                            <ChevronDown size={20} className="text-muted-foreground shrink-0" />
+                            <ChevronDown size={18} className="text-muted-foreground shrink-0" />
                           ) : (
-                            <ChevronRight size={20} className="text-muted-foreground shrink-0" />
+                            <ChevronRight size={18} className="text-muted-foreground shrink-0" />
                           )}
 
                           {/* Agent Name & Tier */}
@@ -543,7 +544,7 @@ export default function ReportsPage() {
                               <p className="font-semibold text-foreground text-sm truncate">{agent.displayName || agent.username}</p>
                               <p className="text-xs text-muted-foreground truncate">@{agent.username}</p>
                             </div>
-                            <div className={cn("flex items-center gap-1 px-2 py-1 rounded-md border shrink-0", getTierColor(agent.tier))}>
+                            <div className={cn("flex items-center gap-1 px-2 py-0.5 rounded-md border shrink-0", getTierColor(agent.tier))}>
                               {getTierIcon(agent.tier)}
                               <span className="text-xs font-semibold capitalize">{agent.tier}</span>
                             </div>
@@ -557,7 +558,7 @@ export default function ReportsPage() {
                             </div>
                             <div className="text-center">
                               <p className="text-xs text-muted-foreground">Players</p>
-                              <p className="text-sm font-bold text-blue-600">{agent.players.total}</p>
+                              <p className="text-sm font-bold text-accent">{agent.players.total}</p>
                             </div>
                             <div className="text-center">
                               <p className="text-xs text-muted-foreground">Active</p>
@@ -565,7 +566,7 @@ export default function ReportsPage() {
                             </div>
                             <div className="text-center">
                               <p className="text-xs text-muted-foreground">Commission</p>
-                              <p className="text-sm font-bold text-purple-600">
+                              <p className="text-sm font-bold text-accent">
                                 ${agent.financials.commission.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                               </p>
                             </div>
@@ -575,8 +576,8 @@ export default function ReportsPage() {
 
                       {/* Expanded View - Comprehensive Details */}
                       {expandedAgent === agent.agentId && (
-                        <div className="border-t border-border bg-muted/20 p-4">
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div className="border-t border-border bg-muted/20 p-3">
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                             {/* Player Metrics */}
                             <div className="space-y-3">
                               <h4 className="text-xs font-semibold text-muted-foreground uppercase flex items-center gap-2">
@@ -597,7 +598,7 @@ export default function ReportsPage() {
                                     <UserPlus size={12} />
                                     New This Period
                                   </span>
-                                  <span className="text-sm font-semibold text-blue-600">{agent.players.newInPeriod}</span>
+                                  <span className="text-sm font-semibold text-accent">{agent.players.newInPeriod}</span>
                                 </div>
                                 <div className="flex items-center justify-between p-2 rounded bg-background">
                                   <span className="text-xs text-muted-foreground">Avg Balance</span>
@@ -617,7 +618,7 @@ export default function ReportsPage() {
                               <div className="space-y-2">
                                 <div className="flex items-center justify-between p-2 rounded bg-background">
                                   <span className="text-xs text-muted-foreground">Overall Score</span>
-                                  <span className="text-sm font-semibold text-purple-600">{Math.round(agent.performanceScore)}/100</span>
+                                  <span className="text-sm font-semibold text-accent">{Math.round(agent.performanceScore)}/100</span>
                                 </div>
                                 <div className="flex items-center justify-between p-2 rounded bg-background">
                                   <span className="text-xs text-muted-foreground">Retention Rate</span>
@@ -625,13 +626,13 @@ export default function ReportsPage() {
                                 </div>
                                 <div className="flex items-center justify-between p-2 rounded bg-background">
                                   <span className="text-xs text-muted-foreground">Total Wagered</span>
-                                  <span className="text-sm font-semibold text-blue-600">
+                                  <span className="text-sm font-semibold text-accent">
                                     ${agent.playerMetrics.totalWagered.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                                   </span>
                                 </div>
                                 <div className="flex items-center justify-between p-2 rounded bg-background">
                                   <span className="text-xs text-muted-foreground">Gross Revenue</span>
-                                  <span className="text-sm font-semibold text-orange-600">
+                                  <span className="text-sm font-semibold text-emerald-600">
                                     ${agent.financials.grossRevenue.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                                   </span>
                                 </div>
@@ -651,10 +652,10 @@ export default function ReportsPage() {
                                 </div>
                                 <div className="flex items-center justify-between p-2 rounded bg-background">
                                   <span className="text-xs text-muted-foreground flex items-center gap-1">
-                                    <TrendingUp size={12} className="text-green-600" />
+                                    <TrendingUp size={12} className="text-emerald-600" />
                                     Deposits
                                   </span>
-                                  <span className="text-sm font-semibold text-green-600">
+                                  <span className="text-sm font-semibold text-emerald-600">
                                     ${agent.financials.deposits.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                                   </span>
                                 </div>
@@ -669,7 +670,7 @@ export default function ReportsPage() {
                                 </div>
                                 <div className="flex items-center justify-between p-2 rounded bg-background">
                                   <span className="text-xs text-muted-foreground">Total Commission</span>
-                                  <span className="text-sm font-semibold text-purple-600">
+                                  <span className="text-sm font-semibold text-accent">
                                     ${agent.financials.commission.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                   </span>
                                 </div>
@@ -688,16 +689,16 @@ export default function ReportsPage() {
                                 </span>
                               </div>
                               {agent.activity.lastLogin && (
-                                <div className="flex items-center gap-1">
-                                  <Activity size={14} className="text-blue-500" />
-                                  <span className="text-muted-foreground">Last Active:</span>
-                                  <span className="font-medium text-foreground">
-                                    {new Date(agent.activity.lastLogin).toLocaleDateString()}
-                                  </span>
-                                </div>
+                              <div className="flex items-center gap-1">
+                                <Activity size={14} className="text-accent" />
+                                <span className="text-muted-foreground">Last Active:</span>
+                                <span className="font-medium text-foreground">
+                                  {new Date(agent.activity.lastLogin).toLocaleDateString()}
+                                </span>
+                              </div>
                               )}
                               <div className="flex items-center gap-1">
-                                <Calendar size={14} className="text-purple-500" />
+                                <Calendar size={14} className="text-muted-foreground" />
                                 <span className="text-muted-foreground">Days Since Active:</span>
                                 <span className="font-medium text-foreground">
                                   {agent.activity.daysSinceActivity}
@@ -720,48 +721,45 @@ export default function ReportsPage() {
 
           {/* Players Report */}
           {reportType === "players" && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 mb-3">
-                <Activity size={18} className="text-purple-500" />
-                <h3 className="font-semibold text-foreground">Player Activity</h3>
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 mb-2">
+                <Activity size={16} className="text-accent" />
+                <h3 className="text-sm font-semibold text-foreground">Player Activity</h3>
               </div>
               {isLoadingPlayers ? (
-                <div className="text-center py-12">
-                  <RefreshCw className="mx-auto animate-spin text-muted-foreground mb-3" size={32} />
-                  <p className="text-muted-foreground">Loading player data...</p>
+                <div className="text-center py-8">
+                  <RefreshCw className="mx-auto animate-spin text-muted-foreground mb-2" size={28} />
+                  <p className="text-xs text-muted-foreground">Loading player data...</p>
                 </div>
               ) : playerReport ? (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <Card className="p-3 bg-blue-500/10 border-blue-500/20">
-                    <p className="text-xs text-muted-foreground mb-1">Total Players</p>
-                    <p className="text-2xl font-bold text-foreground">
-                      {playerReport.totalPlayers.toLocaleString()}
-                    </p>
-                    <p className="text-xs text-muted-foreground/60 mt-1">Registered accounts</p>
-                  </Card>
-                  <Card className="p-3 bg-green-500/10 border-green-500/20">
-                    <p className="text-xs text-muted-foreground mb-1">Active Players</p>
-                    <p className="text-2xl font-bold text-green-600">
-                      {playerReport.activePlayers.toLocaleString()}
-                    </p>
-                    <p className="text-xs text-green-600/80 mt-1">
-                      {playerReport.engagementRate.toFixed(1)}% engagement rate
-                    </p>
-                  </Card>
-                  <Card className="p-3 bg-purple-500/10 border-purple-500/20">
-                    <p className="text-xs text-muted-foreground mb-1">Total Bets Placed</p>
-                    <p className="text-2xl font-bold text-purple-600">
-                      {playerReport.totalBetsPlaced.toLocaleString()}
-                    </p>
-                    <p className="text-xs text-purple-600/80 mt-1">
-                      Avg {playerReport.avgBetsPerPlayer} bets/player
-                    </p>
-                  </Card>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  <MetricCard
+                    icon={Users}
+                    label="Total Players"
+                    value={playerReport.totalPlayers.toLocaleString()}
+                    iconColor="text-accent"
+                    bgColor="bg-accent/10"
+                  />
+                  <MetricCard
+                    icon={CheckCircle}
+                    label="Active Players"
+                    value={playerReport.activePlayers.toLocaleString()}
+                    iconColor="text-emerald-600"
+                    bgColor="bg-emerald-500/10"
+                    trend="live"
+                  />
+                  <MetricCard
+                    icon={Activity}
+                    label="Total Bets Placed"
+                    value={playerReport.totalBetsPlaced.toLocaleString()}
+                    iconColor="text-accent"
+                    bgColor="bg-accent/10"
+                  />
                 </div>
               ) : (
-                <div className="text-center py-12">
-                  <AlertTriangle className="mx-auto text-muted-foreground/50 mb-3" size={32} />
-                  <p className="text-muted-foreground">No player data available</p>
+                <div className="text-center py-8">
+                  <AlertTriangle className="mx-auto text-muted-foreground/50 mb-2" size={28} />
+                  <p className="text-xs text-muted-foreground">No player data available</p>
                 </div>
               )}
             </div>
@@ -769,53 +767,50 @@ export default function ReportsPage() {
 
           {/* System Report */}
           {reportType === "system" && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 mb-3">
-                <TrendingUp size={18} className="text-orange-500" />
-                <h3 className="font-semibold text-foreground">System Health</h3>
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 mb-2">
+                <TrendingUp size={16} className="text-foreground" />
+                <h3 className="text-sm font-semibold text-foreground">System Health</h3>
               </div>
               {isLoadingSystem ? (
-                <div className="text-center py-12">
-                  <RefreshCw className="mx-auto animate-spin text-muted-foreground mb-3" size={32} />
-                  <p className="text-muted-foreground">Loading system metrics...</p>
+                <div className="text-center py-8">
+                  <RefreshCw className="mx-auto animate-spin text-muted-foreground mb-2" size={28} />
+                  <p className="text-xs text-muted-foreground">Loading system metrics...</p>
                 </div>
               ) : systemReport ? (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <Card className="p-3 bg-green-500/10 border-green-500/20">
-                    <p className="text-xs text-muted-foreground mb-1">System Uptime</p>
-                    <p className="text-2xl font-bold text-green-600">
-                      {systemReport.uptime.toFixed(2)}%
-                    </p>
-                    <p className="text-xs text-green-600/80 mt-1">
-                      {systemReport.uptime >= 99.9 ? "Excellent" : systemReport.uptime >= 99 ? "Good" : "Fair"} reliability
-                    </p>
-                  </Card>
-                  <Card className="p-3 bg-blue-500/10 border-blue-500/20">
-                    <p className="text-xs text-muted-foreground mb-1">Avg Response Time</p>
-                    <p className="text-2xl font-bold text-blue-600">
-                      {systemReport.avgResponseTime}ms
-                    </p>
-                    <p className="text-xs text-blue-600/80 mt-1">
-                      {systemReport.avgResponseTime < 200 ? "Fast" : systemReport.avgResponseTime < 500 ? "Good" : "Slow"} performance
-                    </p>
-                  </Card>
-                  <Card className="p-3 bg-purple-500/10 border-purple-500/20">
-                    <p className="text-xs text-muted-foreground mb-1">API Calls</p>
-                    <p className="text-2xl font-bold text-purple-600">
-                      {systemReport.apiCalls >= 1000000 
-                        ? `${(systemReport.apiCalls / 1000000).toFixed(1)}M` 
-                        : systemReport.apiCalls >= 1000 
-                        ? `${(systemReport.apiCalls / 1000).toFixed(1)}K`
-                        : systemReport.apiCalls.toLocaleString()
-                      }
-                    </p>
-                    <p className="text-xs text-purple-600/80 mt-1">Total requests handled</p>
-                  </Card>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  <MetricCard
+                    icon={CheckCircle}
+                    label="System Uptime"
+                    value={`${systemReport.uptime.toFixed(2)}%`}
+                    iconColor="text-emerald-600"
+                    bgColor="bg-emerald-500/10"
+                    trend="up"
+                  />
+                  <MetricCard
+                    icon={Activity}
+                    label="Avg Response Time"
+                    value={`${systemReport.avgResponseTime}ms`}
+                    iconColor="text-accent"
+                    bgColor="bg-accent/10"
+                  />
+                  <MetricCard
+                    icon={TrendingUp}
+                    label="API Calls"
+                    value={systemReport.apiCalls >= 1000000 
+                      ? `${(systemReport.apiCalls / 1000000).toFixed(1)}M` 
+                      : systemReport.apiCalls >= 1000 
+                      ? `${(systemReport.apiCalls / 1000).toFixed(1)}K`
+                      : systemReport.apiCalls.toLocaleString()
+                    }
+                    iconColor="text-foreground"
+                    bgColor="bg-foreground/5"
+                  />
                 </div>
               ) : (
-                <div className="text-center py-12">
-                  <AlertTriangle className="mx-auto text-muted-foreground/50 mb-3" size={32} />
-                  <p className="text-muted-foreground">No system data available</p>
+                <div className="text-center py-8">
+                  <AlertTriangle className="mx-auto text-muted-foreground/50 mb-2" size={28} />
+                  <p className="text-xs text-muted-foreground">No system data available</p>
                 </div>
               )}
             </div>
@@ -823,61 +818,61 @@ export default function ReportsPage() {
         </Card>
 
         {/* Quick Actions & Info */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Card className="p-4">
-            <h3 className="font-semibold text-sm mb-3">Report History</h3>
-            <div className="space-y-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <Card className="p-3">
+            <h3 className="text-sm font-semibold mb-2">Report History</h3>
+            <div className="space-y-1.5">
               <div className="flex items-center justify-between p-2 rounded bg-muted/30 hover:bg-muted/50 transition-colors">
                 <div className="flex items-center gap-2">
-                  <FileText size={14} className="text-blue-500" />
+                  <FileText size={13} className="text-accent" />
                   <div>
                     <p className="text-xs font-medium">Financial Report</p>
                     <p className="text-xs text-muted-foreground">Jan 1 - Jan 31, 2025</p>
                   </div>
                 </div>
-                <Download size={14} className="text-muted-foreground hover:text-foreground cursor-pointer" />
+                <Download size={13} className="text-muted-foreground hover:text-foreground cursor-pointer" />
               </div>
               <div className="flex items-center justify-between p-2 rounded bg-muted/30 hover:bg-muted/50 transition-colors">
                 <div className="flex items-center gap-2">
-                  <FileText size={14} className="text-emerald-500" />
+                  <FileText size={13} className="text-emerald-600" />
                   <div>
                     <p className="text-xs font-medium">Agents Report</p>
                     <p className="text-xs text-muted-foreground">Dec 1 - Dec 31, 2024</p>
                   </div>
                 </div>
-                <Download size={14} className="text-muted-foreground hover:text-foreground cursor-pointer" />
+                <Download size={13} className="text-muted-foreground hover:text-foreground cursor-pointer" />
               </div>
               <div className="flex items-center justify-between p-2 rounded bg-muted/30 hover:bg-muted/50 transition-colors">
                 <div className="flex items-center gap-2">
-                  <FileText size={14} className="text-purple-500" />
+                  <FileText size={13} className="text-accent" />
                   <div>
                     <p className="text-xs font-medium">Players Report</p>
                     <p className="text-xs text-muted-foreground">Nov 1 - Nov 30, 2024</p>
                   </div>
                 </div>
-                <Download size={14} className="text-muted-foreground hover:text-foreground cursor-pointer" />
+                <Download size={13} className="text-muted-foreground hover:text-foreground cursor-pointer" />
               </div>
             </div>
           </Card>
 
-          <Card className="p-4">
-            <h3 className="font-semibold text-sm mb-3">Export Options</h3>
-            <div className="space-y-3">
-              <div className="p-3 rounded bg-muted/30 border border-border">
-                <div className="flex items-center gap-2 mb-2">
-                  <Download size={14} className="text-green-600" />
+          <Card className="p-3">
+            <h3 className="text-sm font-semibold mb-2">Export Options</h3>
+            <div className="space-y-2">
+              <div className="p-2.5 rounded bg-muted/30 border border-border">
+                <div className="flex items-center gap-2 mb-1">
+                  <Download size={13} className="text-emerald-600" />
                   <p className="text-xs font-medium">CSV Export</p>
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground leading-relaxed">
                   Download report data in comma-separated format for spreadsheet analysis
                 </p>
               </div>
-              <div className="p-3 rounded bg-muted/30 border border-border">
-                <div className="flex items-center gap-2 mb-2">
-                  <Download size={14} className="text-red-600" />
+              <div className="p-2.5 rounded bg-muted/30 border border-border">
+                <div className="flex items-center gap-2 mb-1">
+                  <Download size={13} className="text-red-600" />
                   <p className="text-xs font-medium">PDF Export</p>
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground leading-relaxed">
                   Generate professionally formatted PDF report for presentations and records
                 </p>
               </div>

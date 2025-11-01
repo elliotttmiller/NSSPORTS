@@ -157,7 +157,7 @@ export function PullToRefresh({
       {/* Pull to Refresh Indicator - Fixed position, smooth animations */}
       {(pullDistance > 0 || isRefreshing) && (
         <div
-          className="fixed left-1/2 -translate-x-1/2 z-[9999] flex flex-col items-center justify-center pointer-events-none"
+          className="fixed left-1/2 -translate-x-1/2 z-9999 flex flex-col items-center justify-center pointer-events-none"
           style={{
             top: isRefreshing ? '80px' : `${Math.max(pullDistance + 20, 20)}px`,
             opacity: isRefreshing ? 1 : opacity,

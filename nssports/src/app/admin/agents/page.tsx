@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { MetricCard, MetricCardSection } from "@/components/ui/metric-card";
 import {
   UserCog,
   Plus,
@@ -18,22 +19,27 @@ import {
   DollarSign,
   ChevronDown,
   ChevronRight,
-  TrendingUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { toast } from "sonner";
+import { PlayerDetailModal } from "@/components/admin/PlayerDetailModal";
 
 interface Player {
   id: string;
   username: string;
   displayName: string | null;
   balance: number;
+  available: number;
+  risk: number;
+  totalPendingBets: number;
   status: string;
   totalBets: number;
   totalWagered: number;
+  totalWinnings: number;
   lastBetAt: string | null;
   registeredAt: string;
+  lastLogin: string | null;
 }
 
 interface Agent {
@@ -45,6 +51,7 @@ interface Agent {
   maxSingleAdjustment: number;
   dailyAdjustmentLimit: number;
   playerCount: number;
+  totalBalance: number;
   todayAdjustments: number;
   createdAt: string;
   players?: Player[];
@@ -57,6 +64,11 @@ export default function AgentsPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [expandedAgents, setExpandedAgents] = useState<Set<string>>(new Set());
   const [loadingPlayers, setLoadingPlayers] = useState<Set<string>>(new Set());
+  
+  // Modal state for player details
+  const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
+  const [selectedPlayerUsername, setSelectedPlayerUsername] = useState<string | null>(null);
+  const [isPlayerModalOpen, setIsPlayerModalOpen] = useState(false);
 
   useEffect(() => {
     fetchAgents();
@@ -142,18 +154,20 @@ export default function AgentsPage() {
     }
   };
 
-  const handlePlayerStatusChange = async (playerId: string, newStatus: string, agentId: string) => {
+  // Removed unused handlePlayerStatusChange function
+
+  const handlePlayerStatusChangeFromModal = async (playerId: string, newStatus: string) => {
     try {
-      const response = await fetch(`/api/admin/players/${playerId}/status`, {
-        method: "PUT",
+      const response = await fetch(`/api/admin/players/${playerId}`, {
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: newStatus }),
       });
 
       if (response.ok) {
         toast.success(`Player ${newStatus === "active" ? "activated" : "suspended"} successfully`);
-        // Refresh agent's players
-        await fetchAgentPlayers(agentId);
+        // Refresh all agents to update player status in the list
+        await fetchAgents();
       } else {
         throw new Error("Failed to update status");
       }
@@ -203,53 +217,38 @@ export default function AgentsPage() {
         </div>
 
         {/* Stats Cards - Mobile Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <Card className="p-3 touch-action-manipulation">
-            <div className="flex items-center justify-between mb-2">
-              <UserCog className="w-6 h-6 text-blue-600" />
-              <Badge variant="secondary" className="text-xs">{agents.length}</Badge>
-            </div>
-            <p className="text-xs text-muted-foreground">Total Agents</p>
-            <p className="text-xl font-bold">{agents.length}</p>
-          </Card>
-
-          <Card className="p-3 touch-action-manipulation">
-            <div className="flex items-center justify-between mb-2">
-              <CheckCircle className="w-6 h-6 text-green-600" />
-              <Badge className="bg-green-500/10 text-green-600 text-xs">
-                {agents.filter((a) => a.status === "active").length}
-              </Badge>
-            </div>
-            <p className="text-xs text-muted-foreground">Active Agents</p>
-            <p className="text-xl font-bold">
-              {agents.filter((a) => a.status === "active").length}
-            </p>
-          </Card>
-
-          <Card className="p-3 touch-action-manipulation">
-            <div className="flex items-center justify-between mb-2">
-              <Users className="w-6 h-6 text-purple-600" />
-              <Badge variant="secondary" className="text-xs">
-                {agents.reduce((sum, a) => sum + a.playerCount, 0)}
-              </Badge>
-            </div>
-            <p className="text-xs text-muted-foreground">Total Players</p>
-            <p className="text-xl font-bold">
-              {agents.reduce((sum, a) => sum + a.playerCount, 0)}
-            </p>
-          </Card>
-
-          <Card className="p-3 touch-action-manipulation">
-            <div className="flex items-center justify-between mb-2">
-              <DollarSign className="w-6 h-6 text-emerald-600" />
-              <Badge variant="secondary" className="text-xs">Today</Badge>
-            </div>
-            <p className="text-xs text-muted-foreground">Total Adjustments</p>
-            <p className="text-xl font-bold">
-              ${agents.reduce((sum, a) => sum + a.todayAdjustments, 0).toLocaleString()}
-            </p>
-          </Card>
-        </div>
+        <MetricCardSection title="Agent Overview">
+          <MetricCard
+            icon={UserCog}
+            label="Total Agents"
+            value={agents.length}
+            iconColor="text-accent"
+            bgColor="bg-accent/10"
+          />
+          <MetricCard
+            icon={CheckCircle}
+            label="Active Agents"
+            value={agents.filter((a) => a.status === "active").length}
+            iconColor="text-emerald-600"
+            bgColor="bg-emerald-500/10"
+            trend="live"
+          />
+          <MetricCard
+            icon={Users}
+            label="Total Players"
+            value={agents.reduce((sum, a) => sum + a.playerCount, 0)}
+            iconColor="text-accent"
+            bgColor="bg-accent/10"
+          />
+          <MetricCard
+            icon={DollarSign}
+            label="Today's Adjustments"
+            value={agents.reduce((sum, a) => sum + a.todayAdjustments, 0)}
+            iconColor="text-emerald-600"
+            bgColor="bg-emerald-500/10"
+            trend="up"
+          />
+        </MetricCardSection>
 
         {/* Filters - Mobile Optimized */}
         <Card className="p-3">
@@ -310,12 +309,13 @@ export default function AgentsPage() {
               </div>
             </Card>
           ) : (
-            filteredAgents.map((agent) => {
-              const isExpanded = expandedAgents.has(agent.id);
-              const isLoadingPlayers = loadingPlayers.has(agent.id);
-              
-              return (
-                <Card key={agent.id} className="overflow-hidden">
+            <>
+              {filteredAgents.map((agent) => {
+                const isExpanded = expandedAgents.has(agent.id);
+                const isLoadingPlayers = loadingPlayers.has(agent.id);
+                
+                return (
+                  <Card key={agent.id} className="overflow-hidden">
                   {/* Agent Header Row */}
                   <div
                     className="p-4 hover:bg-muted/20 transition-colors cursor-pointer touch-action-manipulation"
@@ -448,80 +448,87 @@ export default function AgentsPage() {
                             {agent.players.map((player) => (
                               <div
                                 key={player.id}
-                                className="bg-background rounded-lg p-3 border border-border hover:border-accent/50 transition-colors"
+                                className="bg-background rounded-lg p-2.5 border border-border hover:border-accent/50 transition-colors w-full"
                               >
-                                <div className="flex items-center justify-between gap-4">
-                                  {/* Player Info */}
-                                  <div className="flex-1 grid grid-cols-1 sm:grid-cols-4 gap-3 items-center">
-                                    <div>
-                                      <p className="font-medium text-sm">{player.username}</p>
-                                      {player.displayName && (
-                                        <p className="text-xs text-muted-foreground">
-                                          {player.displayName}
-                                        </p>
-                                      )}
-                                    </div>
+                                {/* Fully Fluid Responsive Player Row */}
+                                <div className="flex flex-wrap items-center gap-2 w-full">
+                                  {/* Player Username - Adaptive Width */}
+                                  <div className="shrink-0 min-w-[100px] max-w-[150px]">
+                                    <p className="font-medium text-sm truncate">{player.username}</p>
+                                    {player.displayName && (
+                                      <p className="text-[10px] text-muted-foreground truncate">
+                                        {player.displayName}
+                                      </p>
+                                    )}
+                                  </div>
 
-                                    <div className="flex items-center gap-2">
-                                      <Badge
-                                        variant="outline"
-                                        className={cn(
-                                          "text-xs",
-                                          player.status === "active" && "border-green-500/50 text-green-600",
-                                          player.status === "suspended" && "border-red-500/50 text-red-600"
-                                        )}
-                                      >
-                                        {player.status}
-                                      </Badge>
-                                    </div>
+                                  {/* Status Badge - Compact */}
+                                  <Badge
+                                    variant="outline"
+                                    className={cn(
+                                      "text-[10px] px-2 py-0.5 shrink-0",
+                                      player.status === "active" && "border-emerald-500/50 text-emerald-600",
+                                      player.status === "suspended" && "border-red-500/50 text-red-600"
+                                    )}
+                                  >
+                                    {player.status}
+                                  </Badge>
 
-                                    <div className="flex items-center gap-2">
-                                      <DollarSign size={12} className="text-emerald-600" />
-                                      <span className="text-sm font-semibold">
-                                        ${player.balance.toLocaleString()}
+                                  {/* Financial Metrics - Fluid Horizontal Layout */}
+                                  <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
+                                    {/* Available */}
+                                    <div className="flex items-center gap-1 shrink-0">
+                                      <DollarSign size={11} className="text-accent" />
+                                      <span className="text-xs font-semibold text-accent">
+                                        ${player.available?.toLocaleString() || '0'}
                                       </span>
+                                      <span className="text-[9px] text-muted-foreground/60 uppercase">avail</span>
                                     </div>
 
-                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                      <TrendingUp size={12} />
-                                      <span>{player.totalBets} bets</span>
-                                      <span className="hidden sm:inline">
-                                        • ${player.totalWagered.toLocaleString()} wagered
+                                    {/* Divider */}
+                                    <div className="h-3 w-px bg-border/50"></div>
+
+                                    {/* Risk */}
+                                    <div className="flex items-center gap-1 shrink-0">
+                                      <span className="text-xs font-semibold text-red-600">
+                                        ${player.risk?.toLocaleString() || '0'}
                                       </span>
+                                      <span className="text-[9px] text-muted-foreground/60 uppercase">risk</span>
+                                    </div>
+
+                                    {/* Divider */}
+                                    <div className="h-3 w-px bg-border/50"></div>
+
+                                    {/* Balance */}
+                                    <div className="flex items-center gap-1 shrink-0">
+                                      <DollarSign size={11} className="text-foreground" />
+                                      <span className="text-xs font-semibold text-foreground">
+                                        ${player.balance?.toLocaleString() || '0'}
+                                      </span>
+                                      <span className="text-[9px] text-muted-foreground/60 uppercase">bal</span>
                                     </div>
                                   </div>
 
-                                  {/* Player Actions */}
-                                  <div className="flex items-center gap-2 shrink-0">
-                                    <Link href={`/admin/players/${player.id}`}>
-                                      <Button variant="ghost" size="sm" onClick={(e) => e.stopPropagation()}>
-                                        <Eye size={14} />
-                                      </Button>
-                                    </Link>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handlePlayerStatusChange(
-                                          player.id,
-                                          player.status === "active" ? "suspended" : "active",
-                                          agent.id
-                                        );
-                                      }}
-                                      className={cn(
-                                        player.status === "active"
-                                          ? "text-red-600 hover:bg-red-500/10"
-                                          : "text-green-600 hover:bg-green-500/10"
-                                      )}
-                                    >
-                                      {player.status === "active" ? (
-                                        <Ban size={14} />
-                                      ) : (
-                                        <CheckCircle size={14} />
-                                      )}
-                                    </Button>
+                                  {/* Bet Stats - Compact Horizontal */}
+                                  <div className="flex items-center gap-2 text-[10px] text-muted-foreground shrink-0">
+                                    <span>{player.totalBets || 0} total</span>
+                                    <span className="text-amber-600">• {player.totalPendingBets || 0} pending</span>
+                                    <span>• ${player.totalWagered?.toLocaleString() || '0'} wagered</span>
                                   </div>
+
+                                  {/* Action Button - Always Visible */}
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                      setSelectedPlayerId(player.id);
+                                      setSelectedPlayerUsername(player.username);
+                                      setIsPlayerModalOpen(true);
+                                    }}
+                                    className="h-7 w-7 p-0 shrink-0 hover:bg-accent/10"
+                                  >
+                                    <Eye size={14} className="text-accent" />
+                                  </Button>
                                 </div>
                               </div>
                             ))}
@@ -537,10 +544,24 @@ export default function AgentsPage() {
                   )}
                 </Card>
               );
-            })
+            })}
+            </>
           )}
         </div>
       </div>
+
+      {/* Player Detail Modal */}
+      <PlayerDetailModal
+        playerId={selectedPlayerId}
+        playerUsername={selectedPlayerUsername}
+        isOpen={isPlayerModalOpen}
+        onClose={() => {
+          setIsPlayerModalOpen(false);
+          setSelectedPlayerId(null);
+          setSelectedPlayerUsername(null);
+        }}
+        onStatusChange={handlePlayerStatusChangeFromModal}
+      />
     </AdminDashboardLayout>
   );
 }
