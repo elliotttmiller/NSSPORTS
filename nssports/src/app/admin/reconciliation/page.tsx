@@ -8,14 +8,18 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { MetricCard, MetricCardSection } from "@/components/ui/metric-card";
 import {
-  DollarSign,
   AlertTriangle,
   CheckCircle,
-  TrendingUp,
-  TrendingDown,
   Calendar,
   RefreshCw,
   Download,
+  ArrowRight,
+  Plus,
+  Minus,
+  ArrowDownCircle,
+  ArrowUpCircle,
+  TrendingDown,
+  TrendingUp,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -154,140 +158,288 @@ export default function ReconciliationPage() {
           </div>
         </div>
 
-        {/* Reconciliation Status */}
+        {/* Reconciliation Status - Redesigned Professional Card */}
         {data && (
           <>
             <Card
               className={cn(
-                "p-6 border-2",
+                "overflow-hidden border-2",
                 data.reconciliation.hasDiscrepancy
-                  ? "border-yellow-500/50 bg-yellow-500/5"
-                  : "border-green-500/50 bg-green-500/5"
+                  ? "border-yellow-500/50"
+                  : "border-emerald-500/50"
               )}
             >
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  {data.reconciliation.hasDiscrepancy ? (
-                    <AlertTriangle className="w-8 h-8 text-yellow-600" />
-                  ) : (
-                    <CheckCircle className="w-8 h-8 text-green-600" />
-                  )}
-                  <div>
-                    <h2 className="text-lg font-bold">
-                      {data.reconciliation.hasDiscrepancy
-                        ? "Discrepancy Detected"
-                        : "Books Balanced"}
-                    </h2>
-                    <p className="text-sm text-muted-foreground">
-                      Status: {data.reconciliation.status}
-                    </p>
+              {/* Header Section */}
+              <div
+                className={cn(
+                  "px-6 py-4 border-b",
+                  data.reconciliation.hasDiscrepancy
+                    ? "bg-yellow-500/10 border-yellow-500/20"
+                    : "bg-emerald-500/10 border-emerald-500/20"
+                )}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    {data.reconciliation.hasDiscrepancy ? (
+                      <div className="w-12 h-12 rounded-full bg-yellow-500/20 flex items-center justify-center">
+                        <AlertTriangle className="w-6 h-6 text-yellow-600" />
+                      </div>
+                    ) : (
+                      <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                        <CheckCircle className="w-6 h-6 text-emerald-600" />
+                      </div>
+                    )}
+                    <div>
+                      <h2 className="text-xl font-bold text-foreground">
+                        {data.reconciliation.hasDiscrepancy
+                          ? "Discrepancy Detected"
+                          : "Books Balanced"}
+                      </h2>
+                      <p className="text-sm text-muted-foreground">
+                        {data.reconciliation.status}
+                      </p>
+                    </div>
                   </div>
-                </div>
-                <Badge
-                  variant={
-                    data.reconciliation.hasDiscrepancy
-                      ? "destructive"
-                      : "default"
-                  }
-                  className="text-xs"
-                >
-                  {data.reconciliation.hasDiscrepancy
-                    ? "Needs Review"
-                    : "Verified"}
-                </Badge>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">
-                    Opening Balance
-                  </p>
-                  <p className="text-2xl font-bold">
-                    ${data.reconciliation.openingBalance.toLocaleString()}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">
-                    Expected Closing
-                  </p>
-                  <p className="text-2xl font-bold text-blue-600">
-                    ${data.reconciliation.closingBalance.expected.toLocaleString()}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">
-                    Actual Closing
-                  </p>
-                  <p className="text-2xl font-bold">
-                    ${data.reconciliation.closingBalance.actual.toLocaleString()}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">
-                    Discrepancy
-                  </p>
-                  <p
-                    className={cn(
-                      "text-2xl font-bold",
+                  <Badge
+                    variant={
                       data.reconciliation.hasDiscrepancy
-                        ? "text-yellow-600"
-                        : "text-green-600"
+                        ? "destructive"
+                        : "default"
+                    }
+                    className={cn(
+                      "text-xs px-3 py-1",
+                      !data.reconciliation.hasDiscrepancy &&
+                        "bg-emerald-600 hover:bg-emerald-700"
                     )}
                   >
-                    ${Math.abs(data.reconciliation.discrepancy).toLocaleString()}
-                  </p>
+                    {data.reconciliation.hasDiscrepancy
+                      ? "Needs Review"
+                      : "Verified"}
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Balance Flow Visualization */}
+              <div className="p-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  {/* Opening Balance */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                        Opening Balance
+                      </p>
+                      <div className="h-px flex-1 bg-border mx-3" />
+                    </div>
+                    <div className="bg-muted/30 rounded-lg p-4 border border-border/50">
+                      <p className="text-3xl font-bold text-foreground">
+                        ${data.reconciliation.openingBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Previous day closing
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Transaction Flow */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                        Daily Activity
+                      </p>
+                      <div className="h-px flex-1 bg-border mx-3" />
+                    </div>
+                    <div className="bg-muted/30 rounded-lg p-4 border border-border/50 space-y-2">
+                      {/* Inflows */}
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-emerald-600 font-medium flex items-center gap-1">
+                          <Plus size={12} />
+                          Deposits
+                        </span>
+                        <span className="font-semibold text-foreground">
+                          ${data.transactionSummary.deposits.amount.toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-emerald-600 font-medium flex items-center gap-1">
+                          <Plus size={12} />
+                          Bets Won
+                        </span>
+                        <span className="font-semibold text-foreground">
+                          ${data.transactionSummary.betsWon.amount.toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-emerald-600 font-medium flex items-center gap-1">
+                          <Plus size={12} />
+                          Adjustments In
+                        </span>
+                        <span className="font-semibold text-foreground">
+                          ${data.transactionSummary.adjustments.inflow.toLocaleString()}
+                        </span>
+                      </div>
+                      
+                      <div className="h-px bg-border my-2" />
+                      
+                      {/* Outflows */}
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-red-600 font-medium flex items-center gap-1">
+                          <Minus size={12} />
+                          Withdrawals
+                        </span>
+                        <span className="font-semibold text-foreground">
+                          ${data.transactionSummary.withdrawals.amount.toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-red-600 font-medium flex items-center gap-1">
+                          <Minus size={12} />
+                          Bets Placed
+                        </span>
+                        <span className="font-semibold text-foreground">
+                          ${data.transactionSummary.betsPlaced.amount.toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-red-600 font-medium flex-items-center gap-1">
+                          <Minus size={12} />
+                          Adjustments Out
+                        </span>
+                        <span className="font-semibold text-foreground">
+                          ${data.transactionSummary.adjustments.outflow.toLocaleString()}
+                        </span>
+                      </div>
+                      
+                      <div className="h-px bg-border my-2" />
+                      
+                      {/* Net Flow Arrow */}
+                      <div className="flex items-center justify-center pt-1">
+                        <ArrowRight className="w-4 h-4 text-accent" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Closing Balance & Verification */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                        Closing Balance
+                      </p>
+                      <div className="h-px flex-1 bg-border mx-3" />
+                    </div>
+                    <div className="space-y-2">
+                      {/* Expected */}
+                      <div className="bg-blue-500/10 rounded-lg p-4 border border-blue-500/30">
+                        <p className="text-xs text-blue-600 font-semibold mb-1">
+                          EXPECTED (Calculated)
+                        </p>
+                        <p className="text-2xl font-bold text-blue-600">
+                          ${data.reconciliation.closingBalance.expected.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                      
+                      {/* Actual */}
+                      <div className="bg-muted/30 rounded-lg p-4 border border-border/50">
+                        <p className="text-xs text-muted-foreground font-semibold mb-1">
+                          ACTUAL (Database)
+                        </p>
+                        <p className="text-2xl font-bold text-foreground">
+                          ${data.reconciliation.closingBalance.actual.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                      
+                      {/* Discrepancy */}
+                      <div
+                        className={cn(
+                          "rounded-lg p-4 border-2",
+                          data.reconciliation.hasDiscrepancy
+                            ? "bg-yellow-500/10 border-yellow-500/50"
+                            : "bg-emerald-500/10 border-emerald-500/50"
+                        )}
+                      >
+                        <p
+                          className={cn(
+                            "text-xs font-semibold mb-1 uppercase tracking-wide",
+                            data.reconciliation.hasDiscrepancy
+                              ? "text-yellow-600"
+                              : "text-emerald-600"
+                          )}
+                        >
+                          Discrepancy
+                        </p>
+                        <p
+                          className={cn(
+                            "text-3xl font-bold",
+                            data.reconciliation.hasDiscrepancy
+                              ? "text-yellow-600"
+                              : "text-emerald-600"
+                          )}
+                        >
+                          ${Math.abs(data.reconciliation.discrepancy).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {data.reconciliation.hasDiscrepancy
+                            ? "Review required"
+                            : "All transactions reconciled"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Reconciliation Formula Footer */}
+                <div className="mt-6 pt-6 border-t border-border">
+                  <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                    <code className="bg-muted px-2 py-1 rounded font-mono">
+                      Expected Closing = Opening + Deposits + Wins + Adj.In - Withdrawals - Bets - Adj.Out
+                    </code>
+                  </div>
                 </div>
               </div>
             </Card>
 
-            {/* Transaction Summary */}
+            {/* Transaction Summary - Modern, sleek icon design */}
             <MetricCardSection title="Transaction Summary">
               <MetricCard
-                icon={TrendingUp}
+                icon={ArrowDownCircle}
                 label="Deposits"
-                value={`+$${data.transactionSummary.deposits.amount.toLocaleString()}`}
+                value={`$${data.transactionSummary.deposits.amount.toLocaleString()}`}
                 iconColor="text-emerald-600"
                 bgColor="bg-emerald-500/10"
-                trend="up"
+              />
+              <MetricCard
+                icon={ArrowUpCircle}
+                label="Withdrawals"
+                value={`$${data.transactionSummary.withdrawals.amount.toLocaleString()}`}
+                iconColor="text-red-600"
+                bgColor="bg-red-500/10"
               />
               <MetricCard
                 icon={TrendingDown}
-                label="Withdrawals"
-                value={`-$${data.transactionSummary.withdrawals.amount.toLocaleString()}`}
-                iconColor="text-red-600"
-                bgColor="bg-red-500/10"
-                trend="down"
-              />
-              <MetricCard
-                icon={DollarSign}
                 label="Bets Placed"
                 value={`$${data.transactionSummary.betsPlaced.amount.toLocaleString()}`}
-                iconColor="text-accent"
-                bgColor="bg-accent/10"
+                iconColor="text-blue-600"
+                bgColor="bg-blue-500/10"
               />
               <MetricCard
                 icon={TrendingUp}
                 label="Bets Won"
-                value={`+$${data.transactionSummary.betsWon.amount.toLocaleString()}`}
+                value={`$${data.transactionSummary.betsWon.amount.toLocaleString()}`}
+                iconColor="text-amber-600"
+                bgColor="bg-amber-500/10"
+              />
+              <MetricCard
+                icon={Plus}
+                label="Adjustments In"
+                value={`$${data.transactionSummary.adjustments.inflow.toLocaleString()}`}
                 iconColor="text-emerald-600"
                 bgColor="bg-emerald-500/10"
-                trend="up"
               />
               <MetricCard
-                icon={TrendingUp}
-                label="Adjustments In"
-                value={`+$${data.transactionSummary.adjustments.inflow.toLocaleString()}`}
-                iconColor="text-accent"
-                bgColor="bg-accent/10"
-                trend="up"
-              />
-              <MetricCard
-                icon={TrendingDown}
+                icon={Minus}
                 label="Adjustments Out"
-                value={`-$${data.transactionSummary.adjustments.outflow.toLocaleString()}`}
+                value={`$${data.transactionSummary.adjustments.outflow.toLocaleString()}`}
                 iconColor="text-red-600"
                 bgColor="bg-red-500/10"
-                trend="down"
               />
             </MetricCardSection>
 

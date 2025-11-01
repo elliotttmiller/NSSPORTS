@@ -19,6 +19,7 @@ import {
   DollarSign,
   ChevronDown,
   ChevronRight,
+  Radio,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -226,7 +227,7 @@ export default function AgentsPage() {
             bgColor="bg-accent/10"
           />
           <MetricCard
-            icon={CheckCircle}
+            icon={Radio}
             label="Active Agents"
             value={agents.filter((a) => a.status === "active").length}
             iconColor="text-emerald-600"
@@ -352,18 +353,28 @@ export default function AgentsPage() {
                         <div className="flex items-center">
                           <Badge
                             className={cn(
-                              "text-xs",
+                              "text-xs flex items-center gap-1.5",
                               agent.status === "active" &&
-                                "bg-green-500/10 text-green-600 border-green-500/20",
+                                "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
                               agent.status === "idle" &&
                                 "bg-yellow-500/10 text-yellow-600 border-yellow-500/20",
                               agent.status === "suspended" &&
                                 "bg-red-500/10 text-red-600 border-red-500/20"
                             )}
                           >
-                            {agent.status === "active" && <CheckCircle size={12} className="mr-1" />}
-                            {agent.status === "idle" && <Clock size={12} className="mr-1" />}
-                            {agent.status === "suspended" && <Ban size={12} className="mr-1" />}
+                            {agent.status === "active" && (
+                              <div className="relative flex items-center justify-center">
+                                {/* Outer pulsing ring */}
+                                <div className="absolute w-3 h-3 bg-emerald-500/30 rounded-full animate-ping" 
+                                     style={{ animationDuration: '2s' }}></div>
+                                {/* Middle glow */}
+                                <div className="absolute w-2.5 h-2.5 bg-emerald-500/50 rounded-full blur-sm"></div>
+                                {/* Core dot */}
+                                <div className="relative w-1.5 h-1.5 bg-emerald-500 rounded-full shadow-lg shadow-emerald-500/50"></div>
+                              </div>
+                            )}
+                            {agent.status === "idle" && <Clock size={12} />}
+                            {agent.status === "suspended" && <Ban size={12} />}
                             {agent.status.charAt(0).toUpperCase() + agent.status.slice(1)}
                           </Badge>
                         </div>
@@ -452,30 +463,38 @@ export default function AgentsPage() {
                               >
                                 {/* Fully Fluid Responsive Player Row */}
                                 <div className="flex flex-wrap items-center gap-2 w-full">
-                                  {/* Player Username - Adaptive Width */}
-                                  <div className="shrink-0 min-w-[100px] max-w-[150px]">
-                                    <p className="font-medium text-sm truncate">{player.username}</p>
-                                    {player.displayName && (
-                                      <p className="text-[10px] text-muted-foreground truncate">
-                                        {player.displayName}
-                                      </p>
-                                    )}
+                                  {/* Player Username with Status Badge - Adaptive Width */}
+                                  <div className="flex items-center gap-2 shrink-0 min-w-[100px]">
+                                    <div className="min-w-0">
+                                      <p className="font-medium text-sm truncate">{player.username}</p>
+                                      {player.displayName && (
+                                        <p className="text-[10px] text-muted-foreground truncate">
+                                          {player.displayName}
+                                        </p>
+                                      )}
+                                    </div>
+                                    {/* Status Badge next to name */}
+                                    <Badge
+                                      variant="outline"
+                                      className={cn(
+                                        "text-[10px] px-2 py-0.5 shrink-0",
+                                        player.status === "active" && "border-emerald-500/50 text-emerald-600",
+                                        player.status === "suspended" && "border-red-500/50 text-red-600"
+                                      )}
+                                    >
+                                      {player.status}
+                                    </Badge>
                                   </div>
 
-                                  {/* Status Badge - Compact */}
-                                  <Badge
-                                    variant="outline"
-                                    className={cn(
-                                      "text-[10px] px-2 py-0.5 shrink-0",
-                                      player.status === "active" && "border-emerald-500/50 text-emerald-600",
-                                      player.status === "suspended" && "border-red-500/50 text-red-600"
-                                    )}
-                                  >
-                                    {player.status}
-                                  </Badge>
+                                  {/* Bet Stats - Moved to left side */}
+                                  <div className="flex items-center gap-2 text-[10px] text-muted-foreground shrink-0">
+                                    <span>{player.totalBets || 0} total</span>
+                                    <span className="text-amber-600">• {player.totalPendingBets || 0} pending</span>
+                                    <span>• ${player.totalWagered?.toLocaleString() || '0'} wagered</span>
+                                  </div>
 
-                                  {/* Financial Metrics - Fluid Horizontal Layout */}
-                                  <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
+                                  {/* Financial Metrics - Moved to right side */}
+                                  <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0 justify-end">
                                     {/* Available */}
                                     <div className="flex items-center gap-1 shrink-0">
                                       <span className="text-xs font-semibold text-accent">
@@ -505,13 +524,6 @@ export default function AgentsPage() {
                                       </span>
                                       <span className="text-[9px] text-muted-foreground/60 uppercase">bal</span>
                                     </div>
-                                  </div>
-
-                                  {/* Bet Stats - Compact Horizontal */}
-                                  <div className="flex items-center gap-2 text-[10px] text-muted-foreground shrink-0">
-                                    <span>{player.totalBets || 0} total</span>
-                                    <span className="text-amber-600">• {player.totalPendingBets || 0} pending</span>
-                                    <span>• ${player.totalWagered?.toLocaleString() || '0'} wagered</span>
                                   </div>
 
                                   {/* Action Button - Always Visible */}

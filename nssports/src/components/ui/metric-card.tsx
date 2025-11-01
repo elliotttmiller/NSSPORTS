@@ -1,7 +1,7 @@
 import { ComponentProps, ReactNode } from "react";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { TrendingUp, TrendingDown, Activity } from "lucide-react";
+import { TrendingUp, TrendingDown } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
 /**
@@ -69,12 +69,12 @@ export function MetricCard({
           <Icon className={cn("w-4 h-4", iconColor)} />
         </div>
         
-        {/* Value & Label - Fully flexible content area */}
-        <div className="flex-1 min-w-0 overflow-hidden">
+        {/* Value & Label - Inline layout with optimal spacing */}
+        <div className="flex items-baseline gap-2 flex-1 min-w-0 overflow-hidden">
           <p className="text-base sm:text-lg font-bold text-foreground truncate leading-tight">
             {value}
           </p>
-          <p className="text-[10px] sm:text-xs text-muted-foreground/70 truncate leading-tight mt-0.5">
+          <p className="text-[10px] sm:text-xs text-muted-foreground/70 truncate leading-tight">
             {label}
           </p>
         </div>
@@ -83,15 +83,29 @@ export function MetricCard({
         {trend && (
           <div 
             className={cn(
-              "hidden sm:flex items-center gap-0.5 text-[10px] font-medium px-1.5 py-0.5 rounded shrink-0",
+              "hidden sm:flex items-center gap-1.5 text-[10px] font-medium px-1.5 py-0.5 rounded shrink-0",
               trend === "up" && "bg-emerald-500/10 text-emerald-600",
               trend === "down" && "bg-red-500/10 text-red-600",
-              trend === "live" && "bg-accent/10 text-accent animate-pulse"
+              trend === "live" && "bg-emerald-500/10 text-emerald-600"
             )}
           >
             {trend === "up" && <TrendingUp size={10} />}
             {trend === "down" && <TrendingDown size={10} />}
-            {trend === "live" && <Activity size={10} />}
+            {trend === "live" && (
+              <>
+                {/* Animated Pulsing Live Indicator - matching Trending Live Games */}
+                <div className="relative flex items-center justify-center">
+                  {/* Outer pulsing ring */}
+                  <div className="absolute w-3 h-3 bg-emerald-500/30 rounded-full animate-ping" 
+                       style={{ animationDuration: '2s' }}></div>
+                  {/* Middle glow */}
+                  <div className="absolute w-2.5 h-2.5 bg-emerald-500/50 rounded-full blur-sm"></div>
+                  {/* Core dot */}
+                  <div className="relative w-1.5 h-1.5 bg-emerald-500 rounded-full shadow-lg shadow-emerald-500/50"></div>
+                </div>
+                <span>LIVE</span>
+              </>
+            )}
           </div>
         )}
       </div>
