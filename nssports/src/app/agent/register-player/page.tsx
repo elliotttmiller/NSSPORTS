@@ -146,26 +146,26 @@ export default function RegisterPlayerPage() {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      {/* Header */}
-      <div className="bg-card border-b border-border p-4 sticky top-0 z-10">
+      {/* Header - Mobile Optimized */}
+      <div className="bg-card border-b border-border p-3 sm:p-4 sticky top-0 z-10">
         <div className="flex items-center gap-3">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => router.push("/agent")}
-            className="h-8 w-8 p-0"
+            className="h-8 w-8 p-0 touch-action-manipulation active:scale-95"
           >
             <ArrowLeft size={20} />
           </Button>
-          <div>
-            <h1 className="text-lg font-bold text-foreground">Register Player</h1>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">Register Player</h1>
             <p className="text-xs text-muted-foreground">Add a new player to your account</p>
           </div>
         </div>
       </div>
 
-      {/* Form */}
-      <div className="p-4 max-w-2xl mx-auto">
+      {/* Form - Responsive Container */}
+      <div className="px-3 sm:px-4 py-4 max-w-4xl mx-auto">
         <motion.form
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -173,7 +173,7 @@ export default function RegisterPlayerPage() {
           className="space-y-4"
         >
           {/* Username */}
-          <div className="bg-card border border-border rounded-xl p-4">
+          <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
             <label className="block text-sm font-medium text-foreground mb-2">
               Username <span className="text-destructive">*</span>
             </label>
@@ -182,7 +182,7 @@ export default function RegisterPlayerPage() {
               value={formData.username}
               onChange={(e) => setFormData({ ...formData, username: e.target.value })}
               placeholder="player_username"
-              className="w-full"
+              className="w-full h-10 touch-action-manipulation"
               disabled={isSubmitting}
             />
             {errors.username && (
@@ -197,7 +197,7 @@ export default function RegisterPlayerPage() {
           </div>
 
           {/* Display Name */}
-          <div className="bg-card border border-border rounded-xl p-4">
+          <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
             <label className="block text-sm font-medium text-foreground mb-2">
               Display Name <span className="text-destructive">*</span>
             </label>
@@ -206,7 +206,7 @@ export default function RegisterPlayerPage() {
               value={formData.displayName}
               onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
               placeholder="John Doe"
-              className="w-full"
+              className="w-full h-10 touch-action-manipulation"
               disabled={isSubmitting}
             />
             {errors.displayName && (
@@ -218,7 +218,7 @@ export default function RegisterPlayerPage() {
           </div>
 
           {/* Password */}
-          <div className="bg-card border border-border rounded-xl p-4">
+          <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
             <label className="block text-sm font-medium text-foreground mb-2">
               Password <span className="text-destructive">*</span>
             </label>
@@ -228,13 +228,13 @@ export default function RegisterPlayerPage() {
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 placeholder="••••••••"
-                className="w-full pr-10"
+                className="w-full h-10 pr-10 touch-action-manipulation"
                 disabled={isSubmitting}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground touch-action-manipulation active:scale-95"
               >
                 {showPassword ? <EyeSlash size={18} /> : <Eye size={18} />}
               </button>
@@ -251,7 +251,7 @@ export default function RegisterPlayerPage() {
           </div>
 
           {/* Confirm Password */}
-          <div className="bg-card border border-border rounded-xl p-4">
+          <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
             <label className="block text-sm font-medium text-foreground mb-2">
               Confirm Password <span className="text-destructive">*</span>
             </label>
@@ -260,7 +260,7 @@ export default function RegisterPlayerPage() {
               value={formData.confirmPassword}
               onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
               placeholder="••••••••"
-              className="w-full"
+              className="w-full h-10 touch-action-manipulation"
               disabled={isSubmitting}
             />
             {errors.confirmPassword && (
@@ -271,11 +271,11 @@ export default function RegisterPlayerPage() {
             )}
           </div>
 
-          {/* Submit Button */}
+          {/* Submit Button - Touch Optimized */}
           <Button
             type="submit"
             disabled={isSubmitting}
-            className="w-full bg-accent hover:bg-accent/90 text-accent-foreground"
+            className="w-full h-11 bg-accent hover:bg-accent/90 text-accent-foreground touch-action-manipulation active:scale-95 transition-transform"
           >
             {isSubmitting ? "Registering..." : "Register Player"}
           </Button>

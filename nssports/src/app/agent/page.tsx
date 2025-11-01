@@ -170,29 +170,30 @@ export default function AgentDashboard() {
   }
 
   return (
-    <div className="bg-background">
-      {/* Header - Using app's accent color instead of hardcoded blue */}
+    <div className="bg-background min-h-screen">
+      {/* Header - Mobile Optimized */}
       <motion.div 
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-card border-b border-border p-6"
+        className="bg-card border-b border-border p-3 sm:p-4"
       >
-        <h1 className="text-2xl font-bold text-foreground">Agent Dashboard</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-foreground">Agent Dashboard</h1>
+        <p className="text-xs text-muted-foreground mt-1">Manage your players and balances</p>
       </motion.div>
 
-      {/* Main Content */}
-      <div className="p-4 space-y-4">
-        {/* Quick Actions */}
+      {/* Main Content - Responsive Container */}
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 space-y-4">\n
+        {/* Quick Actions - Mobile Optimized */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="bg-card border border-border rounded-xl p-4"
+          className="bg-card border border-border rounded-xl p-3 sm:p-4"
         >
-          <h2 className="text-lg font-semibold text-foreground mb-4">Quick Actions</h2>
-          <div className="grid grid-cols-2 gap-3">
+          <h2 className="text-base sm:text-lg font-semibold text-foreground mb-3 sm:mb-4">Quick Actions</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Button 
-              className="h-auto py-2.5 flex items-center justify-center gap-2 bg-accent hover:bg-accent/90 text-accent-foreground"
+              className="h-auto py-3 flex items-center justify-center gap-2 bg-accent hover:bg-accent/90 text-accent-foreground touch-action-manipulation active:scale-95 transition-transform"
               onClick={() => router.push("/agent/register-player")}
             >
               <UserPlus size={20} weight="bold" />
@@ -200,7 +201,7 @@ export default function AgentDashboard() {
             </Button>
 
             <Button 
-              className="h-auto py-2.5 flex items-center justify-center gap-2 bg-accent hover:bg-accent/90 text-accent-foreground"
+              className="h-auto py-3 flex items-center justify-center gap-2 bg-accent hover:bg-accent/90 text-accent-foreground touch-action-manipulation active:scale-95 transition-transform"
               onClick={() => router.push("/agent/adjust-balance")}
             >
               <CurrencyDollar size={20} weight="bold" />
@@ -209,20 +210,21 @@ export default function AgentDashboard() {
           </div>
         </motion.div>
 
-        {/* Agent Users List */}
+        {/* Agent Users List - Mobile Optimized */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
-          className="bg-card border border-border rounded-xl p-4"
+          className="bg-card border border-border rounded-xl p-3 sm:p-4"
         >
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-foreground">Your Players</h2>
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <h2 className="text-base sm:text-lg font-semibold text-foreground">Your Players</h2>
             <Button 
               variant="ghost" 
               size="sm"
               onClick={fetchAgentUsers}
               disabled={usersLoading}
+              className="touch-action-manipulation active:scale-95"
             >
               <ArrowsClockwise 
                 size={16} 

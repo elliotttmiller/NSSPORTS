@@ -94,26 +94,26 @@ export default function CreateAgentPage() {
 
   return (
     <AdminDashboardLayout>
-      <div className="p-6 space-y-6 max-w-4xl">
-        {/* Header */}
-        <div className="flex items-center gap-4">
-          <Link href="/admin/agents">
-            <Button variant="ghost" size="sm">
+      <div className="space-y-4 w-full max-w-4xl mx-auto px-3 sm:px-4">
+        {/* Header - Mobile Optimized */}
+        <div className="flex items-center gap-2 sm:gap-4">
+          <Link href="/admin/agents" className="touch-action-manipulation">
+            <Button variant="ghost" size="sm" className="active:scale-95">
               <ArrowLeft size={18} />
             </Button>
           </Link>
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Create New Agent</h1>
-            <p className="text-muted-foreground mt-1">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">Create New Agent</h1>
+            <p className="text-xs text-muted-foreground mt-1">
               Set up a new agent account with operational limits
             </p>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Basic Information */}
-          <Card className="p-6">
-            <h2 className="text-lg font-semibold mb-4">Basic Information</h2>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Basic Information - Mobile Optimized */}
+          <Card className="p-3 sm:p-4 md:p-6">
+            <h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Basic Information</h2>
             <div className="space-y-4">
               <div>
                 <Label htmlFor="username">Username *</Label>
@@ -175,9 +175,9 @@ export default function CreateAgentPage() {
             </div>
           </Card>
 
-          {/* Operational Limits */}
-          <Card className="p-6">
-            <h2 className="text-lg font-semibold mb-4">Operational Limits</h2>
+          {/* Operational Limits - Mobile Optimized */}
+          <Card className="p-3 sm:p-4 md:p-6">
+            <h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Operational Limits</h2>
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -241,9 +241,9 @@ export default function CreateAgentPage() {
             </div>
           </Card>
 
-          {/* Advanced Settings */}
-          <Card className="p-6">
-            <h2 className="text-lg font-semibold mb-4">Advanced Settings</h2>
+          {/* Advanced Settings - Mobile Optimized */}
+          <Card className="p-3 sm:p-4 md:p-6">
+            <h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Advanced Settings</h2>
             <div className="space-y-4">
               <div>
                 <Label htmlFor="ipRestriction">IP Restriction</Label>
@@ -282,12 +282,12 @@ export default function CreateAgentPage() {
             </div>
           </Card>
 
-          {/* Actions */}
-          <div className="flex items-center gap-4">
+          {/* Actions - Mobile Optimized */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             <Button
               type="submit"
               disabled={isLoading}
-              className="bg-blue-600 hover:bg-blue-700 gap-2"
+              className="bg-blue-600 hover:bg-blue-700 gap-2 touch-action-manipulation active:scale-95 transition-transform"
             >
               {isLoading ? (
                 <>
@@ -301,8 +301,8 @@ export default function CreateAgentPage() {
                 </>
               )}
             </Button>
-            <Link href="/admin/agents">
-              <Button type="button" variant="outline">
+            <Link href="/admin/agents" className="touch-action-manipulation">
+              <Button type="button" variant="outline" className="w-full sm:w-auto active:scale-95">
                 Cancel
               </Button>
             </Link>

@@ -132,18 +132,18 @@ export default function BalancesPage() {
 
   return (
     <AdminDashboardLayout>
-      <div className="p-6 space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
+      <div className="space-y-4 w-full max-w-7xl mx-auto px-3 sm:px-4">
+        {/* Header - Mobile Optimized */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Balance Oversight</h1>
-            <p className="text-muted-foreground mt-1">
+            <h1 className="text-2xl font-bold text-foreground">Balance Oversight</h1>
+            <p className="text-xs text-muted-foreground mt-1">
               Monitor and manage platform balances
             </p>
           </div>
           <Button
             onClick={() => setShowAdjustModal(true)}
-            className="bg-blue-600 hover:bg-blue-700 gap-2"
+            className="bg-blue-600 hover:bg-blue-700 gap-2 w-full sm:w-auto touch-action-manipulation active:scale-95 transition-transform"
           >
             <Plus size={18} />
             Adjust Balance
@@ -185,64 +185,73 @@ export default function BalancesPage() {
           />
         </MetricCardSection>
 
-        {/* Recent Adjustments */}
+        {/* Recent Adjustments - Mobile Optimized */}
         <Card className="overflow-hidden">
-          <div className="p-6 border-b border-border">
-            <h2 className="text-lg font-semibold">Recent Adjustments</h2>
-            <p className="text-sm text-muted-foreground mt-1">
+          <div className="p-3 sm:p-4 border-b border-border">
+            <h2 className="text-base sm:text-lg font-semibold">Recent Adjustments</h2>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1">
               All agent and admin balance adjustments
             </p>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
+          <div className="overflow-x-auto scrollbar-hide">
+            <table className="w-full min-w-[640px]">
               <thead className="bg-muted/50 border-b border-border">
                 <tr>
-                  <th className="text-left p-4 font-semibold text-sm">Adjuster</th>
-                  <th className="text-left p-4 font-semibold text-sm">Player</th>
-                  <th className="text-left p-4 font-semibold text-sm">Type</th>
-                  <th className="text-left p-4 font-semibold text-sm">Amount</th>
-                  <th className="text-left p-4 font-semibold text-sm">Reason</th>
-                  <th className="text-left p-4 font-semibold text-sm">Time</th>
+                  <th className="text-left p-2 sm:p-3 font-semibold text-xs">Adjuster</th>
+                  <th className="text-left p-2 sm:p-3 font-semibold text-xs">Player</th>
+                  <th className="text-left p-2 sm:p-3 font-semibold text-xs">Type</th>
+                  <th className="text-left p-2 sm:p-3 font-semibold text-xs">Amount</th>
+                  <th className="text-left p-2 sm:p-3 font-semibold text-xs hidden sm:table-cell">Reason</th>
+                  <th className="text-left p-2 sm:p-3 font-semibold text-xs">Time</th>
                 </tr>
               </thead>
               <tbody>
-                {recentAdjustments.map((adjustment) => (
-                  <tr
-                    key={adjustment.id}
-                    className="border-b border-border hover:bg-muted/20 transition-colors"
-                  >
-                    <td className="p-4 font-medium">{adjustment.adjuster}</td>
-                    <td className="p-4 text-muted-foreground">{adjustment.player}</td>
-                    <td className="p-4">
-                      <Badge
-                        variant={
-                          adjustment.type === "Deposit"
-                            ? "default"
-                            : adjustment.type === "Withdrawal"
-                            ? "secondary"
-                            : "outline"
-                        }
-                      >
-                        {adjustment.type}
-                      </Badge>
-                    </td>
-                    <td className="p-4 font-semibold">${adjustment.amount.toLocaleString()}</td>
-                    <td className="p-4 text-sm text-muted-foreground">{adjustment.reason}</td>
-                    <td className="p-4 text-sm text-muted-foreground">
-                      {new Date(adjustment.timestamp).toLocaleString()}
+                {recentAdjustments.length > 0 ? (
+                  recentAdjustments.map((adjustment) => (
+                    <tr
+                      key={adjustment.id}
+                      className="border-b border-border hover:bg-muted/20 transition-colors"
+                    >
+                      <td className="p-2 sm:p-3 font-medium text-xs sm:text-sm">{adjustment.adjuster}</td>
+                      <td className="p-2 sm:p-3 text-muted-foreground text-xs sm:text-sm">{adjustment.player}</td>
+                      <td className="p-2 sm:p-3">
+                        <Badge
+                          variant={
+                            adjustment.type === "Deposit"
+                              ? "default"
+                              : adjustment.type === "Withdrawal"
+                              ? "secondary"
+                              : "outline"
+                          }
+                          className="text-[10px] sm:text-xs"
+                        >
+                          {adjustment.type}
+                        </Badge>
+                      </td>
+                      <td className="p-2 sm:p-3 font-semibold text-xs sm:text-sm">${adjustment.amount.toLocaleString()}</td>
+                      <td className="p-2 sm:p-3 text-xs text-muted-foreground hidden sm:table-cell">{adjustment.reason}</td>
+                      <td className="p-2 sm:p-3 text-[10px] sm:text-xs text-muted-foreground whitespace-nowrap">
+                        {new Date(adjustment.timestamp).toLocaleDateString()}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={6} className="p-8 text-center text-muted-foreground text-sm">
+                      No recent adjustments found
                     </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>
         </Card>
 
-        {/* Adjustment Modal */}
+        {/* Adjustment Modal - Mobile Optimized */}
         {showAdjustModal && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <Card className="w-full max-w-2xl p-6">
-              <h2 className="text-2xl font-bold mb-6">Admin Balance Adjustment</h2>
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto">
+            <Card className="w-full max-w-2xl p-4 sm:p-6 my-auto">
+              <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">Admin Balance Adjustment</h2>
               
               <div className="space-y-4">
                 <div>

@@ -90,11 +90,11 @@ export default function SecurityPage() {
 
   return (
     <AdminDashboardLayout>
-      <div className="p-6 space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Security & Audit</h1>
-          <p className="text-muted-foreground mt-1">
+      <div className="space-y-4 w-full max-w-7xl mx-auto px-3 sm:px-4">
+        {/* Header - Mobile Optimized */}
+        <div className="flex flex-col gap-1.5">
+          <h1 className="text-2xl font-bold text-foreground">Security & Audit</h1>
+          <p className="text-xs text-muted-foreground">
             Monitor system activity and security events
           </p>
         </div>
@@ -132,22 +132,22 @@ export default function SecurityPage() {
           />
         </MetricCardSection>
 
-        {/* Filters */}
-        <Card className="p-6">
-          <div className="flex items-center gap-4 flex-wrap">
-            <div className="flex-1 min-w-[200px]">
+        {/* Filters - Mobile Optimized */}
+        <Card className="p-3 sm:p-4">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <div className="flex-1 min-w-0">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
                 <Input
                   placeholder="Search logs..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 text-sm touch-action-manipulation"
                 />
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">\n
               <Filter className="w-4 h-4 text-muted-foreground" />
               <select
                 value={filterStatus}

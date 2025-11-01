@@ -174,20 +174,20 @@ export default function ViewPlayersPage() {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      {/* Header */}
-      <div className="bg-card border-b border-border p-4">
-        <div className="flex items-center justify-between mb-4">
+      {/* Header - Mobile Optimized */}
+      <div className="bg-card border-b border-border p-3 sm:p-4">
+        <div className="flex items-center justify-between mb-3 sm:mb-4">
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => router.back()}
-              className="h-8 w-8 p-0"
+              className="h-8 w-8 p-0 touch-action-manipulation active:scale-95"
             >
               <ArrowLeft size={20} />
             </Button>
             <div>
-              <h1 className="text-lg font-bold text-foreground">Your Players</h1>
+              <h1 className="text-xl sm:text-2xl font-bold text-foreground">Your Players</h1>
               <p className="text-xs text-muted-foreground">Manage and view all registered players</p>
             </div>
           </div>
@@ -196,6 +196,7 @@ export default function ViewPlayersPage() {
             size="sm"
             onClick={fetchPlayers}
             disabled={loadingPlayers}
+            className="touch-action-manipulation active:scale-95"
           >
             <ArrowsClockwise 
               size={18} 
@@ -204,34 +205,34 @@ export default function ViewPlayersPage() {
           </Button>
         </div>
 
-        {/* Summary Stats */}
-        <div className="grid grid-cols-3 gap-2 mt-4">
-          <div className="bg-accent/5 border border-accent/10 rounded-lg p-3">
-            <div className="flex items-center gap-2 mb-1">
-              <Users size={16} className="text-accent" />
-              <span className="text-xs text-muted-foreground">Total</span>
+        {/* Summary Stats - Responsive Text Sizing */}
+        <div className="grid grid-cols-3 gap-2">
+          <div className="bg-accent/5 border border-accent/10 rounded-lg p-2 sm:p-3">
+            <div className="flex items-center gap-1.5 mb-1">
+              <Users size={14} className="text-accent" />
+              <span className="text-[10px] sm:text-xs text-muted-foreground">Total</span>
             </div>
-            <div className="text-xl font-bold text-foreground">{summary.totalUsers}</div>
+            <div className="text-base sm:text-lg md:text-xl font-bold text-foreground">{summary.totalUsers}</div>
           </div>
-          <div className="bg-accent/5 border border-accent/10 rounded-lg p-3">
-            <div className="flex items-center gap-2 mb-1">
-              <CurrencyDollar size={16} className="text-accent" />
-              <span className="text-xs text-muted-foreground">Balance</span>
+          <div className="bg-accent/5 border border-accent/10 rounded-lg p-2 sm:p-3">
+            <div className="flex items-center gap-1.5 mb-1">
+              <CurrencyDollar size={14} className="text-accent" />
+              <span className="text-[10px] sm:text-xs text-muted-foreground">Balance</span>
             </div>
-            <div className="text-xl font-bold text-accent">${summary.totalBalance.toFixed(2)}</div>
+            <div className="text-base sm:text-lg md:text-xl font-bold text-accent">${summary.totalBalance.toFixed(2)}</div>
           </div>
-          <div className="bg-accent/5 border border-accent/10 rounded-lg p-3">
-            <div className="flex items-center gap-2 mb-1">
-              <UserPlus size={16} className="text-accent" />
-              <span className="text-xs text-muted-foreground">Active</span>
+          <div className="bg-accent/5 border border-accent/10 rounded-lg p-2 sm:p-3">
+            <div className="flex items-center gap-1.5 mb-1">
+              <UserPlus size={14} className="text-accent" />
+              <span className="text-[10px] sm:text-xs text-muted-foreground">Active</span>
             </div>
-            <div className="text-xl font-bold text-foreground">{summary.activeUsers}</div>
+            <div className="text-base sm:text-lg md:text-xl font-bold text-foreground">{summary.activeUsers}</div>
           </div>
         </div>
       </div>
 
-      {/* Search and Filters */}
-      <div className="p-4 space-y-3">
+      {/* Search and Filters - Mobile Optimized */}
+      <div className="px-3 sm:px-4 py-3 sm:py-4 space-y-3">
         {/* Search */}
         <div className="relative">
           <MagnifyingGlass 
@@ -243,16 +244,16 @@ export default function ViewPlayersPage() {
             placeholder="Search by username or name..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
+            className="pl-10 h-10 touch-action-manipulation"
           />
         </div>
 
-        {/* Filters */}
-        <div className="flex gap-2 overflow-x-auto pb-2">
+        {/* Filters - Scrollable on mobile */}
+        <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2">
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value as typeof filterStatus)}
-            className="px-3 py-1.5 text-sm bg-card border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-accent"
+            className="px-3 py-2 text-xs sm:text-sm bg-card border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-accent touch-action-manipulation whitespace-nowrap"
           >
             <option value="all">All Players</option>
             <option value="active">Active (7d)</option>
@@ -262,7 +263,7 @@ export default function ViewPlayersPage() {
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-            className="px-3 py-1.5 text-sm bg-card border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-accent"
+            className="px-3 py-2 text-xs sm:text-sm bg-card border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-accent touch-action-manipulation whitespace-nowrap"
           >
             <option value="newest">Newest First</option>
             <option value="oldest">Oldest First</option>
@@ -276,8 +277,8 @@ export default function ViewPlayersPage() {
         </div>
       </div>
 
-      {/* Players List */}
-      <div className="px-4 space-y-3">
+      {/* Players List - Mobile Optimized */}
+      <div className="px-3 sm:px-4 space-y-3">
         {loadingPlayers && players.length === 0 ? (
           <div className="text-center py-12">
             <div className="w-16 h-16 border-4 border-accent border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
@@ -305,7 +306,7 @@ export default function ViewPlayersPage() {
             {!searchQuery && filterStatus === "all" && (
               <Button
                 onClick={() => router.push("/agent/register-player")}
-                className="bg-accent hover:bg-accent/90"
+                className="bg-accent hover:bg-accent/90 touch-action-manipulation active:scale-95"
               >
                 <UserPlus size={18} className="mr-2" />
                 Register Player
@@ -319,9 +320,9 @@ export default function ViewPlayersPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
-              className="bg-card border border-border rounded-xl p-4 hover:border-accent/30 transition-colors"
+              className="bg-card border border-border rounded-xl p-3 sm:p-4 hover:border-accent/30 transition-colors"
             >
-              <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start justify-between gap-3 sm:gap-4">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <h3 className="text-sm font-semibold text-foreground truncate">
@@ -335,7 +336,7 @@ export default function ViewPlayersPage() {
                   </div>
                   <p className="text-xs text-muted-foreground mb-2">@{player.username}</p>
                   
-                  <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                     <div>
                       <span className="text-muted-foreground">Registered:</span>
                       <span className="ml-1 text-foreground">
@@ -361,12 +362,12 @@ export default function ViewPlayersPage() {
                 </div>
               </div>
 
-              {/* Quick Actions */}
-              <div className="flex gap-2 mt-3 pt-3 border-t border-border">
+              {/* Quick Actions - Touch Optimized */}
+              <div className="flex flex-col sm:flex-row gap-2 mt-3 pt-3 border-t border-border">
                 <Button
                   variant="outline"
                   size="sm"
-                  className="flex-1 text-xs"
+                  className="flex-1 text-xs touch-action-manipulation active:scale-95"
                   onClick={() => {
                     router.push(`/agent/adjust-balance`);
                   }}
@@ -376,7 +377,7 @@ export default function ViewPlayersPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="flex-1 text-xs"
+                  className="flex-1 text-xs touch-action-manipulation active:scale-95"
                   onClick={() => {
                     router.push(`/agent/players/${player.id}`);
                   }}

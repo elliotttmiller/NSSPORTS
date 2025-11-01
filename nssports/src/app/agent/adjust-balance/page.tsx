@@ -194,26 +194,26 @@ export default function AdjustBalancePage() {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      {/* Header */}
-      <div className="bg-card border-b border-border p-4">
-        <div className="flex items-center gap-3 mb-2">
+      {/* Header - Mobile Optimized */}
+      <div className="bg-card border-b border-border p-3 sm:p-4">
+        <div className="flex items-center gap-3">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => router.back()}
-            className="h-8 w-8 p-0"
+            className="h-8 w-8 p-0 touch-action-manipulation active:scale-95"
           >
             <ArrowLeft size={20} />
           </Button>
-          <div>
-            <h1 className="text-lg font-bold text-foreground">Adjust Balance</h1>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">Adjust Balance</h1>
             <p className="text-xs text-muted-foreground">Modify player account balances</p>
           </div>
         </div>
       </div>
 
-      {/* Form */}
-      <div className="p-4 max-w-2xl mx-auto">
+      {/* Form - Responsive Container */}
+      <div className="px-3 sm:px-4 py-4 max-w-4xl mx-auto">
         <motion.form
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -221,7 +221,7 @@ export default function AdjustBalancePage() {
           className="space-y-4"
         >
           {/* Select Player */}
-          <div className="bg-card border border-border rounded-xl p-4">
+          <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
             <label className="block text-sm font-medium text-foreground mb-2">
               Select Player <span className="text-destructive">*</span>
             </label>
@@ -233,7 +233,7 @@ export default function AdjustBalancePage() {
               <select
                 value={formData.playerId}
                 onChange={(e) => setFormData({ ...formData, playerId: e.target.value })}
-                className="w-full px-4 py-2 bg-background border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all duration-200"
+                className="w-full px-3 sm:px-4 py-2.5 sm:py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all duration-200 touch-action-manipulation"
                 disabled={isSubmitting}
               >
                 <option value="">Choose a player...</option>
@@ -276,8 +276,8 @@ export default function AdjustBalancePage() {
             </motion.div>
           )}
 
-          {/* Adjustment Type */}
-          <div className="bg-card border border-border rounded-xl p-4">
+          {/* Adjustment Type - Touch Optimized */}
+          <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
             <label className="block text-sm font-medium text-foreground mb-2">
               Adjustment Type <span className="text-destructive">*</span>
             </label>
@@ -285,7 +285,7 @@ export default function AdjustBalancePage() {
               <button
                 type="button"
                 onClick={() => setFormData({ ...formData, adjustmentType: "deposit" })}
-                className={`py-2 px-3 rounded-lg text-sm font-medium transition-all duration-200 ${
+                className={`py-2.5 sm:py-2 px-3 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 touch-action-manipulation active:scale-95 ${
                   formData.adjustmentType === "deposit"
                     ? "bg-accent text-accent-foreground shadow-md"
                     : "bg-background border border-border text-muted-foreground hover:border-accent/30"
@@ -297,7 +297,7 @@ export default function AdjustBalancePage() {
               <button
                 type="button"
                 onClick={() => setFormData({ ...formData, adjustmentType: "withdrawal" })}
-                className={`py-2 px-3 rounded-lg text-sm font-medium transition-all duration-200 ${
+                className={`py-2.5 sm:py-2 px-3 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 touch-action-manipulation active:scale-95 ${
                   formData.adjustmentType === "withdrawal"
                     ? "bg-accent text-accent-foreground shadow-md"
                     : "bg-background border border-border text-muted-foreground hover:border-accent/30"
@@ -309,7 +309,7 @@ export default function AdjustBalancePage() {
               <button
                 type="button"
                 onClick={() => setFormData({ ...formData, adjustmentType: "correction" })}
-                className={`py-2 px-3 rounded-lg text-sm font-medium transition-all duration-200 ${
+                className={`py-2.5 sm:py-2 px-3 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 touch-action-manipulation active:scale-95 ${
                   formData.adjustmentType === "correction"
                     ? "bg-accent text-accent-foreground shadow-md"
                     : "bg-background border border-border text-muted-foreground hover:border-accent/30"
@@ -322,7 +322,7 @@ export default function AdjustBalancePage() {
           </div>
 
           {/* Amount */}
-          <div className="bg-card border border-border rounded-xl p-4">
+          <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
             <label className="block text-sm font-medium text-foreground mb-2">
               Amount <span className="text-destructive">*</span>
             </label>
@@ -335,7 +335,7 @@ export default function AdjustBalancePage() {
                 value={formData.amount}
                 onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                 placeholder="0.00"
-                className="pl-8"
+                className="pl-8 h-10 touch-action-manipulation"
                 disabled={isSubmitting}
               />
             </div>
@@ -357,7 +357,7 @@ export default function AdjustBalancePage() {
           </div>
 
           {/* Reason */}
-          <div className="bg-card border border-border rounded-xl p-4">
+          <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
             <label className="block text-sm font-medium text-foreground mb-2">
               Reason <span className="text-muted-foreground text-xs">(Optional)</span>
             </label>
@@ -365,7 +365,7 @@ export default function AdjustBalancePage() {
               value={formData.reason}
               onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
               placeholder="Explain the reason for this balance adjustment..."
-              className="w-full px-4 py-2 bg-background border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all duration-200 min-h-[100px] resize-y"
+              className="w-full px-3 sm:px-4 py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all duration-200 min-h-[100px] resize-y touch-action-manipulation"
               disabled={isSubmitting}
             />
             <div className="flex justify-between mt-2">
@@ -383,11 +383,11 @@ export default function AdjustBalancePage() {
             </div>
           </div>
 
-          {/* Submit Button */}
+          {/* Submit Button - Touch Optimized */}
           <Button
             type="submit"
             disabled={isSubmitting || loadingPlayers || players.length === 0}
-            className="w-full bg-accent hover:bg-accent/90 text-accent-foreground"
+            className="w-full h-11 bg-accent hover:bg-accent/90 text-accent-foreground touch-action-manipulation active:scale-95 transition-transform"
           >
             {isSubmitting ? "Processing..." : "Adjust Balance"}
           </Button>
