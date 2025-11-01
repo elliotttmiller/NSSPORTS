@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import AdminDashboardLayout from "@/components/admin/AdminDashboardLayout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,15 +14,94 @@ import {
   Activity,
   Filter,
   RefreshCw,
+  ChevronDown,
+  ChevronRight,
+  Trophy,
+  UserPlus,
+  TrendingDown,
+  AlertTriangle,
+  CheckCircle,
+  Calendar,
+  Target,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+
+// Agent Performance Interface
+interface AgentPerformance {
+  agentId: string;
+  agentName: string;
+  agentEmail: string;
+  tier: "Platinum" | "Gold" | "Silver" | "Bronze" | "Inactive";
+  performanceScore: number;
+  totalPlayers: number;
+  activePlayers: number;
+  newPlayersThisMonth: number;
+  totalAdjustments: number;
+  totalAdjustmentsAmount: number;
+  positiveAdjustments: number;
+  negativeAdjustments: number;
+  lastAdjustmentAt: string | null;
+  avgPlayerBalance: number;
+  totalCommission: number;
+  retentionRate: number;
+  acquisitionRate: number;
+  activityScore: number;
+  commissionRate: number;
+  createdAt: string;
+  lastActiveAt: string | null;
+}
 
 export default function ReportsPage() {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [reportType, setReportType] = useState<"financial" | "agents" | "players" | "system">("financial");
   const [isGenerating, setIsGenerating] = useState(false);
+  
+  // Agent analytics state
+  const [agentPerformance, setAgentPerformance] = useState<AgentPerformance[]>([]);
+  const [expandedAgent, setExpandedAgent] = useState<string | null>(null);
+  const [isLoadingAgents, setIsLoadingAgents] = useState(false);
+  const [agentPeriod, setAgentPeriod] = useState(30);
+
+  // Fetch agent performance data
+  const fetchAgentPerformance = async () => {
+    setIsLoadingAgents(true);
+    try {
+      const response = await fetch(`/api/admin/agent-performance?period=${agentPeriod}`);
+      if (!response.ok) throw new Error("Failed to fetch agent performance");
+      const data = await response.json();
+      setAgentPerformance(data.agents || []);
+    } catch (error) {
+      toast.error("Failed to load agent analytics");
+      console.error(error);
+    } finally {
+      setIsLoadingAgents(false);
+    }
+  };
+
+  useEffect(() => {
+    if (reportType === "agents") {
+      fetchAgentPerformance();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reportType, agentPeriod]);
+
+  const getTierColor = (tier: string) => {
+    switch (tier) {
+      case "Platinum": return "text-purple-500 bg-purple-500/10 border-purple-500/20";
+      case "Gold": return "text-yellow-500 bg-yellow-500/10 border-yellow-500/20";
+      case "Silver": return "text-gray-400 bg-gray-400/10 border-gray-400/20";
+      case "Bronze": return "text-orange-500 bg-orange-500/10 border-orange-500/20";
+      default: return "text-gray-500 bg-gray-500/10 border-gray-500/20";
+    }
+  };
+
+  const getTierIcon = (tier: string) => {
+    if (tier === "Platinum" || tier === "Gold") return <Trophy size={14} />;
+    if (tier === "Silver") return <Target size={14} />;
+    return <AlertTriangle size={14} />;
+  };
 
   const reportTypes = [
     { id: "financial" as const, label: "Financial", icon: DollarSign, color: "text-blue-500" },
@@ -207,30 +286,262 @@ export default function ReportsPage() {
             </div>
           )}
 
-          {/* Agents Report */}
+          {/* Agents Report - Comprehensive Analytics */}
           {reportType === "agents" && (
             <div className="space-y-4">
-              <div className="flex items-center gap-2 mb-3">
-                <Users size={18} className="text-emerald-500" />
-                <h3 className="font-semibold text-foreground">Agent Performance</h3>
+              {/* Header with Period Selector */}
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Users size={18} className="text-emerald-500" />
+                  <h3 className="font-semibold text-foreground">Agent Performance Analytics</h3>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Calendar size={14} className="text-muted-foreground" />
+                  <select
+                    value={agentPeriod}
+                    onChange={(e) => setAgentPeriod(Number(e.target.value))}
+                    className="text-xs bg-muted border border-border rounded px-2 py-1"
+                  >
+                    <option value={7}>Last 7 Days</option>
+                    <option value={30}>Last 30 Days</option>
+                    <option value={90}>Last 90 Days</option>
+                    <option value={365}>Last Year</option>
+                  </select>
+                </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+
+              {/* Summary Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                 <Card className="p-3 bg-blue-500/10 border-blue-500/20">
-                  <p className="text-xs text-muted-foreground mb-1">Active Agents</p>
-                  <p className="text-2xl font-bold text-foreground">37</p>
-                  <p className="text-xs text-muted-foreground/60 mt-1">Currently managing players</p>
+                  <p className="text-xs text-muted-foreground mb-1">Total Agents</p>
+                  <p className="text-2xl font-bold text-foreground">{agentPerformance.length}</p>
+                  <p className="text-xs text-muted-foreground/60 mt-1">Registered agents</p>
                 </Card>
                 <Card className="p-3 bg-emerald-500/10 border-emerald-500/20">
-                  <p className="text-xs text-muted-foreground mb-1">Total Adjustments</p>
-                  <p className="text-2xl font-bold text-emerald-600">$1,245,890</p>
-                  <p className="text-xs text-emerald-600/80 mt-1">Across all agents</p>
+                  <p className="text-xs text-muted-foreground mb-1">Active Agents</p>
+                  <p className="text-2xl font-bold text-emerald-600">
+                    {agentPerformance.filter(a => a.tier !== "Inactive").length}
+                  </p>
+                  <p className="text-xs text-emerald-600/80 mt-1">Currently active</p>
                 </Card>
                 <Card className="p-3 bg-purple-500/10 border-purple-500/20">
-                  <p className="text-xs text-muted-foreground mb-1">Avg Adjustment</p>
-                  <p className="text-2xl font-bold text-purple-600">$3,367</p>
-                  <p className="text-xs text-purple-600/80 mt-1">Per agent activity</p>
+                  <p className="text-xs text-muted-foreground mb-1">Total Players</p>
+                  <p className="text-2xl font-bold text-purple-600">
+                    {agentPerformance.reduce((sum, a) => sum + a.totalPlayers, 0)}
+                  </p>
+                  <p className="text-xs text-purple-600/80 mt-1">Under management</p>
+                </Card>
+                <Card className="p-3 bg-orange-500/10 border-orange-500/20">
+                  <p className="text-xs text-muted-foreground mb-1">Avg Performance</p>
+                  <p className="text-2xl font-bold text-orange-600">
+                    {agentPerformance.length > 0
+                      ? Math.round(agentPerformance.reduce((sum, a) => sum + a.performanceScore, 0) / agentPerformance.length)
+                      : 0}
+                  </p>
+                  <p className="text-xs text-orange-600/80 mt-1">Performance score</p>
                 </Card>
               </div>
+
+              {/* Loading State */}
+              {isLoadingAgents ? (
+                <div className="flex items-center justify-center py-12">
+                  <RefreshCw size={24} className="animate-spin text-muted-foreground" />
+                </div>
+              ) : agentPerformance.length === 0 ? (
+                <div className="text-center py-12">
+                  <Users size={48} className="mx-auto text-muted-foreground/50 mb-3" />
+                  <p className="text-muted-foreground">No agent data available</p>
+                </div>
+              ) : (
+                /* Agent List with Expandable Details */
+                <div className="space-y-2">
+                  {agentPerformance.map((agent) => (
+                    <Card key={agent.agentId} className="overflow-hidden">
+                      {/* Collapsed View - Summary Row */}
+                      <button
+                        onClick={() => setExpandedAgent(expandedAgent === agent.agentId ? null : agent.agentId)}
+                        className="w-full p-4 flex items-center justify-between hover:bg-muted/30 transition-colors"
+                      >
+                        <div className="flex items-center gap-4 flex-1">
+                          {/* Expand Icon */}
+                          {expandedAgent === agent.agentId ? (
+                            <ChevronDown size={20} className="text-muted-foreground shrink-0" />
+                          ) : (
+                            <ChevronRight size={20} className="text-muted-foreground shrink-0" />
+                          )}
+
+                          {/* Agent Name & Tier */}
+                          <div className="flex items-center gap-3 min-w-0 flex-1">
+                            <div className="min-w-0">
+                              <p className="font-semibold text-foreground text-sm truncate">{agent.agentName}</p>
+                              <p className="text-xs text-muted-foreground truncate">{agent.agentEmail}</p>
+                            </div>
+                            <div className={cn("flex items-center gap-1 px-2 py-1 rounded-md border shrink-0", getTierColor(agent.tier))}>
+                              {getTierIcon(agent.tier)}
+                              <span className="text-xs font-semibold">{agent.tier}</span>
+                            </div>
+                          </div>
+
+                          {/* Key Metrics - Horizontal Layout */}
+                          <div className="hidden md:flex items-center gap-6">
+                            <div className="text-center">
+                              <p className="text-xs text-muted-foreground">Score</p>
+                              <p className="text-sm font-bold text-foreground">{Math.round(agent.performanceScore)}</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-xs text-muted-foreground">Players</p>
+                              <p className="text-sm font-bold text-blue-600">{agent.totalPlayers}</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-xs text-muted-foreground">Active</p>
+                              <p className="text-sm font-bold text-emerald-600">{agent.activePlayers}</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-xs text-muted-foreground">Commission</p>
+                              <p className="text-sm font-bold text-purple-600">
+                                ${agent.totalCommission.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+
+                      {/* Expanded View - Comprehensive Details */}
+                      {expandedAgent === agent.agentId && (
+                        <div className="border-t border-border bg-muted/20 p-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {/* Player Metrics */}
+                            <div className="space-y-3">
+                              <h4 className="text-xs font-semibold text-muted-foreground uppercase flex items-center gap-2">
+                                <Users size={14} />
+                                Player Metrics
+                              </h4>
+                              <div className="space-y-2">
+                                <div className="flex items-center justify-between p-2 rounded bg-background">
+                                  <span className="text-xs text-muted-foreground">Total Players</span>
+                                  <span className="text-sm font-semibold text-foreground">{agent.totalPlayers}</span>
+                                </div>
+                                <div className="flex items-center justify-between p-2 rounded bg-background">
+                                  <span className="text-xs text-muted-foreground">Active Players</span>
+                                  <span className="text-sm font-semibold text-emerald-600">{agent.activePlayers}</span>
+                                </div>
+                                <div className="flex items-center justify-between p-2 rounded bg-background">
+                                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                    <UserPlus size={12} />
+                                    New This Month
+                                  </span>
+                                  <span className="text-sm font-semibold text-blue-600">{agent.newPlayersThisMonth}</span>
+                                </div>
+                                <div className="flex items-center justify-between p-2 rounded bg-background">
+                                  <span className="text-xs text-muted-foreground">Avg Balance</span>
+                                  <span className="text-sm font-semibold text-foreground">
+                                    ${agent.avgPlayerBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Performance Scores */}
+                            <div className="space-y-3">
+                              <h4 className="text-xs font-semibold text-muted-foreground uppercase flex items-center gap-2">
+                                <Target size={14} />
+                                Performance Scores
+                              </h4>
+                              <div className="space-y-2">
+                                <div className="flex items-center justify-between p-2 rounded bg-background">
+                                  <span className="text-xs text-muted-foreground">Overall Score</span>
+                                  <span className="text-sm font-semibold text-purple-600">{Math.round(agent.performanceScore)}/100</span>
+                                </div>
+                                <div className="flex items-center justify-between p-2 rounded bg-background">
+                                  <span className="text-xs text-muted-foreground">Retention Rate</span>
+                                  <span className="text-sm font-semibold text-emerald-600">{Math.round(agent.retentionRate)}%</span>
+                                </div>
+                                <div className="flex items-center justify-between p-2 rounded bg-background">
+                                  <span className="text-xs text-muted-foreground">Acquisition Rate</span>
+                                  <span className="text-sm font-semibold text-blue-600">{Math.round(agent.acquisitionRate)}%</span>
+                                </div>
+                                <div className="flex items-center justify-between p-2 rounded bg-background">
+                                  <span className="text-xs text-muted-foreground">Activity Score</span>
+                                  <span className="text-sm font-semibold text-orange-600">{Math.round(agent.activityScore)}/100</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Financial Activity */}
+                            <div className="space-y-3">
+                              <h4 className="text-xs font-semibold text-muted-foreground uppercase flex items-center gap-2">
+                                <DollarSign size={14} />
+                                Financial Activity
+                              </h4>
+                              <div className="space-y-2">
+                                <div className="flex items-center justify-between p-2 rounded bg-background">
+                                  <span className="text-xs text-muted-foreground">Total Adjustments</span>
+                                  <span className="text-sm font-semibold text-foreground">{agent.totalAdjustments}</span>
+                                </div>
+                                <div className="flex items-center justify-between p-2 rounded bg-background">
+                                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                    <TrendingUp size={12} className="text-green-600" />
+                                    Positive
+                                  </span>
+                                  <span className="text-sm font-semibold text-green-600">{agent.positiveAdjustments}</span>
+                                </div>
+                                <div className="flex items-center justify-between p-2 rounded bg-background">
+                                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                    <TrendingDown size={12} className="text-red-600" />
+                                    Negative
+                                  </span>
+                                  <span className="text-sm font-semibold text-red-600">{agent.negativeAdjustments}</span>
+                                </div>
+                                <div className="flex items-center justify-between p-2 rounded bg-background">
+                                  <span className="text-xs text-muted-foreground">Total Commission</span>
+                                  <span className="text-sm font-semibold text-purple-600">
+                                    ${agent.totalCommission.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Status Indicators */}
+                          <div className="mt-4 pt-4 border-t border-border flex items-center justify-between">
+                            <div className="flex items-center gap-4 text-xs">
+                              <div className="flex items-center gap-1">
+                                <CheckCircle size={14} className="text-emerald-500" />
+                                <span className="text-muted-foreground">Registered:</span>
+                                <span className="font-medium text-foreground">
+                                  {new Date(agent.createdAt).toLocaleDateString()}
+                                </span>
+                              </div>
+                              {agent.lastActiveAt && (
+                                <div className="flex items-center gap-1">
+                                  <Activity size={14} className="text-blue-500" />
+                                  <span className="text-muted-foreground">Last Active:</span>
+                                  <span className="font-medium text-foreground">
+                                    {new Date(agent.lastActiveAt).toLocaleDateString()}
+                                  </span>
+                                </div>
+                              )}
+                              {agent.lastAdjustmentAt && (
+                                <div className="flex items-center gap-1">
+                                  <DollarSign size={14} className="text-purple-500" />
+                                  <span className="text-muted-foreground">Last Adjustment:</span>
+                                  <span className="font-medium text-foreground">
+                                    {new Date(agent.lastAdjustmentAt).toLocaleDateString()}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1 text-xs">
+                              <span className="text-muted-foreground">Commission Rate:</span>
+                              <span className="font-semibold text-foreground">{agent.commissionRate}%</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </Card>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 

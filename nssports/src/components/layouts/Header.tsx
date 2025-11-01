@@ -244,27 +244,28 @@ export function Header() {
       </div>
 
       {/* Desktop Account Button with Dropdown - Top Right */}
-      <div className="hidden md:flex absolute right-4 top-1/2 -translate-y-1/2">
-        {isAuthenticated ? (
-          <div className="relative group">
-            <div
-              ref={accountBtnRef}
-              onMouseEnter={() => setShowDropdown(true)}
-              onMouseLeave={() => setShowDropdown(false)}
-              className="inline-block"
-            >
-              <Button
-                variant={pathname === "/account" ? "default" : "ghost"}
-                size="sm"
-                asChild
-                className="flex items-center"
+      {!pathname?.startsWith('/admin') && (
+        <div className="hidden md:flex absolute right-4 top-1/2 -translate-y-1/2">
+          {isAuthenticated ? (
+            <div className="relative group">
+              <div
+                ref={accountBtnRef}
+                onMouseEnter={() => setShowDropdown(true)}
+                onMouseLeave={() => setShowDropdown(false)}
+                className="inline-block"
               >
-                <Link href="/account">
-                  <User size={16} className="mr-1" />
-                  Account
-                </Link>
-              </Button>
-            </div>
+                <Button
+                  variant={pathname === "/account" ? "default" : "ghost"}
+                  size="sm"
+                  asChild
+                  className="flex items-center"
+                >
+                  <Link href="/account">
+                    <User size={16} className="mr-1" />
+                    Account
+                  </Link>
+                </Button>
+              </div>
             {showDropdown && createPortal(
               // Portal dropdown requires dynamic positioning based on trigger button location
               <div
@@ -339,24 +340,27 @@ export function Header() {
             </Button>
           </div>
         )}
-      </div>
+        </div>
+      )}
 
       {/* Mobile Account Icon with Dropdown - Top Right */}
-      <div 
-        className="md:hidden absolute top-1/2 -translate-y-1/2 flex items-center"
-        style={{
-          right: 'max(1rem, env(safe-area-inset-right))',
-        }}
-      >
-        <MobileAccountDropdown 
-          balance={balance}
-          available={available}
-          risk={risk}
-          isAuthenticated={isAuthenticated}
-          userEmail={session?.user?.email}
-          onLogout={handleLogout}
-        />
-      </div>
+      {!pathname?.startsWith('/admin') && (
+        <div 
+          className="md:hidden absolute top-1/2 -translate-y-1/2 flex items-center"
+          style={{
+            right: 'max(1rem, env(safe-area-inset-right))',
+          }}
+        >
+          <MobileAccountDropdown 
+            balance={balance}
+            available={available}
+            risk={risk}
+            isAuthenticated={isAuthenticated}
+            userEmail={session?.user?.email}
+            onLogout={handleLogout}
+          />
+        </div>
+      )}
     </header>
   );
 }

@@ -10,17 +10,31 @@ import {
   UserCog,
   Plus,
   Search,
-  Edit,
   Eye,
   Ban,
   CheckCircle,
   Clock,
   Users,
   DollarSign,
+  ChevronDown,
+  ChevronRight,
+  TrendingUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { toast } from "sonner";
+
+interface Player {
+  id: string;
+  username: string;
+  displayName: string | null;
+  balance: number;
+  status: string;
+  totalBets: number;
+  totalWagered: number;
+  lastBetAt: string | null;
+  registeredAt: string;
+}
 
 interface Agent {
   id: string;
@@ -33,6 +47,7 @@ interface Agent {
   playerCount: number;
   todayAdjustments: number;
   createdAt: string;
+  players?: Player[];
 }
 
 export default function AgentsPage() {
@@ -40,6 +55,8 @@ export default function AgentsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [expandedAgents, setExpandedAgents] = useState<Set<string>>(new Set());
+  const [loadingPlayers, setLoadingPlayers] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetchAgents();
@@ -76,6 +93,72 @@ export default function AgentsPage() {
       }
     } catch {
       toast.error("Failed to update agent status");
+    }
+  };
+
+  const toggleAgentExpansion = async (agentId: string) => {
+    const newExpanded = new Set(expandedAgents);
+    
+    if (expandedAgents.has(agentId)) {
+      // Collapse
+      newExpanded.delete(agentId);
+      setExpandedAgents(newExpanded);
+    } else {
+      // Expand and load players if not already loaded
+      newExpanded.add(agentId);
+      setExpandedAgents(newExpanded);
+      
+      const agent = agents.find((a) => a.id === agentId);
+      if (agent && !agent.players) {
+        await fetchAgentPlayers(agentId);
+      }
+    }
+  };
+
+  const fetchAgentPlayers = async (agentId: string) => {
+    setLoadingPlayers(new Set(loadingPlayers).add(agentId));
+    
+    try {
+      const response = await fetch(`/api/admin/agents/${agentId}/players`);
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Update the agent with players data
+        setAgents((prevAgents) =>
+          prevAgents.map((agent) =>
+            agent.id === agentId ? { ...agent, players: data.players } : agent
+          )
+        );
+      } else {
+        toast.error("Failed to load agent players");
+      }
+    } catch (error) {
+      console.error("Failed to fetch agent players:", error);
+      toast.error("Failed to load agent players");
+    } finally {
+      const newLoading = new Set(loadingPlayers);
+      newLoading.delete(agentId);
+      setLoadingPlayers(newLoading);
+    }
+  };
+
+  const handlePlayerStatusChange = async (playerId: string, newStatus: string, agentId: string) => {
+    try {
+      const response = await fetch(`/api/admin/players/${playerId}/status`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (response.ok) {
+        toast.success(`Player ${newStatus === "active" ? "activated" : "suspended"} successfully`);
+        // Refresh agent's players
+        await fetchAgentPlayers(agentId);
+      } else {
+        throw new Error("Failed to update status");
+      }
+    } catch {
+      toast.error("Failed to update player status");
     }
   };
 
@@ -217,123 +300,246 @@ export default function AgentsPage() {
           </div>
         </Card>
 
-        {/* Agents Table - Mobile Optimized */}
-        <Card className="overflow-hidden">
-          <div className="overflow-x-auto seamless-scroll" data-mobile-scroll>
-            <table className="w-full min-w-[640px]">
-              <thead className="bg-muted/50 border-b border-border">
-                <tr>
-                  <th className="text-left p-3 font-semibold text-xs sm:text-sm">Username</th>
-                  <th className="text-left p-3 font-semibold text-xs sm:text-sm">Status</th>
-                  <th className="text-left p-3 font-semibold text-xs sm:text-sm">Players</th>
-                  <th className="text-left p-3 font-semibold text-xs sm:text-sm">Last Active</th>
-                  <th className="text-left p-3 font-semibold text-xs sm:text-sm">Daily Adjustments</th>
-                  <th className="text-right p-3 font-semibold text-xs sm:text-sm">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredAgents.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="text-center py-8 text-muted-foreground">
-                      <UserCog className="w-10 h-10 mx-auto mb-2 opacity-50" />
-                      <p className="text-sm">No agents found</p>
-                    </td>
-                  </tr>
-                ) : (
-                  filteredAgents.map((agent) => (
-                    <tr
-                      key={agent.id}
-                      className="border-b border-border hover:bg-muted/20 transition-colors touch-action-manipulation"
-                    >
-                      <td className="p-3">
-                        <div>
-                          <p className="font-medium text-foreground text-sm">{agent.username}</p>
-                          {agent.displayName && (
-                            <p className="text-xs text-muted-foreground">{agent.displayName}</p>
-                          )}
+        {/* Agents List - Expandable with Players */}
+        <div className="space-y-2">
+          {filteredAgents.length === 0 ? (
+            <Card className="p-8">
+              <div className="text-center text-muted-foreground">
+                <UserCog className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">No agents found</p>
+              </div>
+            </Card>
+          ) : (
+            filteredAgents.map((agent) => {
+              const isExpanded = expandedAgents.has(agent.id);
+              const isLoadingPlayers = loadingPlayers.has(agent.id);
+              
+              return (
+                <Card key={agent.id} className="overflow-hidden">
+                  {/* Agent Header Row */}
+                  <div
+                    className="p-4 hover:bg-muted/20 transition-colors cursor-pointer touch-action-manipulation"
+                    onClick={() => toggleAgentExpansion(agent.id)}
+                  >
+                    <div className="flex items-center gap-4">
+                      {/* Expand/Collapse Icon */}
+                      <div className="shrink-0">
+                        {isExpanded ? (
+                          <ChevronDown className="w-5 h-5 text-muted-foreground" />
+                        ) : (
+                          <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                        )}
+                      </div>
+
+                      {/* Agent Info */}
+                      <div className="flex-1 grid grid-cols-1 sm:grid-cols-5 gap-4">
+                        {/* Username & Display Name */}
+                        <div className="flex items-center gap-2">
+                          <UserCog className="w-5 h-5 text-blue-600 shrink-0" />
+                          <div className="min-w-0">
+                            <p className="font-medium text-foreground text-sm truncate">
+                              {agent.username}
+                            </p>
+                            {agent.displayName && (
+                              <p className="text-xs text-muted-foreground truncate">
+                                {agent.displayName}
+                              </p>
+                            )}
+                          </div>
                         </div>
-                      </td>
-                      <td className="p-4">
-                        <Badge
-                          className={cn(
-                            agent.status === "active" &&
-                              "bg-green-500/10 text-green-600 border-green-500/20",
-                            agent.status === "idle" &&
-                              "bg-yellow-500/10 text-yellow-600 border-yellow-500/20",
-                            agent.status === "suspended" &&
-                              "bg-red-500/10 text-red-600 border-red-500/20"
-                          )}
-                        >
-                          {agent.status === "active" && <CheckCircle size={12} className="mr-1" />}
-                          {agent.status === "idle" && <Clock size={12} className="mr-1" />}
-                          {agent.status === "suspended" && <Ban size={12} className="mr-1" />}
-                          {agent.status.charAt(0).toUpperCase() + agent.status.slice(1)}
-                        </Badge>
-                      </td>
-                      <td className="p-4">
-                        <div className="flex items-center gap-1">
-                          <Users size={14} className="text-muted-foreground" />
-                          <span className="font-medium">{agent.playerCount}</span>
-                        </div>
-                      </td>
-                      <td className="p-4 text-sm text-muted-foreground">
-                        {agent.lastLogin
-                          ? new Date(agent.lastLogin).toLocaleString()
-                          : "Never"}
-                      </td>
-                      <td className="p-4">
-                        <div className="text-sm">
-                          <span className="font-medium text-foreground">
-                            ${agent.todayAdjustments.toLocaleString()}
-                          </span>
-                          <span className="text-muted-foreground">
-                            {" "}
-                            / ${agent.dailyAdjustmentLimit.toLocaleString()}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <div className="flex items-center justify-end gap-2">
-                          <Link href={`/admin/agents/${agent.id}`}>
-                            <Button variant="ghost" size="sm">
-                              <Eye size={16} />
-                            </Button>
-                          </Link>
-                          <Link href={`/admin/agents/${agent.id}/edit`}>
-                            <Button variant="ghost" size="sm">
-                              <Edit size={16} />
-                            </Button>
-                          </Link>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() =>
-                              handleStatusChange(
-                                agent.id,
-                                agent.status === "active" ? "suspended" : "active"
-                              )
-                            }
+
+                        {/* Status */}
+                        <div className="flex items-center">
+                          <Badge
                             className={cn(
-                              agent.status === "active"
-                                ? "text-red-600 hover:text-red-700 hover:bg-red-500/10"
-                                : "text-green-600 hover:text-green-700 hover:bg-green-500/10"
+                              "text-xs",
+                              agent.status === "active" &&
+                                "bg-green-500/10 text-green-600 border-green-500/20",
+                              agent.status === "idle" &&
+                                "bg-yellow-500/10 text-yellow-600 border-yellow-500/20",
+                              agent.status === "suspended" &&
+                                "bg-red-500/10 text-red-600 border-red-500/20"
                             )}
                           >
-                            {agent.status === "active" ? (
-                              <Ban size={16} />
-                            ) : (
-                              <CheckCircle size={16} />
-                            )}
-                          </Button>
+                            {agent.status === "active" && <CheckCircle size={12} className="mr-1" />}
+                            {agent.status === "idle" && <Clock size={12} className="mr-1" />}
+                            {agent.status === "suspended" && <Ban size={12} className="mr-1" />}
+                            {agent.status.charAt(0).toUpperCase() + agent.status.slice(1)}
+                          </Badge>
                         </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </Card>
+
+                        {/* Players Count */}
+                        <div className="flex items-center gap-2">
+                          <Users size={14} className="text-muted-foreground shrink-0" />
+                          <span className="text-sm">
+                            <span className="font-semibold">{agent.playerCount}</span>
+                            <span className="text-muted-foreground text-xs ml-1">players</span>
+                          </span>
+                        </div>
+
+                        {/* Daily Adjustments */}
+                        <div className="flex items-center gap-2">
+                          <DollarSign size={14} className="text-emerald-600 shrink-0" />
+                          <span className="text-sm">
+                            <span className="font-semibold">
+                              ${agent.todayAdjustments.toLocaleString()}
+                            </span>
+                            <span className="text-muted-foreground text-xs">
+                              {" "}/ ${agent.dailyAdjustmentLimit.toLocaleString()}
+                            </span>
+                          </span>
+                        </div>
+
+                        {/* Last Active */}
+                        <div className="text-xs text-muted-foreground">
+                          {agent.lastLogin
+                            ? new Date(agent.lastLogin).toLocaleDateString()
+                            : "Never active"}
+                        </div>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleStatusChange(
+                              agent.id,
+                              agent.status === "active" ? "suspended" : "active"
+                            );
+                          }}
+                          className={cn(
+                            "touch-action-manipulation",
+                            agent.status === "active"
+                              ? "text-red-600 hover:text-red-700 hover:bg-red-500/10"
+                              : "text-green-600 hover:text-green-700 hover:bg-green-500/10"
+                          )}
+                        >
+                          {agent.status === "active" ? (
+                            <Ban size={16} />
+                          ) : (
+                            <CheckCircle size={16} />
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Expanded Players Section */}
+                  {isExpanded && (
+                    <div className="border-t border-border bg-muted/30">
+                      {isLoadingPlayers ? (
+                        <div className="p-8 text-center">
+                          <div className="w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                          <p className="text-sm text-muted-foreground">Loading players...</p>
+                        </div>
+                      ) : agent.players && agent.players.length > 0 ? (
+                        <div className="p-4">
+                          <div className="flex items-center gap-2 mb-3">
+                            <Users className="w-4 h-4 text-purple-600" />
+                            <h4 className="text-sm font-semibold text-foreground">
+                              Agent&apos;s Players ({agent.players.length})
+                            </h4>
+                          </div>
+                          
+                          <div className="space-y-2">
+                            {agent.players.map((player) => (
+                              <div
+                                key={player.id}
+                                className="bg-background rounded-lg p-3 border border-border hover:border-accent/50 transition-colors"
+                              >
+                                <div className="flex items-center justify-between gap-4">
+                                  {/* Player Info */}
+                                  <div className="flex-1 grid grid-cols-1 sm:grid-cols-4 gap-3 items-center">
+                                    <div>
+                                      <p className="font-medium text-sm">{player.username}</p>
+                                      {player.displayName && (
+                                        <p className="text-xs text-muted-foreground">
+                                          {player.displayName}
+                                        </p>
+                                      )}
+                                    </div>
+
+                                    <div className="flex items-center gap-2">
+                                      <Badge
+                                        variant="outline"
+                                        className={cn(
+                                          "text-xs",
+                                          player.status === "active" && "border-green-500/50 text-green-600",
+                                          player.status === "suspended" && "border-red-500/50 text-red-600"
+                                        )}
+                                      >
+                                        {player.status}
+                                      </Badge>
+                                    </div>
+
+                                    <div className="flex items-center gap-2">
+                                      <DollarSign size={12} className="text-emerald-600" />
+                                      <span className="text-sm font-semibold">
+                                        ${player.balance.toLocaleString()}
+                                      </span>
+                                    </div>
+
+                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                      <TrendingUp size={12} />
+                                      <span>{player.totalBets} bets</span>
+                                      <span className="hidden sm:inline">
+                                        • ${player.totalWagered.toLocaleString()} wagered
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  {/* Player Actions */}
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    <Link href={`/admin/players/${player.id}`}>
+                                      <Button variant="ghost" size="sm" onClick={(e) => e.stopPropagation()}>
+                                        <Eye size={14} />
+                                      </Button>
+                                    </Link>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handlePlayerStatusChange(
+                                          player.id,
+                                          player.status === "active" ? "suspended" : "active",
+                                          agent.id
+                                        );
+                                      }}
+                                      className={cn(
+                                        player.status === "active"
+                                          ? "text-red-600 hover:bg-red-500/10"
+                                          : "text-green-600 hover:bg-green-500/10"
+                                      )}
+                                    >
+                                      {player.status === "active" ? (
+                                        <Ban size={14} />
+                                      ) : (
+                                        <CheckCircle size={14} />
+                                      )}
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="p-8 text-center text-muted-foreground">
+                          <Users className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                          <p className="text-sm">No players registered with this agent</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </Card>
+              );
+            })
+          )}
+        </div>
       </div>
     </AdminDashboardLayout>
   );

@@ -6,12 +6,11 @@ import { useAdminAuth } from "@/context/AdminAuthContext";
 import { Header } from "@/components/layouts";
 import { 
   LayoutDashboard, 
-  Users, 
   UserCog, 
   DollarSign, 
   BarChart3, 
-  Settings, 
-  Shield
+  Shield,
+  Scale
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -23,11 +22,10 @@ interface AdminDashboardLayoutProps {
 
 const navigationItems = [
   { href: "/admin/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { href: "/admin/agents", icon: UserCog, label: "Agents" },
-  { href: "/admin/players", icon: Users, label: "Players" },
+  { href: "/admin/agents", icon: UserCog, label: "Agents & Players" },
   { href: "/admin/balances", icon: DollarSign, label: "Balances" },
+  { href: "/admin/reconciliation", icon: Scale, label: "Reconcile" },
   { href: "/admin/reports", icon: BarChart3, label: "Reports" },
-  { href: "/admin/config", icon: Settings, label: "Config" },
   { href: "/admin/security", icon: Shield, label: "Security" },
 ];
 

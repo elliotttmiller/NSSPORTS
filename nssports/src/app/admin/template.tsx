@@ -3,20 +3,24 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePathname } from 'next/navigation';
 
-// Define the animation variants - crossfade for smooth transitions
+// Smooth crossfade variants - no white flash
 const variants = {
   hidden: { opacity: 0 },
   enter: { opacity: 1 },
   exit: { opacity: 0 },
 };
 
-export default function Template({ children }: { children: React.ReactNode }) {
+/**
+ * Admin Dashboard Template
+ * Provides smooth page transitions for all admin routes
+ * Uses crossfade animation to prevent white flash
+ */
+export default function AdminTemplate({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   return (
     <AnimatePresence mode="popLayout" initial={false}>
       <motion.div
-        // The `key` is crucial for AnimatePresence to detect when a new page is rendered
         key={pathname}
         variants={variants}
         initial="hidden"
