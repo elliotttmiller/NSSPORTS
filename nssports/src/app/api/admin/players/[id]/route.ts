@@ -14,11 +14,14 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { id: playerId } = await params;
+    const { id: playerIdentifier } = await params;
 
-    // Fetch player with all related data
-    const player = await prisma.user.findUnique({
-      where: { id: playerId },
+    console.log('[Player Details API] Looking up player with identifier:', playerIdentifier);
+
+    // playerIdentifier could be either a User ID or DashboardPlayer ID
+    // First try to find by User ID, then by username (from DashboardPlayer)
+    let player = await prisma.user.findUnique({
+      where: { id: playerIdentifier },
       include: {
         account: {
           select: { balance: true },
@@ -41,9 +44,53 @@ export async function GET(
       },
     });
 
+    console.log('[Player Details API] User lookup by ID result:', player ? 'Found' : 'Not found');
+
+    // If not found by User ID, try looking up by DashboardPlayer ID -> username -> User
     if (!player) {
+      console.log('[Player Details API] Trying DashboardPlayer lookup...');
+      const dashboardPlayer = await prisma.dashboardPlayer.findUnique({
+        where: { id: playerIdentifier },
+        select: { username: true },
+      });
+
+      console.log('[Player Details API] DashboardPlayer result:', dashboardPlayer ? `Found: ${dashboardPlayer.username}` : 'Not found');
+
+      if (dashboardPlayer) {
+        console.log('[Player Details API] Looking up User by username:', dashboardPlayer.username);
+        player = await prisma.user.findFirst({
+          where: { username: dashboardPlayer.username },
+          include: {
+            account: {
+              select: { balance: true },
+            },
+            bets: {
+              orderBy: { placedAt: "desc" },
+              take: 50,
+              include: {
+                game: {
+                  select: {
+                    homeTeam: true,
+                    awayTeam: true,
+                  },
+                },
+              },
+            },
+            _count: {
+              select: { bets: true },
+            },
+          },
+        });
+        console.log('[Player Details API] User lookup by username result:', player ? 'Found' : 'Not found');
+      }
+    }
+
+    if (!player) {
+      console.log('[Player Details API] Final result: Player not found after all lookups');
       return NextResponse.json({ error: "Player not found" }, { status: 404 });
     }
+
+    console.log('[Player Details API] Successfully found player:', player.username);
 
     // Calculate balance metrics
     const balance = player.account ? Number(player.account.balance) : 0;
@@ -71,8 +118,19 @@ export async function GET(
         selection = `${bet.game.awayTeam.name} @ ${bet.game.homeTeam.name}`;
         if (bet.selection) selection += ` - ${bet.selection}`;
       } else if (bet.betType === "parlay" || bet.betType === "teaser") {
-        const legCount = bet.legs ? JSON.parse(bet.legs as string).length : 0;
-        selection = `${legCount} leg ${bet.betType}`;
+        // bet.legs might be null, a string, or already parsed object
+        if (bet.legs) {
+          try {
+            const legs = typeof bet.legs === 'string' ? JSON.parse(bet.legs) : bet.legs;
+            const legCount = Array.isArray(legs) ? legs.length : 0;
+            selection = `${legCount} leg ${bet.betType}`;
+          } catch {
+            // If parsing fails, just show bet type
+            selection = bet.betType;
+          }
+        } else {
+          selection = bet.betType;
+        }
       }
 
       return {

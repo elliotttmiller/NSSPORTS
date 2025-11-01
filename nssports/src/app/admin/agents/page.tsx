@@ -209,7 +209,7 @@ export default function AgentsPage() {
             </p>
           </div>
           <Link href="/admin/agents/create" className="touch-action-manipulation">
-            <Button className="bg-blue-600 hover:bg-blue-700 gap-2 w-full sm:w-auto active:scale-95 transition-transform">
+            <Button className="bg-emerald-600 hover:bg-emerald-700 gap-2 w-full sm:w-auto active:scale-95 transition-transform">
               <Plus size={18} />
               Create New Agent
             </Button>
@@ -478,7 +478,6 @@ export default function AgentsPage() {
                                   <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
                                     {/* Available */}
                                     <div className="flex items-center gap-1 shrink-0">
-                                      <DollarSign size={11} className="text-accent" />
                                       <span className="text-xs font-semibold text-accent">
                                         ${player.available?.toLocaleString() || '0'}
                                       </span>
@@ -501,7 +500,6 @@ export default function AgentsPage() {
 
                                     {/* Balance */}
                                     <div className="flex items-center gap-1 shrink-0">
-                                      <DollarSign size={11} className="text-foreground" />
                                       <span className="text-xs font-semibold text-foreground">
                                         ${player.balance?.toLocaleString() || '0'}
                                       </span>
