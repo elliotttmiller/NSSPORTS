@@ -91,6 +91,44 @@ function AuthenticatedHomePage({ session }: { session: Session }) {
     return liveGamesData.filter(game => shouldShowInCurrentContext(game, 'live'));
   }, [liveGamesData, shouldShowInCurrentContext]);
   
+  // ⭐ Sport/League Filter State
+  const [selectedSport, setSelectedSport] = useState<string>("all");
+  
+  // Extract unique sports from live games with counts
+  const availableSports = useMemo(() => {
+    const sportCounts = new Map<string, number>();
+    filteredLiveGames.forEach(game => {
+      if (game.leagueId) {
+        sportCounts.set(game.leagueId, (sportCounts.get(game.leagueId) || 0) + 1);
+      }
+    });
+    
+    const sports = [
+      { name: "all", count: filteredLiveGames.length },
+      ...Array.from(sportCounts.entries())
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([name, count]) => ({ name, count }))
+    ];
+    
+    return sports;
+  }, [filteredLiveGames]);
+  
+  // Filter games by selected sport
+  const trendingGames = useMemo(() => {
+    const games = selectedSport === "all" 
+      ? filteredLiveGames 
+      : filteredLiveGames.filter(game => game.leagueId === selectedSport);
+    return games.slice(0, 5); // Show only first 5 games
+  }, [filteredLiveGames, selectedSport]);
+  
+  // Debug: Log available sports for troubleshooting
+  useEffect(() => {
+    if (availableSports.length > 0) {
+      console.log('[HomePage] Available sports filter:', availableSports);
+      console.log('[HomePage] Total live games:', filteredLiveGames.length);
+    }
+  }, [availableSports, filteredLiveGames.length]);
+  
   // API-driven account stats
   const { data: account, isLoading: accountLoading } = useAccount();
   const balance = account?.balance ?? 0;
@@ -159,8 +197,6 @@ function AuthenticatedHomePage({ session }: { session: Session }) {
     );
   }
 
-  // Display first 5 live matches as trending (only truly live games)
-  const trendingGames = filteredLiveGames.slice(0, 5);
   const displayName = session?.user?.name || session?.user?.username || 'NorthStar User';
 
   return (
@@ -232,6 +268,44 @@ function AuthenticatedHomePage({ session }: { session: Session }) {
               </h2>
             </div>
             
+            {/* Sport/League Filter - Always Visible */}
+            <div className="mb-4 -mx-6 md:-mx-8 xl:-mx-12 px-6 md:px-8 xl:px-12">
+              <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2 snap-x snap-mandatory">
+                {availableSports.map((sport) => {
+                  const isSelected = selectedSport === sport.name;
+                  const sportLabel = sport.name === "all" ? "All Sports" : sport.name.toUpperCase();
+                  
+                  return (
+                    <button
+                      key={sport.name}
+                      onClick={() => setSelectedSport(sport.name)}
+                      className={`
+                        snap-start shrink-0 px-4 py-2 rounded-full text-xs sm:text-sm font-medium
+                        transition-all duration-300 ease-out
+                        touch-action-manipulation active:scale-95
+                        flex items-center gap-2
+                        ${isSelected 
+                          ? 'bg-accent text-accent-foreground shadow-lg shadow-accent/20 scale-105' 
+                          : 'bg-card/50 text-muted-foreground hover:bg-card hover:text-foreground border border-border/30'
+                        }
+                      `}
+                    >
+                      <span>{sportLabel}</span>
+                      <span className={`
+                        inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-xs font-bold
+                        ${isSelected 
+                          ? 'bg-accent-foreground/20 text-accent-foreground' 
+                          : 'bg-accent/10 text-accent'
+                        }
+                      `}>
+                        {sport.count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            
             {/* Games List - Responsive like /live page */}
             {/* Protocol IV: Universal UI State Handling */}
             <div className="space-y-3">
@@ -258,13 +332,29 @@ function AuthenticatedHomePage({ session }: { session: Session }) {
                 </div>
               ) : trendingGames.length === 0 ? (
                 <div className="text-center py-12">
-                  <p className="text-muted-foreground">No trending games right now.</p>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Check back later for live games
+                  <p className="text-muted-foreground">
+                    {selectedSport === "all" 
+                      ? "No trending games right now." 
+                      : `No live ${selectedSport.toUpperCase()} games right now.`}
                   </p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    {selectedSport === "all" 
+                      ? "Check back later for live games" 
+                      : "Try selecting a different sport or view all sports"}
+                  </p>
+                  {selectedSport !== "all" && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-4"
+                      onClick={() => setSelectedSport("all")}
+                    >
+                      View All Sports
+                    </Button>
+                  )}
                 </div>
               ) : (
-                <>
+                <div key={selectedSport} className="animate-in fade-in duration-300">
                   {/* Desktop Table Header */}
                   <DesktopGameTableHeader />
                   
@@ -290,7 +380,7 @@ function AuthenticatedHomePage({ session }: { session: Session }) {
                       </div>
                     </div>
                   ))}
-                </>
+                </div>
               )}
             </div>
             
