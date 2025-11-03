@@ -35,44 +35,92 @@ function AuthenticatedHomePage({ session }: { session: Session }) {
   // ⭐ Fetch live games from dedicated /api/games/live endpoint
   const [liveGamesData, setLiveGamesData] = useState<Game[]>([]);
   const [isDataLoading, setIsDataLoading] = useState(true);
+  const [_isBackgroundRefreshing, setIsBackgroundRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
+  // Mobile optimization: Track page visibility to pause updates when app is backgrounded
+  const [_isPageVisible, setIsPageVisible] = useState(true);
+  
   // Fetch live games on mount
-  const fetchLiveGames = useCallback(async () => {
-    setIsDataLoading(true);
+  const fetchLiveGames = useCallback(async (isBackgroundUpdate = false) => {
+    // Use separate loading state for background updates to preserve mobile bet slip state
+    if (isBackgroundUpdate) {
+      setIsBackgroundRefreshing(true);
+    } else {
+      setIsDataLoading(true);
+    }
+    
     setError(null);
     try {
-      console.log('[HomePage] Fetching live games from /api/games/live...');
-      const response = await fetch('/api/games/live');
+      console.log(`[HomePage Mobile] ${isBackgroundUpdate ? 'Background refreshing odds' : 'Initial fetch'} from /api/games/live...`);
+      const response = await fetch('/api/games/live', {
+        // Mobile: Add cache control to get fresh data without page reload
+        headers: {
+          'Cache-Control': 'no-cache',
+        },
+        // Mobile: Add timeout for slow connections
+        signal: AbortSignal.timeout(8000), // 8 second timeout for mobile
+      });
       if (!response.ok) {
         throw new Error(`Failed to fetch: ${response.status}`);
       }
       const json = await response.json();
       const games = Array.isArray(json.data) ? json.data : [];
-      console.log(`[HomePage] Fetched ${games.length} live games for trending section`);
+      console.log(`[HomePage Mobile] ${isBackgroundUpdate ? '✅ Odds refreshed' : '✅ Games loaded'} - ${games.length} live games (bet slip preserved)`);
       setLiveGamesData(games);
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to fetch live games';
-      console.error('[HomePage] Error:', errorMsg);
-      setError(errorMsg);
+      console.error('[HomePage Mobile] Error:', errorMsg);
+      // Mobile: Only set error on initial load to avoid disrupting user experience
+      if (!isBackgroundUpdate) {
+        setError(errorMsg);
+      } else {
+        console.log('[HomePage Mobile] Background refresh failed - keeping existing odds');
+      }
     } finally {
-      setIsDataLoading(false);
+      if (isBackgroundUpdate) {
+        setIsBackgroundRefreshing(false);
+      } else {
+        setIsDataLoading(false);
+      }
     }
   }, []);
   
   useEffect(() => {
-    fetchLiveGames();
+    const handleVisibilityChange = () => {
+      setIsPageVisible(!document.hidden);
+      if (!document.hidden) {
+        console.log('[HomePage Mobile] Page visible - triggering immediate refresh');
+        fetchLiveGames(true); // Refresh when user returns to page
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [fetchLiveGames]);
   
-  // ⭐ Auto-refresh live games every 30 seconds to catch new live games
   useEffect(() => {
+    fetchLiveGames(false); // Initial load
+  }, [fetchLiveGames]);
+  
+  // ⭐ Mobile-Optimized Auto-refresh: Updates odds every 30s WITHOUT page refresh
+  // ✅ Preserves user's bet selections and UI state
+  // ✅ Only refreshes when page is visible (saves mobile battery)
+  // ✅ Silent updates - no loading spinners or interruptions
+  useEffect(() => {
+    // Only run interval when page is visible
+    if (!_isPageVisible) {
+      console.log('[HomePage Mobile] Page hidden - pausing auto-refresh to save battery');
+      return;
+    }
+    
     const interval = setInterval(() => {
-      console.log('[HomePage] Auto-refreshing live games...');
-      fetchLiveGames();
+      console.log('[HomePage Mobile] 🔄 Auto-refreshing odds (silent, preserves bet slip)...');
+      fetchLiveGames(true); // Background update
     }, 30000); // 30 seconds
     
     return () => clearInterval(interval);
-  }, [fetchLiveGames]);
+  }, [fetchLiveGames, _isPageVisible]);
   
   // OPTIONAL ENHANCEMENT: WebSocket streaming for instant updates
   // - When enabled: <1s update latency via 'events:live' feed
@@ -81,6 +129,39 @@ function AuthenticatedHomePage({ session }: { session: Session }) {
   const enableStreaming = useLiveDataStore((state) => state.enableStreaming);
   const disableStreaming = useLiveDataStore((state) => state.disableStreaming);
   const streamingEnabled = useLiveDataStore((state) => state.streamingEnabled);
+  
+  // ⭐ Subscribe to streaming updates from liveDataStore
+  // This syncs WebSocket odds updates with the homepage's local state
+  const storeMatches = useLiveDataStore((state) => state.matches);
+  
+  useEffect(() => {
+    // When streaming updates the store, merge those updates into our local state
+    if (streamingEnabled && storeMatches.length > 0) {
+      console.log('[HomePage] Syncing streaming updates from liveDataStore...');
+      setLiveGamesData(prevGames => {
+        // Only update if we have local games
+        if (prevGames.length === 0) return prevGames;
+        
+        // Merge streaming updates (odds, status) into local games
+        return prevGames.map(localGame => {
+          const streamedGame = storeMatches.find(g => g.id === localGame.id);
+          if (streamedGame) {
+            // Merge streaming updates while preserving other local data
+            return {
+              ...localGame,
+              odds: streamedGame.odds, // Updated odds from WebSocket
+              status: streamedGame.status, // Updated status from WebSocket
+              homeScore: streamedGame.homeScore,
+              awayScore: streamedGame.awayScore,
+              period: streamedGame.period,
+              timeRemaining: streamedGame.timeRemaining,
+            };
+          }
+          return localGame;
+        });
+      });
+    }
+  }, [storeMatches, streamingEnabled]);
   
   // ⭐ Game Transition Hook: Monitor status changes
   // Automatically filter out games that transition to 'finished'
@@ -118,7 +199,7 @@ function AuthenticatedHomePage({ session }: { session: Session }) {
     const games = selectedSport === "all" 
       ? filteredLiveGames 
       : filteredLiveGames.filter(game => game.leagueId === selectedSport);
-    return games.slice(0, 5); // Show only first 5 games
+    return games.slice(0, 10); // Show maximum 10 trending games
   }, [filteredLiveGames, selectedSport]);
   
   // Debug: Log available sports for troubleshooting
@@ -139,13 +220,16 @@ function AuthenticatedHomePage({ session }: { session: Session }) {
   const [isComponentReady, setIsComponentReady] = useState(false);
   const [showTimeout, setShowTimeout] = useState(false);
   
-  // OPTIONAL: Enable WebSocket streaming for <1s latency (smart cache still works without this)
+  // ⭐ Enable WebSocket streaming for real-time odds updates
+  // Streaming updates will flow through storeMatches and sync to local state
   useEffect(() => {
     const liveGamesCount = filteredLiveGames.length;
     
     if (liveGamesCount > 0 && !streamingEnabled && typeof enableStreaming === 'function') {
-      console.log('[HomePage] Enabling WebSocket streaming for', liveGamesCount, 'live games');
-      console.log('[HomePage] Note: Smart cache (10s TTL) is primary system, streaming enhances it');
+      console.log('[HomePage] Enabling WebSocket streaming for', liveGamesCount, 'trending live games');
+      console.log('[HomePage] Streaming will provide <1s odds updates via liveDataStore sync');
+      
+      // Enable streaming - it will update the store's matches which we subscribe to above
       enableStreaming(); // Connects to 'events:live' feed (all sports)
     }
     

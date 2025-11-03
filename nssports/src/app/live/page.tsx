@@ -16,45 +16,94 @@ import { LoadingScreen } from "@/components/LoadingScreen";
 export default function LivePage() {
   const [liveGamesData, setLiveGamesData] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
+  const [_isBackgroundRefreshing, setIsBackgroundRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
+  // Mobile optimization: Track page visibility to pause updates when app is backgrounded
+  const [_isPageVisible, setIsPageVisible] = useState(true);
+  
   // ⭐ Fetch live games directly from /api/games/live endpoint
-  const fetchLiveGames = useCallback(async () => {
-    setLoading(true);
+  const fetchLiveGames = useCallback(async (isBackgroundUpdate = false) => {
+    // Use separate loading state for background updates to preserve mobile bet slip state
+    if (isBackgroundUpdate) {
+      setIsBackgroundRefreshing(true);
+    } else {
+      setLoading(true);
+    }
+    
     setError(null);
     try {
-      console.log('[LivePage] Fetching live games from /api/games/live...');
-      const response = await fetch('/api/games/live');
+      console.log(`[LivePage Mobile] ${isBackgroundUpdate ? 'Background refreshing odds' : 'Initial fetch'} from /api/games/live...`);
+      const response = await fetch('/api/games/live', {
+        // Mobile: Add cache control to get fresh data without page reload
+        headers: {
+          'Cache-Control': 'no-cache',
+        },
+        // Mobile: Add timeout for slow connections
+        signal: AbortSignal.timeout(8000), // 8 second timeout
+      });
       if (!response.ok) {
         throw new Error(`Failed to fetch: ${response.status}`);
       }
       const json = await response.json();
       const games = Array.isArray(json.data) ? json.data : [];
-      console.log(`[LivePage] Fetched ${games.length} live games`);
+      console.log(`[LivePage Mobile] ${isBackgroundUpdate ? '✅ Odds refreshed' : '✅ Games loaded'} - ${games.length} live games (bet slip preserved)`);
       setLiveGamesData(games);
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to fetch live games';
-      console.error('[LivePage] Error:', errorMsg);
-      setError(errorMsg);
+      console.error('[LivePage Mobile] Error:', errorMsg);
+      // Mobile: Only set error on initial load to avoid disrupting user experience
+      if (!isBackgroundUpdate) {
+        setError(errorMsg);
+      } else {
+        console.log('[LivePage Mobile] Background refresh failed - keeping existing odds');
+      }
     } finally {
-      setLoading(false);
+      if (isBackgroundUpdate) {
+        setIsBackgroundRefreshing(false);
+      } else {
+        setLoading(false);
+      }
     }
   }, []);
   
-  // Fetch on mount
+  // Mobile: Handle page visibility - refresh when user returns
   useEffect(() => {
-    fetchLiveGames();
+    const handleVisibilityChange = () => {
+      setIsPageVisible(!document.hidden);
+      if (!document.hidden) {
+        console.log('[LivePage Mobile] Page visible - triggering immediate refresh');
+        fetchLiveGames(true);
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [fetchLiveGames]);
   
-  // ⭐ Auto-refresh live games every 30 seconds to catch new live games
+  // Fetch on mount
   useEffect(() => {
+    fetchLiveGames(false); // Initial load
+  }, [fetchLiveGames]);
+  
+  // ⭐ Mobile-Optimized Auto-refresh: Updates odds every 30s WITHOUT page refresh
+  // ✅ Preserves user's bet selections and UI state
+  // ✅ Only refreshes when page is visible (saves mobile battery)
+  // ✅ Silent updates - no loading spinners or interruptions
+  useEffect(() => {
+    // Only run interval when page is visible
+    if (!_isPageVisible) {
+      console.log('[LivePage Mobile] Page hidden - pausing auto-refresh to save battery');
+      return;
+    }
+    
     const interval = setInterval(() => {
-      console.log('[LivePage] Auto-refreshing live games...');
-      fetchLiveGames();
+      console.log('[LivePage Mobile] 🔄 Auto-refreshing odds (silent, preserves bet slip)...');
+      fetchLiveGames(true); // Background update
     }, 30000); // 30 seconds
     
     return () => clearInterval(interval);
-  }, [fetchLiveGames]);
+  }, [fetchLiveGames, _isPageVisible]);
   
   // ⭐ PHASE 4: WebSocket Streaming for Real-Time ODDS Updates ONLY
   // OPTIONAL ENHANCEMENT: WebSocket streaming for instant updates
