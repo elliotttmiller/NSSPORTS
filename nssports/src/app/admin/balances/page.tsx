@@ -132,22 +132,23 @@ export default function BalancesPage() {
 
   return (
     <AdminDashboardLayout>
-      <div className="space-y-4 w-full max-w-7xl mx-auto px-3 sm:px-4">
-        {/* Header - Mobile Optimized */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Balance Oversight</h1>
-            <p className="text-xs text-muted-foreground mt-1">
-              Monitor and manage platform balances
-            </p>
+      <div className="space-y-3 w-full">
+        {/* Header - Sleek & Compact (matching dashboard) */}
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center justify-between">
+            <h1 className="text-xl font-bold text-foreground">Balance Oversight</h1>
+            <Button
+              onClick={() => setShowAdjustModal(true)}
+              size="sm"
+              className="bg-blue-600 hover:bg-blue-700 gap-1.5 h-8 touch-action-manipulation active:scale-95 transition-transform"
+            >
+              <Plus size={14} />
+              <span className="hidden sm:inline">Adjust Balance</span>
+            </Button>
           </div>
-          <Button
-            onClick={() => setShowAdjustModal(true)}
-            className="bg-blue-600 hover:bg-blue-700 gap-2 w-full sm:w-auto touch-action-manipulation active:scale-95 transition-transform"
-          >
-            <Plus size={18} />
-            Adjust Balance
-          </Button>
+          <p className="text-xs text-muted-foreground/70">
+            Monitor and manage platform balances
+          </p>
         </div>
 
         {/* Summary Cards */}
@@ -185,11 +186,11 @@ export default function BalancesPage() {
           />
         </MetricCardSection>
 
-        {/* Recent Adjustments - Mobile Optimized */}
+        {/* Recent Adjustments - Compact Table */}
         <Card className="overflow-hidden">
-          <div className="p-3 sm:p-4 border-b border-border">
-            <h2 className="text-base sm:text-lg font-semibold">Recent Adjustments</h2>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+          <div className="p-3 border-b border-border">
+            <h2 className="text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider">Recent Adjustments</h2>
+            <p className="text-[10px] text-muted-foreground/70 mt-0.5">
               All agent and admin balance adjustments
             </p>
           </div>
@@ -197,12 +198,12 @@ export default function BalancesPage() {
             <table className="w-full min-w-[640px]">
               <thead className="bg-muted/50 border-b border-border">
                 <tr>
-                  <th className="text-left p-2 sm:p-3 font-semibold text-xs">Adjuster</th>
-                  <th className="text-left p-2 sm:p-3 font-semibold text-xs">Player</th>
-                  <th className="text-left p-2 sm:p-3 font-semibold text-xs">Type</th>
-                  <th className="text-left p-2 sm:p-3 font-semibold text-xs">Amount</th>
-                  <th className="text-left p-2 sm:p-3 font-semibold text-xs hidden sm:table-cell">Reason</th>
-                  <th className="text-left p-2 sm:p-3 font-semibold text-xs">Time</th>
+                  <th className="text-left p-2.5 text-[10px] font-semibold text-muted-foreground/80 uppercase tracking-wider">Adjuster</th>
+                  <th className="text-left p-2.5 text-[10px] font-semibold text-muted-foreground/80 uppercase tracking-wider">Player</th>
+                  <th className="text-left p-2.5 text-[10px] font-semibold text-muted-foreground/80 uppercase tracking-wider">Type</th>
+                  <th className="text-left p-2.5 text-[10px] font-semibold text-muted-foreground/80 uppercase tracking-wider">Amount</th>
+                  <th className="text-left p-2.5 text-[10px] font-semibold text-muted-foreground/80 uppercase tracking-wider hidden sm:table-cell">Reason</th>
+                  <th className="text-left p-2.5 text-[10px] font-semibold text-muted-foreground/80 uppercase tracking-wider">Time</th>
                 </tr>
               </thead>
               <tbody>
@@ -210,11 +211,11 @@ export default function BalancesPage() {
                   recentAdjustments.map((adjustment) => (
                     <tr
                       key={adjustment.id}
-                      className="border-b border-border hover:bg-muted/20 transition-colors"
+                      className="border-b border-border/30 hover:bg-muted/20 transition-colors"
                     >
-                      <td className="p-2 sm:p-3 font-medium text-xs sm:text-sm">{adjustment.adjuster}</td>
-                      <td className="p-2 sm:p-3 text-muted-foreground text-xs sm:text-sm">{adjustment.player}</td>
-                      <td className="p-2 sm:p-3">
+                      <td className="p-2.5 font-medium text-xs">{adjustment.adjuster}</td>
+                      <td className="p-2.5 text-muted-foreground/70 text-xs">{adjustment.player}</td>
+                      <td className="p-2.5">
                         <Badge
                           variant={
                             adjustment.type === "Deposit"
@@ -223,21 +224,21 @@ export default function BalancesPage() {
                               ? "secondary"
                               : "outline"
                           }
-                          className="text-[10px] sm:text-xs"
+                          className="text-[10px] h-4"
                         >
                           {adjustment.type}
                         </Badge>
                       </td>
-                      <td className="p-2 sm:p-3 font-semibold text-xs sm:text-sm">${adjustment.amount.toLocaleString()}</td>
-                      <td className="p-2 sm:p-3 text-xs text-muted-foreground hidden sm:table-cell">{adjustment.reason}</td>
-                      <td className="p-2 sm:p-3 text-[10px] sm:text-xs text-muted-foreground whitespace-nowrap">
+                      <td className="p-2.5 font-semibold text-xs">${adjustment.amount.toLocaleString()}</td>
+                      <td className="p-2.5 text-[10px] text-muted-foreground/70 hidden sm:table-cell">{adjustment.reason}</td>
+                      <td className="p-2.5 text-[10px] text-muted-foreground/70 whitespace-nowrap">
                         {new Date(adjustment.timestamp).toLocaleDateString()}
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={6} className="p-8 text-center text-muted-foreground text-sm">
+                    <td colSpan={6} className="p-6 text-center text-muted-foreground/70 text-xs">
                       No recent adjustments found
                     </td>
                   </tr>
@@ -247,33 +248,35 @@ export default function BalancesPage() {
           </div>
         </Card>
 
-        {/* Adjustment Modal - Mobile Optimized */}
+        {/* Adjustment Modal - Compact */}
         {showAdjustModal && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto">
-            <Card className="w-full max-w-2xl p-4 sm:p-6 my-auto">
-              <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">Admin Balance Adjustment</h2>
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-3 overflow-y-auto">
+            <Card className="w-full max-w-2xl p-4 my-auto">
+              <h2 className="text-lg font-bold mb-4">Admin Balance Adjustment</h2>
               
-              <div className="space-y-4">
+              <div className="space-y-3">
                 <div>
-                  <Label>Player Search</Label>
-                  <div className="relative">
+                  <Label className="text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider">Player Search</Label>
+                  <div className="relative mt-1.5">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <Input
                       placeholder="Search by username..."
                       value={playerSearch}
                       onChange={(e) => setPlayerSearch(e.target.value)}
-                      className="pl-10"
+                      className="pl-10 h-8 text-sm"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <Label>Adjustment Type</Label>
-                  <div className="flex gap-2 mt-2">
+                  <Label className="text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider">Adjustment Type</Label>
+                  <div className="flex gap-1.5 mt-1.5">
                     <Button
                       type="button"
                       variant={adjustmentType === "deposit" ? "default" : "outline"}
                       onClick={() => setAdjustmentType("deposit")}
+                      size="sm"
+                      className="h-8 px-3 text-xs"
                     >
                       Deposit
                     </Button>
@@ -281,6 +284,8 @@ export default function BalancesPage() {
                       type="button"
                       variant={adjustmentType === "withdrawal" ? "default" : "outline"}
                       onClick={() => setAdjustmentType("withdrawal")}
+                      size="sm"
+                      className="h-8 px-3 text-xs"
                     >
                       Withdrawal
                     </Button>
@@ -288,6 +293,8 @@ export default function BalancesPage() {
                       type="button"
                       variant={adjustmentType === "correction" ? "default" : "outline"}
                       onClick={() => setAdjustmentType("correction")}
+                      size="sm"
+                      className="h-8 px-3 text-xs"
                     >
                       Correction
                     </Button>
@@ -295,47 +302,48 @@ export default function BalancesPage() {
                 </div>
 
                 <div>
-                  <Label>Amount ($)</Label>
+                  <Label className="text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider">Amount ($)</Label>
                   <Input
                     type="number"
                     placeholder="0.00"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
+                    className="h-8 text-sm mt-1.5"
                   />
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="text-[10px] text-muted-foreground/70 mt-1">
                     Unlimited for admin adjustments
                   </p>
                 </div>
 
                 <div>
-                  <Label>Reason (Required for Audit)</Label>
+                  <Label className="text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider">Reason (Required for Audit)</Label>
                   <textarea
                     placeholder="Reason for adjustment..."
                     value={reason}
                     onChange={(e) => setReason(e.target.value)}
-                    className="w-full min-h-20 px-3 py-2 bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full min-h-20 px-3 py-2 text-sm bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 mt-1.5"
                   />
                 </div>
 
-                <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
+                <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3">
                   <div className="flex items-start gap-2">
-                    <AlertTriangle className="w-5 h-5 text-yellow-600 mt-0.5" />
-                    <div className="text-sm text-yellow-600">
+                    <AlertTriangle className="w-4 h-4 text-yellow-600 mt-0.5" />
+                    <div className="text-xs text-yellow-600">
                       <p className="font-semibold">Warning</p>
-                      <p>This action will be logged and is irreversible</p>
+                      <p className="text-[10px]">This action will be logged and is irreversible</p>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-4 mt-6">
+              <div className="flex items-center gap-3 mt-4">
                 <Button
                   onClick={handleAdjustBalance}
-                  className="bg-blue-600 hover:bg-blue-700"
+                  className="bg-blue-600 hover:bg-blue-700 h-8 text-sm"
                 >
                   Confirm Adjustment
                 </Button>
-                <Button variant="outline" onClick={() => setShowAdjustModal(false)}>
+                <Button variant="outline" onClick={() => setShowAdjustModal(false)} size="sm" className="h-8 text-sm">
                   Cancel
                 </Button>
               </div>

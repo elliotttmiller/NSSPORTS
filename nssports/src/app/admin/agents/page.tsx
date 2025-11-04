@@ -200,21 +200,21 @@ export default function AgentsPage() {
 
   return (
     <AdminDashboardLayout>
-      <div className="space-y-4 w-full max-w-7xl mx-auto">
-        {/* Header - PWA Mobile Optimized */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Agent Management</h1>
-            <p className="text-xs text-muted-foreground mt-1">
-              Manage agent accounts, permissions, and performance
-            </p>
+      <div className="space-y-3 w-full">
+        {/* Header - Sleek & Compact (matching dashboard) */}
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center justify-between">
+            <h1 className="text-xl font-bold text-foreground">Agent Management</h1>
+            <Link href="/admin/agents/create" className="touch-action-manipulation">
+              <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 gap-1.5 h-8 active:scale-95 transition-transform">
+                <Plus size={14} />
+                <span className="hidden sm:inline">Create Agent</span>
+              </Button>
+            </Link>
           </div>
-          <Link href="/admin/agents/create" className="touch-action-manipulation">
-            <Button className="bg-emerald-600 hover:bg-emerald-700 gap-2 w-full sm:w-auto active:scale-95 transition-transform">
-              <Plus size={18} />
-              Create New Agent
-            </Button>
-          </Link>
+          <p className="text-xs text-muted-foreground/70">
+            Manage agent accounts, permissions, and performance
+          </p>
         </div>
 
         {/* Stats Cards - Mobile Grid */}
@@ -251,24 +251,24 @@ export default function AgentsPage() {
           />
         </MetricCardSection>
 
-        {/* Filters - Mobile Optimized */}
-        <Card className="p-3">
-          <div className="flex flex-col gap-3">
+        {/* Filters - Compact */}
+        <Card className="p-2.5">
+          <div className="flex flex-col gap-2">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
               <Input
                 placeholder="Search agents..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 text-sm touch-action-manipulation"
+                className="pl-10 text-sm h-8 touch-action-manipulation"
               />
             </div>
-            <div className="flex gap-2 overflow-x-auto scrollbar-hide">
+            <div className="flex gap-1.5 overflow-x-auto scrollbar-hide">
               <Button
                 variant={statusFilter === "all" ? "default" : "outline"}
                 onClick={() => setStatusFilter("all")}
                 size="sm"
-                className="shrink-0 touch-action-manipulation active:scale-95"
+                className="shrink-0 h-7 px-2.5 text-xs touch-action-manipulation active:scale-95"
               >
                 All
               </Button>
@@ -276,7 +276,7 @@ export default function AgentsPage() {
                 variant={statusFilter === "active" ? "default" : "outline"}
                 onClick={() => setStatusFilter("active")}
                 size="sm"
-                className="shrink-0 touch-action-manipulation active:scale-95"
+                className="shrink-0 h-7 px-2.5 text-xs touch-action-manipulation active:scale-95"
               >
                 Active
               </Button>
@@ -284,7 +284,7 @@ export default function AgentsPage() {
                 variant={statusFilter === "idle" ? "default" : "outline"}
                 onClick={() => setStatusFilter("idle")}
                 size="sm"
-                className="shrink-0 touch-action-manipulation active:scale-95"
+                className="shrink-0 h-7 px-2.5 text-xs touch-action-manipulation active:scale-95"
               >
                 Idle
               </Button>
@@ -292,7 +292,7 @@ export default function AgentsPage() {
                 variant={statusFilter === "suspended" ? "default" : "outline"}
                 onClick={() => setStatusFilter("suspended")}
                 size="sm"
-                className="shrink-0 touch-action-manipulation active:scale-95"
+                className="shrink-0 h-7 px-2.5 text-xs touch-action-manipulation active:scale-95"
               >
                 Suspended
               </Button>
@@ -317,32 +317,32 @@ export default function AgentsPage() {
                 
                 return (
                   <Card key={agent.id} className="overflow-hidden">
-                  {/* Agent Header Row */}
+                  {/* Agent Header Row - Compact */}
                   <div
-                    className="p-4 hover:bg-muted/20 transition-colors cursor-pointer touch-action-manipulation"
+                    className="p-3 hover:bg-muted/20 transition-colors cursor-pointer touch-action-manipulation"
                     onClick={() => toggleAgentExpansion(agent.id)}
                   >
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3">
                       {/* Expand/Collapse Icon */}
                       <div className="shrink-0">
                         {isExpanded ? (
-                          <ChevronDown className="w-5 h-5 text-muted-foreground" />
+                          <ChevronDown className="w-4 h-4 text-muted-foreground" />
                         ) : (
-                          <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                          <ChevronRight className="w-4 h-4 text-muted-foreground" />
                         )}
                       </div>
 
                       {/* Agent Info */}
-                      <div className="flex-1 grid grid-cols-1 sm:grid-cols-5 gap-4">
+                      <div className="flex-1 grid grid-cols-1 sm:grid-cols-5 gap-3">
                         {/* Username & Display Name */}
                         <div className="flex items-center gap-2">
-                          <UserCog className="w-5 h-5 text-blue-600 shrink-0" />
+                          <UserCog className="w-4 h-4 text-blue-600 shrink-0" />
                           <div className="min-w-0">
-                            <p className="font-medium text-foreground text-sm truncate">
+                            <p className="font-medium text-foreground text-xs truncate">
                               {agent.username}
                             </p>
                             {agent.displayName && (
-                              <p className="text-xs text-muted-foreground truncate">
+                              <p className="text-[10px] text-muted-foreground/70 truncate">
                                 {agent.displayName}
                               </p>
                             )}
@@ -353,7 +353,7 @@ export default function AgentsPage() {
                         <div className="flex items-center">
                           <Badge
                             className={cn(
-                              "text-xs flex items-center gap-1.5",
+                              "text-[10px] h-5 flex items-center gap-1",
                               agent.status === "active" &&
                                 "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
                               agent.status === "idle" &&
@@ -365,44 +365,44 @@ export default function AgentsPage() {
                             {agent.status === "active" && (
                               <div className="relative flex items-center justify-center">
                                 {/* Outer pulsing ring */}
-                                <div className="absolute w-3 h-3 bg-emerald-500/30 rounded-full animate-ping" 
+                                <div className="absolute w-2.5 h-2.5 bg-emerald-500/30 rounded-full animate-ping" 
                                      style={{ animationDuration: '2s' }}></div>
                                 {/* Middle glow */}
-                                <div className="absolute w-2.5 h-2.5 bg-emerald-500/50 rounded-full blur-sm"></div>
+                                <div className="absolute w-2 h-2 bg-emerald-500/50 rounded-full blur-sm"></div>
                                 {/* Core dot */}
                                 <div className="relative w-1.5 h-1.5 bg-emerald-500 rounded-full shadow-lg shadow-emerald-500/50"></div>
                               </div>
                             )}
-                            {agent.status === "idle" && <Clock size={12} />}
-                            {agent.status === "suspended" && <Ban size={12} />}
+                            {agent.status === "idle" && <Clock size={10} />}
+                            {agent.status === "suspended" && <Ban size={10} />}
                             {agent.status.charAt(0).toUpperCase() + agent.status.slice(1)}
                           </Badge>
                         </div>
 
                         {/* Players Count */}
-                        <div className="flex items-center gap-2">
-                          <Users size={14} className="text-muted-foreground shrink-0" />
-                          <span className="text-sm">
+                        <div className="flex items-center gap-1.5">
+                          <Users size={13} className="text-muted-foreground shrink-0" />
+                          <span className="text-xs">
                             <span className="font-semibold">{agent.playerCount}</span>
-                            <span className="text-muted-foreground text-xs ml-1">players</span>
+                            <span className="text-muted-foreground/70 text-[10px] ml-1">players</span>
                           </span>
                         </div>
 
                         {/* Daily Adjustments */}
-                        <div className="flex items-center gap-2">
-                          <DollarSign size={14} className="text-emerald-600 shrink-0" />
-                          <span className="text-sm">
+                        <div className="flex items-center gap-1.5">
+                          <DollarSign size={13} className="text-emerald-600 shrink-0" />
+                          <span className="text-xs">
                             <span className="font-semibold">
                               ${agent.todayAdjustments.toLocaleString()}
                             </span>
-                            <span className="text-muted-foreground text-xs">
+                            <span className="text-muted-foreground/70 text-[10px]">
                               {" "}/ ${agent.dailyAdjustmentLimit.toLocaleString()}
                             </span>
                           </span>
                         </div>
 
                         {/* Last Active */}
-                        <div className="text-xs text-muted-foreground">
+                        <div className="text-[10px] text-muted-foreground/70">
                           {agent.lastLogin
                             ? new Date(agent.lastLogin).toLocaleDateString()
                             : "Never active"}
@@ -410,7 +410,7 @@ export default function AgentsPage() {
                       </div>
 
                       {/* Action Buttons */}
-                      <div className="flex items-center gap-2 shrink-0">
+                      <div className="flex items-center gap-1.5 shrink-0">
                         <Button
                           variant="ghost"
                           size="sm"
@@ -422,16 +422,16 @@ export default function AgentsPage() {
                             );
                           }}
                           className={cn(
-                            "touch-action-manipulation",
+                            "h-7 w-7 p-0 touch-action-manipulation",
                             agent.status === "active"
                               ? "text-red-600 hover:text-red-700 hover:bg-red-500/10"
                               : "text-green-600 hover:text-green-700 hover:bg-green-500/10"
                           )}
                         >
                           {agent.status === "active" ? (
-                            <Ban size={16} />
+                            <Ban size={14} />
                           ) : (
-                            <CheckCircle size={16} />
+                            <CheckCircle size={14} />
                           )}
                         </Button>
                       </div>
@@ -442,33 +442,33 @@ export default function AgentsPage() {
                   {isExpanded && (
                     <div className="border-t border-border bg-muted/30">
                       {isLoadingPlayers ? (
-                        <div className="p-8 text-center">
+                        <div className="p-6 text-center">
                           <div className="w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-                          <p className="text-sm text-muted-foreground">Loading players...</p>
+                          <p className="text-xs text-muted-foreground/70">Loading players...</p>
                         </div>
                       ) : agent.players && agent.players.length > 0 ? (
-                        <div className="p-4">
-                          <div className="flex items-center gap-2 mb-3">
+                        <div className="p-3">
+                          <div className="flex items-center gap-2 mb-2">
                             <Users className="w-4 h-4 text-purple-600" />
-                            <h4 className="text-sm font-semibold text-foreground">
+                            <h4 className="text-xs font-semibold text-foreground">
                               Agent&apos;s Players ({agent.players.length})
                             </h4>
                           </div>
                           
-                          <div className="space-y-2">
+                          <div className="space-y-1.5">
                             {agent.players.map((player) => (
                               <div
                                 key={player.id}
-                                className="bg-background rounded-lg p-2.5 border border-border hover:border-accent/50 transition-colors w-full"
+                                className="bg-background rounded-lg p-2 border border-border hover:border-accent/50 transition-colors w-full"
                               >
                                 {/* Fully Fluid Responsive Player Row */}
                                 <div className="flex flex-wrap items-center gap-2 w-full">
                                   {/* Player Username with Status Badge - Adaptive Width */}
-                                  <div className="flex items-center gap-2 shrink-0 min-w-[100px]">
+                                  <div className="flex items-center gap-1.5 shrink-0 min-w-[100px]">
                                     <div className="min-w-0">
-                                      <p className="font-medium text-sm truncate">{player.username}</p>
+                                      <p className="font-medium text-xs truncate">{player.username}</p>
                                       {player.displayName && (
-                                        <p className="text-[10px] text-muted-foreground truncate">
+                                        <p className="text-[10px] text-muted-foreground/70 truncate">
                                           {player.displayName}
                                         </p>
                                       )}
@@ -477,7 +477,7 @@ export default function AgentsPage() {
                                     <Badge
                                       variant="outline"
                                       className={cn(
-                                        "text-[10px] px-2 py-0.5 shrink-0",
+                                        "text-[10px] h-4 px-1.5 py-0 shrink-0",
                                         player.status === "active" && "border-emerald-500/50 text-emerald-600",
                                         player.status === "suspended" && "border-red-500/50 text-red-600"
                                       )}
@@ -487,14 +487,14 @@ export default function AgentsPage() {
                                   </div>
 
                                   {/* Bet Stats - Moved to left side */}
-                                  <div className="flex items-center gap-2 text-[10px] text-muted-foreground shrink-0">
+                                  <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/70 shrink-0">
                                     <span>{player.totalBets || 0} total</span>
                                     <span className="text-amber-600">• {player.totalPendingBets || 0} pending</span>
                                     <span>• ${player.totalWagered?.toLocaleString() || '0'} wagered</span>
                                   </div>
 
                                   {/* Financial Metrics - Moved to right side */}
-                                  <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0 justify-end">
+                                  <div className="flex items-center gap-1.5 flex-wrap flex-1 min-w-0 justify-end">
                                     {/* Available */}
                                     <div className="flex items-center gap-1 shrink-0">
                                       <span className="text-xs font-semibold text-accent">
@@ -535,9 +535,9 @@ export default function AgentsPage() {
                                       setSelectedPlayerUsername(player.username);
                                       setIsPlayerModalOpen(true);
                                     }}
-                                    className="h-7 w-7 p-0 shrink-0 hover:bg-accent/10"
+                                    className="h-6 w-6 p-0 shrink-0 hover:bg-accent/10"
                                   >
-                                    <Eye size={14} className="text-accent" />
+                                    <Eye size={13} className="text-accent" />
                                   </Button>
                                 </div>
                               </div>
@@ -545,9 +545,9 @@ export default function AgentsPage() {
                           </div>
                         </div>
                       ) : (
-                        <div className="p-8 text-center text-muted-foreground">
+                        <div className="p-6 text-center text-muted-foreground/70">
                           <Users className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                          <p className="text-sm">No players registered with this agent</p>
+                          <p className="text-xs">No players registered with this agent</p>
                         </div>
                       )}
                     </div>

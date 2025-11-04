@@ -90,11 +90,11 @@ export default function SecurityPage() {
 
   return (
     <AdminDashboardLayout>
-      <div className="space-y-4 w-full max-w-7xl mx-auto px-3 sm:px-4">
-        {/* Header - Mobile Optimized */}
+      <div className="space-y-3 w-full">
+        {/* Header - Sleek & Compact (matching dashboard) */}
         <div className="flex flex-col gap-1.5">
-          <h1 className="text-2xl font-bold text-foreground">Security & Audit</h1>
-          <p className="text-xs text-muted-foreground">
+          <h1 className="text-xl font-bold text-foreground">Security & Audit</h1>
+          <p className="text-xs text-muted-foreground/70">
             Monitor system activity and security events
           </p>
         </div>
@@ -132,9 +132,9 @@ export default function SecurityPage() {
           />
         </MetricCardSection>
 
-        {/* Filters - Mobile Optimized */}
-        <Card className="p-3 sm:p-4">
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+        {/* Filters - Compact */}
+        <Card className="p-2.5">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
             <div className="flex-1 min-w-0">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
@@ -142,17 +142,17 @@ export default function SecurityPage() {
                   placeholder="Search logs..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 text-sm touch-action-manipulation"
+                  className="pl-10 text-sm h-8 touch-action-manipulation"
                 />
               </div>
             </div>
 
-            <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">\n
-              <Filter className="w-4 h-4 text-muted-foreground" />
+            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
+              <Filter className="w-4 h-4 text-muted-foreground/70" />
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value as typeof filterStatus)}
-                className="px-3 py-2 bg-background border border-border rounded-md text-sm"
+                className="px-2.5 py-1.5 bg-background border border-border rounded-md text-xs h-8"
               >
                 <option value="all">All Status</option>
                 <option value="success">Success</option>
@@ -163,7 +163,7 @@ export default function SecurityPage() {
               <select
                 value={filterAction}
                 onChange={(e) => setFilterAction(e.target.value as typeof filterAction)}
-                className="px-3 py-2 bg-background border border-border rounded-md text-sm"
+                className="px-2.5 py-1.5 bg-background border border-border rounded-md text-xs h-8"
               >
                 <option value="all">All Actions</option>
                 <option value="login">Login Events</option>
@@ -175,19 +175,20 @@ export default function SecurityPage() {
             <Button
               variant="outline"
               onClick={fetchAuditLogs}
-              className="gap-2"
+              size="sm"
+              className="gap-1.5 h-8"
             >
-              <Activity size={16} />
-              Refresh
+              <Activity size={14} />
+              <span className="hidden sm:inline">Refresh</span>
             </Button>
           </div>
         </Card>
 
-        {/* Audit Logs Table */}
+        {/* Audit Logs Table - Compact */}
         <Card className="overflow-hidden">
-          <div className="p-6 border-b border-border">
-            <h2 className="text-lg font-semibold">Audit Logs</h2>
-            <p className="text-sm text-muted-foreground mt-1">
+          <div className="p-3 border-b border-border">
+            <h2 className="text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider">Audit Logs</h2>
+            <p className="text-[10px] text-muted-foreground/70 mt-0.5">
               Showing {filteredLogs.length} of {auditLogs.length} logs
             </p>
           </div>
@@ -195,19 +196,19 @@ export default function SecurityPage() {
             <table className="w-full">
               <thead className="bg-muted/50 border-b border-border">
                 <tr>
-                  <th className="text-left p-4 font-semibold text-sm">Timestamp</th>
-                  <th className="text-left p-4 font-semibold text-sm">User</th>
-                  <th className="text-left p-4 font-semibold text-sm">Action</th>
-                  <th className="text-left p-4 font-semibold text-sm">Resource</th>
-                  <th className="text-left p-4 font-semibold text-sm">IP Address</th>
-                  <th className="text-left p-4 font-semibold text-sm">Status</th>
-                  <th className="text-left p-4 font-semibold text-sm">Details</th>
+                  <th className="text-left p-2.5 text-[10px] font-semibold text-muted-foreground/80 uppercase tracking-wider">Timestamp</th>
+                  <th className="text-left p-2.5 text-[10px] font-semibold text-muted-foreground/80 uppercase tracking-wider">User</th>
+                  <th className="text-left p-2.5 text-[10px] font-semibold text-muted-foreground/80 uppercase tracking-wider">Action</th>
+                  <th className="text-left p-2.5 text-[10px] font-semibold text-muted-foreground/80 uppercase tracking-wider">Resource</th>
+                  <th className="text-left p-2.5 text-[10px] font-semibold text-muted-foreground/80 uppercase tracking-wider">IP Address</th>
+                  <th className="text-left p-2.5 text-[10px] font-semibold text-muted-foreground/80 uppercase tracking-wider">Status</th>
+                  <th className="text-left p-2.5 text-[10px] font-semibold text-muted-foreground/80 uppercase tracking-wider">Details</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredLogs.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="p-8 text-center text-muted-foreground">
+                    <td colSpan={7} className="p-6 text-center text-muted-foreground/70 text-xs">
                       No audit logs found
                     </td>
                   </tr>
@@ -215,29 +216,29 @@ export default function SecurityPage() {
                   filteredLogs.map((log) => (
                     <tr
                       key={log.id}
-                      className="border-b border-border hover:bg-muted/20 transition-colors"
+                      className="border-b border-border/30 hover:bg-muted/20 transition-colors"
                     >
-                      <td className="p-4 text-sm">
+                      <td className="p-2.5 text-xs">
                         {new Date(log.timestamp).toLocaleString()}
                       </td>
-                      <td className="p-4">
+                      <td className="p-2.5">
                         <div>
-                          <p className="font-medium">{log.user}</p>
-                          <p className="text-xs text-muted-foreground">{log.role}</p>
+                          <p className="font-medium text-xs">{log.user}</p>
+                          <p className="text-[10px] text-muted-foreground/70">{log.role}</p>
                         </div>
                       </td>
-                      <td className="p-4 font-medium">{log.action}</td>
-                      <td className="p-4 text-sm text-muted-foreground">{log.resource}</td>
-                      <td className="p-4 text-sm font-mono">{log.ipAddress}</td>
-                      <td className="p-4">
-                        <div className="flex items-center gap-2">
+                      <td className="p-2.5 font-medium text-xs">{log.action}</td>
+                      <td className="p-2.5 text-xs text-muted-foreground/70">{log.resource}</td>
+                      <td className="p-2.5 text-xs font-mono">{log.ipAddress}</td>
+                      <td className="p-2.5">
+                        <div className="flex items-center gap-1.5">
                           {getStatusIcon(log.status)}
-                          <Badge variant={getStatusBadge(log.status)}>
+                          <Badge variant={getStatusBadge(log.status)} className="text-[10px] h-4">
                             {log.status}
                           </Badge>
                         </div>
                       </td>
-                      <td className="p-4 text-sm text-muted-foreground">{log.details}</td>
+                      <td className="p-2.5 text-xs text-muted-foreground/70">{log.details}</td>
                     </tr>
                   ))
                 )}
