@@ -92,7 +92,7 @@ export default function LeaguePage() {
   return (
     <PullToRefresh onRefresh={handleRefresh} disabled={isLoading}>
       <div className="bg-background">
-        <div className="container mx-auto px-6 md:px-8 xl:px-12 pb-6 max-w-screen-2xl" style={{ paddingTop: '15px' }}>
+        <div className="container mx-auto px-6 md:px-8 xl:px-12 pb-6 max-w-screen-2xl md:pt-6" style={{ paddingTop: '40px' }}>
           {/* Page Header */}
           <div className="mb-8 flex items-center justify-between">
             <div className="flex items-center gap-5">

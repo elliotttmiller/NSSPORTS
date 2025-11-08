@@ -40,7 +40,7 @@ export default function GamesPage() {
   // Those games will appear on /live page with LiveGameRow component
   return (
     <div className="bg-background h-full">
-      <div className="container mx-auto px-6 md:px-8 xl:px-12 pb-6 max-w-screen-2xl" style={{ paddingTop: '15px' }}>
+      <div className="container mx-auto px-6 md:px-8 xl:px-12 pb-6 max-w-screen-2xl md:pt-6" style={{ paddingTop: '40px' }}>
         {/* Page Header */}
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-foreground">All Sports & Games</h1>
