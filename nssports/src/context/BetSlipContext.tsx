@@ -53,7 +53,7 @@ interface BetSlipContextType {
   ) => void;
   removeBet: (betId: string) => void;
   updateStake: (betId: string, stake: number) => void;
-  setBetType: (betType: "single" | "parlay" | "custom" | "teaser") => void;
+  setBetType: (betType: "single" | "parlay" | "custom" | "teaser" | "round_robin" | "if_bet" | "reverse" | "bet_it_all") => void;
   clearBetSlip: () => void;
   // Custom mode specific actions
   toggleCustomStraight: (betId: string) => void;
@@ -98,7 +98,7 @@ export function BetSlipProvider({ children }: BetSlipProviderProps) {
 
   const calculateBetSlipTotals = (
     bets: Bet[],
-    betType: "single" | "parlay" | "custom" | "teaser",
+    betType: "single" | "parlay" | "custom" | "teaser" | "round_robin" | "if_bet" | "reverse" | "bet_it_all",
     customStraightBets?: string[],
     customParlayBets?: string[],
     customStakes?: { [betId: string]: number },
@@ -146,6 +146,12 @@ export function BetSlipProvider({ children }: BetSlipProviderProps) {
       const totalPayout = totalStake * combinedOdds;
       
       return { totalStake, totalPayout, totalOdds: americanOdds };
+    } else if (betType === "round_robin" || betType === "if_bet" || betType === "reverse" || betType === "bet_it_all") {
+      // Advanced bet types - simple calculation for now
+      // Detailed calculations will be done in their respective API endpoints
+      const totalStake = bets.reduce((sum, bet) => sum + bet.stake, 0);
+      const totalPayout = bets.reduce((sum, bet) => sum + bet.potentialPayout, 0);
+      return { totalStake, totalPayout, totalOdds: 0 };
     } else {
       // Custom mode calculation
       let totalStake = 0;
@@ -429,7 +435,7 @@ export function BetSlipProvider({ children }: BetSlipProviderProps) {
     });
   }, []);
 
-  const setBetType = useCallback((betType: "single" | "parlay" | "custom" | "teaser") => {
+  const setBetType = useCallback((betType: "single" | "parlay" | "custom" | "teaser" | "round_robin" | "if_bet" | "reverse" | "bet_it_all") => {
     setBetSlip((prev) => {
       const totals = calculateBetSlipTotals(prev.bets, betType, prev.customStraightBets, prev.customParlayBets, prev.customStakes, prev.teaserType, prev.teaserLegs);
       return {

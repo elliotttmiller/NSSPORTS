@@ -106,7 +106,7 @@ type BetHistoryContextType = {
   refreshBetHistory: () => Promise<void>;
   addPlacedBet: (
     bets: Bet[],
-    betType: "single" | "parlay" | "teaser",
+    betType: "single" | "parlay" | "teaser" | "round_robin" | "if_bet" | "reverse" | "bet_it_all",
     totalStake: number,
     totalPayout: number,
     totalOdds: number,
@@ -158,10 +158,10 @@ export function BetHistoryProvider({ children }: BetHistoryProviderProps) {
     await refetch();
   };
 
-  // Professional addPlacedBet: supports single, parlay and teaser bets with optimistic updates
+  // Professional addPlacedBet: supports single, parlay, teaser, and advanced bets with optimistic updates
   const addPlacedBet = async (
     bets: Bet[],
-    betType: "single" | "parlay" | "teaser",
+    betType: "single" | "parlay" | "teaser" | "round_robin" | "if_bet" | "reverse" | "bet_it_all",
     totalStake: number,
     totalPayout: number,
     totalOdds: number,

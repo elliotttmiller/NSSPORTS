@@ -42,7 +42,7 @@ export function BetSlipPanel() {
       return acc;
     }, {} as { [betId: string]: number });
 
-    const validationType = betSlip.betType === "custom" ? "parlay" : betSlip.betType;
+    const validationType: "single" | "parlay" | "teaser" | "round_robin" | "if_bet" | "reverse" | "bet_it_all" = betSlip.betType === "custom" ? "parlay" : betSlip.betType;
     // Validate teaserType to ensure it matches TeaserType
     const validTeaserTypes = [
       "2T_TEASER",
