@@ -120,7 +120,7 @@ export async function GET(request: NextRequest) {
 
       // Transform to our internal format
       // Events from cache/SDK match ExtendedSDKEvent structure
-      let games = transformSDKEvents(events as ExtendedSDKEvent[]);
+      let games = await transformSDKEvents(events as ExtendedSDKEvent[]);
       
       // Apply single league limit in development (Protocol I-IV)
       games = applySingleLeagueLimit(games);

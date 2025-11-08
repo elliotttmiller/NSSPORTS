@@ -115,7 +115,7 @@ export async function GET(request: NextRequest) {
       
       // Transform to internal format - handle empty array gracefully
       // Events from cache/SDK match ExtendedSDKEvent structure
-      let games = events.length > 0 ? transformSDKEvents(events as ExtendedSDKEvent[]) : [];
+      let games = events.length > 0 ? await transformSDKEvents(events as ExtendedSDKEvent[]) : [];
       
       logger.info(`Transformed games: ${games.length}`);
       

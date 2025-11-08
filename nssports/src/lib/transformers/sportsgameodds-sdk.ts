@@ -7,6 +7,7 @@
  * ✅ Extract game props odds (team totals, quarters, etc.)
  * ✅ Multi-sportsbook odds aggregation
  * ✅ Preserve official league IDs (NBA, NFL, NHL uppercase)
+ * ✅ Apply custom juice/margins to fair odds
  * ❌ Ignore live scores/stats (we don't need game state)
  * ❌ Ignore activity/period/clock (odds-only focus)
  * 
@@ -14,6 +15,7 @@
  * - Decouples internal models from SDK schema changes
  * - Provides clean, predictable odds data structure
  * - Handles missing odds gracefully with defaults
+ * - Applies configurable juice/margins for house edge
  * 
  * Official Documentation:
  * - Odds Structure: https://sportsgameodds.com/docs/data-types/odds-structure
@@ -25,6 +27,8 @@ import type { GamePayload } from "../schemas/game";
 import { logger } from "../logger";
 // ⭐ OFFICIAL SDK TYPE - Import official Event type from SDK
 import type { SDKEvent } from "../sportsgameodds-sdk";
+// ⭐ JUICE SERVICE - Apply custom margins to fair odds
+import { oddsJuiceService } from "../odds-juice-service";
 
 /**
  * Official League ID Mapping
@@ -519,6 +523,103 @@ function extractOdds(event: ExtendedSDKEvent) {
 }
 
 /**
+ * Apply juice/margins to extracted odds
+ * Modifies odds in-place by applying configured house margins
+ */
+async function applyJuiceToOdds(
+  odds: ReturnType<typeof extractOdds>,
+  league: string,
+  isLive: boolean
+): Promise<void> {
+  try {
+    // Apply juice to spread odds
+    if (odds.spread.home.odds !== 0 && odds.spread.away.odds !== 0) {
+      const [homeResult, awayResult] = await Promise.all([
+        oddsJuiceService.applyJuice({
+          fairOdds: odds.spread.home.odds,
+          marketType: 'spread',
+          league,
+          isLive,
+        }),
+        oddsJuiceService.applyJuice({
+          fairOdds: odds.spread.away.odds,
+          marketType: 'spread',
+          league,
+          isLive,
+        }),
+      ]);
+      
+      // Keep fair odds for reference
+      (odds.spread.home as any).fairOdds = odds.spread.home.odds;
+      (odds.spread.away as any).fairOdds = odds.spread.away.odds;
+      
+      // Apply juiced odds
+      odds.spread.home.odds = homeResult.juicedOdds;
+      odds.spread.away.odds = awayResult.juicedOdds;
+    }
+
+    // Apply juice to moneyline odds
+    if (odds.moneyline.home.odds !== 0 && odds.moneyline.away.odds !== 0) {
+      const [homeResult, awayResult] = await Promise.all([
+        oddsJuiceService.applyJuice({
+          fairOdds: odds.moneyline.home.odds,
+          marketType: 'moneyline',
+          league,
+          isLive,
+        }),
+        oddsJuiceService.applyJuice({
+          fairOdds: odds.moneyline.away.odds,
+          marketType: 'moneyline',
+          league,
+          isLive,
+        }),
+      ]);
+      
+      // Keep fair odds for reference
+      (odds.moneyline.home as any).fairOdds = odds.moneyline.home.odds;
+      (odds.moneyline.away as any).fairOdds = odds.moneyline.away.odds;
+      
+      // Apply juiced odds
+      odds.moneyline.home.odds = homeResult.juicedOdds;
+      odds.moneyline.away.odds = awayResult.juicedOdds;
+    }
+
+    // Apply juice to total odds (over/under)
+    if (odds.total.over.odds !== 0 && odds.total.under.odds !== 0) {
+      const [overResult, underResult] = await Promise.all([
+        oddsJuiceService.applyJuice({
+          fairOdds: odds.total.over.odds,
+          marketType: 'total',
+          league,
+          isLive,
+        }),
+        oddsJuiceService.applyJuice({
+          fairOdds: odds.total.under.odds,
+          marketType: 'total',
+          league,
+          isLive,
+        }),
+      ]);
+      
+      // Keep fair odds for reference
+      (odds.total.over as any).fairOdds = odds.total.over.odds;
+      (odds.total.under as any).fairOdds = odds.total.under.odds;
+      
+      // Apply juiced odds
+      odds.total.over.odds = overResult.juicedOdds;
+      odds.total.under.odds = underResult.juicedOdds;
+      
+      // Also update the home/away aliases
+      odds.total.home = odds.total.over;
+      odds.total.away = odds.total.under;
+    }
+  } catch (error) {
+    logger.error('[OddsTransformer] Failed to apply juice to odds', { error, league, isLive });
+    // If juice application fails, odds remain as fair odds (safe fallback)
+  }
+}
+
+/**
  * Map SDK status to our internal status
  */
 /**
@@ -612,7 +713,7 @@ function mapStatus(
  * 
  * @param event - Event from SDK (type ExtendedSDKEvent - official SDK Event with additional properties)
  */
-export function transformSDKEvent(event: ExtendedSDKEvent): GamePayload | null {
+export async function transformSDKEvent(event: ExtendedSDKEvent): Promise<GamePayload | null> {
   try {
     // SDK events use official uppercase IDs
     const eventID = event.eventID;
@@ -667,6 +768,9 @@ export function transformSDKEvent(event: ExtendedSDKEvent): GamePayload | null {
 
     // Extract odds
     const odds = extractOdds(event);
+    
+    // Apply juice/margins to odds
+    await applyJuiceToOdds(odds, officialLeagueId, status === 'live');
 
     return {
       id: eventID,
@@ -711,8 +815,10 @@ export function transformSDKEvent(event: ExtendedSDKEvent): GamePayload | null {
  * The transformer should NOT filter by time or status - let endpoints handle that.
  * We only filter out events that fail transformation (null results).
  */
-export function transformSDKEvents(events: ExtendedSDKEvent[]): GamePayload[] {
-  return events
-    .map(transformSDKEvent)
-    .filter((game): game is GamePayload => game !== null);
+export async function transformSDKEvents(events: ExtendedSDKEvent[]): Promise<GamePayload[]> {
+  const transformedEvents = await Promise.all(
+    events.map(event => transformSDKEvent(event))
+  );
+  
+  return transformedEvents.filter((game): game is GamePayload => game !== null);
 }

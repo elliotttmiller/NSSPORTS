@@ -78,7 +78,7 @@ export async function GET() {
       
       // Transform SDK events to internal format
       // Events from cache/SDK match ExtendedSDKEvent structure
-      let games = transformSDKEvents(upcomingEvents as ExtendedSDKEvent[]);
+      let games = await transformSDKEvents(upcomingEvents as ExtendedSDKEvent[]);
       
       // Sort by start time
       games.sort((a, b) => 

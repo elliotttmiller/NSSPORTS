@@ -15,7 +15,7 @@ async function testNHLTransformedSpreads() {
       limit: 3,
     });
     
-    const games = transformSDKEvents(events.data);
+    const games = await transformSDKEvents(events.data);
     console.log(`✅ Transformed ${games.length} NHL games\n`);
     
     if (games.length === 0) {

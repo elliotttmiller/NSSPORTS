@@ -29,7 +29,7 @@ export async function fetchGameFromAPI(gameId: string): Promise<Game | null> {
         return null;
       }
       
-      const games = transformSDKEvents(events);
+      const games = await transformSDKEvents(events);
       return games[0] || null;
     } catch (error) {
       logger.warn(`Failed to fetch game ${gameId} from SDK`, { error });

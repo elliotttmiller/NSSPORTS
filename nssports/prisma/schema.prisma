@@ -273,6 +273,8 @@ model AdminUser {
   updatedAt     DateTime @updatedAt
   activityLogs  AdminActivityLog[]
   agentsCreated Agent[]
+  oddsConfigs        OddsConfiguration[]
+  oddsConfigHistory  OddsConfigHistory[]
 
   @@index([username])
   @@index([status])
@@ -401,9 +403,73 @@ model AdminActivityLog {
   ipAddress   String?
   createdAt   DateTime @default(now())
   admin       AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+  resource    String?
+  resourceId  String?
 
   @@index([adminUserId])
   @@index([action])
   @@index([createdAt])
   @@map("admin_activity_logs")
+}
+
+// Odds Configuration - Admin Juice/Margin Settings
+model OddsConfiguration {
+  id                String   @id @default(cuid())
+  
+  // Global settings
+  isActive          Boolean  @default(true)
+  lastModified      DateTime @default(now())
+  modifiedBy        String   // AdminUser ID
+  
+  // Margin percentages (in decimal form, e.g., 0.05 = 5%)
+  spreadMargin      Float    @default(0.045)    // 4.5% typical
+  moneylineMargin   Float    @default(0.05)     // 5% typical
+  totalMargin       Float    @default(0.045)    // 4.5% typical
+  
+  // Props margins (typically higher)
+  playerPropsMargin Float    @default(0.08)     // 8% typical
+  gamePropsMargin   Float    @default(0.08)     // 8% typical
+  
+  // Advanced settings
+  roundingMethod    String   @default("nearest10") // 'nearest5', 'nearest10', 'ceiling'
+  minOdds           Int      @default(-10000)   // Minimum odds allowed
+  maxOdds           Int      @default(10000)    // Maximum odds allowed
+  
+  // League-specific overrides (JSON)
+  leagueOverrides   Json?    // { "NBA": { "spreadMargin": 0.05 }, "NFL": { ... } }
+  
+  // Time-based adjustments (optional)
+  liveGameMultiplier Float   @default(1.0)     // Increase margins for live games
+  
+  // Audit trail
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  modifiedByAdmin   AdminUser @relation(fields: [modifiedBy], references: [id])
+  changeHistory     OddsConfigHistory[]
+  
+  @@index([isActive])
+  @@index([lastModified])
+  @@map("odds_configuration")
+}
+
+// Track all configuration changes for audit
+model OddsConfigHistory {
+  id              String           @id @default(cuid())
+  configId        String
+  adminUserId     String
+  changedFields   Json             // What changed
+  previousValues  Json             // Old values
+  newValues       Json             // New values
+  reason          String?          // Optional reason for change
+  ipAddress       String?
+  createdAt       DateTime         @default(now())
+  
+  config          OddsConfiguration @relation(fields: [configId], references: [id], onDelete: Cascade)
+  admin           AdminUser         @relation(fields: [adminUserId], references: [id])
+  
+  @@index([configId])
+  @@index([adminUserId])
+  @@index([createdAt])
+  @@map("odds_config_history")
 }
