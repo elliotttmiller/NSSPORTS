@@ -60,10 +60,10 @@ export async function GET() {
       },
     });
 
-    // Calculate real-time total balance for each agent from their players
+    // Calculate real-time total AVAILABLE balance for each agent from their players
     const agentsWithBalance = await Promise.all(
       agents.map(async (agent) => {
-        // Get all User records for this agent's players
+        // Get all User records for this agent's players with their bets to calculate risk
         const playerUsernames = agent.players.map(p => p.username);
         
         let totalBalance = 0;
@@ -71,12 +71,27 @@ export async function GET() {
           const users = await prisma.user.findMany({
             where: { username: { in: playerUsernames } },
             include: {
-              account: { select: { balance: true } },
+              account: { 
+                select: { balance: true } 
+              },
+              bets: {
+                where: {
+                  status: { in: ['pending', 'processing'] }
+                },
+                select: { 
+                  stake: true 
+                }
+              }
             }
           });
-          totalBalance = users.reduce((sum, user) => 
-            sum + (user.account ? Number(user.account.balance) : 0), 0
-          );
+          
+          // Calculate available balance (balance - risk) for each user
+          totalBalance = users.reduce((sum, user) => {
+            const balance = user.account ? Number(user.account.balance) : 0;
+            const risk = user.bets.reduce((riskSum: number, bet) => riskSum + Number(bet.stake), 0);
+            const available = balance - risk;
+            return sum + available;
+          }, 0);
         }
 
         return {

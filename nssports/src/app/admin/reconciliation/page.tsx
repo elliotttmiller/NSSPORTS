@@ -10,7 +10,6 @@ import { MetricCard, MetricCardSection } from "@/components/ui/metric-card";
 import {
   AlertTriangle,
   CheckCircle,
-  Calendar,
   RefreshCw,
   Download,
   ArrowRight,
@@ -115,276 +114,140 @@ export default function ReconciliationPage() {
             <p className="text-muted-foreground">Loading reconciliation...</p>
           </div>
         </div>
-      </AdminDashboardLayout>
+    </AdminDashboardLayout>
     );
   }
 
   return (
     <AdminDashboardLayout>
-      <div className="space-y-3 w-full">
-        {/* Header - Sleek & Compact (matching dashboard) */}
-        <div className="flex flex-col gap-1.5">
-          <div className="flex items-center justify-between">
-            <h1 className="text-xl font-bold text-foreground">Financial Reconciliation</h1>
-            <div className="flex items-center gap-2">
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                <Input
-                  type="date"
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                  className="pl-10 text-sm h-8"
-                />
-              </div>
-              <Button
-                onClick={fetchReconciliation}
-                variant="outline"
-                size="sm"
-                className="gap-1.5 h-8"
-              >
-                <RefreshCw size={14} />
-                <span className="hidden sm:inline">Refresh</span>
-              </Button>
-              <Button variant="outline" size="sm" className="gap-1.5 h-8">
-                <Download size={14} />
-                <span className="hidden sm:inline">Export</span>
-              </Button>
-            </div>
+      <div className="space-y-4 md:space-y-6" style={{ padding: '15px' }}>
+        {/* Header - Sleek & Compact */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">Financial Reconciliation</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+              Daily balance audits and discrepancy detection
+            </p>
           </div>
-          <p className="text-xs text-muted-foreground/70">
-            Daily balance audits and discrepancy detection
-          </p>
+          <div className="flex items-center gap-2">
+            <Input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="text-xs sm:text-sm h-7 sm:h-8 w-36"
+            />
+            <Button
+              onClick={fetchReconciliation}
+              variant="outline"
+              size="sm"
+              className="gap-1.5 h-7 sm:h-8 text-xs"
+            >
+              <RefreshCw size={12} />
+              <span className="hidden sm:inline">Refresh</span>
+            </Button>
+            <Button variant="outline" size="sm" className="gap-1.5 h-7 sm:h-8 text-xs">
+              <Download size={12} />
+              <span className="hidden sm:inline">Export</span>
+            </Button>
+          </div>
         </div>
 
-        {/* Reconciliation Status - Compact Professional Card */}
+        {/* Reconciliation Status - Compact Horizontal */}
         {data && (
           <>
-            <Card
-              className={cn(
-                "overflow-hidden border-2",
-                data.reconciliation.hasDiscrepancy
-                  ? "border-yellow-500/50"
-                  : "border-emerald-500/50"
-              )}
-            >
-              {/* Header Section - Compact */}
-              <div
+            {/* Status Banner */}
+            <div className={cn(
+              "flex items-center justify-between p-3 sm:p-4 rounded-lg border",
+              data.reconciliation.hasDiscrepancy
+                ? "bg-yellow-500/10 border-yellow-500/30"
+                : "bg-emerald-500/10 border-emerald-500/30"
+            )}>
+              <div className="flex items-center gap-3">
+                {data.reconciliation.hasDiscrepancy ? (
+                  <AlertTriangle className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-600 shrink-0" />
+                ) : (
+                  <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600 shrink-0" />
+                )}
+                <div>
+                  <h2 className="text-sm sm:text-base font-bold">
+                    {data.reconciliation.hasDiscrepancy ? "Discrepancy Detected" : "Books Balanced"}
+                  </h2>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">
+                    {data.reconciliation.status}
+                  </p>
+                </div>
+              </div>
+              <Badge
+                variant={data.reconciliation.hasDiscrepancy ? "destructive" : "default"}
                 className={cn(
-                  "px-4 py-3 border-b",
-                  data.reconciliation.hasDiscrepancy
-                    ? "bg-yellow-500/10 border-yellow-500/20"
-                    : "bg-emerald-500/10 border-emerald-500/20"
+                  "text-xs",
+                  !data.reconciliation.hasDiscrepancy && "bg-emerald-600 hover:bg-emerald-700"
                 )}
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    {data.reconciliation.hasDiscrepancy ? (
-                      <div className="w-9 h-9 rounded-lg bg-yellow-500/20 flex items-center justify-center">
-                        <AlertTriangle className="w-5 h-5 text-yellow-600" />
-                      </div>
-                    ) : (
-                      <div className="w-9 h-9 rounded-lg bg-emerald-500/20 flex items-center justify-center">
-                        <CheckCircle className="w-5 h-5 text-emerald-600" />
-                      </div>
-                    )}
-                    <div>
-                      <h2 className="text-base font-bold text-foreground">
-                        {data.reconciliation.hasDiscrepancy
-                          ? "Discrepancy Detected"
-                          : "Books Balanced"}
-                      </h2>
-                      <p className="text-xs text-muted-foreground">
-                        {data.reconciliation.status}
-                      </p>
-                    </div>
-                  </div>
-                  <Badge
-                    variant={
-                      data.reconciliation.hasDiscrepancy
-                        ? "destructive"
-                        : "default"
-                    }
-                    className={cn(
-                      "text-xs px-2.5 py-0.5",
-                      !data.reconciliation.hasDiscrepancy &&
-                        "bg-emerald-600 hover:bg-emerald-700"
-                    )}
-                  >
-                    {data.reconciliation.hasDiscrepancy
-                      ? "Needs Review"
-                      : "Verified"}
-                  </Badge>
-                </div>
+                {data.reconciliation.hasDiscrepancy ? "Needs Review" : "Verified"}
+              </Badge>
+            </div>
+
+            {/* Balance Flow - Horizontal Compact */}
+            <div className="flex flex-row items-center gap-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-accent/40 scrollbar-track-transparent scroll-smooth" style={{ WebkitOverflowScrolling: 'touch' }}>
+              {/* Opening */}
+              <div className="flex flex-col items-center min-w-[110px] p-3 bg-accent/5 border border-accent/20 rounded-lg">
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase">Opening</p>
+                <p className="text-lg font-bold text-accent mt-1">${(data.reconciliation.openingBalance / 1000).toFixed(1)}K</p>
               </div>
-
-              {/* Balance Flow Visualization - Compact */}
-              <div className="p-4">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                  {/* Opening Balance */}
-                  <div className="space-y-2">
-                    <p className="text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider">
-                      Opening Balance
-                    </p>
-                    <div className="bg-muted/30 rounded-lg p-3 border border-border/50">
-                      <p className="text-2xl font-bold text-foreground">
-                        ${data.reconciliation.openingBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground/70 mt-1">
-                        Previous day closing
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Transaction Flow */}
-                  <div className="space-y-2">
-                    <p className="text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider">
-                      Daily Activity
-                    </p>
-                    <div className="bg-muted/30 rounded-lg p-3 border border-border/50 space-y-1.5">
-                      {/* Inflows */}
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-emerald-600 font-medium flex items-center gap-1">
-                          <Plus size={11} />
-                          Deposits
-                        </span>
-                        <span className="font-semibold text-foreground">
-                          ${data.transactionSummary.deposits.amount.toLocaleString()}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-emerald-600 font-medium flex items-center gap-1">
-                          <Plus size={11} />
-                          Bets Won
-                        </span>
-                        <span className="font-semibold text-foreground">
-                          ${data.transactionSummary.betsWon.amount.toLocaleString()}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-emerald-600 font-medium flex items-center gap-1">
-                          <Plus size={11} />
-                          Adjustments In
-                        </span>
-                        <span className="font-semibold text-foreground">
-                          ${data.transactionSummary.adjustments.inflow.toLocaleString()}
-                        </span>
-                      </div>
-                      
-                      <div className="h-px bg-border my-1.5" />
-                      
-                      {/* Outflows */}
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-red-600 font-medium flex items-center gap-1">
-                          <Minus size={11} />
-                          Withdrawals
-                        </span>
-                        <span className="font-semibold text-foreground">
-                          ${data.transactionSummary.withdrawals.amount.toLocaleString()}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-red-600 font-medium flex items-center gap-1">
-                          <Minus size={11} />
-                          Bets Placed
-                        </span>
-                        <span className="font-semibold text-foreground">
-                          ${data.transactionSummary.betsPlaced.amount.toLocaleString()}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-red-600 font-medium flex items-center gap-1">
-                          <Minus size={11} />
-                          Adjustments Out
-                        </span>
-                        <span className="font-semibold text-foreground">
-                          ${data.transactionSummary.adjustments.outflow.toLocaleString()}
-                        </span>
-                      </div>
-                      
-                      <div className="h-px bg-border my-1.5" />
-                      
-                      {/* Net Flow Arrow */}
-                      <div className="flex items-center justify-center pt-0.5">
-                        <ArrowRight className="w-4 h-4 text-accent" />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Closing Balance & Verification */}
-                  <div className="space-y-2">
-                    <p className="text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider">
-                      Closing Balance
-                    </p>
-                    <div className="space-y-2">
-                      {/* Expected */}
-                      <div className="bg-blue-500/10 rounded-lg p-3 border border-blue-500/30">
-                        <p className="text-[10px] text-blue-600 font-semibold mb-1 uppercase tracking-wide">
-                          EXPECTED (Calculated)
-                        </p>
-                        <p className="text-xl font-bold text-blue-600">
-                          ${data.reconciliation.closingBalance.expected.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </p>
-                      </div>
-                      
-                      {/* Actual */}
-                      <div className="bg-muted/30 rounded-lg p-3 border border-border/50">
-                        <p className="text-[10px] text-muted-foreground font-semibold mb-1 uppercase tracking-wide">
-                          ACTUAL (Database)
-                        </p>
-                        <p className="text-xl font-bold text-foreground">
-                          ${data.reconciliation.closingBalance.actual.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </p>
-                      </div>
-                      
-                      {/* Discrepancy */}
-                      <div
-                        className={cn(
-                          "rounded-lg p-3 border-2",
-                          data.reconciliation.hasDiscrepancy
-                            ? "bg-yellow-500/10 border-yellow-500/50"
-                            : "bg-emerald-500/10 border-emerald-500/50"
-                        )}
-                      >
-                        <p
-                          className={cn(
-                            "text-[10px] font-semibold mb-1 uppercase tracking-wide",
-                            data.reconciliation.hasDiscrepancy
-                              ? "text-yellow-600"
-                              : "text-emerald-600"
-                          )}
-                        >
-                          Discrepancy
-                        </p>
-                        <p
-                          className={cn(
-                            "text-2xl font-bold",
-                            data.reconciliation.hasDiscrepancy
-                              ? "text-yellow-600"
-                              : "text-emerald-600"
-                          )}
-                        >
-                          ${Math.abs(data.reconciliation.discrepancy).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground/70 mt-1">
-                          {data.reconciliation.hasDiscrepancy
-                            ? "Review required"
-                            : "All transactions reconciled"}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Reconciliation Formula Footer - Compact */}
-                <div className="mt-4 pt-4 border-t border-border">
-                  <div className="flex items-center justify-center gap-2 text-[10px] text-muted-foreground/70">
-                    <code className="bg-muted px-2 py-1 rounded font-mono">
-                      Expected Closing = Opening + Deposits + Wins + Adj.In - Withdrawals - Bets - Adj.Out
-                    </code>
-                  </div>
-                </div>
+              <ArrowRight className="w-4 h-4 text-accent shrink-0" />
+              {/* Deposits */}
+              <div className="flex flex-col items-center min-w-[100px] p-2.5 bg-emerald-500/10 rounded-lg">
+                <p className="text-[10px] font-medium text-emerald-600">+Deposits</p>
+                <p className="text-sm font-bold text-emerald-600">${(data.transactionSummary.deposits.amount / 1000).toFixed(1)}K</p>
               </div>
-            </Card>
+              {/* Withdrawals */}
+              <div className="flex flex-col items-center min-w-[100px] p-2.5 bg-red-500/10 rounded-lg">
+                <p className="text-[10px] font-medium text-red-600">-Withdrawals</p>
+                <p className="text-sm font-bold text-red-600">${(data.transactionSummary.withdrawals.amount / 1000).toFixed(1)}K</p>
+              </div>
+              {/* Bets */}
+              <div className="flex flex-col items-center min-w-[100px] p-2.5 bg-blue-500/10 rounded-lg">
+                <p className="text-[10px] font-medium text-blue-600">-Bets</p>
+                <p className="text-sm font-bold text-blue-600">${(data.transactionSummary.betsPlaced.amount / 1000).toFixed(1)}K</p>
+              </div>
+              {/* Wins */}
+              <div className="flex flex-col items-center min-w-[100px] p-2.5 bg-amber-500/10 rounded-lg">
+                <p className="text-[10px] font-medium text-amber-600">+Wins</p>
+                <p className="text-sm font-bold text-amber-600">${(data.transactionSummary.betsWon.amount / 1000).toFixed(1)}K</p>
+              </div>
+              <ArrowRight className="w-4 h-4 text-accent shrink-0" />
+              {/* Expected */}
+              <div className="flex flex-col items-center min-w-[110px] p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                <p className="text-[10px] font-semibold text-blue-600 uppercase">Expected</p>
+                <p className="text-lg font-bold text-blue-600 mt-1">${(data.reconciliation.closingBalance.expected / 1000).toFixed(1)}K</p>
+              </div>
+              {/* Actual */}
+              <div className="flex flex-col items-center min-w-[110px] p-3 bg-accent/5 border border-accent/20 rounded-lg">
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase">Actual</p>
+                <p className="text-lg font-bold text-accent mt-1">${(data.reconciliation.closingBalance.actual / 1000).toFixed(1)}K</p>
+              </div>
+              {/* Discrepancy */}
+              <div className={cn(
+                "flex flex-col items-center min-w-[110px] p-3 border rounded-lg",
+                data.reconciliation.hasDiscrepancy
+                  ? "bg-yellow-500/10 border-yellow-500/50"
+                  : "bg-emerald-500/10 border-emerald-500/50"
+              )}>
+                <p className={cn(
+                  "text-[10px] font-semibold uppercase",
+                  data.reconciliation.hasDiscrepancy ? "text-yellow-600" : "text-emerald-600"
+                )}>
+                  Variance
+                </p>
+                <p className={cn(
+                  "text-lg font-bold mt-1",
+                  data.reconciliation.hasDiscrepancy ? "text-yellow-600" : "text-emerald-600"
+                )}>
+                  ${Math.abs(data.reconciliation.discrepancy).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </p>
+              </div>
+            </div>
 
             {/* Transaction Summary - Modern, sleek icon design */}
             <MetricCardSection title="Transaction Summary">
@@ -436,21 +299,21 @@ export default function ReconciliationPage() {
             {data.agentAdjustments.length > 0 && (
               <Card className="overflow-hidden">
                 <div className="p-3 border-b border-border">
-                  <h3 className="text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider">
+                  <h3 className="text-xs sm:text-sm font-semibold text-muted-foreground/80 uppercase tracking-wider">
                     Agent Adjustments Breakdown
                   </h3>
                 </div>
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-accent/40 scrollbar-track-transparent scroll-smooth" style={{ WebkitOverflowScrolling: 'touch' }}>
                   <table className="w-full">
                     <thead className="bg-muted/50 border-b">
                       <tr>
-                        <th className="text-left p-2.5 text-[10px] font-semibold text-muted-foreground/80 uppercase tracking-wider">
+                        <th className="text-left p-2 sm:p-2.5 text-[10px] sm:text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider">
                           Agent
                         </th>
-                        <th className="text-left p-2.5 text-[10px] font-semibold text-muted-foreground/80 uppercase tracking-wider">
+                        <th className="text-left p-2 sm:p-2.5 text-[10px] sm:text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider">
                           Transactions
                         </th>
-                        <th className="text-left p-2.5 text-[10px] font-semibold text-muted-foreground/80 uppercase tracking-wider">
+                        <th className="text-left p-2 sm:p-2.5 text-[10px] sm:text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider">
                           Total Amount
                         </th>
                       </tr>
@@ -458,22 +321,22 @@ export default function ReconciliationPage() {
                     <tbody>
                       {data.agentAdjustments.map((agent, idx) => (
                         <tr key={idx} className="border-b border-border/30 hover:bg-muted/20 transition-colors">
-                          <td className="p-2.5">
+                          <td className="p-2 sm:p-2.5">
                             <div>
-                              <p className="font-medium text-xs text-foreground">
+                              <p className="font-medium text-[10px] sm:text-xs">
                                 {agent.agentUsername}
                               </p>
                               {agent.agentDisplayName && (
-                                <p className="text-[10px] text-muted-foreground/70">
+                                <p className="text-[9px] sm:text-[10px] text-muted-foreground/70">
                                   {agent.agentDisplayName}
                                 </p>
                               )}
                             </div>
                           </td>
-                          <td className="p-2.5 text-xs text-foreground">
+                          <td className="p-2 sm:p-2.5 text-[10px] sm:text-xs">
                             {agent.transactionCount}
                           </td>
-                          <td className="p-2.5 text-xs font-semibold text-foreground">
+                          <td className="p-2 sm:p-2.5 text-[10px] sm:text-xs font-semibold">
                             ${agent.totalAmount.toLocaleString()}
                           </td>
                         </tr>
@@ -486,64 +349,62 @@ export default function ReconciliationPage() {
 
             {/* Unusual Patterns Alert - Compact */}
             {data.unusualPatterns.length > 0 && (
-              <Card className="p-3 border-yellow-500/30 bg-yellow-500/5">
-                <div className="flex items-start gap-2.5">
-                  <AlertTriangle className="w-4 h-4 text-yellow-600 mt-0.5 shrink-0" />
-                  <div className="flex-1">
-                    <h3 className="text-xs font-semibold text-foreground mb-2">
-                      Unusual Activity Detected
-                    </h3>
-                    <div className="space-y-1.5">
-                      {data.unusualPatterns.map((pattern, idx) => (
-                        <div
-                          key={idx}
-                          className="text-xs bg-background/50 p-2 rounded border border-border/30"
+              <div className="flex items-start gap-2.5 p-3 sm:p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600 mt-0.5 shrink-0" />
+                <div className="flex-1">
+                  <h3 className="text-xs sm:text-sm font-semibold mb-2">
+                    Unusual Activity Detected
+                  </h3>
+                  <div className="space-y-1.5">
+                    {data.unusualPatterns.map((pattern, idx) => (
+                      <div
+                        key={idx}
+                        className="text-xs bg-background/50 p-2 rounded border border-border/30 flex items-start gap-2"
+                      >
+                        <Badge
+                          variant="outline"
+                          className="text-[9px] sm:text-[10px] h-4 shrink-0"
                         >
-                          <Badge
-                            variant="outline"
-                            className="mb-1 text-[10px] h-4"
-                          >
-                            {pattern.severity}
-                          </Badge>
-                          <p className="text-[10px] text-muted-foreground/70">
-                            {pattern.description}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
+                          {pattern.severity}
+                        </Badge>
+                        <p className="text-[10px] sm:text-xs text-muted-foreground/70 flex-1">
+                          {pattern.description}
+                        </p>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              </Card>
+              </div>
             )}
 
             {/* Large Transactions - Compact Table */}
             {data.largeTransactions.length > 0 && (
               <Card className="overflow-hidden">
-                <div className="p-3 border-b border-border flex items-center justify-between">
-                  <h3 className="text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider">
+                <div className="p-3 border-b border-border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <h3 className="text-xs sm:text-sm font-semibold text-muted-foreground/80 uppercase tracking-wider">
                     Large Transactions ($1,000+)
                   </h3>
-                  <Badge variant="secondary" className="text-[10px] h-5 px-2">
+                  <Badge variant="secondary" className="text-[10px] h-5 px-2 w-fit">
                     {data.largeTransactions.length} transactions
                   </Badge>
                 </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
+                <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-accent/40 scrollbar-track-transparent scroll-smooth" style={{ WebkitOverflowScrolling: 'touch' }}>
+                  <table className="w-full min-w-[640px]">
                     <thead className="bg-muted/50 border-b">
                       <tr>
-                        <th className="text-left p-2.5 text-[10px] font-semibold text-muted-foreground/80 uppercase tracking-wider">
+                        <th className="text-left p-2 sm:p-2.5 text-[10px] sm:text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider">
                           Time
                         </th>
-                        <th className="text-left p-2.5 text-[10px] font-semibold text-muted-foreground/80 uppercase tracking-wider">
+                        <th className="text-left p-2 sm:p-2.5 text-[10px] sm:text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider">
                           Type
                         </th>
-                        <th className="text-left p-2.5 text-[10px] font-semibold text-muted-foreground/80 uppercase tracking-wider">
+                        <th className="text-left p-2 sm:p-2.5 text-[10px] sm:text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider">
                           Player
                         </th>
-                        <th className="text-left p-2.5 text-[10px] font-semibold text-muted-foreground/80 uppercase tracking-wider">
+                        <th className="text-left p-2 sm:p-2.5 text-[10px] sm:text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider">
                           Agent
                         </th>
-                        <th className="text-left p-2.5 text-[10px] font-semibold text-muted-foreground/80 uppercase tracking-wider">
+                        <th className="text-left p-2 sm:p-2.5 text-[10px] sm:text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider">
                           Amount
                         </th>
                       </tr>
@@ -551,21 +412,21 @@ export default function ReconciliationPage() {
                     <tbody>
                       {data.largeTransactions.map((tx) => (
                         <tr key={tx.id} className="border-b border-border/30 hover:bg-muted/20 transition-colors">
-                          <td className="p-2.5 text-[10px] text-muted-foreground/70">
+                          <td className="p-2 sm:p-2.5 text-[9px] sm:text-[10px] text-muted-foreground/70 whitespace-nowrap">
                             {new Date(tx.timestamp).toLocaleTimeString()}
                           </td>
-                          <td className="p-2.5">
-                            <Badge variant="outline" className="text-[10px] h-4">
+                          <td className="p-2 sm:p-2.5">
+                            <Badge variant="outline" className="text-[9px] sm:text-[10px] h-4">
                               {tx.type}
                             </Badge>
                           </td>
-                          <td className="p-2.5 text-xs font-medium text-foreground">
+                          <td className="p-2 sm:p-2.5 text-[10px] sm:text-xs font-medium">
                             {tx.playerUsername}
                           </td>
-                          <td className="p-2.5 text-[10px] text-muted-foreground/70">
+                          <td className="p-2 sm:p-2.5 text-[9px] sm:text-[10px] text-muted-foreground/70">
                             {tx.agentUsername}
                           </td>
-                          <td className="p-2.5 text-xs font-bold text-foreground">
+                          <td className="p-2 sm:p-2.5 text-[10px] sm:text-xs font-bold">
                             ${tx.amount.toLocaleString()}
                           </td>
                         </tr>

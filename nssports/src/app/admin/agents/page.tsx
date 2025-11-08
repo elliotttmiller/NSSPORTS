@@ -5,7 +5,6 @@ import AdminDashboardLayout from "@/components/admin/AdminDashboardLayout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { MetricCard, MetricCardSection } from "@/components/ui/metric-card";
 import {
   UserCog,
@@ -14,12 +13,10 @@ import {
   Eye,
   Ban,
   CheckCircle,
-  Clock,
   Users,
   DollarSign,
   ChevronDown,
   ChevronRight,
-  Radio,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -136,10 +133,12 @@ export default function AgentsPage() {
       if (response.ok) {
         const data = await response.json();
         
-        // Update the agent with players data
+        // Update the agent with players data (totalBalance already comes from backend)
         setAgents((prevAgents) =>
           prevAgents.map((agent) =>
-            agent.id === agentId ? { ...agent, players: data.players } : agent
+            agent.id === agentId 
+              ? { ...agent, players: data.players } 
+              : agent
           )
         );
       } else {
@@ -227,14 +226,6 @@ export default function AgentsPage() {
             bgColor="bg-accent/10"
           />
           <MetricCard
-            icon={Radio}
-            label="Active Agents"
-            value={agents.filter((a) => a.status === "active").length}
-            iconColor="text-emerald-600"
-            bgColor="bg-emerald-500/10"
-            trend="live"
-          />
-          <MetricCard
             icon={Users}
             label="Total Players"
             value={agents.reduce((sum, a) => sum + a.playerCount, 0)}
@@ -317,100 +308,83 @@ export default function AgentsPage() {
                 
                 return (
                   <Card key={agent.id} className="overflow-hidden">
-                  {/* Agent Header Row - Compact */}
+                  {/* Agent Header Row - Sleek Horizontal Compact */}
                   <div
-                    className="p-3 hover:bg-muted/20 transition-colors cursor-pointer touch-action-manipulation"
+                    className="p-2 hover:bg-muted/20 transition-colors cursor-pointer touch-action-manipulation"
                     onClick={() => toggleAgentExpansion(agent.id)}
                   >
-                    <div className="flex items-center gap-3">
-                      {/* Expand/Collapse Icon */}
+                    <div className="flex items-center gap-2">
+                      {/* Expand Icon */}
                       <div className="shrink-0">
                         {isExpanded ? (
-                          <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                          <ChevronDown className="w-3.5 h-3.5 text-muted-foreground/70" />
                         ) : (
-                          <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                          <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/70" />
                         )}
                       </div>
 
-                      {/* Agent Info */}
-                      <div className="flex-1 grid grid-cols-1 sm:grid-cols-5 gap-3">
-                        {/* Username & Display Name */}
-                        <div className="flex items-center gap-2">
-                          <UserCog className="w-4 h-4 text-blue-600 shrink-0" />
-                          <div className="min-w-0">
-                            <p className="font-medium text-foreground text-xs truncate">
-                              {agent.username}
+                      {/* Agent Identity - Compact */}
+                      <div className="flex items-center gap-2 min-w-[140px] sm:min-w-[180px]">
+                        <UserCog className="w-3.5 h-3.5 text-accent shrink-0" />
+                        <div className="min-w-0">
+                          <p className="font-medium text-foreground text-xs truncate leading-tight">
+                            {agent.username}
+                          </p>
+                          {agent.displayName && (
+                            <p className="text-[9px] text-muted-foreground/60 truncate leading-tight">
+                              {agent.displayName}
                             </p>
-                            {agent.displayName && (
-                              <p className="text-[10px] text-muted-foreground/70 truncate">
-                                {agent.displayName}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Status */}
-                        <div className="flex items-center">
-                          <Badge
-                            className={cn(
-                              "text-[10px] h-5 flex items-center gap-1",
-                              agent.status === "active" &&
-                                "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
-                              agent.status === "idle" &&
-                                "bg-yellow-500/10 text-yellow-600 border-yellow-500/20",
-                              agent.status === "suspended" &&
-                                "bg-red-500/10 text-red-600 border-red-500/20"
-                            )}
-                          >
-                            {agent.status === "active" && (
-                              <div className="relative flex items-center justify-center">
-                                {/* Outer pulsing ring */}
-                                <div className="absolute w-2.5 h-2.5 bg-emerald-500/30 rounded-full animate-ping" 
-                                     style={{ animationDuration: '2s' }}></div>
-                                {/* Middle glow */}
-                                <div className="absolute w-2 h-2 bg-emerald-500/50 rounded-full blur-sm"></div>
-                                {/* Core dot */}
-                                <div className="relative w-1.5 h-1.5 bg-emerald-500 rounded-full shadow-lg shadow-emerald-500/50"></div>
-                              </div>
-                            )}
-                            {agent.status === "idle" && <Clock size={10} />}
-                            {agent.status === "suspended" && <Ban size={10} />}
-                            {agent.status.charAt(0).toUpperCase() + agent.status.slice(1)}
-                          </Badge>
-                        </div>
-
-                        {/* Players Count */}
-                        <div className="flex items-center gap-1.5">
-                          <Users size={13} className="text-muted-foreground shrink-0" />
-                          <span className="text-xs">
-                            <span className="font-semibold">{agent.playerCount}</span>
-                            <span className="text-muted-foreground/70 text-[10px] ml-1">players</span>
-                          </span>
-                        </div>
-
-                        {/* Daily Adjustments */}
-                        <div className="flex items-center gap-1.5">
-                          <DollarSign size={13} className="text-emerald-600 shrink-0" />
-                          <span className="text-xs">
-                            <span className="font-semibold">
-                              ${agent.todayAdjustments.toLocaleString()}
-                            </span>
-                            <span className="text-muted-foreground/70 text-[10px]">
-                              {" "}/ ${agent.dailyAdjustmentLimit.toLocaleString()}
-                            </span>
-                          </span>
-                        </div>
-
-                        {/* Last Active */}
-                        <div className="text-[10px] text-muted-foreground/70">
-                          {agent.lastLogin
-                            ? new Date(agent.lastLogin).toLocaleDateString()
-                            : "Never active"}
+                          )}
                         </div>
                       </div>
 
-                      {/* Action Buttons */}
-                      <div className="flex items-center gap-1.5 shrink-0">
+                      {/* Metrics - Horizontal Compact */}
+                      <div className="hidden sm:flex items-center gap-3 flex-1 min-w-0">
+                        {/* Players */}
+                        <div className="flex items-center gap-1">
+                          <Users size={11} className="text-muted-foreground/60 shrink-0" />
+                          <span className="text-[10px] font-medium">{agent.playerCount}</span>
+                        </div>
+
+                        {/* Divider */}
+                        <div className="h-3 w-px bg-border/30"></div>
+
+                        {/* Total Balance */}
+                        <div className="flex items-center gap-1">
+                          <DollarSign size={11} className="text-accent shrink-0" />
+                          <span className="text-[10px] font-medium text-accent">
+                            ${agent.totalBalance?.toLocaleString() || '0'}
+                          </span>
+                          <span className="text-[9px] text-muted-foreground/50">total</span>
+                        </div>
+
+                        {/* Divider */}
+                        <div className="h-3 w-px bg-border/30"></div>
+
+                        {/* Daily Adjustments */}
+                        <div className="flex items-center gap-1">
+                          <DollarSign size={11} className="text-emerald-600 shrink-0" />
+                          <span className="text-[10px] font-medium">
+                            ${agent.todayAdjustments.toLocaleString()}
+                          </span>
+                          <span className="text-[9px] text-muted-foreground/50">
+                            / ${agent.dailyAdjustmentLimit.toLocaleString()}
+                          </span>
+                        </div>
+
+                        {/* Divider */}
+                        <div className="h-3 w-px bg-border/30"></div>
+
+                        {/* Last Active */}
+                        <div className="text-[9px] text-muted-foreground/60">
+                          {agent.lastLogin
+                            ? new Date(agent.lastLogin).toLocaleDateString()
+                            : "Never"}
+                        </div>
+                      </div>
+
+                      {/* Action Button - Compact */}
+                      <div className="flex items-center gap-1 shrink-0 ml-auto">
                         <Button
                           variant="ghost"
                           size="sm"
@@ -422,16 +396,16 @@ export default function AgentsPage() {
                             );
                           }}
                           className={cn(
-                            "h-7 w-7 p-0 touch-action-manipulation",
+                            "h-6 w-6 p-0 touch-action-manipulation",
                             agent.status === "active"
                               ? "text-red-600 hover:text-red-700 hover:bg-red-500/10"
                               : "text-green-600 hover:text-green-700 hover:bg-green-500/10"
                           )}
                         >
                           {agent.status === "active" ? (
-                            <Ban size={14} />
+                            <Ban size={12} />
                           ) : (
-                            <CheckCircle size={14} />
+                            <CheckCircle size={12} />
                           )}
                         </Button>
                       </div>
@@ -447,86 +421,84 @@ export default function AgentsPage() {
                           <p className="text-xs text-muted-foreground/70">Loading players...</p>
                         </div>
                       ) : agent.players && agent.players.length > 0 ? (
-                        <div className="p-3">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Users className="w-4 h-4 text-purple-600" />
-                            <h4 className="text-xs font-semibold text-foreground">
-                              Agent&apos;s Players ({agent.players.length})
+                        <div className="p-2">
+                          <div className="flex items-center gap-1.5 mb-1.5 px-1">
+                            <Users className="w-3 h-3 text-accent" />
+                            <h4 className="text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-wider">
+                              Players ({agent.players.length})
                             </h4>
                           </div>
                           
-                          <div className="space-y-1.5">
+                          <div className="space-y-1">
                             {agent.players.map((player) => (
                               <div
                                 key={player.id}
                                 className="bg-background rounded-lg p-2 border border-border hover:border-accent/50 transition-colors w-full"
                               >
-                                {/* Fully Fluid Responsive Player Row */}
-                                <div className="flex flex-wrap items-center gap-2 w-full">
-                                  {/* Player Username with Status Badge - Adaptive Width */}
-                                  <div className="flex items-center gap-1.5 shrink-0 min-w-[100px]">
-                                    <div className="min-w-0">
-                                      <p className="font-medium text-xs truncate">{player.username}</p>
-                                      {player.displayName && (
-                                        <p className="text-[10px] text-muted-foreground/70 truncate">
-                                          {player.displayName}
-                                        </p>
-                                      )}
+                                {/* Mobile-First Responsive Player Card */}
+                                <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-2 w-full">
+                                  {/* Top Row: Username, Status, Action Button */}
+                                  <div className="flex items-center justify-between w-full sm:w-auto sm:min-w-[120px]">
+                                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                                      <div className="min-w-0 flex-1">
+                                        <p className="font-medium text-sm sm:text-xs truncate">{player.username}</p>
+                                        {player.displayName && (
+                                          <p className="text-xs sm:text-[10px] text-muted-foreground/70 truncate">
+                                            {player.displayName}
+                                          </p>
+                                        )}
+                                      </div>
                                     </div>
-                                    {/* Status Badge next to name */}
-                                    <Badge
-                                      variant="outline"
-                                      className={cn(
-                                        "text-[10px] h-4 px-1.5 py-0 shrink-0",
-                                        player.status === "active" && "border-emerald-500/50 text-emerald-600",
-                                        player.status === "suspended" && "border-red-500/50 text-red-600"
-                                      )}
+                                    
+                                    {/* Action Button - Mobile Only */}
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => {
+                                        setSelectedPlayerId(player.id);
+                                        setSelectedPlayerUsername(player.username);
+                                        setIsPlayerModalOpen(true);
+                                      }}
+                                      className="h-7 w-7 p-0 shrink-0 hover:bg-accent/10 sm:hidden"
                                     >
-                                      {player.status}
-                                    </Badge>
+                                      <Eye size={14} className="text-accent" />
+                                    </Button>
                                   </div>
 
-                                  {/* Bet Stats - Moved to left side */}
-                                  <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/70 shrink-0">
-                                    <span>{player.totalBets || 0} total</span>
-                                    <span className="text-amber-600">• {player.totalPendingBets || 0} pending</span>
-                                    <span>• ${player.totalWagered?.toLocaleString() || '0'} wagered</span>
-                                  </div>
-
-                                  {/* Financial Metrics - Moved to right side */}
-                                  <div className="flex items-center gap-1.5 flex-wrap flex-1 min-w-0 justify-end">
-                                    {/* Available */}
-                                    <div className="flex items-center gap-1 shrink-0">
-                                      <span className="text-xs font-semibold text-accent">
-                                        ${player.available?.toLocaleString() || '0'}
-                                      </span>
-                                      <span className="text-[9px] text-muted-foreground/60 uppercase">avail</span>
-                                    </div>
-
-                                    {/* Divider */}
-                                    <div className="h-3 w-px bg-border/50"></div>
-
-                                    {/* Risk */}
-                                    <div className="flex items-center gap-1 shrink-0">
-                                      <span className="text-xs font-semibold text-red-600">
-                                        ${player.risk?.toLocaleString() || '0'}
-                                      </span>
-                                      <span className="text-[9px] text-muted-foreground/60 uppercase">risk</span>
-                                    </div>
-
-                                    {/* Divider */}
-                                    <div className="h-3 w-px bg-border/50"></div>
-
+                                  {/* Financial Metrics - Responsive Grid */}
+                                  <div className="grid grid-cols-3 gap-3 sm:flex sm:items-center sm:gap-3 md:gap-4 flex-1 w-full sm:justify-end">
                                     {/* Balance */}
-                                    <div className="flex items-center gap-1 shrink-0">
-                                      <span className="text-xs font-semibold text-foreground">
+                                    <div className="flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-1.5">
+                                      <span className="text-[9px] sm:text-[10px] text-muted-foreground/70 uppercase tracking-wider">Balance</span>
+                                      <span className="text-sm sm:text-sm font-semibold text-foreground">
                                         ${player.balance?.toLocaleString() || '0'}
                                       </span>
-                                      <span className="text-[9px] text-muted-foreground/60 uppercase">bal</span>
+                                    </div>
+
+                                    {/* Divider - Desktop Only */}
+                                    <div className="hidden sm:block h-4 w-px bg-border/40"></div>
+
+                                    {/* Available */}
+                                    <div className="flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-1.5">
+                                      <span className="text-[9px] sm:text-[10px] text-muted-foreground/70 uppercase tracking-wider">Available</span>
+                                      <span className="text-sm sm:text-sm font-semibold text-emerald-600">
+                                        ${player.available?.toLocaleString() || '0'}
+                                      </span>
+                                    </div>
+
+                                    {/* Divider - Desktop Only */}
+                                    <div className="hidden sm:block h-4 w-px bg-border/40"></div>
+
+                                    {/* Risk */}
+                                    <div className="flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-1.5">
+                                      <span className="text-[9px] sm:text-[10px] text-muted-foreground/70 uppercase tracking-wider">Risk</span>
+                                      <span className="text-sm sm:text-sm font-semibold text-red-600">
+                                        ${player.risk?.toLocaleString() || '0'}
+                                      </span>
                                     </div>
                                   </div>
 
-                                  {/* Action Button - Always Visible */}
+                                  {/* Action Button - Desktop Only */}
                                   <Button
                                     variant="ghost"
                                     size="sm"
@@ -535,7 +507,7 @@ export default function AgentsPage() {
                                       setSelectedPlayerUsername(player.username);
                                       setIsPlayerModalOpen(true);
                                     }}
-                                    className="h-6 w-6 p-0 shrink-0 hover:bg-accent/10"
+                                    className="hidden sm:flex h-6 w-6 p-0 shrink-0 hover:bg-accent/10"
                                   >
                                     <Eye size={13} className="text-accent" />
                                   </Button>
@@ -545,9 +517,9 @@ export default function AgentsPage() {
                           </div>
                         </div>
                       ) : (
-                        <div className="p-6 text-center text-muted-foreground/70">
-                          <Users className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                          <p className="text-xs">No players registered with this agent</p>
+                        <div className="p-4 text-center text-muted-foreground/70">
+                          <Users className="w-6 h-6 mx-auto mb-1.5 opacity-30" />
+                          <p className="text-[10px]">No players registered</p>
                         </div>
                       )}
                     </div>

@@ -110,8 +110,13 @@ interface FinancialReportData {
 }
 
 export default function ReportsPage() {
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
+  // Set default date range: last 30 days
+  const today = new Date();
+  const thirtyDaysAgo = new Date(today);
+  thirtyDaysAgo.setDate(today.getDate() - 30);
+  
+  const [dateFrom, setDateFrom] = useState(thirtyDaysAgo.toISOString().split('T')[0]);
+  const [dateTo, setDateTo] = useState(today.toISOString().split('T')[0]);
   const [reportType, setReportType] = useState<"financial" | "agents" | "players" | "system">("financial");
   const [isGenerating, setIsGenerating] = useState(false);
   
@@ -337,8 +342,8 @@ export default function ReportsPage() {
         {/* Compact Filter Bar */}
         <Card className="p-3">
           <div className="flex flex-col lg:flex-row gap-3">
-            {/* Report Type Tabs - Sleek Design */}
-            <div className="flex items-center gap-1 flex-wrap lg:flex-nowrap">
+            {/* Report Type Tabs - Horizontal Scroll */}
+            <div className="flex items-center gap-1 overflow-x-auto scrollbar-thin scrollbar-thumb-accent/40 scrollbar-track-transparent scroll-smooth pb-1" style={{ WebkitOverflowScrolling: 'touch' }}>
               <Filter size={14} className="text-muted-foreground mr-1 shrink-0" />
               {reportTypes.map((type) => {
                 const Icon = type.icon;
@@ -347,7 +352,7 @@ export default function ReportsPage() {
                     key={type.id}
                     onClick={() => setReportType(type.id)}
                     className={cn(
-                      "flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all touch-action-manipulation active:scale-95 shrink-0",
+                      "flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all touch-action-manipulation active:scale-95 shrink-0 whitespace-nowrap",
                       reportType === type.id
                         ? "bg-accent text-accent-foreground shadow-sm"
                         : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
