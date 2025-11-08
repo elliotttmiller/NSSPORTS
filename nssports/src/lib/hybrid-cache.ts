@@ -210,32 +210,20 @@ async function updateEventsCache(events: any[]) {
       const awayTeam = event.teams.away;
       const leagueId = event.leagueID; // Keep uppercase to match SDK (NBA, NFL, NHL)
       
-      // Generate logo paths based on team names (kebab-case)
-      // Logo folder is lowercase: /logos/nba/, /logos/nfl/, /logos/nhl/
-      const logoFolder = leagueId.toLowerCase();
-      const homeTeamSlug = homeTeam.names.long
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-|-$/g, '');
-      const awayTeamSlug = awayTeam.names.long
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-|-$/g, '');
-      
       // Ensure teams exist in database first
       await prisma.team.upsert({
         where: { id: homeTeam.teamID },
         update: {
           name: homeTeam.names.long,
           shortName: homeTeam.names.short,
-          logo: `/logos/${logoFolder}/${homeTeamSlug}.svg`,
+          logo: homeTeam.logo || '', // Only use SDK-provided logos
           record: homeTeam.standings?.record || null,
         },
         create: {
           id: homeTeam.teamID,
           name: homeTeam.names.long,
           shortName: homeTeam.names.short,
-          logo: `/logos/${logoFolder}/${homeTeamSlug}.svg`,
+          logo: homeTeam.logo || '', // Only use SDK-provided logos
           leagueId: leagueId,
           record: homeTeam.standings?.record || null,
         },
@@ -246,14 +234,14 @@ async function updateEventsCache(events: any[]) {
         update: {
           name: awayTeam.names.long,
           shortName: awayTeam.names.short,
-          logo: `/logos/${logoFolder}/${awayTeamSlug}.svg`,
+          logo: awayTeam.logo || '', // Only use SDK-provided logos
           record: awayTeam.standings?.record || null,
         },
         create: {
           id: awayTeam.teamID,
           name: awayTeam.names.long,
           shortName: awayTeam.names.short,
-          logo: `/logos/${logoFolder}/${awayTeamSlug}.svg`,
+          logo: awayTeam.logo || '', // Only use SDK-provided logos
           leagueId: leagueId,
           record: awayTeam.standings?.record || null,
         },

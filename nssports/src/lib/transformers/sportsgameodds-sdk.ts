@@ -296,16 +296,11 @@ function getTeamShortName(team: SDKTeam): string {
 }
 
 /**
- * Get team logo URL with fallback
+ * Get team logo URL from SDK (no fallback)
  */
-function getTeamLogo(team: SDKTeam, leagueId: string): string {
-  if (team.logo) {
-    return team.logo;
-  }
-  
-  // Generate logo path from team name (matches our public/logos structure)
-  const teamSlug = (team.name || 'unknown').toLowerCase().replace(/\s+/g, '-');
-  return `/logos/${leagueId.toLowerCase()}/${teamSlug}.svg`; // Changed from .png to .svg
+function getTeamLogo(team: SDKTeam): string {
+  // Only use SDK-provided logos, no local fallbacks
+  return team.logo || '';
 }
 
 // ⭐ Extend Official SDK Event Type with Additional Properties
@@ -785,14 +780,14 @@ export async function transformSDKEvent(event: ExtendedSDKEvent): Promise<GamePa
         id: homeTeam.teamID || `${officialLeagueId}-${homeTeam.name || 'unknown'}`.toLowerCase().replace(/\s+/g, '-'),
         name: homeTeam.name || 'Unknown',
         shortName: getTeamShortName(homeTeam),
-        logo: getTeamLogo(homeTeam, officialLeagueId),
+        logo: getTeamLogo(homeTeam),
         record: homeTeam.standings?.record || undefined,
       },
       awayTeam: {
         id: awayTeam.teamID || `${officialLeagueId}-${awayTeam.name || 'unknown'}`.toLowerCase().replace(/\s+/g, '-'),
         name: awayTeam.name || 'Unknown',
         shortName: getTeamShortName(awayTeam),
-        logo: getTeamLogo(awayTeam, officialLeagueId),
+        logo: getTeamLogo(awayTeam),
         record: awayTeam.standings?.record || undefined,
       },
       startTime: startDateTime,
