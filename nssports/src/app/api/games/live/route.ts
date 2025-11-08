@@ -69,7 +69,7 @@ export async function GET() {
       // Transform SDK events to internal format
       // The transformer will use official Event.status fields to map status
       // Events from cache/SDK match ExtendedSDKEvent structure
-      let games = transformSDKEvents(liveEvents as ExtendedSDKEvent[]);
+      let games = await transformSDKEvents(liveEvents as ExtendedSDKEvent[]);
       
       // ⭐ CRITICAL: Time-based filter to ensure ONLY recent games
       // Live games MUST have started within the last 4 hours

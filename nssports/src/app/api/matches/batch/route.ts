@@ -126,7 +126,7 @@ export async function GET(request: NextRequest) {
 
       // Transform to our internal format
       // Events from SDK match ExtendedSDKEvent structure
-      const games = transformSDKEvents(events as ExtendedSDKEvent[]);
+      const games = await transformSDKEvents(events as ExtendedSDKEvent[]);
 
       // Validate transformed data
       const validatedGames = games.map((game) => GameSchema.parse(game));

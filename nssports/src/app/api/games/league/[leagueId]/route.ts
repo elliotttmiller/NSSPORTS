@@ -59,7 +59,7 @@ export async function GET(
       
       // Transform events using official SDK status fields
       // Events from cache/SDK match ExtendedSDKEvent structure
-      let transformedGames = transformSDKEvents(events as ExtendedSDKEvent[]);
+      let transformedGames = await transformSDKEvents(events as ExtendedSDKEvent[]);
       
       // ⭐ Filter out finished games (never send to frontend)
       const beforeFilter = transformedGames.length;
