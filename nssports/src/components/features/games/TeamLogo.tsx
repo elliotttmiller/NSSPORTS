@@ -13,48 +13,32 @@ export function TeamLogo({ src, alt, size = 32, className }: TeamLogoProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
 
-  // If no logo URL provided, show error state
+  // If no logo URL provided, show minimal placeholder
   if (!src) {
     return (
       <div
-        className={cn("relative shrink-0", className)}
+        className={cn("relative shrink-0 flex items-center justify-center bg-muted/5 rounded", className)}
         style={{ width: size, height: size }}
       >
-        <div className="absolute inset-0 flex items-center justify-center bg-muted/10 rounded">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="currentColor"
-            className="text-muted-foreground"
-            style={{ width: size * 0.5, height: size * 0.5 }}
-          >
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm0-4h-2V7h2v8z"/>
-          </svg>
-        </div>
+        <div className="w-1/2 h-1/2 bg-muted/20 rounded-full" />
       </div>
     );
   }
   
   return (
-    // Dynamic size required for responsive logo rendering
     <div
-      className={cn("relative shrink-0", className)}
+      className={cn("relative shrink-0 overflow-hidden", className)}
       style={{ width: size, height: size }}
     >
+      {/* Subtle loading skeleton - only shows while loading */}
       {isLoading && !hasError && (
-        <div className="absolute inset-0 bg-muted/20 animate-pulse rounded" />
+        <div className="absolute inset-0 bg-linear-to-br from-muted/10 to-muted/5 animate-pulse rounded" />
       )}
+      
+      {/* Error state - minimal icon */}
       {hasError ? (
-        <div className="absolute inset-0 flex items-center justify-center bg-muted/10 rounded">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="currentColor"
-            className="text-muted-foreground"
-            style={{ width: size * 0.5, height: size * 0.5 }}
-          >
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm0-4h-2V7h2v8z"/>
-          </svg>
+        <div className="absolute inset-0 flex items-center justify-center bg-muted/5 rounded">
+          <div className="w-1/2 h-1/2 bg-muted/20 rounded-full" />
         </div>
       ) : (
         <Image
@@ -62,8 +46,8 @@ export function TeamLogo({ src, alt, size = 32, className }: TeamLogoProps) {
           alt={alt}
           fill
           className={cn(
-            "object-contain transition-opacity duration-200",
-            isLoading ? "opacity-0" : "opacity-100"
+            "object-contain transition-all duration-300 ease-out",
+            isLoading ? "opacity-0 scale-95" : "opacity-100 scale-100"
           )}
           sizes={`${size}px`}
           onLoad={() => setIsLoading(false)}
@@ -73,6 +57,7 @@ export function TeamLogo({ src, alt, size = 32, className }: TeamLogoProps) {
           }}
           priority={false}
           unoptimized
+          draggable={false}
         />
       )}
     </div>
