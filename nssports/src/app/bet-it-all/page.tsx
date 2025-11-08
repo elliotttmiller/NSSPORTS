@@ -84,14 +84,14 @@ export default function BetItAllPage() {
   const canPlace = orderedBets.length >= 2 && orderedBets.length <= 6 && stakeValue > 0;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 to-slate-900 text-white">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-slate-950/90 backdrop-blur-sm border-b border-slate-800">
+      <div className="sticky top-0 z-10 bg-background/90 backdrop-blur-sm border-b border-border">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <button
               onClick={() => router.back()}
-              className="flex items-center gap-2 text-slate-400 hover:text-white"
+              className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
             >
               <ArrowLeft size={20} />
               Back
@@ -101,7 +101,7 @@ export default function BetItAllPage() {
               onClick={() => clearBetSlip()}
               variant="ghost"
               size="sm"
-              className="text-slate-400"
+              className="text-muted-foreground"
             >
               Clear All
             </Button>
@@ -111,12 +111,12 @@ export default function BetItAllPage() {
 
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
         {/* Info Banner */}
-        <div className="bg-gradient-to-r from-orange-600 to-red-600 rounded-lg p-4">
+        <div className="bg-accent/10 border border-accent/20 rounded-lg p-4">
           <div className="flex items-start gap-3">
-            <TrendUp size={24} className="flex-shrink-0 mt-0.5" />
+            <TrendUp size={24} className="shrink-0 mt-0.5 text-accent" />
             <div>
               <div className="font-semibold mb-1">Progressive Chain Betting</div>
-              <div className="text-sm text-white/90">
+              <div className="text-sm text-muted-foreground">
                 All winnings from each bet are automatically placed on the next bet. 
                 One loss resets to zero (All-or-Nothing).
               </div>
@@ -125,7 +125,7 @@ export default function BetItAllPage() {
         </div>
 
         {/* Leg Chain */}
-        <div className="bg-slate-900 rounded-lg p-6">
+        <div className="bg-card border border-border rounded-lg p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold">
               Chain Sequence ({orderedBets.length} legs)
@@ -138,40 +138,40 @@ export default function BetItAllPage() {
           <div className="space-y-4">
             {orderedBets.map((bet, index) => (
               <div key={bet!.id} className="space-y-2">
-                <div className="flex items-center gap-4 p-4 bg-slate-800 rounded-lg">
+                <div className="flex items-center gap-4 p-4 bg-card border border-border rounded-lg">
                   <div className="flex flex-col gap-1">
                     <button
                       onClick={() => moveLeg(index, 'up')}
                       disabled={index === 0}
-                      className="text-slate-400 hover:text-white disabled:opacity-30"
+                      className="text-muted-foreground hover:text-foreground disabled:opacity-30 transition-colors"
                     >
                       ↑
                     </button>
                     <button
                       onClick={() => moveLeg(index, 'down')}
                       disabled={index === orderedBets.length - 1}
-                      className="text-slate-400 hover:text-white disabled:opacity-30"
+                      className="text-muted-foreground hover:text-foreground disabled:opacity-30 transition-colors"
                     >
                       ↓
                     </button>
                   </div>
 
-                  <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-br from-orange-600 to-red-600 font-bold text-lg">
+                  <div className="flex items-center justify-center w-10 h-10 rounded-full bg-accent text-accent-foreground font-bold text-lg">
                     {index + 1}
                   </div>
 
                   <div className="flex-1">
                     <div className="font-medium">{bet!.selection}</div>
-                    <div className="text-sm text-slate-400">
+                    <div className="text-sm text-muted-foreground">
                       {bet!.game.awayTeam.shortName} @ {bet!.game.homeTeam.shortName}
                     </div>
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <Badge className="bg-blue-600">{formatOdds(bet!.odds)}</Badge>
+                    <Badge className="bg-accent text-accent-foreground">{formatOdds(bet!.odds)}</Badge>
                     <button
                       onClick={() => removeBet(bet!.id)}
-                      className="text-slate-400 hover:text-red-500"
+                      className="text-muted-foreground hover:text-destructive transition-colors"
                     >
                       <X size={20} />
                     </button>
@@ -180,15 +180,15 @@ export default function BetItAllPage() {
 
                 {/* Progressive Calculation Display */}
                 {progressivePayouts[index] && (
-                  <div className="ml-16 p-3 bg-slate-800/50 rounded border-l-4 border-orange-500">
+                  <div className="ml-16 p-3 bg-accent/5 rounded border-l-4 border-accent">
                     <div className="flex justify-between items-center text-sm">
-                      <span className="text-slate-400">Stake:</span>
-                      <span className="font-semibold text-orange-400">
+                      <span className="text-muted-foreground">Stake:</span>
+                      <span className="font-semibold text-accent">
                         ${progressivePayouts[index].stake.toFixed(2)}
                       </span>
                     </div>
                     <div className="flex justify-between items-center text-sm mt-1">
-                      <span className="text-slate-400">If Win:</span>
+                      <span className="text-muted-foreground">If Win:</span>
                       <span className="font-bold text-green-400">
                         ${progressivePayouts[index].payout.toFixed(2)}
                       </span>
@@ -199,7 +199,7 @@ export default function BetItAllPage() {
                 {/* Arrow between legs */}
                 {index < orderedBets.length - 1 && (
                   <div className="flex items-center justify-center py-2">
-                    <div className="text-orange-500">
+                    <div className="text-accent">
                       <TrendUp size={32} />
                     </div>
                   </div>
@@ -209,7 +209,7 @@ export default function BetItAllPage() {
           </div>
 
           {orderedBets.length === 0 && (
-            <div className="text-center py-8 text-slate-500">
+            <div className="text-center py-8 text-muted-foreground">
               <p>Add 2-6 picks to create a Bet It All chain</p>
             </div>
           )}
@@ -217,7 +217,7 @@ export default function BetItAllPage() {
 
         {/* Initial Stake */}
         {orderedBets.length >= 2 && (
-          <div className="bg-slate-900 rounded-lg p-6">
+          <div className="bg-card border border-border rounded-lg p-6">
             <h2 className="text-lg font-semibold mb-4">Initial Stake</h2>
             <Input
               type="number"
@@ -233,21 +233,21 @@ export default function BetItAllPage() {
 
         {/* Summary */}
         {orderedBets.length >= 2 && (
-          <div className="bg-gradient-to-r from-orange-600 to-red-600 rounded-lg p-6">
+          <div className="bg-accent/10 border border-accent/20 rounded-lg p-6">
             <div className="space-y-3">
               <div className="flex justify-between items-center">
-                <span className="text-white/80">Chain Length</span>
+                <span className="text-muted-foreground">Chain Length</span>
                 <span className="text-2xl font-bold">{orderedBets.length} legs</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-white/80">Initial Stake</span>
+                <span className="text-muted-foreground">Initial Stake</span>
                 <span className="text-xl font-semibold">${stakeValue.toFixed(2)}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-white/80">Mode</span>
+                <span className="text-muted-foreground">Mode</span>
                 <Badge variant="destructive">All-or-Nothing</Badge>
               </div>
-              <div className="border-t border-white/20 pt-3 flex justify-between items-center">
+              <div className="border-t border-border pt-3 flex justify-between items-center">
                 <span className="text-lg font-semibold">If All Win</span>
                 <span className="text-3xl font-bold">${finalPayout.toFixed(2)}</span>
               </div>
@@ -259,7 +259,7 @@ export default function BetItAllPage() {
         <Button
           onClick={() => placeBetItAll.mutate()}
           disabled={!canPlace || placeBetItAll.isPending}
-          className="w-full py-6 text-lg font-semibold bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700"
+          className="w-full py-6 text-lg font-semibold bg-accent hover:bg-accent/90"
           size="lg"
         >
           {placeBetItAll.isPending ? "Placing..." : "Place Bet It All"}

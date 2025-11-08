@@ -64,14 +64,14 @@ export default function ReverseBetsPage() {
   const canPlace = betSlip.bets.length >= 2 && betSlip.bets.length <= 4 && stakeValue > 0;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 to-slate-900 text-white">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-slate-950/90 backdrop-blur-sm border-b border-slate-800">
+      <div className="sticky top-0 z-10 bg-background/90 backdrop-blur-sm border-b border-border">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <button
               onClick={() => router.back()}
-              className="flex items-center gap-2 text-slate-400 hover:text-white"
+              className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
             >
               <ArrowLeft size={20} />
               Back
@@ -91,19 +91,19 @@ export default function ReverseBetsPage() {
 
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
         {/* Type Selector */}
-        <div className="bg-slate-900 rounded-lg p-6">
+        <div className="bg-card border border-border rounded-lg p-6">
           <h2 className="text-lg font-semibold mb-4">Reverse Type</h2>
           <div className="grid grid-cols-2 gap-3">
             <button
               onClick={() => setType("win_reverse")}
               className={`p-4 rounded-lg border-2 transition-all ${
                 type === "win_reverse"
-                  ? "border-blue-500 bg-blue-500/10"
-                  : "border-slate-700 hover:border-slate-600"
+                  ? "border-accent bg-accent/10"
+                  : "border-border hover:border-accent/50"
               }`}
             >
               <div className="font-semibold">Win Reverse</div>
-              <div className="text-sm text-slate-400 mt-1">
+              <div className="text-sm text-muted-foreground mt-1">
                 Trigger only on wins
               </div>
             </button>
@@ -111,12 +111,12 @@ export default function ReverseBetsPage() {
               onClick={() => setType("action_reverse")}
               className={`p-4 rounded-lg border-2 transition-all ${
                 type === "action_reverse"
-                  ? "border-blue-500 bg-blue-500/10"
-                  : "border-slate-700 hover:border-slate-600"
+                  ? "border-accent bg-accent/10"
+                  : "border-border hover:border-accent/50"
               }`}
             >
               <div className="font-semibold">Action Reverse</div>
-              <div className="text-sm text-slate-400 mt-1">
+              <div className="text-sm text-muted-foreground mt-1">
                 Trigger on wins, pushes, or cancellations
               </div>
             </button>
@@ -124,7 +124,7 @@ export default function ReverseBetsPage() {
         </div>
 
         {/* Selections */}
-        <div className="bg-slate-900 rounded-lg p-6">
+        <div className="bg-card border border-border rounded-lg p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold">
               Your Selections ({betSlip.bets.length})
@@ -138,19 +138,19 @@ export default function ReverseBetsPage() {
             {betSlip.bets.map((bet) => (
               <div
                 key={bet.id}
-                className="flex items-center justify-between p-4 bg-slate-800 rounded-lg"
+                className="flex items-center justify-between p-4 bg-card rounded-lg border border-border"
               >
                 <div className="flex-1">
                   <div className="font-medium">{bet.selection}</div>
-                  <div className="text-sm text-slate-400">
+                  <div className="text-sm text-muted-foreground">
                     {bet.game.awayTeam.shortName} @ {bet.game.homeTeam.shortName}
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <Badge className="bg-blue-600">{formatOdds(bet.odds)}</Badge>
+                  <Badge className="bg-accent text-accent-foreground">{formatOdds(bet.odds)}</Badge>
                   <button
                     onClick={() => removeBet(bet.id)}
-                    className="text-slate-400 hover:text-red-500"
+                    className="text-muted-foreground hover:text-destructive"
                   >
                     <X size={20} />
                   </button>
@@ -160,7 +160,7 @@ export default function ReverseBetsPage() {
           </div>
 
           {betSlip.bets.length === 0 && (
-            <div className="text-center py-8 text-slate-500">
+            <div className="text-center py-8 text-muted-foreground">
               <p>Add 2-4 picks to create a Reverse Bet</p>
             </div>
           )}
@@ -198,7 +198,7 @@ export default function ReverseBetsPage() {
 
         {/* Stake Input */}
         {betSlip.bets.length >= 2 && (
-          <div className="bg-slate-900 rounded-lg p-6">
+          <div className="bg-card border border-border rounded-lg p-6">
             <h2 className="text-lg font-semibold mb-4">Stake Per Sequence</h2>
             <Input
               type="number"
@@ -214,23 +214,23 @@ export default function ReverseBetsPage() {
 
         {/* Summary */}
         {sequences.length > 0 && (
-          <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg p-6">
+          <div className="bg-accent/10 border border-accent/20 rounded-lg p-6">
             <div className="space-y-3">
               <div className="flex justify-between items-center">
-                <span className="text-white/80">Total Sequences</span>
+                <span className="text-muted-foreground">Total Sequences</span>
                 <span className="text-2xl font-bold">{sequences.length}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-white/80">Stake Per Sequence</span>
+                <span className="text-muted-foreground">Stake Per Sequence</span>
                 <span className="text-xl font-semibold">${stakeValue.toFixed(2)}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-white/80">Reverse Type</span>
+                <span className="text-muted-foreground">Reverse Type</span>
                 <span className="text-sm font-medium">
                   {type === "win_reverse" ? "Win Reverse" : "Action Reverse"}
                 </span>
               </div>
-              <div className="border-t border-white/20 pt-3 flex justify-between items-center">
+              <div className="border-t border-border pt-3 flex justify-between items-center">
                 <span className="text-lg font-semibold">Total Stake</span>
                 <span className="text-2xl font-bold">${totalStake.toFixed(2)}</span>
               </div>

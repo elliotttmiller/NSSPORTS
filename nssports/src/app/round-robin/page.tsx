@@ -120,19 +120,19 @@ export default function RoundRobinPage() {
             {betSlip.bets.map((bet) => (
               <div
                 key={bet.id}
-                className="flex items-center justify-between p-4 bg-slate-800 rounded-lg"
+                className="flex items-center justify-between p-4 bg-card rounded-lg border border-border"
               >
                 <div className="flex-1">
                   <div className="font-medium">{bet.selection}</div>
-                  <div className="text-sm text-slate-400">
+                  <div className="text-sm text-muted-foreground">
                     {bet.game.awayTeam.shortName} @ {bet.game.homeTeam.shortName}
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <Badge className="bg-blue-600">{formatOdds(bet.odds)}</Badge>
+                  <Badge className="bg-accent text-accent-foreground">{formatOdds(bet.odds)}</Badge>
                   <button
                     onClick={() => removeBet(bet.id)}
-                    className="text-slate-400 hover:text-red-500"
+                    className="text-muted-foreground hover:text-destructive"
                   >
                     <X size={20} />
                   </button>
@@ -142,7 +142,7 @@ export default function RoundRobinPage() {
           </div>
 
           {betSlip.bets.length === 0 && (
-            <div className="text-center py-8 text-slate-500">
+            <div className="text-center py-8 text-muted-foreground">
               <p>Add at least 3 picks to create a Round Robin</p>
             </div>
           )}
@@ -150,7 +150,7 @@ export default function RoundRobinPage() {
 
         {/* Parlay Type Selector */}
         {betSlip.bets.length >= 3 && (
-          <div className="bg-slate-900 rounded-lg p-6">
+          <div className="bg-card border border-border rounded-lg p-6">
             <h2 className="text-lg font-semibold mb-4">Select Parlay Types</h2>
             <div className="grid grid-cols-2 gap-3">
               {Object.entries(ROUND_ROBIN_CONFIGS).map(([key, config]) => {
@@ -164,14 +164,14 @@ export default function RoundRobinPage() {
                     disabled={isDisabled}
                     className={`p-4 rounded-lg border-2 transition-all ${
                       selectedTypes.includes(key as RoundRobinType)
-                        ? "border-blue-500 bg-blue-500/10"
+                        ? "border-accent bg-accent/10"
                         : isDisabled
-                        ? "border-slate-700 bg-slate-800/50 opacity-50 cursor-not-allowed"
-                        : "border-slate-700 hover:border-slate-600"
+                        ? "border-border bg-card/50 opacity-50 cursor-not-allowed"
+                        : "border-border hover:border-accent/50"
                     }`}
                   >
                     <div className="font-semibold">{config.displayName}</div>
-                    <div className="text-sm text-slate-400 mt-1">
+                    <div className="text-sm text-muted-foreground mt-1">
                       {isDisabled ? "Not enough picks" : `${count} parlays`}
                     </div>
                   </button>
@@ -183,7 +183,7 @@ export default function RoundRobinPage() {
 
         {/* Stake Input */}
         {betSlip.bets.length >= 3 && (
-          <div className="bg-slate-900 rounded-lg p-6">
+          <div className="bg-card border border-border rounded-lg p-6">
             <h2 className="text-lg font-semibold mb-4">Stake Per Parlay</h2>
             <Input
               type="number"
@@ -199,17 +199,17 @@ export default function RoundRobinPage() {
 
         {/* Summary */}
         {betSlip.bets.length >= 3 && selectedTypes.length > 0 && (
-          <div className="bg-linear-to-r from-blue-600 to-purple-600 rounded-lg p-6">
+          <div className="bg-accent/10 border border-accent/20 rounded-lg p-6">
             <div className="space-y-3">
               <div className="flex justify-between items-center">
-                <span className="text-white/80">Total Parlays</span>
+                <span className="text-muted-foreground">Total Parlays</span>
                 <span className="text-2xl font-bold">{numParlays}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-white/80">Stake Per Parlay</span>
+                <span className="text-muted-foreground">Stake Per Parlay</span>
                 <span className="text-xl font-semibold">${stakeValue.toFixed(2)}</span>
               </div>
-              <div className="border-t border-white/20 pt-3 flex justify-between items-center">
+              <div className="border-t border-border pt-3 flex justify-between items-center">
                 <span className="text-lg font-semibold">Total Stake</span>
                 <span className="text-2xl font-bold">${totalStake.toFixed(2)}</span>
               </div>

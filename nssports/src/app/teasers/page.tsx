@@ -117,19 +117,19 @@ export default function TeasersPage() {
             <h2 className="text-lg font-semibold mb-3">How Teasers Work</h2>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li className="flex gap-2">
-                <span className="text-blue-400">•</span>
+                <span className="text-accent">•</span>
                 <span>Adjust point spreads and totals in your favor</span>
               </li>
               <li className="flex gap-2">
-                <span className="text-blue-400">•</span>
+                <span className="text-accent">•</span>
                 <span>Combine 2 or more games for better lines at reduced odds</span>
               </li>
               <li className="flex gap-2">
-                <span className="text-blue-400">•</span>
+                <span className="text-accent">•</span>
                 <span>Only spreads and totals eligible (no moneylines or props)</span>
               </li>
               <li className="flex gap-2">
-                <span className="text-blue-400">•</span>
+                <span className="text-accent">•</span>
                 <span>All legs must win for the teaser to pay</span>
               </li>
             </ul>
@@ -149,7 +149,7 @@ export default function TeasersPage() {
                   <button
                     key={type}
                     onClick={() => handleTeaserTypeSelect(type)}
-                    className="rounded-lg border border-border bg-card p-4 text-left transition-all hover:border-blue-500/50 hover:bg-blue-500/5"
+                    className="rounded-lg border border-border bg-card p-4 text-left transition-all hover:border-accent/50 hover:bg-accent/5"
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
@@ -161,11 +161,11 @@ export default function TeasersPage() {
                         </div>
                         
                         <div className="flex flex-wrap gap-2 text-xs">
-                          <span className="rounded bg-blue-500/10 px-2 py-1 text-blue-400 font-medium">
+                          <span className="rounded bg-accent/10 px-2 py-1 text-accent font-medium">
                             NFL: {config.pointAdjustment}pts
                           </span>
                           {config.nbaPointAdjustment && (
-                            <span className="rounded bg-blue-500/10 px-2 py-1 text-blue-400 font-medium">
+                            <span className="rounded bg-accent/10 px-2 py-1 text-accent font-medium">
                               NBA: {config.nbaPointAdjustment}pts
                             </span>
                           )}
@@ -224,8 +224,8 @@ export default function TeasersPage() {
           </div>
           
           {betSlip.bets.length > 0 && (
-            <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg px-4 py-2">
-              <div className="text-xs text-blue-400 font-medium">
+            <div className="bg-accent/10 border border-accent/20 rounded-lg px-4 py-2">
+              <div className="text-xs text-accent font-medium">
                 {betSlip.bets.length} {betSlip.bets.length === 1 ? 'Leg' : 'Legs'} Selected
               </div>
             </div>
@@ -233,8 +233,8 @@ export default function TeasersPage() {
         </div>
         
         {/* Info Banner */}
-        <div className="bg-blue-500/5 border border-blue-500/20 rounded-lg p-4 mb-6">
-          <div className="text-sm text-blue-400 font-medium mb-2">
+        <div className="bg-accent/5 border border-accent/20 rounded-lg p-4 mb-6">
+          <div className="text-sm text-accent font-medium mb-2">
             📊 Lines Adjusted In Your Favor
           </div>
           <div className="text-xs text-muted-foreground">

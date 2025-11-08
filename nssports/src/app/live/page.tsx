@@ -177,7 +177,7 @@ export default function LivePage() {
 
   return (
     <div className="bg-background">
-  <div className="container mx-auto px-6 md:px-8 xl:px-12 pt-12 pb-6 max-w-screen-2xl">
+  <div className="container mx-auto px-6 md:px-8 xl:px-12 pb-6 max-w-screen-2xl" style={{ paddingTop: '15px' }}>
   {/* Page Header */}
         <div className="mb-6 flex items-center justify-between">
           <div>

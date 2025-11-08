@@ -86,14 +86,14 @@ export default function IfBetsPage() {
   const canPlace = orderedBets.length >= 2 && orderedBets.length <= 5 && stakeValue > 0;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 to-slate-900 text-white">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-slate-950/90 backdrop-blur-sm border-b border-slate-800">
+      <div className="sticky top-0 z-10 bg-background/90 backdrop-blur-sm border-b border-border">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <button
               onClick={() => router.back()}
-              className="flex items-center gap-2 text-slate-400 hover:text-white"
+              className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
             >
               <ArrowLeft size={20} />
               Back
@@ -103,7 +103,7 @@ export default function IfBetsPage() {
               onClick={() => clearBetSlip()}
               variant="ghost"
               size="sm"
-              className="text-slate-400"
+              className="text-muted-foreground"
             >
               Clear All
             </Button>
@@ -113,19 +113,19 @@ export default function IfBetsPage() {
 
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
         {/* Condition Selector */}
-        <div className="bg-slate-900 rounded-lg p-6">
+        <div className="bg-card border border-border rounded-lg p-6">
           <h2 className="text-lg font-semibold mb-4">Condition</h2>
           <div className="grid grid-cols-2 gap-3">
             <button
               onClick={() => setCondition("if_win_only")}
               className={`p-4 rounded-lg border-2 transition-all ${
                 condition === "if_win_only"
-                  ? "border-blue-500 bg-blue-500/10"
-                  : "border-slate-700 hover:border-slate-600"
+                  ? "border-accent bg-accent/10"
+                  : "border-border hover:border-accent/50"
               }`}
             >
               <div className="font-semibold">If Win Only</div>
-              <div className="text-sm text-slate-400 mt-1">
+              <div className="text-sm text-muted-foreground mt-1">
                 Next bet placed only if previous wins
               </div>
             </button>
@@ -133,12 +133,12 @@ export default function IfBetsPage() {
               onClick={() => setCondition("if_win_or_tie")}
               className={`p-4 rounded-lg border-2 transition-all ${
                 condition === "if_win_or_tie"
-                  ? "border-blue-500 bg-blue-500/10"
-                  : "border-slate-700 hover:border-slate-600"
+                  ? "border-accent bg-accent/10"
+                  : "border-border hover:border-accent/50"
               }`}
             >
               <div className="font-semibold">If Win or Tie</div>
-              <div className="text-sm text-slate-400 mt-1">
+              <div className="text-sm text-muted-foreground mt-1">
                 Next bet placed if previous wins or pushes
               </div>
             </button>
@@ -146,7 +146,7 @@ export default function IfBetsPage() {
         </div>
 
         {/* Leg Sequence */}
-        <div className="bg-slate-900 rounded-lg p-6">
+        <div className="bg-card border border-border rounded-lg p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold">
               Leg Sequence ({orderedBets.length})
@@ -159,35 +159,35 @@ export default function IfBetsPage() {
           <div className="space-y-3">
             {orderedBets.map((bet, index) => (
               <div key={bet!.id} className="space-y-2">
-                <div className="flex items-center gap-4 p-4 bg-slate-800 rounded-lg">
+                <div className="flex items-center gap-4 p-4 bg-card border border-border rounded-lg">
                   <div className="flex flex-col gap-1">
                     <button
                       onClick={() => moveLeg(index, 'up')}
                       disabled={index === 0}
-                      className="text-slate-400 hover:text-white disabled:opacity-30"
+                      className="text-muted-foreground hover:text-foreground disabled:opacity-30 transition-colors"
                     >
                       ↑
                     </button>
                     <button
                       onClick={() => moveLeg(index, 'down')}
                       disabled={index === orderedBets.length - 1}
-                      className="text-slate-400 hover:text-white disabled:opacity-30"
+                      className="text-muted-foreground hover:text-foreground disabled:opacity-30 transition-colors"
                     >
                       ↓
                     </button>
                   </div>
 
-                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-600 font-bold">
+                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-accent text-accent-foreground font-bold">
                     {index + 1}
                   </div>
 
                   <div className="flex-1">
                     <div className="font-medium">{bet!.selection}</div>
-                    <div className="text-sm text-slate-400">
+                    <div className="text-sm text-muted-foreground">
                       {bet!.game.awayTeam.shortName} @ {bet!.game.homeTeam.shortName}
                     </div>
                     {progressivePayouts[index] && (
-                      <div className="text-xs text-blue-400 mt-1">
+                      <div className="text-xs text-accent mt-1">
                         Stake: ${progressivePayouts[index].stake.toFixed(2)} → 
                         Payout: ${progressivePayouts[index].payout.toFixed(2)}
                       </div>
@@ -195,10 +195,10 @@ export default function IfBetsPage() {
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <Badge className="bg-blue-600">{formatOdds(bet!.odds)}</Badge>
+                    <Badge className="bg-accent text-accent-foreground">{formatOdds(bet!.odds)}</Badge>
                     <button
                       onClick={() => removeBet(bet!.id)}
-                      className="text-slate-400 hover:text-red-500"
+                      className="text-muted-foreground hover:text-destructive transition-colors"
                     >
                       <X size={20} />
                     </button>
@@ -208,8 +208,8 @@ export default function IfBetsPage() {
                 {/* Arrow between legs */}
                 {index < orderedBets.length - 1 && (
                   <div className="flex items-center justify-center py-2">
-                    <ArrowRight size={24} className="text-blue-500" />
-                    <span className="ml-2 text-sm text-slate-400">
+                    <ArrowRight size={24} className="text-accent" />
+                    <span className="ml-2 text-sm text-muted-foreground">
                       {condition === "if_win_only" ? "If Win" : "If Win or Tie"}
                     </span>
                   </div>
@@ -219,7 +219,7 @@ export default function IfBetsPage() {
           </div>
 
           {orderedBets.length === 0 && (
-            <div className="text-center py-8 text-slate-500">
+            <div className="text-center py-8 text-muted-foreground">
               <p>Add 2-5 picks to create an If Bet</p>
             </div>
           )}
@@ -227,7 +227,7 @@ export default function IfBetsPage() {
 
         {/* Initial Stake */}
         {orderedBets.length >= 2 && (
-          <div className="bg-slate-900 rounded-lg p-6">
+          <div className="bg-card border border-border rounded-lg p-6">
             <h2 className="text-lg font-semibold mb-4">Initial Stake</h2>
             <Input
               type="number"
@@ -243,23 +243,23 @@ export default function IfBetsPage() {
 
         {/* Summary */}
         {orderedBets.length >= 2 && (
-          <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg p-6">
+          <div className="bg-accent/10 border border-accent/20 rounded-lg p-6">
             <div className="space-y-3">
               <div className="flex justify-between items-center">
-                <span className="text-white/80">Number of Legs</span>
+                <span className="text-muted-foreground">Number of Legs</span>
                 <span className="text-2xl font-bold">{orderedBets.length}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-white/80">Initial Stake</span>
+                <span className="text-muted-foreground">Initial Stake</span>
                 <span className="text-xl font-semibold">${stakeValue.toFixed(2)}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-white/80">Condition</span>
+                <span className="text-muted-foreground">Condition</span>
                 <span className="text-sm font-medium">
                   {condition === "if_win_only" ? "If Win Only" : "If Win or Tie"}
                 </span>
               </div>
-              <div className="border-t border-white/20 pt-3 flex justify-between items-center">
+              <div className="border-t border-border pt-3 flex justify-between items-center">
                 <span className="text-lg font-semibold">Potential Payout</span>
                 <span className="text-2xl font-bold">${finalPayout.toFixed(2)}</span>
               </div>
