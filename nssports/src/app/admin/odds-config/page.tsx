@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Settings, Save, TrendingUp, AlertCircle, Info } from "lucide-react";
+import { Settings, Save, TrendingUp, AlertCircle, Info, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
 interface JuiceConfig {
@@ -27,7 +27,28 @@ interface LeagueOverride {
   spreadMargin?: number;
   moneylineMargin?: number;
   totalMargin?: number;
+  playerPropsMargin?: number;
+  gamePropsMargin?: number;
 }
+
+// Available leagues from the system
+const AVAILABLE_LEAGUES = [
+  { id: 'NBA', name: 'NBA', sport: 'Basketball' },
+  { id: 'WNBA', name: 'WNBA', sport: 'Basketball' },
+  { id: 'NCAAB', name: 'NCAA Basketball', sport: 'Basketball' },
+  { id: 'NFL', name: 'NFL', sport: 'Football' },
+  { id: 'NCAAF', name: 'NCAA Football', sport: 'Football' },
+  { id: 'NHL', name: 'NHL', sport: 'Hockey' },
+  { id: 'MLB', name: 'MLB', sport: 'Baseball' },
+  { id: 'EPL', name: 'English Premier League', sport: 'Soccer' },
+  { id: 'LALIGA', name: 'La Liga', sport: 'Soccer' },
+  { id: 'BUNDESLIGA', name: 'Bundesliga', sport: 'Soccer' },
+  { id: 'MLS', name: 'MLS', sport: 'Soccer' },
+  { id: 'UFC', name: 'UFC', sport: 'MMA' },
+  { id: 'ATP', name: 'ATP Tennis', sport: 'Tennis' },
+  { id: 'WTA', name: 'WTA Tennis', sport: 'Tennis' },
+  { id: 'PGA', name: 'PGA Golf', sport: 'Golf' },
+];
 
 export default function OddsConfigPage() {
   const [config, setConfig] = useState<JuiceConfig>({
@@ -45,6 +66,7 @@ export default function OddsConfigPage() {
 
   const [leagueOverrides, setLeagueOverrides] = useState<LeagueOverride[]>([]);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showLeagueOverrides, setShowLeagueOverrides] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -65,7 +87,19 @@ export default function OddsConfigPage() {
           playerPropsMargin: data.playerPropsMargin * 100,
           gamePropsMargin: data.gamePropsMargin * 100,
         });
-        setLeagueOverrides(data.leagueOverrides || []);
+        
+        // Convert league overrides from stored format to UI format
+        if (data.leagueOverrides) {
+          const overridesArray = Object.entries(data.leagueOverrides).map(([league, values]: [string, any]) => ({
+            league,
+            spreadMargin: values.spreadMargin ? values.spreadMargin * 100 : undefined,
+            moneylineMargin: values.moneylineMargin ? values.moneylineMargin * 100 : undefined,
+            totalMargin: values.totalMargin ? values.totalMargin * 100 : undefined,
+            playerPropsMargin: values.playerPropsMargin ? values.playerPropsMargin * 100 : undefined,
+            gamePropsMargin: values.gamePropsMargin ? values.gamePropsMargin * 100 : undefined,
+          }));
+          setLeagueOverrides(overridesArray);
+        }
       }
     } catch {
       toast.error('Failed to load configuration');
@@ -77,6 +111,18 @@ export default function OddsConfigPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
+      // Convert league overrides array to object format for storage
+      const leagueOverridesObject = leagueOverrides.reduce((acc, override) => {
+        acc[override.league] = {
+          ...(override.spreadMargin !== undefined && { spreadMargin: override.spreadMargin / 100 }),
+          ...(override.moneylineMargin !== undefined && { moneylineMargin: override.moneylineMargin / 100 }),
+          ...(override.totalMargin !== undefined && { totalMargin: override.totalMargin / 100 }),
+          ...(override.playerPropsMargin !== undefined && { playerPropsMargin: override.playerPropsMargin / 100 }),
+          ...(override.gamePropsMargin !== undefined && { gamePropsMargin: override.gamePropsMargin / 100 }),
+        };
+        return acc;
+      }, {} as Record<string, any>);
+
       const payload = {
         ...config,
         spreadMargin: config.spreadMargin / 100,
@@ -84,7 +130,7 @@ export default function OddsConfigPage() {
         totalMargin: config.totalMargin / 100,
         playerPropsMargin: config.playerPropsMargin / 100,
         gamePropsMargin: config.gamePropsMargin / 100,
-        leagueOverrides,
+        leagueOverrides: Object.keys(leagueOverridesObject).length > 0 ? leagueOverridesObject : null,
       };
 
       const res = await fetch('/api/admin/odds-config', {
@@ -104,6 +150,42 @@ export default function OddsConfigPage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  // League override management functions
+  const addLeagueOverride = () => {
+    const usedLeagues = leagueOverrides.map(o => o.league);
+    const availableLeague = AVAILABLE_LEAGUES.find(l => !usedLeagues.includes(l.id));
+    
+    if (availableLeague) {
+      setLeagueOverrides([...leagueOverrides, {
+        league: availableLeague.id,
+        spreadMargin: undefined,
+        moneylineMargin: undefined,
+        totalMargin: undefined,
+      }]);
+    } else {
+      toast.error('All leagues already have overrides configured');
+    }
+  };
+
+  const removeLeagueOverride = (index: number) => {
+    setLeagueOverrides(leagueOverrides.filter((_, i) => i !== index));
+  };
+
+  const updateLeagueOverride = (index: number, field: keyof LeagueOverride, value: string | number | undefined) => {
+    const updated = [...leagueOverrides];
+    if (field === 'league') {
+      updated[index][field] = value as string;
+    } else {
+      updated[index][field] = value === '' || value === undefined ? undefined : Number(value);
+    }
+    setLeagueOverrides(updated);
+  };
+
+  const getAvailableLeaguesForOverride = (currentLeague: string) => {
+    const usedLeagues = leagueOverrides.map(o => o.league).filter(l => l !== currentLeague);
+    return AVAILABLE_LEAGUES.filter(l => !usedLeagues.includes(l.id));
   };
 
   if (loading) {
@@ -369,14 +451,253 @@ export default function OddsConfigPage() {
 
         {/* League-Specific Overrides */}
         <Card className="p-6">
-          <h2 className="text-xl font-semibold mb-4">League-Specific Overrides</h2>
-          <p className="text-sm text-muted-foreground mb-4">
-            Set custom margins for specific leagues (overrides global settings).
-          </p>
-          
-          <div className="text-sm text-muted-foreground">
-            Coming soon: Configure margins per league (NBA, NFL, NHL, etc.)
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-xl font-semibold">League-Specific Overrides</h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                Set custom margins for specific leagues (overrides global settings).
+              </p>
+            </div>
+            <Button
+              onClick={() => setShowLeagueOverrides(!showLeagueOverrides)}
+              variant="outline"
+              size="sm"
+            >
+              {showLeagueOverrides ? 'Hide' : 'Show'}
+            </Button>
           </div>
+
+          {showLeagueOverrides && (
+            <div className="space-y-4">
+              {leagueOverrides.length === 0 ? (
+                <div className="text-center py-8 border-2 border-dashed border-border rounded-lg">
+                  <p className="text-sm text-muted-foreground mb-3">
+                    No league-specific overrides configured
+                  </p>
+                  <Button onClick={addLeagueOverride} size="sm" className="gap-2">
+                    <Plus size={16} />
+                    Add League Override
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <div className="space-y-4">
+                    {leagueOverrides.map((override, index) => {
+                      const leagueInfo = AVAILABLE_LEAGUES.find(l => l.id === override.league);
+                      const availableLeagues = getAvailableLeaguesForOverride(override.league);
+                      
+                      return (
+                        <Card key={index} className="p-4 bg-muted/50">
+                          <div className="flex items-start justify-between mb-4">
+                            <div className="flex-1">
+                              <Label htmlFor={`league-${index}`} className="text-base font-semibold">
+                                League
+                              </Label>
+                              <select
+                                id={`league-${index}`}
+                                value={override.league}
+                                onChange={(e) => updateLeagueOverride(index, 'league', e.target.value)}
+                                className="mt-2 w-full px-3 py-2 border rounded-md bg-background"
+                              >
+                                {availableLeagues.map(league => (
+                                  <option key={league.id} value={league.id}>
+                                    {league.name} ({league.sport})
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                            <Button
+                              onClick={() => removeLeagueOverride(index)}
+                              variant="ghost"
+                              size="sm"
+                              className="ml-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            >
+                              <Trash2 size={16} />
+                            </Button>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <Label htmlFor={`spread-${index}`} className="flex items-center gap-2">
+                                Spread Margin (%)
+                                <span className="text-xs text-muted-foreground">
+                                  {override.spreadMargin === undefined && '(using global)'}
+                                </span>
+                              </Label>
+                              <div className="flex gap-2 mt-2">
+                                <Input
+                                  id={`spread-${index}`}
+                                  type="number"
+                                  step="0.1"
+                                  min="0"
+                                  max="20"
+                                  value={override.spreadMargin ?? ''}
+                                  onChange={(e) => updateLeagueOverride(index, 'spreadMargin', e.target.value)}
+                                  placeholder={`Global: ${config.spreadMargin}%`}
+                                />
+                                {override.spreadMargin !== undefined && (
+                                  <Button
+                                    onClick={() => updateLeagueOverride(index, 'spreadMargin', undefined)}
+                                    variant="ghost"
+                                    size="sm"
+                                    className="shrink-0"
+                                    title="Clear override"
+                                  >
+                                    <X size={16} />
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+
+                            <div>
+                              <Label htmlFor={`moneyline-${index}`} className="flex items-center gap-2">
+                                Moneyline Margin (%)
+                                <span className="text-xs text-muted-foreground">
+                                  {override.moneylineMargin === undefined && '(using global)'}
+                                </span>
+                              </Label>
+                              <div className="flex gap-2 mt-2">
+                                <Input
+                                  id={`moneyline-${index}`}
+                                  type="number"
+                                  step="0.1"
+                                  min="0"
+                                  max="20"
+                                  value={override.moneylineMargin ?? ''}
+                                  onChange={(e) => updateLeagueOverride(index, 'moneylineMargin', e.target.value)}
+                                  placeholder={`Global: ${config.moneylineMargin}%`}
+                                />
+                                {override.moneylineMargin !== undefined && (
+                                  <Button
+                                    onClick={() => updateLeagueOverride(index, 'moneylineMargin', undefined)}
+                                    variant="ghost"
+                                    size="sm"
+                                    className="shrink-0"
+                                    title="Clear override"
+                                  >
+                                    <X size={16} />
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+
+                            <div>
+                              <Label htmlFor={`total-${index}`} className="flex items-center gap-2">
+                                Total Margin (%)
+                                <span className="text-xs text-muted-foreground">
+                                  {override.totalMargin === undefined && '(using global)'}
+                                </span>
+                              </Label>
+                              <div className="flex gap-2 mt-2">
+                                <Input
+                                  id={`total-${index}`}
+                                  type="number"
+                                  step="0.1"
+                                  min="0"
+                                  max="20"
+                                  value={override.totalMargin ?? ''}
+                                  onChange={(e) => updateLeagueOverride(index, 'totalMargin', e.target.value)}
+                                  placeholder={`Global: ${config.totalMargin}%`}
+                                />
+                                {override.totalMargin !== undefined && (
+                                  <Button
+                                    onClick={() => updateLeagueOverride(index, 'totalMargin', undefined)}
+                                    variant="ghost"
+                                    size="sm"
+                                    className="shrink-0"
+                                    title="Clear override"
+                                  >
+                                    <X size={16} />
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+
+                            <div>
+                              <Label htmlFor={`player-props-${index}`} className="flex items-center gap-2">
+                                Player Props Margin (%)
+                                <span className="text-xs text-muted-foreground">
+                                  {override.playerPropsMargin === undefined && '(using global)'}
+                                </span>
+                              </Label>
+                              <div className="flex gap-2 mt-2">
+                                <Input
+                                  id={`player-props-${index}`}
+                                  type="number"
+                                  step="0.5"
+                                  min="0"
+                                  max="30"
+                                  value={override.playerPropsMargin ?? ''}
+                                  onChange={(e) => updateLeagueOverride(index, 'playerPropsMargin', e.target.value)}
+                                  placeholder={`Global: ${config.playerPropsMargin}%`}
+                                />
+                                {override.playerPropsMargin !== undefined && (
+                                  <Button
+                                    onClick={() => updateLeagueOverride(index, 'playerPropsMargin', undefined)}
+                                    variant="ghost"
+                                    size="sm"
+                                    className="shrink-0"
+                                    title="Clear override"
+                                  >
+                                    <X size={16} />
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+
+                            <div>
+                              <Label htmlFor={`game-props-${index}`} className="flex items-center gap-2">
+                                Game Props Margin (%)
+                                <span className="text-xs text-muted-foreground">
+                                  {override.gamePropsMargin === undefined && '(using global)'}
+                                </span>
+                              </Label>
+                              <div className="flex gap-2 mt-2">
+                                <Input
+                                  id={`game-props-${index}`}
+                                  type="number"
+                                  step="0.5"
+                                  min="0"
+                                  max="30"
+                                  value={override.gamePropsMargin ?? ''}
+                                  onChange={(e) => updateLeagueOverride(index, 'gamePropsMargin', e.target.value)}
+                                  placeholder={`Global: ${config.gamePropsMargin}%`}
+                                />
+                                {override.gamePropsMargin !== undefined && (
+                                  <Button
+                                    onClick={() => updateLeagueOverride(index, 'gamePropsMargin', undefined)}
+                                    variant="ghost"
+                                    size="sm"
+                                    className="shrink-0"
+                                    title="Clear override"
+                                  >
+                                    <X size={16} />
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </Card>
+                      );
+                    })}
+                  </div>
+
+                  {leagueOverrides.length < AVAILABLE_LEAGUES.length && (
+                    <Button onClick={addLeagueOverride} variant="outline" size="sm" className="gap-2 w-full">
+                      <Plus size={16} />
+                      Add Another League Override
+                    </Button>
+                  )}
+                </>
+              )}
+
+              <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-md">
+                <p className="text-xs text-blue-900 dark:text-blue-100">
+                  <strong>Tip:</strong> Leave fields empty to use the global margin values. Only set overrides for margins you want to customize per league.
+                </p>
+              </div>
+            </div>
+          )}
         </Card>
 
         {/* Save Button */}
