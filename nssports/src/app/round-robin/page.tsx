@@ -3,8 +3,7 @@
 import { useState } from "react";
 import { useBetSlip } from "@/context";
 import { 
-  calculateRoundRobinParlays, 
-  generateCombinations,
+  calculateRoundRobinParlays,
   ROUND_ROBIN_CONFIGS 
 } from "@/types/advanced-bets";
 import type { RoundRobinType } from "@/types/advanced-bets";
@@ -80,7 +79,7 @@ export default function RoundRobinPage() {
   const canPlace = betSlip.bets.length >= 3 && selectedTypes.length > 0 && stakeValue > 0;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 to-slate-900 text-white">
+    <div className="min-h-screen bg-linear-to-b from-slate-950 to-slate-900 text-white">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-slate-950/90 backdrop-blur-sm border-b border-slate-800">
         <div className="max-w-4xl mx-auto px-4 py-4">
@@ -200,7 +199,7 @@ export default function RoundRobinPage() {
 
         {/* Summary */}
         {betSlip.bets.length >= 3 && selectedTypes.length > 0 && (
-          <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg p-6">
+          <div className="bg-linear-to-r from-blue-600 to-purple-600 rounded-lg p-6">
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <span className="text-white/80">Total Parlays</span>

@@ -97,10 +97,13 @@ export function MobileOtherPanel() {
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="fixed right-0 top-0 bottom-0 w-[280px] bg-background border-l border-border z-99 flex flex-col"
+            className="fixed right-0 bottom-0 w-[280px] bg-background border-l border-border z-99 flex flex-col"
+            style={{ 
+              top: '4rem'
+            }}
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-border">
+            <div className="flex items-center justify-between px-4 pb-4 border-b border-border" style={{ paddingTop: '15px' }}>
               <h2 className="text-lg font-semibold">Other Bet Types</h2>
               <button
                 onClick={handleClose}

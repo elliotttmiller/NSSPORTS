@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, CaretRight } from "@phosphor-icons/react";
+import { XIcon, CaretRightIcon } from "@phosphor-icons/react";
 import { useNavigation } from "@/context";
 import { useIsMobile } from "@/hooks";
 import { getSports } from "@/services/api";
@@ -72,7 +72,7 @@ export function MobileSportsPanel() {
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.98 }}
             transition={{ type: "spring", duration: 0.35, stiffness: 160, damping: 28, mass: 0.7 }}
-            className="fixed inset-0 bg-background backdrop-blur-sm z-[98]"
+            className="fixed inset-0 bg-background backdrop-blur-sm z-98"
             onClick={handleClose}
           />
 
@@ -82,10 +82,13 @@ export function MobileSportsPanel() {
             animate={{ x: 0 }}
             exit={{ x: "-100%" }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="fixed left-0 top-0 bottom-0 w-[280px] bg-background border-r border-border z-[99] flex flex-col"
+            className="fixed left-0 bottom-0 w-[280px] bg-background border-r border-border z-99 flex flex-col"
+            style={{ 
+              top: '4rem'
+            }}
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-border">
+            <div className="flex items-center justify-between px-4 pb-4 border-b border-border" style={{ paddingTop: '15px' }}>
               <h2 className="text-lg font-semibold">Sports & Leagues</h2>
               <button
                 onClick={handleClose}
@@ -93,7 +96,7 @@ export function MobileSportsPanel() {
                 aria-label="Close sports panel"
                 title="Close sports panel"
               >
-                <X size={20} />
+                <XIcon size={20} />
               </button>
             </div>
 
@@ -140,7 +143,7 @@ export function MobileSportsPanel() {
                           animate={{ rotate: expandedSports.has(sport.id) ? 90 : 0 }}
                           transition={{ duration: 0.2 }}
                         >
-                          <CaretRight size={16} className="text-muted-foreground" />
+                          <CaretRightIcon size={16} className="text-muted-foreground" />
                         </motion.div>
                       </button>
 
