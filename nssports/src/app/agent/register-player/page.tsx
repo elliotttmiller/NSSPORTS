@@ -143,9 +143,9 @@ export default function RegisterPlayerPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-20" style={{ paddingTop: 'calc(4rem + 1rem)' }}>
       {/* Header - Mobile Optimized */}
-      <div className="bg-card border-b border-border p-3 sm:p-4 sticky top-0 z-10">
+      <div className="bg-card border-b border-border p-3 sm:p-4 sticky z-40 shadow-sm" style={{ top: 'calc(4rem + 0.5rem)' }}>
         <div className="flex items-center gap-3">
           <Button
             variant="ghost"
