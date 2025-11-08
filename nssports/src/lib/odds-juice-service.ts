@@ -68,8 +68,10 @@ class OddsJuiceService {
 
       if (!config) {
         // Return default config if none exists
-        logger.warn('[OddsJuice] No active configuration found, using defaults');
-        return this.getDefaultConfig();
+        // Cache the default config to avoid repeated DB queries
+        this.cachedConfig = this.getDefaultConfig();
+        this.lastFetchTime = now;
+        return this.cachedConfig;
       }
 
       this.cachedConfig = {
