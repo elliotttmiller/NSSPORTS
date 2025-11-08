@@ -24,7 +24,7 @@ export default function RegisterPlayerPage() {
   // Form state
   const [formData, setFormData] = useState({
     username: "",
-    displayName: "",
+    note: "", // Optional note for agent to track player
     password: "",
     confirmPassword: "",
   });
@@ -59,9 +59,7 @@ export default function RegisterPlayerPage() {
       newErrors.username = "Username can only contain letters, numbers, and underscores";
     }
 
-    if (!formData.displayName.trim()) {
-      newErrors.displayName = "Display name is required";
-    }
+    // Note is optional, no validation needed
 
     if (!formData.password) {
       newErrors.password = "Password is required";
@@ -96,7 +94,7 @@ export default function RegisterPlayerPage() {
         },
         body: JSON.stringify({
           username: formData.username,
-          displayName: formData.displayName,
+          note: formData.note,
           password: formData.password,
         }),
       });
@@ -114,7 +112,7 @@ export default function RegisterPlayerPage() {
       // Reset form
       setFormData({
         username: "",
-        displayName: "",
+        note: "",
         password: "",
         confirmPassword: "",
       });
@@ -196,25 +194,22 @@ export default function RegisterPlayerPage() {
             </p>
           </div>
 
-          {/* Display Name */}
+          {/* Note/Comment (Optional) */}
           <div className="bg-card border border-border rounded-xl p-3 sm:p-4">
             <label className="block text-sm font-medium text-foreground mb-2">
-              Display Name <span className="text-destructive">*</span>
+              Note / Comment <span className="text-xs text-muted-foreground">(Optional)</span>
             </label>
             <Input
               type="text"
-              value={formData.displayName}
-              onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
-              placeholder="John Doe"
+              value={formData.note}
+              onChange={(e) => setFormData({ ...formData, note: e.target.value })}
+              placeholder="e.g., John from poker night, Sarah's friend"
               className="w-full h-10 touch-action-manipulation"
               disabled={isSubmitting}
             />
-            {errors.displayName && (
-              <div className="flex items-center gap-2 mt-2 text-sm text-destructive">
-                <Warning size={14} weight="fill" />
-                <span>{errors.displayName}</span>
-              </div>
-            )}
+            <p className="text-xs text-muted-foreground mt-2">
+              Add a note to help you remember who this player is. Only visible to you.
+            </p>
           </div>
 
           {/* Password */}

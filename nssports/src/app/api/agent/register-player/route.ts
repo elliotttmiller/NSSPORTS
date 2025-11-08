@@ -14,7 +14,7 @@ const registerPlayerSchema = z.object({
     .string()
     .min(3, "Username must be at least 3 characters")
     .regex(/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers, and underscores"),
-  displayName: z.string().min(1, "Display name is required"),
+  note: z.string().optional(), // Optional note for agent to track player
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
@@ -63,7 +63,7 @@ export async function POST(request: Request) {
       const newUser = await tx.user.create({
         data: {
           username: validatedData.username,
-          name: validatedData.displayName,
+          name: validatedData.note || validatedData.username,
           password: hashedPassword,
           userType: "player",
           parentAgentId: session.user.id,
@@ -89,6 +89,7 @@ export async function POST(request: Request) {
             playerId: newUser.id,
             playerUsername: newUser.username,
             playerName: newUser.name,
+            playerNote: validatedData.note,
             agentId: session.user.id,
             agentUsername: session.user.username,
             timestamp: new Date().toISOString(),
