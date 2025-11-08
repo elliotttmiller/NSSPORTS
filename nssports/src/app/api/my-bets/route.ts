@@ -102,9 +102,10 @@ export async function GET() {
     
     logger.debug('Bets fetched', { count: bets.length });
     
-    // Normalize legs for parlay bets and enrich leg.game when possible
+    // Normalize legs for parlay bets and advanced bet types, enrich leg.game when possible
     const allLegGameIds: Set<string> = new Set();
     for (const bet of bets) {
+      // Handle parlay and teaser bets
       if ((bet.betType === "parlay" || bet.betType === "teaser") && bet.legs) {
         const legs = toLegArray(bet.legs);
         logger.debug('[my-bets] Parlay/Teaser bet legs:', { betId: bet.id, betType: bet.betType, legsRaw: bet.legs, legsParsed: legs });
@@ -113,6 +114,29 @@ export async function GET() {
             logger.debug('[my-bets] Leg:', { gameId: leg?.gameId, betType: leg?.betType, selection: leg?.selection });
             if (leg?.gameId) allLegGameIds.add(leg.gameId);
           }
+        }
+      }
+      
+      // Handle advanced bet types (round_robin, if_bet, reverse, bet_it_all)
+      if (["round_robin", "if_bet", "reverse", "bet_it_all"].includes(bet.betType) && bet.legs) {
+        try {
+          const metadata = typeof bet.legs === "string" ? JSON.parse(bet.legs) : bet.legs;
+          
+          // Extract game IDs from selections
+          if (metadata.selections && Array.isArray(metadata.selections)) {
+            for (const selection of metadata.selections) {
+              if (selection?.gameId) allLegGameIds.add(selection.gameId);
+            }
+          }
+          
+          // For if_bet and bet_it_all, extract from legs array
+          if (metadata.legs && Array.isArray(metadata.legs)) {
+            for (const leg of metadata.legs) {
+              if (leg?.gameId) allLegGameIds.add(leg.gameId);
+            }
+          }
+        } catch (e) {
+          logger.error('[my-bets] Error parsing advanced bet metadata:', { betId: bet.id, error: e });
         }
       }
     }
@@ -164,37 +188,97 @@ export async function GET() {
     };
 
     const normalized = bets.map((bet: any) => {
-      if (bet.betType !== "parlay" && bet.betType !== "teaser") return bet as any;
-      const legsRaw = toLegArray(bet.legs);
-      // Sanitize legs to avoid downstream validation issues
-      const legs = Array.isArray(legsRaw)
-        ? legsRaw
-            .filter((leg) => {
-              // Keep only legs with minimally required fields
-              const hasSelection = typeof leg?.selection === 'string' && leg.selection.length > 0;
-              const hasOdds = typeof leg?.odds === 'number' && !Number.isNaN(leg.odds);
-              return hasSelection && hasOdds;
-            })
-      .map((leg) => {
-              const gameData = leg?.gameId ? legGamesById[leg.gameId] : undefined;
-              return {
-                ...leg,
-                line:
-                  typeof leg.line === 'number'
-                    ? leg.line
-                    : typeof leg.line === 'string'
-                    ? Number(leg.line)
-                    : undefined,
-                game: gameData ? JSON.parse(JSON.stringify(gameData)) : undefined,
-        betType: leg.betType, // Ensure betType is preserved
-        // ✅ Preserve player prop and game prop metadata for parlay legs
-        playerProp: leg.playerProp,
-        gameProp: leg.gameProp,
-        displaySelection: computeSelectionLabel(leg.betType, leg.selection, leg.line ?? undefined, gameData as any),
-              };
-            })
-        : null;
-  return { ...bet, legs } as any;
+      // Handle parlay and teaser bets
+      if (bet.betType === "parlay" || bet.betType === "teaser") {
+        const legsRaw = toLegArray(bet.legs);
+        // Sanitize legs to avoid downstream validation issues
+        const legs = Array.isArray(legsRaw)
+          ? legsRaw
+              .filter((leg) => {
+                // Keep only legs with minimally required fields
+                const hasSelection = typeof leg?.selection === 'string' && leg.selection.length > 0;
+                const hasOdds = typeof leg?.odds === 'number' && !Number.isNaN(leg.odds);
+                return hasSelection && hasOdds;
+              })
+              .map((leg) => {
+                const gameData = leg?.gameId ? legGamesById[leg.gameId] : undefined;
+                return {
+                  ...leg,
+                  line:
+                    typeof leg.line === 'number'
+                      ? leg.line
+                      : typeof leg.line === 'string'
+                      ? Number(leg.line)
+                      : undefined,
+                  game: gameData ? JSON.parse(JSON.stringify(gameData)) : undefined,
+                  betType: leg.betType, // Ensure betType is preserved
+                  // ✅ Preserve player prop and game prop metadata for parlay legs
+                  playerProp: leg.playerProp,
+                  gameProp: leg.gameProp,
+                  displaySelection: computeSelectionLabel(leg.betType, leg.selection, leg.line ?? undefined, gameData as any),
+                };
+              })
+          : null;
+        return { ...bet, legs } as any;
+      }
+      
+      // Handle advanced bet types: round_robin, if_bet, reverse, bet_it_all
+      if (["round_robin", "if_bet", "reverse", "bet_it_all"].includes(bet.betType) && bet.legs) {
+        try {
+          const metadata = typeof bet.legs === "string" ? JSON.parse(bet.legs) : bet.legs;
+          
+          // Enrich selections/legs with game data
+          if (metadata.selections && Array.isArray(metadata.selections)) {
+            metadata.selections = metadata.selections.map((sel: any) => ({
+              ...sel,
+              game: sel.gameId ? legGamesById[sel.gameId] : undefined,
+            }));
+          }
+          
+          if (metadata.legs && Array.isArray(metadata.legs)) {
+            metadata.legs = metadata.legs.map((leg: any) => ({
+              ...leg,
+              game: leg.gameId ? legGamesById[leg.gameId] : undefined,
+            }));
+          }
+          
+          // Add user-friendly display info
+          if (bet.betType === "round_robin") {
+            metadata.display = {
+              numParlays: metadata.parlays?.length || 0,
+              types: metadata.roundRobinTypes || [],
+              stakePerParlay: metadata.stakePerParlay,
+            };
+          } else if (bet.betType === "if_bet") {
+            metadata.display = {
+              numLegs: metadata.legs?.length || 0,
+              condition: metadata.condition,
+              activeLegIndex: metadata.legs?.findIndex((l: any) => l.status === 'active') || 0,
+            };
+          } else if (bet.betType === "reverse") {
+            metadata.display = {
+              numSequences: metadata.sequences?.length || 0,
+              type: metadata.type,
+              stakePerSequence: metadata.stakePerSequence,
+            };
+          } else if (bet.betType === "bet_it_all") {
+            metadata.display = {
+              numLegs: metadata.legs?.length || 0,
+              initialStake: metadata.initialStake,
+              allOrNothing: metadata.allOrNothing,
+              activeLegIndex: metadata.legs?.findIndex((l: any) => l.status === 'active') || 0,
+            };
+          }
+          
+          return { ...bet, legs: metadata } as any;
+        } catch (e) {
+          logger.error('[my-bets] Error enriching advanced bet:', { betId: bet.id, error: e });
+          return bet as any;
+        }
+      }
+      
+      // Return other bet types unchanged
+      return bet as any;
     });
 
     // Convert Decimal fields to numbers for client consumption

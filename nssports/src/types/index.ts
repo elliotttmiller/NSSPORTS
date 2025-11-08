@@ -107,7 +107,11 @@ export interface Bet {
     | "period_winner"
     | "quarter_winner"
     | "half_winner"
-    | "parlay";
+    | "parlay"
+    | "round_robin"
+    | "if_bet"
+    | "reverse"
+    | "bet_it_all";
   selection: string; // Can be "home", "away", "over", "under", or any custom selection for game props
   odds: number;
   line?: number;
@@ -131,7 +135,7 @@ export interface Bet {
 
 export interface BetSlip {
   bets: Bet[];
-  betType: "single" | "parlay" | "custom" | "teaser";
+  betType: "single" | "parlay" | "custom" | "teaser" | "round_robin" | "if_bet" | "reverse" | "bet_it_all";
   totalStake: number;
   totalPayout: number;
   totalOdds: number;
@@ -142,6 +146,18 @@ export interface BetSlip {
   // Teaser mode specific state
   teaserType?: string; // Selected teaser type (2T_TEASER, 3T_TEASER, etc.)
   teaserLegs?: string[]; // Array of bet IDs included in the teaser
+  // Round Robin mode specific state
+  roundRobinTypes?: string[]; // Selected round robin types (by_2s, by_3s, etc.)
+  roundRobinStakePerParlay?: number; // Stake for each individual parlay
+  // If Bet mode specific state
+  ifBetCondition?: "if_win_only" | "if_win_or_tie"; // Condition for if bet
+  ifBetSequence?: string[]; // Order of bet IDs in sequence
+  // Reverse Bet mode specific state
+  reverseBetType?: "win_reverse" | "action_reverse"; // Type of reverse bet
+  reverseBetStakePerSequence?: number; // Stake for each sequence
+  // Bet It All mode specific state
+  betItAllSequence?: string[]; // Order of bet IDs in chain
+  betItAllInitialStake?: number; // Starting stake
 }
 
 export interface NavigationState {
@@ -184,3 +200,23 @@ export interface PropCategory {
 
 export type { Account } from "./account";
 export type { TeaserType, TeaserConfig, TeaserBet, TeasedLeg, TeaserPushRule } from "./teaser";
+export type {
+  RoundRobinType,
+  RoundRobinConfig,
+  RoundRobinParlay,
+  RoundRobinBet,
+  IfBetCondition,
+  IfBetLeg,
+  IfBet,
+  ReverseBetType,
+  ReverseBetSequence,
+  ReverseBet,
+  BetItAllLeg,
+  BetItAll,
+} from "./advanced-bets";
+export {
+  ROUND_ROBIN_CONFIGS,
+  calculateRoundRobinParlays,
+  generateCombinations,
+  generateReverseSequences,
+} from "./advanced-bets";

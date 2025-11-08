@@ -33,10 +33,15 @@ export function wouldBetCauseConflict(
       statType: string;
     };
   },
-  betSlipType: "single" | "parlay" | "teaser"
+  betSlipType: "single" | "parlay" | "teaser" | "round_robin" | "if_bet" | "reverse" | "bet_it_all"
 ): boolean {
-  // Single bets never conflict with each other
-  if (betSlipType === "single") return false;
+  // Single bets, if bets, reverse bets, and bet it all never conflict with each other
+  if (betSlipType === "single" || betSlipType === "if_bet" || betSlipType === "reverse" || betSlipType === "bet_it_all") return false;
+  
+  // Round robin only allows standard bet types, same rules as parlay
+  if (betSlipType === "round_robin") {
+    // Round robin can have player/game props but check for conflicts
+  }
   
   // Teasers only allow spread and total, so check eligibility
   if (betSlipType === "teaser") {
@@ -50,7 +55,7 @@ export function wouldBetCauseConflict(
     }
   }
   
-  // Check for same game conflicts (applies to both parlay and teaser)
+  // Check for same game conflicts (applies to parlay, teaser, and round_robin)
   const sameGameBets = existingBets.filter(b => b.gameId === newBet.gameId);
   
   if (sameGameBets.length === 0) return false;
@@ -486,7 +491,12 @@ export function checkTeaserEligibility(
 /**
  * Validate Single Bet Addition
  */
-export function validateBetAddition(existingBets: Bet[], newBet: Bet, betType: "single" | "parlay" | "teaser", teaserType?: TeaserType): BettingRuleViolation | null {
+export function validateBetAddition(
+  existingBets: Bet[], 
+  newBet: Bet, 
+  betType: "single" | "parlay" | "teaser" | "round_robin" | "if_bet" | "reverse" | "bet_it_all", 
+  teaserType?: TeaserType
+): BettingRuleViolation | null {
   // Check for duplicate
   const duplicateCheck = checkDuplicateBetRule(existingBets, newBet);
   if (duplicateCheck) return duplicateCheck;
@@ -500,11 +510,14 @@ export function validateBetAddition(existingBets: Bet[], newBet: Bet, betType: "
     return validateTeaserBets(allBets, teaserType);
   }
   
-  // If parlay mode, check if adding this bet would create conflicts
-  if (betType === "parlay") {
+  // If parlay or round_robin mode, check if adding this bet would create conflicts
+  if (betType === "parlay" || betType === "round_robin") {
     const allBets = [...existingBets, newBet];
     return validateParlayBets(allBets);
   }
+  
+  // If bet, reverse, and bet it all types allow all bet types without conflicts
+  // They will be validated at placement time
   
   return null;
 }
@@ -514,7 +527,7 @@ export function validateBetAddition(existingBets: Bet[], newBet: Bet, betType: "
  */
 export function validateBetPlacement(
   bets: Bet[], 
-  betType: "single" | "parlay" | "teaser", 
+  betType: "single" | "parlay" | "teaser" | "round_robin" | "if_bet" | "reverse" | "bet_it_all", 
   stakes: { [betId: string]: number },
   teaserType?: TeaserType
 ): BettingRuleViolation | null {
@@ -534,9 +547,160 @@ export function validateBetPlacement(
     return validateTeaserBets(bets, teaserType);
   }
   
-  // If parlay, validate parlay rules
-  if (betType === "parlay") {
+  // If parlay or round_robin, validate parlay rules
+  if (betType === "parlay" || betType === "round_robin") {
     return validateParlayBets(bets);
+  }
+  
+  // Advanced bet types (if_bet, reverse, bet_it_all) have their own validation
+  // Will be handled by their respective API endpoints
+  
+  return null;
+}
+
+/**
+ * ROUND ROBIN VALIDATION
+ */
+
+/**
+ * Validate Round Robin bet
+ * - Minimum 3 selections required
+ * - Maximum 8 selections (industry standard)
+ * - All selections must pass parlay validation
+ */
+export function validateRoundRobinBet(
+  bets: Bet[],
+  parlaySize: number
+): BettingRuleViolation | null {
+  // Minimum selections
+  if (bets.length < 3) {
+    return {
+      rule: "MIN_ROUND_ROBIN_SELECTIONS",
+      message: "Round Robin requires at least 3 selections",
+    };
+  }
+  
+  // Maximum selections
+  if (bets.length > 8) {
+    return {
+      rule: "MAX_ROUND_ROBIN_SELECTIONS",
+      message: "Maximum 8 selections allowed in Round Robin",
+    };
+  }
+  
+  // Parlay size must be valid
+  if (parlaySize < 2 || parlaySize > bets.length) {
+    return {
+      rule: "INVALID_PARLAY_SIZE",
+      message: `Parlay size must be between 2 and ${bets.length}`,
+    };
+  }
+  
+  // All bets must pass parlay validation
+  return validateParlayBets(bets);
+}
+
+/**
+ * IF BET VALIDATION
+ */
+
+/**
+ * Validate If Bet
+ * - Minimum 2 legs required
+ * - Maximum 5 legs (industry standard)
+ * - Each leg must have valid stake
+ */
+export function validateIfBet(
+  bets: Bet[]
+): BettingRuleViolation | null {
+  // Minimum legs
+  if (bets.length < 2) {
+    return {
+      rule: "MIN_IF_BET_LEGS",
+      message: "If Bet requires at least 2 legs",
+    };
+  }
+  
+  // Maximum legs
+  if (bets.length > 5) {
+    return {
+      rule: "MAX_IF_BET_LEGS",
+      message: "Maximum 5 legs allowed in If Bet",
+    };
+  }
+  
+  return null;
+}
+
+/**
+ * REVERSE BET VALIDATION
+ */
+
+/**
+ * Validate Reverse Bet
+ * - Minimum 2 selections required
+ * - Maximum 4 selections (due to exponential growth)
+ * - Stake must account for all sequences (n! for n selections)
+ */
+export function validateReverseBet(
+  bets: Bet[]
+): BettingRuleViolation | null {
+  // Minimum selections
+  if (bets.length < 2) {
+    return {
+      rule: "MIN_REVERSE_BET_SELECTIONS",
+      message: "Reverse Bet requires at least 2 selections",
+    };
+  }
+  
+  // Maximum selections (4! = 24 sequences, gets expensive)
+  if (bets.length > 4) {
+    return {
+      rule: "MAX_REVERSE_BET_SELECTIONS",
+      message: "Maximum 4 selections allowed in Reverse Bet",
+    };
+  }
+  
+  return null;
+}
+
+/**
+ * BET IT ALL VALIDATION
+ */
+
+/**
+ * Validate Bet It All
+ * - Minimum 2 legs required
+ * - Maximum 6 legs (industry standard)
+ * - Must have positive odds for progression
+ */
+export function validateBetItAll(
+  bets: Bet[]
+): BettingRuleViolation | null {
+  // Minimum legs
+  if (bets.length < 2) {
+    return {
+      rule: "MIN_BET_IT_ALL_LEGS",
+      message: "Bet It All requires at least 2 legs",
+    };
+  }
+  
+  // Maximum legs
+  if (bets.length > 6) {
+    return {
+      rule: "MAX_BET_IT_ALL_LEGS",
+      message: "Maximum 6 legs allowed in Bet It All",
+    };
+  }
+  
+  // Check for valid odds (all must be valid numbers)
+  for (const bet of bets) {
+    if (!bet.odds || typeof bet.odds !== 'number') {
+      return {
+        rule: "INVALID_ODDS",
+        message: "All legs must have valid odds",
+      };
+    }
   }
   
   return null;

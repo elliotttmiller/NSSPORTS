@@ -32,7 +32,7 @@ export function usePlaceBetWithActions() {
       teaserMetadata,
     }: {
       bets: Bet[];
-      betType: "single" | "parlay" | "teaser";
+      betType: "single" | "parlay" | "teaser" | "round_robin" | "if_bet" | "reverse" | "bet_it_all";
       totalStake: number;
       totalPayout: number;
       totalOdds: number;
