@@ -13,7 +13,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { z } from "zod";
 import prisma from "@/lib/prisma";
 import { getAuthUser } from "@/lib/authHelpers";
@@ -24,7 +24,6 @@ import {
 } from "@/lib/betting-rules";
 import { 
   generateCombinations, 
-  calculateRoundRobinParlays,
   ROUND_ROBIN_CONFIGS 
 } from "@/types/advanced-bets";
 import type { RoundRobinType } from "@/types/advanced-bets";
