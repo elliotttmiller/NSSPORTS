@@ -124,7 +124,7 @@ export function PlayerPropsView({ game, playerProps }: PlayerPropsViewProps) {
     <div className="space-y-4 isolate relative">
       {/* Sticky Filters & Categories Container - positioned below parent tabs (Player/Game Props tabs) */}
       <div 
-        className="sticky z-[15] bg-background/95 backdrop-blur-sm border-b border-border pb-2 pt-2"
+        className="sticky z-15 bg-background/95 backdrop-blur-sm border-b border-border pb-2 pt-2"
         style={{ top: 'calc(4.5rem + env(safe-area-inset-top))' }}
       >
         {/* Inner wrapper with proper padding that respects parent container */}
@@ -138,10 +138,10 @@ export function PlayerPropsView({ game, playerProps }: PlayerPropsViewProps) {
             <button
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
               className={cn(
-                "flex h-10 w-full sm:w-[240px] items-center justify-between rounded-lg",
+                "flex h-10 w-full sm:w-60 items-center justify-between rounded-lg",
                 "border border-border bg-background/80 px-3 py-2 text-sm",
                 "shadow-xs transition-all duration-200",
-                "hover:bg-accent/10 hover:border-accent/50",
+                "hover:bg-accent/5 hover:border-accent/30",
                 "focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent",
                 isDropdownOpen && "ring-2 ring-accent/50 border-accent"
               )}
@@ -166,7 +166,7 @@ export function PlayerPropsView({ game, playerProps }: PlayerPropsViewProps) {
                   exit={{ opacity: 0, y: -10 }}
                   transition={{ duration: 0.15 }}
                   className={cn(
-                    "absolute z-50 mt-2 w-full sm:w-[240px]",
+                    "absolute z-50 mt-2 w-full sm:w-60",
                     "max-h-[300px] overflow-y-auto",
                     "rounded-lg border border-border bg-card/95 backdrop-blur-sm shadow-lg",
                     "seamless-scroll"

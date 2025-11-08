@@ -44,17 +44,17 @@ export function PropCategory({ category, game, defaultOpen = false }: PropCatego
   const statTypes = Object.keys(propsByStatType);
 
   return (
-    <div className="border border-border rounded-lg overflow-hidden bg-card/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-all duration-200">
+    <div className="border border-border rounded-lg overflow-hidden bg-card/50 backdrop-blur-sm shadow-sm transition-shadow duration-200">
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
           "w-full flex items-center justify-between px-4 py-3 transition-colors",
-          "hover:bg-muted/50 active:bg-muted",
+          "hover:bg-muted/30 active:bg-muted",
           isOpen && "bg-muted/30"
         )}
       >
         <div className="flex items-center gap-3">
-          <div className="w-2 h-2 rounded-full bg-accent flex-shrink-0"></div>
+          <div className="w-2 h-2 rounded-full bg-accent shrink-0"></div>
           <div className="text-left">
             <h3 className="text-sm font-semibold text-foreground">
               {category.name}

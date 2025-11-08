@@ -203,7 +203,7 @@ export function ProfessionalGameRow({
   };
 
   const cardClasses = cn(
-  "bg-background text-card-foreground flex flex-col border border-border rounded-lg transition-all duration-300 ease-[cubic-bezier(.4,0,.2,1)] shadow-sm hover:shadow-md hover:-translate-y-1.5 hover:scale-[1.015] active:scale-95 focus-within:ring-1 focus-within:ring-white/20 cursor-pointer outline-[0.5px] outline-white/10 overflow-hidden",
+  "bg-background text-card-foreground flex flex-col border border-border rounded-lg transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer outline-[0.5px] outline-white/10 overflow-hidden",
     {
       "border-t rounded-t-lg": !isFirstInGroup,
       "border-b rounded-b-lg mb-2": !isFirstInGroup,

@@ -13,9 +13,8 @@ function Card({ className, ...props }: ComponentProps<"div">) {
         // Subtle backdrop blur for depth
         "backdrop-blur-sm",
         // Refined hover interactions - desktop only
-        "md:transition-all md:duration-200 md:ease-out",
+        "md:transition-shadow md:duration-200 md:ease-out",
         "md:hover:border-border md:hover:shadow-md md:hover:shadow-black/10",
-        "md:hover:-translate-y-0.5",
         className,
       )}
       {...props}

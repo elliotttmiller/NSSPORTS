@@ -186,7 +186,7 @@ export function LiveGameRow({
   };
 
   const cardClasses = cn(
-  "bg-background text-card-foreground flex flex-col border border-border rounded-lg transition-all duration-300 ease-[cubic-bezier(.4,0,.2,1)] shadow-sm hover:shadow-md hover:-translate-y-1.5 hover:scale-[1.015] active:scale-95 focus-within:ring-1 focus-within:ring-white/20 cursor-pointer outline-[0.5px] outline-white/10 overflow-hidden",
+  "bg-background text-card-foreground flex flex-col border border-border rounded-lg transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer outline-[0.5px] outline-white/10 overflow-hidden",
     {
       "border-t rounded-t-lg": !isFirstInGroup,
       "border-b rounded-b-lg mb-2": !isFirstInGroup,
@@ -240,7 +240,7 @@ export function LiveGameRow({
                   src={game.awayTeam.logo}
                   alt={game.awayTeam.name}
                   size={20}
-                  className="xl:w-6 xl:h-6 flex-shrink-0"
+                  className="xl:w-6 xl:h-6 shrink-0"
                 />
                 <span className="font-medium text-foreground text-sm xl:text-base truncate">
                   {game.awayTeam.name}
@@ -257,7 +257,7 @@ export function LiveGameRow({
                   src={game.homeTeam.logo}
                   alt={game.homeTeam.name}
                   size={20}
-                  className="xl:w-6 xl:h-6 flex-shrink-0"
+                  className="xl:w-6 xl:h-6 shrink-0"
                 />
                 <span className="font-medium text-foreground text-sm xl:text-base truncate">
                   {game.homeTeam.name}
@@ -271,7 +271,7 @@ export function LiveGameRow({
             </div>
 
             {/* Spread Column */}
-            <div className="space-y-1 min-w-[80px] xl:min-w-[120px]">
+            <div className="space-y-1 min-w-20 xl:min-w-[120px]">
               <Button
                 variant={isBetInSlip("spread", "away") ? "default" : "outline"}
                 size="sm"
@@ -319,7 +319,7 @@ export function LiveGameRow({
             </div>
 
           {/* Total Column */}
-          <div className="space-y-1 min-w-[80px] xl:min-w-[120px]">
+          <div className="space-y-1 min-w-20 xl:min-w-[120px]">
             <Button
               variant={isBetInSlip("total", "over") ? "default" : "outline"}
               size="sm"
@@ -367,7 +367,7 @@ export function LiveGameRow({
           </div>
 
           {/* Moneyline Column */}
-          <div className="space-y-1 min-w-[80px] xl:min-w-[120px]">
+          <div className="space-y-1 min-w-20 xl:min-w-[120px]">
             <Button
               variant={isBetInSlip("moneyline", "away") ? "default" : "outline"}
               size="sm"
