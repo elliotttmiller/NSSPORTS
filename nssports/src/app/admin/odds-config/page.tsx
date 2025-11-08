@@ -67,7 +67,7 @@ export default function OddsConfigPage() {
         });
         setLeagueOverrides(data.leagueOverrides || []);
       }
-    } catch (error) {
+    } catch {
       toast.error('Failed to load configuration');
     } finally {
       setLoading(false);
@@ -99,7 +99,7 @@ export default function OddsConfigPage() {
       } else {
         throw new Error('Failed to save');
       }
-    } catch (error) {
+    } catch {
       toast.error('Failed to save configuration');
     } finally {
       setSaving(false);

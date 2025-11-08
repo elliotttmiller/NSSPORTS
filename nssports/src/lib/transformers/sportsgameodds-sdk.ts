@@ -550,7 +550,9 @@ async function applyJuiceToOdds(
       ]);
       
       // Keep fair odds for reference
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (odds.spread.home as any).fairOdds = odds.spread.home.odds;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (odds.spread.away as any).fairOdds = odds.spread.away.odds;
       
       // Apply juiced odds
@@ -576,7 +578,9 @@ async function applyJuiceToOdds(
       ]);
       
       // Keep fair odds for reference
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (odds.moneyline.home as any).fairOdds = odds.moneyline.home.odds;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (odds.moneyline.away as any).fairOdds = odds.moneyline.away.odds;
       
       // Apply juiced odds
@@ -602,7 +606,9 @@ async function applyJuiceToOdds(
       ]);
       
       // Keep fair odds for reference
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (odds.total.over as any).fairOdds = odds.total.over.odds;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (odds.total.under as any).fairOdds = odds.total.under.odds;
       
       // Apply juiced odds

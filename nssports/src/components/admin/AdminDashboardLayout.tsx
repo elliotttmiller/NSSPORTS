@@ -10,7 +10,8 @@ import {
   DollarSign, 
   BarChart3, 
   Shield,
-  Scale
+  Scale,
+  TrendingUp
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -24,6 +25,7 @@ const navigationItems = [
   { href: "/admin/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/admin/agents", icon: UserCog, label: "Agents & Players" },
   { href: "/admin/balances", icon: DollarSign, label: "Balances" },
+  { href: "/admin/odds-config", icon: TrendingUp, label: "Odds Config" },
   { href: "/admin/reconciliation", icon: Scale, label: "Reconcile" },
   { href: "/admin/reports", icon: BarChart3, label: "Reports" },
   { href: "/admin/security", icon: Shield, label: "Security" },
