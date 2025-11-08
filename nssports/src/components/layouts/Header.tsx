@@ -13,12 +13,13 @@ interface MobileAccountDropdownProps {
   balance: number;
   available: number;
   risk: number;
+  freePlay: number;
   isAuthenticated: boolean;
   userEmail?: string | null;
   onLogout: () => void;
 }
 
-function MobileAccountDropdown({ balance, available, risk, isAuthenticated, userEmail, onLogout }: MobileAccountDropdownProps) {
+function MobileAccountDropdown({ balance, available, risk, freePlay, isAuthenticated, userEmail, onLogout }: MobileAccountDropdownProps) {
   // Sync username for display, matching homepage logic
   const { data: session } = useSession();
   const displayName = session?.user?.name;
@@ -94,6 +95,12 @@ function MobileAccountDropdown({ balance, available, risk, isAuthenticated, user
                     <span className="text-sm font-medium text-muted-foreground">Balance:</span>
                     <span className="text-sm font-bold text-foreground">
                       ${balance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium text-muted-foreground">Free Play:</span>
+                    <span className="text-sm font-bold text-green-600">
+                      ${freePlay.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
@@ -174,6 +181,7 @@ export function Header() {
   const balance = account?.balance ?? 0;
   const available = account?.available ?? 0;
   const risk = account?.risk ?? 0;
+  const freePlay = account?.freePlay ?? 0;
 
   const handleLogout = async () => {
     await signOut({ callbackUrl: "/" });
@@ -303,6 +311,10 @@ export function Header() {
                       <span className="font-bold text-accent">${balance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
                     </div>
                     <div className="flex justify-between text-sm">
+                      <span className="font-medium text-foreground">Free Play:</span>
+                      <span className="font-bold text-green-600">${freePlay.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
                       <span className="font-medium text-foreground">Available:</span>
                       <span className="font-bold text-foreground">${available.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
                     </div>
@@ -371,6 +383,7 @@ export function Header() {
             balance={balance}
             available={available}
             risk={risk}
+            freePlay={freePlay}
             isAuthenticated={isAuthenticated}
             userEmail={session?.user?.email}
             onLogout={handleLogout}

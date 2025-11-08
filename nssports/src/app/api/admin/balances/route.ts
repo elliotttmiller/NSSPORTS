@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
 
     // Calculate new balance
     let newBalance = player.balance;
-    if (type === "deposit" || type === "correction") {
+    if (type === "deposit" || type === "correction" || type === "freeplay") {
       newBalance += parseFloat(amount.toString());
     } else if (type === "withdrawal") {
       newBalance -= parseFloat(amount.toString());

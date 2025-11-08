@@ -37,7 +37,7 @@ async function main() {
   console.log('\n📋 Step 2: Testing juice calculations...');
   
   // Import the juice service
-  const { oddsJuiceService } = await import('../src/lib/odds-juice-service');
+  const { oddsJuiceService } = await import('../../src/lib/odds-juice-service');
   
   const testCases = [
     { fairOdds: -110, marketType: 'spread' as const, description: 'Standard spread' },

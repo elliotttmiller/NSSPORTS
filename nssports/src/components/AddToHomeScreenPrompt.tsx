@@ -33,8 +33,8 @@ export function AddToHomeScreenPrompt() {
   if (!visible) return null;
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-[100] p-3" onClick={() => setVisible(false)}>
-      <div className="mx-auto max-w-md rounded-xl border border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/70 shadow-lg">
+    <div className="fixed inset-x-0 bottom-0 z-100 p-3" onClick={() => setVisible(false)}>
+      <div className="mx-auto max-w-md rounded-xl border border-border bg-card/95 backdrop-blur supports-backdrop-filter:bg-card/70 shadow-lg">
         <div className="flex items-center gap-3 p-3">
           <div className="flex-1">
             <div className="text-sm font-semibold">Add to Home Screen</div>

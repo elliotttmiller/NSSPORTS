@@ -3,4 +3,5 @@ export interface Account {
   balance: number;
   available: number;
   risk: number;
+  freePlay: number;
 }

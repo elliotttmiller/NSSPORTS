@@ -41,7 +41,7 @@ export default function AdjustBalancePage() {
   // Form state
   const [formData, setFormData] = useState({
     playerId: "",
-    adjustmentType: "deposit" as "deposit" | "withdrawal" | "correction",
+    adjustmentType: "deposit" as "deposit" | "withdrawal" | "correction" | "freeplay",
     amount: "",
     reason: "",
   });
@@ -281,7 +281,7 @@ export default function AdjustBalancePage() {
             <label className="block text-sm font-medium text-foreground mb-2">
               Adjustment Type <span className="text-destructive">*</span>
             </label>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={() => setFormData({ ...formData, adjustmentType: "deposit" })}
@@ -317,6 +317,18 @@ export default function AdjustBalancePage() {
                 disabled={isSubmitting}
               >
                 Correction
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, adjustmentType: "freeplay" })}
+                className={`py-2.5 sm:py-2 px-3 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 touch-action-manipulation active:scale-95 ${
+                  formData.adjustmentType === "freeplay"
+                    ? "bg-green-600 text-white shadow-md"
+                    : "bg-background border border-border text-muted-foreground hover:border-green-500/30"
+                }`}
+                disabled={isSubmitting}
+              >
+                Free Play
               </button>
             </div>
           </div>

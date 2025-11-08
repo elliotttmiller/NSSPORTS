@@ -87,7 +87,7 @@ export function MobileOtherPanel() {
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.98 }}
             transition={{ type: "spring", duration: 0.35, stiffness: 160, damping: 28, mass: 0.7 }}
-            className="fixed inset-0 bg-background/80 backdrop-blur-sm z-[98]"
+            className="fixed inset-0 bg-background/80 backdrop-blur-sm z-98"
             onClick={handleClose}
           />
 
@@ -97,7 +97,7 @@ export function MobileOtherPanel() {
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="fixed right-0 top-0 bottom-0 w-[280px] bg-background border-l border-border z-[99] flex flex-col"
+            className="fixed right-0 top-0 bottom-0 w-[280px] bg-background border-l border-border z-99 flex flex-col"
           >
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-border">
@@ -119,17 +119,24 @@ export function MobileOtherPanel() {
                   <button
                     key={betType.id}
                     onClick={() => {
+                      handleClose();
+                      // Route to the appropriate page based on bet type
                       if (betType.id === "teaser") {
-                        // Navigate to teaser page (page will set teaser mode)
-                        handleClose();
                         router.push("/teasers");
-                      } else {
-                        // Other bet types not yet implemented
+                      } else if (betType.id === "round-robin") {
+                        router.push("/round-robin");
+                      } else if (betType.id === "if-win-only" || betType.id === "if-win-or-tie") {
+                        router.push("/if-bets");
+                      } else if (betType.id === "win-reverse" || betType.id === "action-reverse") {
+                        router.push("/reverse-bets");
+                      } else if (betType.id === "bet-it-all") {
+                        router.push("/bet-it-all");
+                      } else if (betType.id === "fill-open") {
+                        // Fill Open not yet implemented
                         toast.info(`${betType.name} coming soon!`, {
                           description: "This bet type is under development",
                           duration: 3000,
                         });
-                        handleClose();
                       }
                     }}
                     className="w-full text-left p-3 rounded-lg border border-border bg-card hover:bg-accent/5 hover:border-accent/30 transition-all"

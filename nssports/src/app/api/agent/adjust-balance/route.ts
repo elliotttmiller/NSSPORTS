@@ -10,7 +10,7 @@ export const revalidate = 0;
 // Validation schema
 const AdjustBalanceSchema = z.object({
   playerId: z.string().min(1, "Player ID is required"),
-  adjustmentType: z.enum(["deposit", "withdrawal", "correction"], {
+  adjustmentType: z.enum(["deposit", "withdrawal", "correction", "freeplay"], {
     errorMap: () => ({ message: "Invalid adjustment type" }),
   }),
   amount: z.number().positive("Amount must be positive"),
@@ -65,10 +65,17 @@ export async function POST(request: Request) {
       }
 
       const currentBalance = Number(player.account.balance);
+      const currentFreePlay = Number((player.account as { freePlay?: number }).freePlay ?? 0);
 
-      // Calculate new balance based on adjustment type
-      let newBalance: number;
-      if (adjustmentType === "deposit" || adjustmentType === "correction") {
+      // Calculate new balances based on adjustment type
+      let newBalance: number = currentBalance;
+      let newFreePlay: number = currentFreePlay;
+      
+      if (adjustmentType === "freeplay") {
+        // Free play adjustments go to freePlay balance
+        newFreePlay = currentFreePlay + amount;
+      } else if (adjustmentType === "deposit" || adjustmentType === "correction") {
+        // Regular deposits go to main balance
         newBalance = currentBalance + amount;
       } else if (adjustmentType === "withdrawal") {
         if (amount > currentBalance) {
@@ -83,12 +90,13 @@ export async function POST(request: Request) {
 
       // Perform the adjustment in a transaction
       const result = await prisma.$transaction(async (tx) => {
-        // Update account balance
+        // Update account balance and/or freePlay
         await tx.account.update({
           where: { userId: playerId },
           data: {
             balance: newBalance,
-          },
+            freePlay: newFreePlay,
+          } as { balance: number; freePlay: number },
         });
 
         // Log the adjustment in BalanceAdjustment table

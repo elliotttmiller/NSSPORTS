@@ -47,7 +47,7 @@ export default function BalancesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [showAdjustModal, setShowAdjustModal] = useState(false);
   const [playerSearch, setPlayerSearch] = useState("");
-  const [adjustmentType, setAdjustmentType] = useState<"deposit" | "withdrawal" | "correction">("deposit");
+  const [adjustmentType, setAdjustmentType] = useState<"deposit" | "withdrawal" | "correction" | "freeplay">("deposit");
   const [amount, setAmount] = useState("");
   const [reason, setReason] = useState("");
 
@@ -297,6 +297,15 @@ export default function BalancesPage() {
                       className="h-8 px-3 text-xs"
                     >
                       Correction
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={adjustmentType === "freeplay" ? "default" : "outline"}
+                      onClick={() => setAdjustmentType("freeplay")}
+                      size="sm"
+                      className={`h-8 px-3 text-xs ${adjustmentType === "freeplay" ? "bg-green-600 hover:bg-green-700 text-white" : ""}`}
+                    >
+                      Free Play
                     </Button>
                   </div>
                 </div>

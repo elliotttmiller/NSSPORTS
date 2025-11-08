@@ -12,10 +12,12 @@ export async function GET() {
 		let balance = 0;
 		let risk = 0;
 		let available = 0;
+		let freePlay = 0;
 
 		try {
-			const account = await prisma.account.findUnique({ where: { userId } });
+			const account = await prisma.account.findUnique({ where: { userId } }) as { userId: string; balance: number; freePlay?: number; createdAt: Date; updatedAt: Date } | null;
 			balance = account ? Number(account.balance) : 0;
+			freePlay = account ? Number(account.freePlay ?? 0) : 0;
 
 			const pendingBets = await prisma.bet.findMany({
 				where: { userId, status: "pending" },
@@ -29,13 +31,14 @@ export async function GET() {
 				balance = 0;
 				risk = 0;
 				available = 0;
+				freePlay = 0;
 			} else {
 				throw err;
 			}
 		}
 
 		try {
-			const payload = AccountSchema.parse({ userId, balance, available, risk });
+			const payload = AccountSchema.parse({ userId, balance, available, risk, freePlay });
 			return successResponse(payload);
 		} catch (e) {
 			if (e instanceof z.ZodError) {
