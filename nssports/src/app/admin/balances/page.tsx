@@ -13,7 +13,6 @@ import {
   TrendingUp,
   TrendingDown,
   Search,
-  Plus,
   AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -132,21 +131,11 @@ export default function BalancesPage() {
 
   return (
     <AdminDashboardLayout>
-      <div className="space-y-3 w-full">
-        {/* Header - Sleek & Compact (matching dashboard) */}
-        <div className="flex flex-col gap-1.5">
-          <div className="flex items-center justify-between">
-            <h1 className="text-xl font-bold text-foreground">Balance Oversight</h1>
-            <Button
-              onClick={() => setShowAdjustModal(true)}
-              size="sm"
-              className="bg-blue-600 hover:bg-blue-700 gap-1.5 h-8 touch-action-manipulation active:scale-95 transition-transform"
-            >
-              <Plus size={14} />
-              <span className="hidden sm:inline">Adjust Balance</span>
-            </Button>
-          </div>
-          <p className="text-xs text-muted-foreground/70">
+      <div className="space-y-4 md:space-y-6" style={{ padding: '15px' }}>
+        {/* Header */}
+        <div>
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">Balance Management</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
             Monitor and manage platform balances
           </p>
         </div>
@@ -188,22 +177,22 @@ export default function BalancesPage() {
 
         {/* Recent Adjustments - Compact Table */}
         <Card className="overflow-hidden">
-          <div className="p-3 border-b border-border">
-            <h2 className="text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider">Recent Adjustments</h2>
-            <p className="text-[10px] text-muted-foreground/70 mt-0.5">
+          <div className="p-3 md:p-4 border-b border-border">
+            <h2 className="text-xs sm:text-sm font-semibold text-muted-foreground/80 uppercase tracking-wider">Recent Adjustments</h2>
+            <p className="text-[10px] sm:text-xs text-muted-foreground/70 mt-0.5">
               All agent and admin balance adjustments
             </p>
           </div>
-          <div className="overflow-x-auto scrollbar-hide">
+          <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-accent/40 scrollbar-track-transparent scroll-smooth" style={{ WebkitOverflowScrolling: 'touch' }}>
             <table className="w-full min-w-[640px]">
               <thead className="bg-muted/50 border-b border-border">
                 <tr>
-                  <th className="text-left p-2.5 text-[10px] font-semibold text-muted-foreground/80 uppercase tracking-wider">Adjuster</th>
-                  <th className="text-left p-2.5 text-[10px] font-semibold text-muted-foreground/80 uppercase tracking-wider">Player</th>
-                  <th className="text-left p-2.5 text-[10px] font-semibold text-muted-foreground/80 uppercase tracking-wider">Type</th>
-                  <th className="text-left p-2.5 text-[10px] font-semibold text-muted-foreground/80 uppercase tracking-wider">Amount</th>
-                  <th className="text-left p-2.5 text-[10px] font-semibold text-muted-foreground/80 uppercase tracking-wider hidden sm:table-cell">Reason</th>
-                  <th className="text-left p-2.5 text-[10px] font-semibold text-muted-foreground/80 uppercase tracking-wider">Time</th>
+                  <th className="text-left p-2 sm:p-2.5 text-[10px] sm:text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider">Adjuster</th>
+                  <th className="text-left p-2 sm:p-2.5 text-[10px] sm:text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider">Player</th>
+                  <th className="text-left p-2 sm:p-2.5 text-[10px] sm:text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider">Type</th>
+                  <th className="text-left p-2 sm:p-2.5 text-[10px] sm:text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider">Amount</th>
+                  <th className="text-left p-2 sm:p-2.5 text-[10px] sm:text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider hidden sm:table-cell">Reason</th>
+                  <th className="text-left p-2 sm:p-2.5 text-[10px] sm:text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider">Time</th>
                 </tr>
               </thead>
               <tbody>
@@ -213,9 +202,9 @@ export default function BalancesPage() {
                       key={adjustment.id}
                       className="border-b border-border/30 hover:bg-muted/20 transition-colors"
                     >
-                      <td className="p-2.5 font-medium text-xs">{adjustment.adjuster}</td>
-                      <td className="p-2.5 text-muted-foreground/70 text-xs">{adjustment.player}</td>
-                      <td className="p-2.5">
+                      <td className="p-2 sm:p-2.5 font-medium text-[10px] sm:text-xs">{adjustment.adjuster}</td>
+                      <td className="p-2 sm:p-2.5 text-muted-foreground/70 text-[10px] sm:text-xs">{adjustment.player}</td>
+                      <td className="p-2 sm:p-2.5">
                         <Badge
                           variant={
                             adjustment.type === "Deposit"
@@ -224,21 +213,21 @@ export default function BalancesPage() {
                               ? "secondary"
                               : "outline"
                           }
-                          className="text-[10px] h-4"
+                          className="text-[9px] sm:text-[10px] h-4"
                         >
                           {adjustment.type}
                         </Badge>
                       </td>
-                      <td className="p-2.5 font-semibold text-xs">${adjustment.amount.toLocaleString()}</td>
-                      <td className="p-2.5 text-[10px] text-muted-foreground/70 hidden sm:table-cell">{adjustment.reason}</td>
-                      <td className="p-2.5 text-[10px] text-muted-foreground/70 whitespace-nowrap">
+                      <td className="p-2 sm:p-2.5 font-semibold text-[10px] sm:text-xs">${adjustment.amount.toLocaleString()}</td>
+                      <td className="p-2 sm:p-2.5 text-[10px] text-muted-foreground/70 hidden sm:table-cell">{adjustment.reason}</td>
+                      <td className="p-2 sm:p-2.5 text-[10px] text-muted-foreground/70 whitespace-nowrap">
                         {new Date(adjustment.timestamp).toLocaleDateString()}
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={6} className="p-6 text-center text-muted-foreground/70 text-xs">
+                    <td colSpan={6} className="p-4 sm:p-6 text-center text-muted-foreground/70 text-xs sm:text-sm">
                       No recent adjustments found
                     </td>
                   </tr>
@@ -250,33 +239,33 @@ export default function BalancesPage() {
 
         {/* Adjustment Modal - Compact */}
         {showAdjustModal && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-3 overflow-y-auto">
-            <Card className="w-full max-w-2xl p-4 my-auto">
-              <h2 className="text-lg font-bold mb-4">Admin Balance Adjustment</h2>
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto">
+            <Card className="w-full max-w-2xl p-4 sm:p-6 my-auto">
+              <h2 className="text-base sm:text-lg font-bold mb-3 sm:mb-4">Admin Balance Adjustment</h2>
               
-              <div className="space-y-3">
+              <div className="space-y-3 sm:space-y-4">
                 <div>
                   <Label className="text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider">Player Search</Label>
                   <div className="relative mt-1.5">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground" />
                     <Input
                       placeholder="Search by username..."
                       value={playerSearch}
                       onChange={(e) => setPlayerSearch(e.target.value)}
-                      className="pl-10 h-8 text-sm"
+                      className="pl-9 sm:pl-10 h-8 sm:h-9 text-xs sm:text-sm"
                     />
                   </div>
                 </div>
 
                 <div>
                   <Label className="text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider">Adjustment Type</Label>
-                  <div className="flex gap-1.5 mt-1.5">
+                  <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-1.5">
                     <Button
                       type="button"
                       variant={adjustmentType === "deposit" ? "default" : "outline"}
                       onClick={() => setAdjustmentType("deposit")}
                       size="sm"
-                      className="h-8 px-3 text-xs"
+                      className="h-7 sm:h-8 px-2 sm:px-3 text-[10px] sm:text-xs"
                     >
                       Deposit
                     </Button>
@@ -285,7 +274,7 @@ export default function BalancesPage() {
                       variant={adjustmentType === "withdrawal" ? "default" : "outline"}
                       onClick={() => setAdjustmentType("withdrawal")}
                       size="sm"
-                      className="h-8 px-3 text-xs"
+                      className="h-7 sm:h-8 px-2 sm:px-3 text-[10px] sm:text-xs"
                     >
                       Withdrawal
                     </Button>
@@ -294,7 +283,7 @@ export default function BalancesPage() {
                       variant={adjustmentType === "correction" ? "default" : "outline"}
                       onClick={() => setAdjustmentType("correction")}
                       size="sm"
-                      className="h-8 px-3 text-xs"
+                      className="h-7 sm:h-8 px-2 sm:px-3 text-[10px] sm:text-xs"
                     >
                       Correction
                     </Button>
@@ -303,7 +292,7 @@ export default function BalancesPage() {
                       variant={adjustmentType === "freeplay" ? "default" : "outline"}
                       onClick={() => setAdjustmentType("freeplay")}
                       size="sm"
-                      className={`h-8 px-3 text-xs ${adjustmentType === "freeplay" ? "bg-green-600 hover:bg-green-700 text-white" : ""}`}
+                      className={`h-7 sm:h-8 px-2 sm:px-3 text-[10px] sm:text-xs ${adjustmentType === "freeplay" ? "bg-green-600 hover:bg-green-700 text-white" : ""}`}
                     >
                       Free Play
                     </Button>
@@ -317,7 +306,7 @@ export default function BalancesPage() {
                     placeholder="0.00"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
-                    className="h-8 text-sm mt-1.5"
+                    className="h-8 sm:h-9 text-xs sm:text-sm mt-1.5"
                   />
                   <p className="text-[10px] text-muted-foreground/70 mt-1">
                     Unlimited for admin adjustments
@@ -330,13 +319,13 @@ export default function BalancesPage() {
                     placeholder="Reason for adjustment..."
                     value={reason}
                     onChange={(e) => setReason(e.target.value)}
-                    className="w-full min-h-20 px-3 py-2 text-sm bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 mt-1.5"
+                    className="w-full min-h-20 px-3 py-2 text-xs sm:text-sm bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 mt-1.5"
                   />
                 </div>
 
-                <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3">
+                <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-2.5 sm:p-3">
                   <div className="flex items-start gap-2">
-                    <AlertTriangle className="w-4 h-4 text-yellow-600 mt-0.5" />
+                    <AlertTriangle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-600 mt-0.5 shrink-0" />
                     <div className="text-xs text-yellow-600">
                       <p className="font-semibold">Warning</p>
                       <p className="text-[10px]">This action will be logged and is irreversible</p>
@@ -345,14 +334,14 @@ export default function BalancesPage() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 mt-4">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 mt-4">
                 <Button
                   onClick={handleAdjustBalance}
-                  className="bg-blue-600 hover:bg-blue-700 h-8 text-sm"
+                  className="bg-blue-600 hover:bg-blue-700 h-8 sm:h-9 text-xs sm:text-sm w-full sm:w-auto"
                 >
                   Confirm Adjustment
                 </Button>
-                <Button variant="outline" onClick={() => setShowAdjustModal(false)} size="sm" className="h-8 text-sm">
+                <Button variant="outline" onClick={() => setShowAdjustModal(false)} size="sm" className="h-8 sm:h-9 text-xs sm:text-sm w-full sm:w-auto">
                   Cancel
                 </Button>
               </div>
