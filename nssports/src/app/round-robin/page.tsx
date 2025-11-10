@@ -79,9 +79,9 @@ export default function RoundRobinPage() {
   const canPlace = betSlip.bets.length >= 3 && selectedTypes.length > 0 && stakeValue > 0;
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="sticky top-0 z-10 bg-background/90 backdrop-blur-sm border-b border-border" style={{ top: '64px' }}>
+    <div className="min-h-full bg-background">
+      {/* Header - Seamless (not sticky) */}
+      <div className="bg-background border-b border-border">
         <div className="container mx-auto px-4 sm:px-6 max-w-4xl py-4">
           <div className="flex items-center justify-between">
             <button

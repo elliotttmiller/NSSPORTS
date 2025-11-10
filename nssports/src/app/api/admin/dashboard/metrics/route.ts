@@ -39,8 +39,6 @@ export async function GET() {
     const [
       totalPlayers,
       totalAgents,
-      activePlayers,
-      activeAgents,
       activeBets,
       todayStats,
       systemStats,
@@ -50,26 +48,6 @@ export async function GET() {
       
       // Total agents count
       prisma.agent.count({ where: { status: { not: "suspended" } } }),
-      
-      // Active players (logged in today)
-      prisma.dashboardPlayer.count({
-        where: {
-          status: "active",
-          lastLogin: {
-            gte: new Date(new Date().setHours(0, 0, 0, 0)),
-          },
-        },
-      }),
-      
-      // Active agents (active today)
-      prisma.agent.count({
-        where: {
-          status: "active",
-          lastLogin: {
-            gte: new Date(new Date().setHours(0, 0, 0, 0)),
-          },
-        },
-      }),
       
       // Active bets (pending)
       prisma.playerBet.count({ where: { status: "pending" } }),
@@ -101,15 +79,6 @@ export async function GET() {
     // Calculate today's deposits and withdrawals
     const todayDeposits = todayStats.find(s => s.type === "deposit")?._sum.amount || 0;
     const todayWithdrawals = todayStats.find(s => s.type === "withdrawal")?._sum.amount || 0;
-    
-    // Calculate new players today
-    const newPlayersToday = await prisma.dashboardPlayer.count({
-      where: {
-        registeredAt: {
-          gte: new Date(new Date().setHours(0, 0, 0, 0)),
-        },
-      },
-    });
 
     // Get total platform balance
     const totalBalance = await prisma.dashboardPlayer.aggregate({
@@ -137,16 +106,12 @@ export async function GET() {
 
     return NextResponse.json({
       platformActivity: {
-        totalActivePlayers: totalPlayers,
-        onlinePlayersNow: activePlayers,
+        totalPlayers: totalPlayers,
         activeBets: activeBets,
         todayGGR: Math.round(todayGGR * 100) / 100,
       },
       agentPerformance: {
         totalAgents: totalAgents,
-        activeAgentsToday: activeAgents,
-        newPlayersToday: newPlayersToday,
-        agentActivityScore: totalAgents > 0 ? Math.round((activeAgents / totalAgents) * 100) : 0,
       },
       financialSummary: {
         totalBalance: Math.round((totalBalance._sum.balance || 0) * 100) / 100,

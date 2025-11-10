@@ -73,9 +73,9 @@ export default function BetItAllPage() {
   const canPlace = orderedBets.length >= 2 && orderedBets.length <= 6 && stakeValue > 0;
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="sticky z-10 bg-background/90 backdrop-blur-sm border-b border-border" style={{ top: '64px' }}>
+    <div className="min-h-full bg-background">
+      {/* Header - Seamless (not sticky) */}
+      <div className="bg-background border-b border-border">
         <div className="container mx-auto px-4 sm:px-6 max-w-4xl py-4">
           <div className="flex items-center justify-between">
             <button
@@ -102,95 +102,14 @@ export default function BetItAllPage() {
         {/* Info Banner */}
         <div className="bg-accent/10 border border-accent/20 rounded-lg p-4">
           <div className="flex items-start gap-3">
-            <TrendUp size={24} className="shrink-0 mt-0.5 text-accent" />
-            <div>
-              <div className="font-semibold mb-1">Progressive Chain Betting</div>
-              <div className="text-sm text-muted-foreground">
-                All winnings from each bet are automatically placed on the next bet. 
-                One loss resets to zero (All-or-Nothing).
+            <TrendUp size={20} className="shrink-0 mt-0.5 text-accent" />
+            <div className="text-sm">
+              <div className="font-semibold text-foreground mb-1">Progressive Chain Betting</div>
+              <div className="text-muted-foreground">
+                All winnings from each bet automatically roll to the next. One loss ends the chain.
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Leg Chain */}
-        <div className="bg-card border border-border rounded-lg p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold">
-              Chain Sequence ({orderedBets.length} legs)
-            </h2>
-            {(orderedBets.length < 2 || orderedBets.length > 6) && (
-              <Badge variant="destructive">Need 2-6 legs</Badge>
-            )}
-          </div>
-
-          <div className="space-y-4">
-            {orderedBets.map((bet, index) => (
-              <div key={bet!.id} className="space-y-2">
-                <div className="flex items-center gap-4 p-4 bg-card border border-border rounded-lg">
-                  <div className="flex items-center justify-center w-10 h-10 rounded-full bg-accent text-accent-foreground font-bold text-lg">
-                    {index + 1}
-                  </div>
-
-                  <div className="flex-1">
-                    <div className="font-semibold text-foreground">
-                      {bet!.game.awayTeam.shortName} @ {bet!.game.homeTeam.shortName}
-                    </div>
-                    <div className="text-sm text-muted-foreground capitalize flex items-center gap-2">
-                      <span>{bet!.betType === "spread" ? "Spread" : bet!.betType === "total" ? "Total" : bet!.betType}</span>
-                      <span className="text-accent">•</span>
-                      <span className="font-medium text-foreground">
-                        {bet!.betType === "spread" 
-                          ? (bet!.selection === "home" ? bet!.game.homeTeam.shortName : bet!.game.awayTeam.shortName)
-                          : bet!.betType === "total"
-                          ? (bet!.selection === "over" ? "Over" : "Under")
-                          : bet!.selection}
-                        {bet!.line !== null && bet!.line !== undefined && (
-                          <span className="ml-1">
-                            {bet!.betType === "spread" ? (bet!.line > 0 ? `+${bet!.line}` : bet!.line) : bet!.line}
-                          </span>
-                        )}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <Badge className="bg-accent text-accent-foreground">{formatOdds(bet!.odds)}</Badge>
-                    <button
-                      onClick={() => removeBet(bet!.id)}
-                      className="text-muted-foreground hover:text-destructive transition-colors"
-                    >
-                      <X size={20} />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Progressive Calculation Display */}
-                {progressivePayouts[index] && (
-                  <div className="ml-16 p-3 bg-accent/5 rounded border-l-4 border-accent">
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-muted-foreground">Stake:</span>
-                      <span className="font-semibold text-accent">
-                        ${progressivePayouts[index].stake.toFixed(2)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center text-sm mt-1">
-                      <span className="text-muted-foreground">If Win:</span>
-                      <span className="font-bold text-green-400">
-                        ${progressivePayouts[index].payout.toFixed(2)}
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-
-          {orderedBets.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
-              <p>Add 2-6 picks to create a Bet It All chain</p>
-            </div>
-          )}
         </div>
 
         {/* Initial Stake */}
@@ -209,25 +128,105 @@ export default function BetItAllPage() {
           </div>
         )}
 
+        {/* Chain Sequence */}
+        <div className="bg-card border border-border rounded-lg p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold">
+              Chain Sequence ({orderedBets.length})
+            </h2>
+            {(orderedBets.length < 2 || orderedBets.length > 6) && (
+              <Badge variant="destructive">Need 2-6 legs</Badge>
+            )}
+          </div>
+
+          <div className="space-y-3">
+            {orderedBets.map((bet, index) => (
+              <div key={bet!.id} className="space-y-2">
+                <div className="flex items-center justify-between p-4 bg-background rounded-lg border border-border">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-accent text-accent-foreground font-bold text-sm shrink-0">
+                      {index + 1}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-foreground truncate">
+                        {bet!.game.awayTeam.shortName} @ {bet!.game.homeTeam.shortName}
+                      </div>
+                      <div className="text-sm text-muted-foreground capitalize flex items-center gap-2">
+                        <span>{bet!.betType === "spread" ? "Spread" : bet!.betType === "total" ? "Total" : bet!.betType}</span>
+                        <span className="text-accent">•</span>
+                        <span className="font-medium text-foreground">
+                          {bet!.betType === "spread" 
+                            ? (bet!.selection === "home" ? bet!.game.homeTeam.shortName : bet!.game.awayTeam.shortName)
+                            : bet!.betType === "total"
+                            ? (bet!.selection === "over" ? "Over" : "Under")
+                            : bet!.selection}
+                          {bet!.line !== null && bet!.line !== undefined && (
+                            <span className="ml-1">
+                              {bet!.betType === "spread" ? (bet!.line > 0 ? `+${bet!.line}` : bet!.line) : bet!.line}
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <Badge className="bg-accent text-accent-foreground">{formatOdds(bet!.odds)}</Badge>
+                    <button
+                      onClick={() => removeBet(bet!.id)}
+                      className="text-muted-foreground hover:text-destructive transition-colors"
+                    >
+                      <X size={20} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Progressive Calculation Display */}
+                {progressivePayouts[index] && (
+                  <div className="ml-11 p-3 bg-accent/5 rounded-lg border border-accent/20">
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-muted-foreground">Stake</span>
+                      <span className="font-semibold text-foreground">
+                        ${progressivePayouts[index].stake.toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm mt-1">
+                      <span className="text-muted-foreground">If Win</span>
+                      <span className="font-bold text-green-500">
+                        ${progressivePayouts[index].payout.toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {orderedBets.length === 0 && (
+            <div className="text-center py-8 text-muted-foreground">
+              <p>Add 2-6 picks to create a Bet It All chain</p>
+            </div>
+          )}
+        </div>
+
         {/* Summary */}
         {orderedBets.length >= 2 && (
           <div className="bg-accent/10 border border-accent/20 rounded-lg p-6">
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Chain Length</span>
-                <span className="text-2xl font-bold">{orderedBets.length} legs</span>
+                <span className="text-xl font-bold text-foreground">{orderedBets.length} legs</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Initial Stake</span>
-                <span className="text-xl font-semibold">${stakeValue.toFixed(2)}</span>
+                <span className="text-xl font-semibold text-foreground">${stakeValue.toFixed(2)}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Mode</span>
                 <Badge variant="destructive">All-or-Nothing</Badge>
               </div>
               <div className="border-t border-border pt-3 flex justify-between items-center">
-                <span className="text-lg font-semibold">If All Win</span>
-                <span className="text-3xl font-bold">${finalPayout.toFixed(2)}</span>
+                <span className="text-lg font-semibold text-foreground">If All Win</span>
+                <span className="text-2xl font-bold text-accent">${finalPayout.toFixed(2)}</span>
               </div>
             </div>
           </div>

@@ -123,13 +123,13 @@ export const TeaserMobileGameCard = memo(({ game, teaserType }: Props) => {
 
   return (
     <motion.div
-      className="bg-card/40 border-2 border-blue-500/30 ring-2 ring-blue-500/20 rounded-lg mb-3 hover:bg-card/60 hover:shadow-lg transition-all duration-200 overflow-hidden"
+      className="bg-card/40 border-2 border-accent/30 ring-2 ring-accent/20 rounded-lg mb-3 hover:bg-card/60 hover:shadow-lg transition-all duration-200 overflow-hidden"
       initial={false}
     >
       {/* Teaser Indicator Badge */}
-      <div className="bg-blue-500/10 border-b border-blue-500/20 px-3 py-1.5">
+      <div className="bg-accent/10 border-b border-accent/20 px-3 py-1.5">
         <div className="flex items-center justify-between text-xs">
-          <span className="text-blue-400 font-semibold">
+          <span className="text-accent font-semibold">
             ⚡ {pointAdjustment > 0 ? '+' : ''}{pointAdjustment} Point Teaser
           </span>
           <span className="text-muted-foreground">
@@ -211,20 +211,20 @@ export const TeaserMobileGameCard = memo(({ game, teaserType }: Props) => {
                 className={cn(
                   "w-full h-8 px-1 transition-all duration-200 font-medium flex flex-col justify-center items-center gap-0 text-center rounded-md border",
                   isBetInSlip("spread", "away")
-                    ? "bg-blue-500 border-blue-500 text-white shadow-md ring-2 ring-blue-500/30"
+                    ? "bg-accent border-accent text-white shadow-md ring-2 ring-accent/30"
                     : awaySpread.adjusted === "—"
                     ? "opacity-40 cursor-not-allowed border-border"
-                    : "border-blue-500/30 hover:bg-blue-500/10 hover:border-blue-500/50 hover:shadow-md"
+                    : "border-accent/30 hover:bg-accent/10 hover:border-accent/50 hover:shadow-md"
                 )}
               >
                 {/* Original Line - Strikethrough */}
                 <span className="text-[9px] text-muted-foreground/70 line-through leading-none">
                   {awaySpread.original}
                 </span>
-                {/* Adjusted Line - Bold Blue */}
+                {/* Adjusted Line - Bold Accent */}
                 <span className={cn(
                   "text-xs font-bold leading-none mt-0.5",
-                  isBetInSlip("spread", "away") ? "text-white" : "text-blue-400"
+                  isBetInSlip("spread", "away") ? "text-white" : "text-accent"
                 )}>
                   {awaySpread.adjusted}
                 </span>
@@ -241,20 +241,20 @@ export const TeaserMobileGameCard = memo(({ game, teaserType }: Props) => {
                 className={cn(
                   "w-full h-8 px-1 transition-all duration-200 font-medium flex flex-col justify-center items-center gap-0 text-center rounded-md border",
                   isBetInSlip("spread", "home")
-                    ? "bg-blue-500 border-blue-500 text-white shadow-md ring-2 ring-blue-500/30"
+                    ? "bg-accent border-accent text-white shadow-md ring-2 ring-accent/30"
                     : homeSpread.adjusted === "—"
                     ? "opacity-40 cursor-not-allowed border-border"
-                    : "border-blue-500/30 hover:bg-blue-500/10 hover:border-blue-500/50 hover:shadow-md"
+                    : "border-accent/30 hover:bg-accent/10 hover:border-accent/50 hover:shadow-md"
                 )}
               >
                 {/* Original Line - Strikethrough */}
                 <span className="text-[9px] text-muted-foreground/70 line-through leading-none">
                   {homeSpread.original}
                 </span>
-                {/* Adjusted Line - Bold Blue */}
+                {/* Adjusted Line - Bold Accent */}
                 <span className={cn(
                   "text-xs font-bold leading-none mt-0.5",
-                  isBetInSlip("spread", "home") ? "text-white" : "text-blue-400"
+                  isBetInSlip("spread", "home") ? "text-white" : "text-accent"
                 )}>
                   {homeSpread.adjusted}
                 </span>
@@ -274,14 +274,14 @@ export const TeaserMobileGameCard = memo(({ game, teaserType }: Props) => {
                 className={cn(
                   "w-full h-8 px-1 transition-all duration-200 font-medium flex flex-col justify-center items-center gap-0 text-center rounded-md border",
                   isBetInSlip("total", "over")
-                    ? "bg-blue-500 border-blue-500 text-white shadow-md ring-2 ring-blue-500/30"
+                    ? "bg-accent border-accent text-white shadow-md ring-2 ring-accent/30"
                     : overTotal.adjusted === "—"
                     ? "opacity-40 cursor-not-allowed border-border"
-                    : "border-blue-500/30 hover:bg-blue-500/10 hover:border-blue-500/50 hover:shadow-md"
+                    : "border-accent/30 hover:bg-accent/10 hover:border-accent/50 hover:shadow-md"
                 )}
               >
-                {/* O Label */}
-                <span className="text-[9px] text-muted-foreground/70 leading-none">O</span>
+                {/* Over Label */}
+                <span className="text-[9px] text-muted-foreground/70 leading-none">Over</span>
                 {/* Original → Adjusted */}
                 <div className="flex items-center gap-1 mt-0.5">
                   <span className="text-[8px] text-muted-foreground/70 line-through leading-none">
@@ -289,7 +289,7 @@ export const TeaserMobileGameCard = memo(({ game, teaserType }: Props) => {
                   </span>
                   <span className={cn(
                     "text-xs font-bold leading-none",
-                    isBetInSlip("total", "over") ? "text-white" : "text-blue-400"
+                    isBetInSlip("total", "over") ? "text-white" : "text-accent"
                   )}>
                     {overTotal.adjusted}
                   </span>
@@ -307,14 +307,14 @@ export const TeaserMobileGameCard = memo(({ game, teaserType }: Props) => {
                 className={cn(
                   "w-full h-8 px-1 transition-all duration-200 font-medium flex flex-col justify-center items-center gap-0 text-center rounded-md border",
                   isBetInSlip("total", "under")
-                    ? "bg-blue-500 border-blue-500 text-white shadow-md ring-2 ring-blue-500/30"
+                    ? "bg-accent border-accent text-white shadow-md ring-2 ring-accent/30"
                     : underTotal.adjusted === "—"
                     ? "opacity-40 cursor-not-allowed border-border"
-                    : "border-blue-500/30 hover:bg-blue-500/10 hover:border-blue-500/50 hover:shadow-md"
+                    : "border-accent/30 hover:bg-accent/10 hover:border-accent/50 hover:shadow-md"
                 )}
               >
-                {/* U Label */}
-                <span className="text-[9px] text-muted-foreground/70 leading-none">U</span>
+                {/* Under Label */}
+                <span className="text-[9px] text-muted-foreground/70 leading-none">Under</span>
                 {/* Original → Adjusted */}
                 <div className="flex items-center gap-1 mt-0.5">
                   <span className="text-[8px] text-muted-foreground/70 line-through leading-none">
@@ -322,7 +322,7 @@ export const TeaserMobileGameCard = memo(({ game, teaserType }: Props) => {
                   </span>
                   <span className={cn(
                     "text-xs font-bold leading-none",
-                    isBetInSlip("total", "under") ? "text-white" : "text-blue-400"
+                    isBetInSlip("total", "under") ? "text-white" : "text-accent"
                   )}>
                     {underTotal.adjusted}
                   </span>
@@ -333,7 +333,7 @@ export const TeaserMobileGameCard = memo(({ game, teaserType }: Props) => {
         </div>
 
         {/* Point Adjustment Reminder */}
-        <div className="mt-3 pt-2 border-t border-border/20 text-center text-[10px] text-blue-400/70">
+        <div className="mt-3 pt-2 border-t border-border/20 text-center text-[10px] text-accent/70">
           Lines adjusted by <span className="font-semibold">{pointAdjustment > 0 ? '+' : ''}{pointAdjustment} pts</span> • Odds: <span className="font-semibold">{teaserConfig.odds > 0 ? '+' : ''}{teaserConfig.odds}</span>
         </div>
       </div>

@@ -20,16 +20,12 @@ import {
 
 interface DashboardMetrics {
   platformActivity: {
-    totalActivePlayers: number;
-    onlinePlayersNow: number;
+    totalPlayers: number;
     activeBets: number;
     todayGGR: number;
   };
   agentPerformance: {
     totalAgents: number;
-    activeAgentsToday: number;
-    newPlayersToday: number;
-    agentActivityScore: number;
   };
   financialSummary: {
     totalBalance: number;
@@ -124,18 +120,10 @@ export default function AdminDashboardPage() {
         <MetricCardSection title="Platform Activity">
           <MetricCard
             icon={Users}
-            label="Total Active Players"
-            value={metrics?.platformActivity.totalActivePlayers.toLocaleString() || "0"}
+            label="Total Players"
+            value={metrics?.platformActivity.totalPlayers.toLocaleString() || "0"}
             iconColor="text-accent"
             bgColor="bg-accent/10"
-          />
-          <MetricCard
-            icon={UserCheck}
-            label="Online Players Now"
-            value={metrics?.platformActivity.onlinePlayersNow.toLocaleString() || "0"}
-            iconColor="text-emerald-500"
-            bgColor="bg-emerald-500/10"
-            trend="live"
           />
           <MetricCard
             icon={Activity}
@@ -162,28 +150,6 @@ export default function AdminDashboardPage() {
             value={metrics?.agentPerformance.totalAgents.toString() || "0"}
             iconColor="text-foreground"
             bgColor="bg-foreground/5"
-          />
-          <MetricCard
-            icon={Activity}
-            label="Active Agents Today"
-            value={metrics?.agentPerformance.activeAgentsToday.toString() || "0"}
-            iconColor="text-emerald-600"
-            bgColor="bg-emerald-500/10"
-          />
-          <MetricCard
-            icon={Users}
-            label="New Players (Today)"
-            value={metrics?.agentPerformance.newPlayersToday.toString() || "0"}
-            iconColor="text-accent"
-            bgColor="bg-accent/10"
-            trend="up"
-          />
-          <MetricCard
-            icon={TrendingUp}
-            label="Agent Activity Score"
-            value={`${metrics?.agentPerformance.agentActivityScore || 0}%`}
-            iconColor="text-accent"
-            bgColor="bg-accent/10"
           />
         </MetricCardSection>
 
