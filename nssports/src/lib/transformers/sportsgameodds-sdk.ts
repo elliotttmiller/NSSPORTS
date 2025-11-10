@@ -435,15 +435,22 @@ function extractOdds(event: ExtendedSDKEvent) {
     // - Betting action imbalance (more money on favorites = adjusted odds)
     // - Risk management (books manage exposure, don't want 50/50 split)
     // Example: Real market -560/+350, bookOdds -900/+525, fairOdds -563/+563
-    const oddsValue = data.bookOdds || data.fairOdds;  // Prefer bookOdds for real market prices
+    
+    // CRITICAL FIX: Only use bookOdds if bookOddsAvailable is true
+    // Sometimes SDK returns both but bookOdds is stale/unreliable
+    const useBookOdds = _bookOddsAvailable && data.bookOdds !== null && data.bookOdds !== undefined;
+    const oddsValue = useBookOdds ? data.bookOdds : data.fairOdds;
     
     // Step 3: Extract line values (spread or total)
-    // Always use bookSpread/bookOverUnder (real market consensus)
-    // fairSpread/fairOverUnder = theoretical "no-vig" lines
-    // bookSpread/bookOverUnder = actual market consensus lines
-    // Note: Per docs, fair calculation excludes zero spreads and non-positive totals
-    const spreadValue = data.bookSpread as string | number | undefined;
-    const totalValue = data.bookOverUnder as string | number | undefined;
+    // Always prefer bookSpread/bookOverUnder when available and reliable
+    // Check bookOddsAvailable flag to ensure book consensus is valid
+    const useBookLines = _bookOddsAvailable;
+    const spreadValue = (useBookLines && data.bookSpread !== null && data.bookSpread !== undefined) 
+      ? data.bookSpread as string | number
+      : data.fairSpread as string | number | undefined;
+    const totalValue = (useBookLines && data.bookOverUnder !== null && data.bookOverUnder !== undefined)
+      ? data.bookOverUnder as string | number
+      : data.fairOverUnder as string | number | undefined;
     const lineValue = spreadValue || totalValue;
     
     if (!oddsValue) return null;

@@ -56,8 +56,8 @@ class OddsJuiceService {
   async getConfig(): Promise<JuiceConfig | null> {
     const now = Date.now();
     
-    // Return cached config if still fresh
-    if (this.cachedConfig !== null && (now - this.lastFetchTime) < this.CACHE_TTL) {
+    // Return cached config if still fresh (no logging for cache hits)
+    if ((now - this.lastFetchTime) < this.CACHE_TTL) {
       return this.cachedConfig;
     }
 
@@ -69,11 +69,21 @@ class OddsJuiceService {
 
       if (!config) {
         // No active config found - juice is DISABLED
+        // Only log once when cache refreshes, not on every call
+        const wasEnabled = this.cachedConfig !== null;
         this.cachedConfig = null;
         this.lastFetchTime = now;
-        logger.info('[OddsJuice] 🚫 Juice/Margins DISABLED - Using SDK fair odds without house margins');
+        
+        if (wasEnabled) {
+          logger.info('[OddsJuice] 🚫 Juice/Margins DISABLED - Using SDK consensus odds without house margins');
+        }
         return null;
       }
+
+      // Check if this is a new config or state change
+      const isStateChange = this.cachedConfig === null || 
+                           this.cachedConfig.spreadMargin !== config.spreadMargin ||
+                           this.cachedConfig.moneylineMargin !== config.moneylineMargin;
 
       this.cachedConfig = {
         spreadMargin: config.spreadMargin,
@@ -90,20 +100,20 @@ class OddsJuiceService {
       
       this.lastFetchTime = now;
       
-      // Log the active configuration status
-      logger.info('[OddsJuice] ✅ Juice/Margins ENABLED - Loaded active configuration from database', {
-        configId: config.id,
-        margins: {
-          spread: `${(config.spreadMargin * 100).toFixed(2)}%`,
-          moneyline: `${(config.moneylineMargin * 100).toFixed(2)}%`,
-          total: `${(config.totalMargin * 100).toFixed(2)}%`,
-          playerProps: `${(config.playerPropsMargin * 100).toFixed(2)}%`,
-          gameProps: `${(config.gamePropsMargin * 100).toFixed(2)}%`,
-        },
-        liveMultiplier: config.liveGameMultiplier,
-        roundingMethod: config.roundingMethod,
-        lastModified: config.lastModified.toISOString(),
-      });
+      // Only log when juice is enabled for the first time or config changes
+      if (isStateChange) {
+        logger.info('[OddsJuice] ✅ Juice/Margins ENABLED - Loaded active configuration', {
+          configId: config.id,
+          margins: {
+            spread: `${(config.spreadMargin * 100).toFixed(2)}%`,
+            moneyline: `${(config.moneylineMargin * 100).toFixed(2)}%`,
+            total: `${(config.totalMargin * 100).toFixed(2)}%`,
+            playerProps: `${(config.playerPropsMargin * 100).toFixed(2)}%`,
+            gameProps: `${(config.gamePropsMargin * 100).toFixed(2)}%`,
+          },
+          liveMultiplier: config.liveGameMultiplier,
+        });
+      }
       
       return this.cachedConfig;
     } catch (error) {

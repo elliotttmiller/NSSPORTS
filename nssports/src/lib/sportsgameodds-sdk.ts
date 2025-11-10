@@ -680,10 +680,18 @@ export function extractPlayerProps(event: any, playerDataMap?: Map<string, any>)
     const isUnder = oddID.includes('-under');
     if (!isOver && !isUnder) return;
     
-    // Extract odds values
-    const oddsValue = parseFloat(String(oddData.fairOdds || oddData.bookOdds)) || 0;
-    // For over/under markets, the line is in fairOverUnder or bookOverUnder
-    const lineValue = parseFloat(String(oddData.fairOverUnder || oddData.bookOverUnder || oddData.fairLine || oddData.bookLine)) || undefined;
+    // Extract odds values - prefer bookOdds when available (real market consensus)
+    // Check bookOddsAvailable flag to ensure reliability
+    const useBookOdds = oddData.bookOddsAvailable === true && oddData.bookOdds !== null && oddData.bookOdds !== undefined;
+    const oddsValue = parseFloat(String(useBookOdds ? oddData.bookOdds : oddData.fairOdds)) || 0;
+    
+    // For over/under markets, prefer bookOverUnder when book consensus available
+    const useBookLines = oddData.bookOddsAvailable === true;
+    const lineValue = parseFloat(String(
+      (useBookLines && oddData.bookOverUnder !== null && oddData.bookOverUnder !== undefined) 
+        ? oddData.bookOverUnder 
+        : (oddData.fairOverUnder || oddData.fairLine || oddData.bookLine)
+    )) || undefined;
     
     // Create group key
     const groupKey = `${playerID}_${statType}`;
@@ -788,10 +796,23 @@ export function extractGameProps(event: any): any[] {
     if (periodID === 'game' && betTypeID === 'sp' && entity !== 'all') return; // Skip main spread (keep alt spreads)
     if (periodID === 'game' && betTypeID === 'ou' && entity === 'all') return; // Skip main total (keep team totals)
     
-    // Extract odds and line values
-    const oddsValue = parseFloat(String(oddData.fairOdds || oddData.bookOdds)) || 0;
-    const spreadValue = parseFloat(String(oddData.fairSpread || oddData.bookSpread)) || undefined;
-    const totalValue = parseFloat(String(oddData.fairOverUnder || oddData.bookOverUnder)) || undefined;
+    // Extract odds and line values - prefer bookOdds when available (real market consensus)
+    // Check bookOddsAvailable flag to ensure reliability
+    const useBookOdds = oddData.bookOddsAvailable === true && oddData.bookOdds !== null && oddData.bookOdds !== undefined;
+    const oddsValue = parseFloat(String(useBookOdds ? oddData.bookOdds : oddData.fairOdds)) || 0;
+    
+    // Prefer book consensus lines when available
+    const useBookLines = oddData.bookOddsAvailable === true;
+    const spreadValue = parseFloat(String(
+      (useBookLines && oddData.bookSpread !== null && oddData.bookSpread !== undefined)
+        ? oddData.bookSpread
+        : oddData.fairSpread
+    )) || undefined;
+    const totalValue = parseFloat(String(
+      (useBookLines && oddData.bookOverUnder !== null && oddData.bookOverUnder !== undefined)
+        ? oddData.bookOverUnder
+        : oddData.fairOverUnder
+    )) || undefined;
     
     // Determine market category and description
     let marketCategory = '';
