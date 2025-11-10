@@ -51,12 +51,13 @@ class OddsJuiceService {
 
   /**
    * Fetch active juice configuration from database
+   * Returns null if juice is disabled
    */
-  async getConfig(): Promise<JuiceConfig> {
+  async getConfig(): Promise<JuiceConfig | null> {
     const now = Date.now();
     
     // Return cached config if still fresh
-    if (this.cachedConfig && (now - this.lastFetchTime) < this.CACHE_TTL) {
+    if (this.cachedConfig !== null && (now - this.lastFetchTime) < this.CACHE_TTL) {
       return this.cachedConfig;
     }
 
@@ -67,18 +68,11 @@ class OddsJuiceService {
       });
 
       if (!config) {
-        // Return default config if none exists
-        // Cache the default config to avoid repeated DB queries
-        this.cachedConfig = this.getDefaultConfig();
+        // No active config found - juice is DISABLED
+        this.cachedConfig = null;
         this.lastFetchTime = now;
-        logger.info('[OddsJuice] Using default configuration (no active config found)', {
-          margins: {
-            spread: `${(this.cachedConfig.spreadMargin * 100).toFixed(2)}%`,
-            moneyline: `${(this.cachedConfig.moneylineMargin * 100).toFixed(2)}%`,
-            total: `${(this.cachedConfig.totalMargin * 100).toFixed(2)}%`,
-          }
-        });
-        return this.cachedConfig;
+        logger.info('[OddsJuice] 🚫 Juice/Margins DISABLED - Using SDK fair odds without house margins');
+        return null;
       }
 
       this.cachedConfig = {
@@ -97,7 +91,7 @@ class OddsJuiceService {
       this.lastFetchTime = now;
       
       // Log the active configuration status
-      logger.info('[OddsJuice] Loaded active configuration from database', {
+      logger.info('[OddsJuice] ✅ Juice/Margins ENABLED - Loaded active configuration from database', {
         configId: config.id,
         margins: {
           spread: `${(config.spreadMargin * 100).toFixed(2)}%`,
@@ -114,25 +108,9 @@ class OddsJuiceService {
       return this.cachedConfig;
     } catch (error) {
       logger.error('[OddsJuice] Failed to fetch configuration', { error });
-      return this.getDefaultConfig();
+      // On error, disable juice (safer than using defaults)
+      return null;
     }
-  }
-
-  /**
-   * Default juice configuration (industry standard)
-   */
-  private getDefaultConfig(): JuiceConfig {
-    return {
-      spreadMargin: 0.045,      // 4.5%
-      moneylineMargin: 0.05,    // 5%
-      totalMargin: 0.045,       // 4.5%
-      playerPropsMargin: 0.08,  // 8%
-      gamePropsMargin: 0.08,    // 8%
-      roundingMethod: 'nearest10',
-      minOdds: -10000,
-      maxOdds: 10000,
-      liveGameMultiplier: 1.0,
-    };
   }
 
   /**
@@ -146,9 +124,20 @@ class OddsJuiceService {
 
   /**
    * Apply juice to fair odds
+   * Returns original fair odds if juice is disabled
    */
   async applyJuice(input: OddsInput): Promise<OddsOutput> {
     const config = await this.getConfig();
+    
+    // ✅ If juice is disabled (no active config), return fair odds unchanged
+    if (!config) {
+      return {
+        juicedOdds: input.fairOdds,
+        fairOdds: input.fairOdds,
+        marginApplied: 0,
+        holdPercentage: 0,
+      };
+    }
     
     // Get margin for this market type
     let margin = this.getMarginForMarket(input.marketType, config);

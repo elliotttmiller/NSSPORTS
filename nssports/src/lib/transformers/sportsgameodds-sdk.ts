@@ -412,7 +412,9 @@ function extractOdds(event: ExtendedSDKEvent) {
   const oddsData = event.odds;
   
   // Helper to extract consensus odds from the SDK data structure
-  // Uses fairOdds (consensus across all bookmakers) per API recommendation
+  // Uses bookOdds (real market consensus) for all games
+  // fairOdds = symmetric "no-vig" true probability odds (-563/+563)
+  // bookOdds = asymmetric real market consensus odds (-900/+525)
   // https://sportsgameodds.com/docs/info/consensus-odds
   function extractConsensusOdds(oddData: unknown) {
     if (!oddData || typeof oddData !== 'object') return null;
@@ -423,48 +425,25 @@ function extractOdds(event: ExtendedSDKEvent) {
     // Per: https://sportsgameodds.com/docs/info/consensus-odds
     
     // Step 1: Check if fair/book odds calculations were successful
-    // (Reserved for future use - may want to show unavailable odds differently)
     const _fairOddsAvailable = data.fairOddsAvailable === true;
     const _bookOddsAvailable = data.bookOddsAvailable === true;
     
-    // Step 2: Extract odds values (prefer fair, fallback to book)
-    const oddsValue = data.fairOdds || data.bookOdds;
+    // Step 2: Extract odds values
+    // Use bookOdds (real market consensus with juice) not fairOdds (symmetric no-vig)
+    // Real sportsbooks ALWAYS have asymmetric odds due to:
+    // - House edge/juice (books take a cut on both sides)
+    // - Betting action imbalance (more money on favorites = adjusted odds)
+    // - Risk management (books manage exposure, don't want 50/50 split)
+    // Example: Real market -560/+350, bookOdds -900/+525, fairOdds -563/+563
+    const oddsValue = data.bookOdds || data.fairOdds;  // Prefer bookOdds for real market prices
     
     // Step 3: Extract line values (spread or total)
-    // CRITICAL: Per official docs, fair calculation excludes zero spreads
-    // "Only positive lines are considered for over-unders and non-zero lines are considered for spreads"
-    // If fairSpread is 0, it means the algorithm couldn't find a valid non-zero line
-    // In this case, we MUST use bookSpread (which has the actual consensus main line)
-    let spreadValue: string | number | undefined;
-    if (data.fairSpread !== undefined && data.fairSpread !== null) {
-      const parsed = parseFloat(String(data.fairSpread));
-      // Use fairSpread ONLY if it's non-zero (per official algorithm)
-      // Zero means fair calculation excluded it, so use book consensus instead
-      if (!isNaN(parsed) && parsed !== 0) {
-        spreadValue = data.fairSpread as string | number;
-      } else {
-        // Fair calculation returned 0 (excluded zero lines), use book consensus
-        spreadValue = data.bookSpread as string | number | undefined;
-      }
-    } else {
-      spreadValue = data.bookSpread as string | number | undefined;
-    }
-    
-    // Same logic for totals (over/under)
-    // Per docs: "Only positive lines are considered for over-unders"
-    let totalValue: string | number | undefined;
-    if (data.fairOverUnder !== undefined && data.fairOverUnder !== null) {
-      const parsed = parseFloat(String(data.fairOverUnder));
-      // Use fairOverUnder only if positive (per official algorithm)
-      if (!isNaN(parsed) && parsed > 0) {
-        totalValue = data.fairOverUnder as string | number;
-      } else {
-        totalValue = data.bookOverUnder as string | number | undefined;
-      }
-    } else {
-      totalValue = data.bookOverUnder as string | number | undefined;
-    }
-    
+    // Always use bookSpread/bookOverUnder (real market consensus)
+    // fairSpread/fairOverUnder = theoretical "no-vig" lines
+    // bookSpread/bookOverUnder = actual market consensus lines
+    // Note: Per docs, fair calculation excludes zero spreads and non-positive totals
+    const spreadValue = data.bookSpread as string | number | undefined;
+    const totalValue = data.bookOverUnder as string | number | undefined;
     const lineValue = spreadValue || totalValue;
     
     if (!oddsValue) return null;

@@ -8,6 +8,20 @@
  * - ❌ NO live scores/stats (we don't display game state)
  * - ❌ NO activity/period/clock data (odds-only focus)
  * 
+ * ⭐ REPUTABLE BOOKMAKERS FILTER (APPLIED GLOBALLY)
+ * All consensus odds calculations use ONLY top-tier sportsbooks:
+ * - 6 Major US Regulated (FanDuel, DraftKings, BetMGM, Caesars, ESPN Bet, Fanatics)
+ * - 2 Sharp Books (Pinnacle, Circa)
+ * - 1 Major International (bet365)
+ * - 1 Regional US (BetRivers)
+ * - 2 Major Offshore (Bovada, BetOnline)
+ * 
+ * Benefits:
+ * ✅ Removes outliers from unreliable bookmakers
+ * ✅ More accurate fair odds consensus
+ * ✅ Faster API responses (less data to process)
+ * ✅ Better representation of actual market odds
+ * 
  * ⭐ OFFICIAL OPTIMIZATION: oddIDs Parameter (50-90% payload reduction)
  * Per official docs: https://sportsgameodds.com/docs/guides/response-speed
  * 
@@ -21,12 +35,15 @@
  * Key Official SDK Patterns:
  * 1. oddIDs: Comma-separated list of specific markets to fetch
  * 2. includeOpposingOddIDs: true → Auto-fetch both sides (home/away, over/under)
- * 3. PLAYER_ID wildcard: Fetch props for ALL players at once
- * 4. Response size: Reduces payload by 50-90% vs fetching all markets
+ * 3. bookmakerID: Filter to specific sportsbooks (defaults to REPUTABLE_BOOKMAKERS)
+ * 4. PLAYER_ID wildcard: Fetch props for ALL players at once
+ * 5. Response size: Reduces payload by 50-90% vs fetching all markets
  * 
  * Documentation:
  * - SDK: https://sportsgameodds.com/docs/sdk
  * - Odds Filtering: https://sportsgameodds.com/docs/guides/response-speed
+ * - Bookmakers: https://sportsgameodds.com/docs/data-types/bookmakers
+ * - Consensus Odds: https://sportsgameodds.com/docs/info/consensus-odds
  * - Markets: https://sportsgameodds.com/docs/data-types/markets
  * 
  * Supported Leagues (UPPERCASE per official spec):
@@ -53,6 +70,53 @@ export type SDKEventGetParams = SportsGameOdds.EventGetParams;
 // Per: https://sportsgameodds.com/docs/data-types/markets
 // Format: {statID}-{statEntityID}-{periodID}-{betTypeID}-{sideID}
 // ========================================
+
+/**
+ * Reputable bookmakers for consensus odds calculation
+ * 
+ * Carefully curated list of top-tier sportsbooks to ensure accurate fair odds
+ * without noise from less reputable operators or outliers.
+ * 
+ * Selection Criteria:
+ * - Market leaders with highest volume (FanDuel, DraftKings, BetMGM, etc.)
+ * - Sharp books accepted by professionals (Pinnacle, Circa)
+ * - Established brands with proven track record
+ * - Regulated operators (US state-licensed or major international)
+ * 
+ * Benefits:
+ * ✅ Removes outliers from low-volume/unreliable books
+ * ✅ More accurate consensus calculations
+ * ✅ Faster API responses (less data to process)
+ * ✅ Better representation of actual market odds
+ * 
+ * Coverage:
+ * - 6 Major US Regulated: ~90% US market share
+ * - 2 Sharp Books: Professional-grade fair odds
+ * - 1 Major International: Global market validation
+ * - 1 Regional US: Additional coverage
+ * - 2 Major Offshore: Alternative market validation
+ */
+export const REPUTABLE_BOOKMAKERS = [
+  // US Market Leaders (90% market share)
+  'fanduel',      // #1 US operator (~40% market share)
+  'draftkings',   // #2 US operator (~30% market share)
+  'betmgm',       // #3 US operator, MGM backing
+  'caesars',      // Major casino brand, nationwide
+  'espnbet',      // ESPN/Penn Entertainment
+  'fanatics',     // New major player, growing fast
+  
+  // Sharp/Professional Books
+  'pinnacle',     // Industry standard for sharp odds
+  'circa',        // Vegas-based, high limits
+  
+  // International/Regional
+  'bet365',       // Largest global operator
+  'betrivers',    // Rush Street Gaming, multi-state
+  
+  // Major Offshore (US-friendly)
+  'bovada',       // Longest-running US offshore
+  'betonline',    // Major offshore operator
+].join(',');
 
 /**
  * Main betting lines (game-level)
@@ -290,7 +354,7 @@ export async function getEvents(options: {
   eventIDs?: string | string[];
   oddsAvailable?: boolean; // TRUE = only events with active odds
   oddIDs?: string; // Filter specific markets (e.g., "game-ml,game-ats,game-ou" for main lines)
-  bookmakerID?: string; // Filter specific sportsbooks
+  bookmakerID?: string; // Filter specific sportsbooks (defaults to REPUTABLE_BOOKMAKERS)
   includeOpposingOddIDs?: boolean; // Get both sides of markets (recommended: true)
   live?: boolean; // Live games with changing odds
   finalized?: boolean; // FALSE = upcoming/live games only
@@ -301,23 +365,34 @@ export async function getEvents(options: {
   const client = getSportsGameOddsClient();
   
   try {
+    // ✅ APPLY REPUTABLE BOOKMAKERS FILTER GLOBALLY
+    // If no bookmakerID specified, use our curated list of top-tier sportsbooks
+    // This ensures all consensus odds calculations use only reputable sources
+    const params = {
+      ...options,
+      bookmakerID: options.bookmakerID || REPUTABLE_BOOKMAKERS,
+    };
+    
     // Generate unique request ID for deduplication
-    const requestId = `events:${JSON.stringify(options)}`;
+    const requestId = `events:${JSON.stringify(params)}`;
     
     // Execute with rate limiting
     const result = await rateLimiter.execute(
       requestId,
       async () => {
-        logger.info('Fetching events with odds from SportsGameOdds SDK', options);
+        logger.info('Fetching events with odds from SportsGameOdds SDK', {
+          ...params,
+          bookmakerCount: (params.bookmakerID?.split(',').length || 0),
+        });
         
         // Convert eventIDs array to comma-separated string if needed
-        const params = { ...options } as any;
-        if (params.eventIDs && Array.isArray(params.eventIDs)) {
-          params.eventIDs = params.eventIDs.join(',');
+        const finalParams = { ...params } as any;
+        if (finalParams.eventIDs && Array.isArray(finalParams.eventIDs)) {
+          finalParams.eventIDs = finalParams.eventIDs.join(',');
         }
         
-        const page = await client.events.get(params);
-        logger.info(`Fetched ${page.data.length} events from SDK`);
+        const page = await client.events.get(finalParams);
+        logger.info(`Fetched ${page.data.length} events from SDK using ${params.bookmakerID?.split(',').length || 0} reputable bookmakers`);
         
         // Debug: Log first event's odds structure to understand what we're getting
         if (page.data.length > 0 && page.data[0].odds) {
