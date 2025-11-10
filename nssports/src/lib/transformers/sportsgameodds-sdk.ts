@@ -424,25 +424,26 @@ function extractOdds(event: ExtendedSDKEvent) {
     // OFFICIAL CONSENSUS ALGORITHM IMPLEMENTATION
     // Per: https://sportsgameodds.com/docs/info/consensus-odds
     
-    // Step 1: Check if fair/book odds calculations were successful
-    const _fairOddsAvailable = data.fairOddsAvailable === true;
-    const _bookOddsAvailable = data.bookOddsAvailable === true;
+    // Step 1: Check if book odds calculations were successful
+    const bookOddsAvailable = data.bookOddsAvailable === true;
     
     // Step 2: Extract odds values
-    // ALWAYS prefer bookOdds (real market consensus) over fairOdds (symmetric no-vig)
-    // Only fallback to fairOdds if bookOdds is literally unavailable (null/undefined)
-    // Ignore bookOddsAvailable flag as it fluctuates and causes flickering
+    // STRICTLY USE bookOdds (real market consensus) - NO FALLBACK to fairOdds
     // Real sportsbooks ALWAYS have asymmetric odds due to:
     // - House edge/juice (books take a cut on both sides)
     // - Betting action imbalance (more money on favorites = adjusted odds)
     // - Risk management (books manage exposure, don't want 50/50 split)
-    const oddsValue = data.bookOdds ?? data.fairOdds;
+    // If bookOdds is unavailable, return null rather than showing incorrect symmetric odds
+    if (!bookOddsAvailable || !data.bookOdds) {
+      return null; // Don't display odds if real market data isn't available
+    }
+    
+    const oddsValue = data.bookOdds;
     
     // Step 3: Extract line values (spread or total)
-    // ALWAYS prefer bookSpread/bookOverUnder over fair values
-    // Only fallback when book values are literally unavailable
-    const spreadValue = data.bookSpread ?? data.fairSpread;
-    const totalValue = data.bookOverUnder ?? data.fairOverUnder;
+    // STRICTLY USE bookSpread/bookOverUnder - NO FALLBACK to fair values
+    const spreadValue = data.bookSpread;
+    const totalValue = data.bookOverUnder;
     const lineValue = spreadValue ?? totalValue;
     
     if (!oddsValue) return null;

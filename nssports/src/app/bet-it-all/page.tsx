@@ -13,10 +13,9 @@ export default function BetItAllPage() {
   const router = useRouter();
   const { betSlip, removeBet, clearBetSlip } = useBetSlip();
   const [initialStake, setInitialStake] = useState("100");
-  const [legOrder, setLegOrder] = useState<string[]>(betSlip.bets.map(b => b.id));
 
   const stakeValue = parseFloat(initialStake) || 0;
-  const orderedBets = legOrder.map(id => betSlip.bets.find(b => b.id === id)).filter(Boolean);
+  const orderedBets = betSlip.bets;
   
   // Calculate progressive payouts
   const progressivePayouts = orderedBets.reduce((acc, bet, index) => {
@@ -70,16 +69,6 @@ export default function BetItAllPage() {
       toast.error(error.message);
     },
   });
-
-  const moveLeg = (index: number, direction: 'up' | 'down') => {
-    const newOrder = [...legOrder];
-    if (direction === 'up' && index > 0) {
-      [newOrder[index], newOrder[index - 1]] = [newOrder[index - 1], newOrder[index]];
-    } else if (direction === 'down' && index < newOrder.length - 1) {
-      [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
-    }
-    setLegOrder(newOrder);
-  };
 
   const canPlace = orderedBets.length >= 2 && orderedBets.length <= 6 && stakeValue > 0;
 
@@ -139,23 +128,6 @@ export default function BetItAllPage() {
             {orderedBets.map((bet, index) => (
               <div key={bet!.id} className="space-y-2">
                 <div className="flex items-center gap-4 p-4 bg-card border border-border rounded-lg">
-                  <div className="flex flex-col gap-1">
-                    <button
-                      onClick={() => moveLeg(index, 'up')}
-                      disabled={index === 0}
-                      className="text-muted-foreground hover:text-foreground disabled:opacity-30 transition-colors"
-                    >
-                      ↑
-                    </button>
-                    <button
-                      onClick={() => moveLeg(index, 'down')}
-                      disabled={index === orderedBets.length - 1}
-                      className="text-muted-foreground hover:text-foreground disabled:opacity-30 transition-colors"
-                    >
-                      ↓
-                    </button>
-                  </div>
-
                   <div className="flex items-center justify-center w-10 h-10 rounded-full bg-accent text-accent-foreground font-bold text-lg">
                     {index + 1}
                   </div>
@@ -207,15 +179,6 @@ export default function BetItAllPage() {
                       <span className="font-bold text-green-400">
                         ${progressivePayouts[index].payout.toFixed(2)}
                       </span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Arrow between legs */}
-                {index < orderedBets.length - 1 && (
-                  <div className="flex items-center justify-center py-2">
-                    <div className="text-accent">
-                      <TrendUp size={32} />
                     </div>
                   </div>
                 )}
