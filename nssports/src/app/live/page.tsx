@@ -11,6 +11,7 @@ import type { Game } from "@/types";
 import { useLiveDataStore } from "@/store/liveDataStore";
 import { useGameTransitions } from "@/hooks/useGameTransitions";
 import { RefreshButton } from "@/components/ui";
+import { useRefresh } from "@/context";
 import { LoadingScreen } from "@/components/LoadingScreen";
 
 export default function LivePage() {
@@ -18,6 +19,7 @@ export default function LivePage() {
   const [loading, setLoading] = useState(true);
   const [_isBackgroundRefreshing, setIsBackgroundRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { registerRefreshHandler, unregisterRefreshHandler } = useRefresh();
   
   // Mobile optimization: Track page visibility to pause updates when app is backgrounded
   const [_isPageVisible, setIsPageVisible] = useState(true);
@@ -66,6 +68,18 @@ export default function LivePage() {
       }
     }
   }, []);
+
+  // Manual refresh handler for pull-to-refresh
+  const handleRefresh = useCallback(async () => {
+    console.log('[LivePage] 🔄 Manual refresh triggered');
+    await fetchLiveGames(true);
+  }, [fetchLiveGames]);
+
+  // Register refresh handler for pull-to-refresh
+  useEffect(() => {
+    registerRefreshHandler(handleRefresh);
+    return () => unregisterRefreshHandler();
+  }, [registerRefreshHandler, unregisterRefreshHandler, handleRefresh]);
   
   // Mobile: Handle page visibility - refresh when user returns
   useEffect(() => {
@@ -170,10 +184,6 @@ export default function LivePage() {
       />
     );
   }
-
-  const handleRefresh = async () => {
-    await fetchLiveGames();
-  };
 
   return (
     <div className="bg-background">

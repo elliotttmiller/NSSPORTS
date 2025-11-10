@@ -1,7 +1,7 @@
 "use client";
-import { useBetHistory } from "@/context";
+import { useBetHistory, useRefresh } from "@/context";
 import type { PlacedBet } from "@/context/BetHistoryContext";
-import { Card, CardContent, CardHeader, CardTitle, PullToRefresh } from "@/components/ui";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
 import { BetCardParlay, BetCardSingle, BetCardTeaser } from "@/components/bets/BetCard";
 import type { BetLeg } from "@/components/bets/BetCard";
 import { MobileParlayBetCard } from "@/components/features/mobile/MobileParlayBetCard";
@@ -12,6 +12,7 @@ export default function MyBetsPage() {
   const { placedBets, loading, refreshBetHistory } = useBetHistory();
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const isMobile = useIsMobile();
+  const { registerRefreshHandler, unregisterRefreshHandler } = useRefresh();
 
   useEffect(() => {
     // mark last updated whenever data changes
@@ -19,9 +20,16 @@ export default function MyBetsPage() {
   }, [placedBets]);
 
   const doRefresh = useCallback(async () => {
+    console.log('[MyBetsPage] 🔄 Manual refresh triggered');
     await refreshBetHistory();
     setLastUpdated(new Date());
   }, [refreshBetHistory]);
+
+  // Register refresh handler for pull-to-refresh
+  useEffect(() => {
+    registerRefreshHandler(doRefresh);
+    return () => unregisterRefreshHandler();
+  }, [registerRefreshHandler, unregisterRefreshHandler, doRefresh]);
   
   // Ensure all bets are API-driven, no fallback/hardcoded data
   const betHistory: PlacedBet[] = Array.isArray(placedBets) ? placedBets : [];
@@ -61,15 +69,14 @@ export default function MyBetsPage() {
   }
 
   return (
-    <PullToRefresh onRefresh={doRefresh} disabled={loading}>
-      <div className="bg-background min-h-screen">
-        <div className="container mx-auto px-2 md:px-8 xl:px-12 pb-6 max-w-screen-2xl md:pt-6" style={{ paddingTop: '40px' }}>
-          <div className="space-y-6">
-            {/* Active Bets Section */}
-            <Card>
-              <CardHeader className="pb-4">
-                <div className="flex items-center justify-between w-full">
-                  <CardTitle className="text-xl font-semibold">Active Bets</CardTitle>
+    <div className="bg-background min-h-screen">
+      <div className="container mx-auto px-2 md:px-8 xl:px-12 pb-6 max-w-screen-2xl md:pt-6" style={{ paddingTop: '40px' }}>
+        <div className="space-y-6">
+          {/* Active Bets Section */}
+          <Card>
+            <CardHeader className="pb-4">
+              <div className="flex items-center justify-between w-full">
+                <CardTitle className="text-xl font-semibold">Active Bets</CardTitle>
                   {lastUpdated && (
                     <span className="text-xs text-muted-foreground hidden sm:inline">
                       Updated {lastUpdated.toLocaleTimeString()}
@@ -235,6 +242,5 @@ export default function MyBetsPage() {
           </div>
         </div>
       </div>
-    </PullToRefresh>
   );
 }

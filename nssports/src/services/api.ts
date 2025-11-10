@@ -173,6 +173,7 @@ export const getGamesPaginated = async (
   leagueId?: string,
   page: number = 1,
   limit: number = 10,
+  bypassCache: boolean = false,
 ): Promise<PaginatedResponse<Game>> => {
   const params = new URLSearchParams({
     page: page.toString(),
@@ -181,6 +182,11 @@ export const getGamesPaginated = async (
 
   if (leagueId) {
     params.append('leagueId', leagueId);
+  }
+
+  // Add cache-busting parameter to force fresh data from SDK
+  if (bypassCache) {
+    params.append('_t', Date.now().toString());
   }
 
   const json = await fetchAPI<unknown>(`/games?${params.toString()}`);

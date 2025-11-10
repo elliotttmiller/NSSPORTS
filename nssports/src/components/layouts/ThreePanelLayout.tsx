@@ -6,6 +6,7 @@ import { useIsMobile } from "@/hooks";
 import { Header } from "./Header";
 import { SideNavPanel, BetSlipPanel, SidebarToggle } from "@/components/panels";
 import { FloatingBetSlipButton, MobileBetSlipPanel, BottomNav, MobileSportsPanel, MobileOtherPanel } from "@/components/features/mobile";
+import { GlobalPullToRefresh } from "@/components/ui";
 import { motion } from "framer-motion";
 
 interface ThreePanelLayoutProps {
@@ -128,6 +129,7 @@ export function ThreePanelLayout({ children }: ThreePanelLayoutProps) {
       {/* Mobile Components */}
       {isMobile && (
         <>
+          <GlobalPullToRefresh />
           <FloatingBetSlipButton />
           <MobileBetSlipPanel />
           <MobileSportsPanel />

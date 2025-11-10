@@ -3,3 +3,4 @@ export { BetSlipProvider, useBetSlip } from "./BetSlipContext";
 export { BetHistoryProvider, useBetHistory } from "./BetHistoryContext";
 export { MobileScrollProvider, useMobileScroll } from "./MobileScrollContext";
 export { StreamingProvider, useStreaming, usePropsStream } from "./StreamingContext";
+export { RefreshProvider, useRefresh } from "./RefreshContext";

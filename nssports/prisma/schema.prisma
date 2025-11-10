@@ -126,7 +126,9 @@ model Odds {
   gameId      String
   betType     String
   selection   String?
-  odds        Int
+  odds        Int      // Legacy field (kept for backwards compatibility)
+  bookOdds    Int?     // Real market consensus (asymmetric)
+  fairOdds    Int?     // No-vig mathematical odds (symmetric)
   line        Float?
   lastUpdated DateTime @default(now())
   game        Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)

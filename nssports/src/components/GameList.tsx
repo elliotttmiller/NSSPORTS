@@ -15,6 +15,7 @@ import type { Game } from '@/types';
 export type GameListProps = Partial<UsePaginatedGamesParams> & {
   limit?: number;
   onTotalGamesChange?: (total: number) => void;
+  bypassCache?: boolean; // Force fresh data from SDK (for manual refresh)
 };
 
 // ⭐ MEMOIZED: League header to prevent re-renders
@@ -48,22 +49,31 @@ const DateFilterButton = memo(({
 ));
 DateFilterButton.displayName = 'DateFilterButton';
 
-export function GameList({ leagueId, status, limit = 10, onTotalGamesChange }: GameListProps) {
+export function GameList({ leagueId, status, limit = 10, onTotalGamesChange, bypassCache = false }: GameListProps) {
   const [allGames, setAllGames] = useState<Game[]>([]);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
-  const { data, isLoading, isError, fetchNextPage, hasNextPage, isFetchingNextPage, refetch } = useInfiniteGames({ leagueId, status, limit });
+  const { data, isLoading, isError, fetchNextPage, hasNextPage, isFetchingNextPage, refetch } = useInfiniteGames({ 
+    leagueId, 
+    status, 
+    limit,
+    bypassCache 
+  });
 
   const pages = useMemo(() => data?.pages ?? [], [data]);
   const flattenedGames = useMemo(() => pages.flatMap(p => p?.data ?? []), [pages]);
 
-  // Manual refresh handler
+  // Manual refresh handler - forces cache bypass
   const handleRefresh = useCallback(async () => {
+    console.log('[GameList] 🔄 Refreshing with cache bypass for fresh odds');
     setIsRefreshing(true);
-    await refetch();
-    setIsRefreshing(false);
+    try {
+      await refetch();
+    } finally {
+      setIsRefreshing(false);
+    }
   }, [refetch]);
 
   useEffect(() => {

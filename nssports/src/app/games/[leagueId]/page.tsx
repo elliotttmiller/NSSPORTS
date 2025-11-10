@@ -8,7 +8,8 @@ import { getLeague } from "@/services/api";
 import { usePaginatedGames } from "@/hooks/usePaginatedGames";
 import { useStreaming } from "@/context/StreamingContext";
 import { useGameTransitions } from "@/hooks/useGameTransitions";
-import { PullToRefresh, RefreshButton } from "@/components/ui";
+import { RefreshButton } from "@/components/ui";
+import { useRefresh } from "@/context";
 import type { Game, League } from "@/types";
 
 export default function LeaguePage() {
@@ -16,9 +17,16 @@ export default function LeaguePage() {
   const leagueId = params.leagueId as string;
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [league, setLeague] = useState<League | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const { registerRefreshHandler, unregisterRefreshHandler } = useRefresh();
   const page = 1;
   const limit = 100;
-  const { data, isLoading, refetch } = usePaginatedGames({ leagueId, page, limit });
+  const { data, isLoading, refetch } = usePaginatedGames({ 
+    leagueId, 
+    page, 
+    limit,
+    bypassCache: refreshKey > 0 
+  });
   
   // OPTIONAL ENHANCEMENT: WebSocket streaming for instant cache invalidation
   // - When enabled: <1s update latency via 'events:upcoming' feed for this league
@@ -61,8 +69,16 @@ export default function LeaguePage() {
   
   // Manual refresh handler for pull-to-refresh
   const handleRefresh = useCallback(async () => {
+    console.log('[LeaguePage] 🔄 Manual refresh - bypassing cache');
+    setRefreshKey(prev => prev + 1);
     await refetch();
   }, [refetch]);
+
+  // Register refresh handler for pull-to-refresh
+  useEffect(() => {
+    registerRefreshHandler(handleRefresh);
+    return () => unregisterRefreshHandler();
+  }, [registerRefreshHandler, unregisterRefreshHandler, handleRefresh]);
   
   useEffect(() => {
     getLeague(leagueId).then((leagueData) => setLeague(leagueData || null));
@@ -90,32 +106,31 @@ export default function LeaguePage() {
   const filteredDates = selectedDate ? [selectedDate] : sortedDates;
 
   return (
-    <PullToRefresh onRefresh={handleRefresh} disabled={isLoading}>
-      <div className="bg-background">
-        <div className="container mx-auto px-6 md:px-8 xl:px-12 pb-6 max-w-screen-2xl md:pt-6" style={{ paddingTop: '40px' }}>
-          {/* Page Header */}
-          <div className="mb-8 flex items-center justify-between">
-            <div className="flex items-center gap-5">
-              {league && league.logo && (
-                <Image
-                  src={league.logo}
-                  alt={(league.name ?? "League") + ' logo'}
-                  width={48}
-                  height={48}
-                  className="w-12 h-12 md:w-14 md:h-14 object-contain"
-                  style={{ minWidth: 48, minHeight: 48 }}
-                  priority
-                />
-              )}
-              <div className="flex flex-col justify-center items-start">
-                <h1 className="text-3xl md:text-4xl font-bold text-foreground leading-tight mb-1">{leagueName} Games</h1>
-                <p className="text-muted-foreground text-base md:text-lg font-medium leading-tight" style={{marginTop: '-2px'}}>
-                  {upcomingOnlyGames.length} upcoming game{upcomingOnlyGames.length !== 1 ? "s" : ""} available
-                </p>
-              </div>
+    <div className="bg-background">
+      <div className="container mx-auto px-6 md:px-8 xl:px-12 pb-6 max-w-screen-2xl md:pt-6" style={{ paddingTop: '40px' }}>
+        {/* Page Header */}
+        <div className="mb-8 flex items-center justify-between">
+          <div className="flex items-center gap-5">
+            {league && league.logo && (
+              <Image
+                src={league.logo}
+                alt={(league.name ?? "League") + ' logo'}
+                width={48}
+                height={48}
+                className="w-12 h-12 md:w-14 md:h-14 object-contain"
+                style={{ minWidth: 48, minHeight: 48 }}
+                priority
+              />
+            )}
+            <div className="flex flex-col justify-center items-start">
+              <h1 className="text-3xl md:text-4xl font-bold text-foreground leading-tight mb-1">{leagueName} Games</h1>
+              <p className="text-muted-foreground text-base md:text-lg font-medium leading-tight" style={{marginTop: '-2px'}}>
+                {upcomingOnlyGames.length} upcoming game{upcomingOnlyGames.length !== 1 ? "s" : ""} available
+              </p>
             </div>
-            <RefreshButton onRefresh={handleRefresh} isLoading={isLoading} />
           </div>
+          <RefreshButton onRefresh={handleRefresh} isLoading={isLoading} />
+        </div>
 
           {/* Horizontal date tabs bar */}
           {upcomingOnlyGames.length > 0 && (
@@ -191,6 +206,5 @@ export default function LeaguePage() {
           </div>
         </div>
       </div>
-    </PullToRefresh>
   );
 }

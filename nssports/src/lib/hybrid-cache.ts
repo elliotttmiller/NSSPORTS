@@ -353,10 +353,16 @@ async function updateOddsCache(gameId: string, oddsData: any) {
       
       // Extract CONSENSUS odds - SDK has already done sophisticated calculation!
       // Per official docs: https://sportsgameodds.com/docs/info/consensus-odds
-      // - fairOdds: Most fair odds via linear regression + juice removal
+      // - fairOdds: Most fair odds via linear regression + juice removal (SYMMETRIC)
       // - fairSpread/fairOverUnder: Most balanced line across all bookmakers
-      // - bookOdds: Most common line (highest data points)
-      const oddsValue = oddData.fairOdds || oddData.bookOdds;
+      // - bookOdds: Most common line (highest data points) - ASYMMETRIC REAL MARKET
+      
+      // ⭐ CRITICAL: Store BOTH fairOdds and bookOdds to preserve asymmetry
+      const fairOddsValue = oddData.fairOdds ? parseFloat(String(oddData.fairOdds)) : null;
+      const bookOddsValue = oddData.bookOdds ? parseFloat(String(oddData.bookOdds)) : null;
+      
+      // Skip if we don't have at least bookOdds (real market data)
+      if (!bookOddsValue) return;
       
       // OFFICIAL ALGORITHM IMPLEMENTATION
       // Per docs: "Only positive lines are considered for over-unders and non-zero lines are considered for spreads"
@@ -401,12 +407,11 @@ async function updateOddsCache(gameId: string, oddsData: any) {
         logger.debug(`${isMainTotal ? 'MAIN' : 'TEAM'} Total odd: ${oddID}`, {
           consensusTotal,
           actualTotal,
-          oddsValue,
+          bookOdds: bookOddsValue,
+          fairOdds: fairOddsValue,
           willStore: isMainTotal,
         });
       }
-      
-      if (!oddsValue) return; // Skip if no odds available
       
       // Determine bet type and selection from oddID
       // Examples: "points-away-game-ml-away", "points-home-game-sp-home", "points-all-game-ou-over"
@@ -450,11 +455,14 @@ async function updateOddsCache(gameId: string, oddsData: any) {
         return; // Skip other market types
       }
       
+      // ⭐ Store BOTH bookOdds and fairOdds to preserve asymmetry
       oddsToCreate.push({
         gameId,
         betType,
         selection,
-        odds: parseFloat(String(oddsValue)) || 0,
+        odds: bookOddsValue || 0,         // Legacy field (use bookOdds)
+        bookOdds: bookOddsValue || 0,     // Real market consensus (asymmetric)
+        fairOdds: fairOddsValue,          // Mathematical odds (symmetric, optional)
         line,
         lastUpdated: new Date(),
       });
@@ -591,7 +599,8 @@ async function getEventsFromCache(options: {
 
 /**
  * Transform cached odds to SDK format
- * Returns odds in the new SDK structure: { "oddID": { fairOdds, fairSpread, fairOverUnder, ... } }
+ * Returns odds in the new SDK structure: { "oddID": { fairOdds, bookOdds, ... } }
+ * ⭐ PRESERVES ASYMMETRY by returning cached bookOdds (real market) and fairOdds separately
  */
 function transformOddsFromCache(odds: any[]) {
   const oddsObject: any = {};
@@ -611,15 +620,19 @@ function transformOddsFromCache(odds: any[]) {
       return; // Skip unknown types
     }
     
-    // Create odds object in SDK format
+    // ⭐ CRITICAL: Return bookOdds (asymmetric) and fairOdds (symmetric) separately
+    // The transformer expects bookOdds to be the real market consensus (asymmetric)
+    // This preserves the market imbalance that you see on real sportsbooks
     oddsObject[oddID] = {
       oddID,
-      fairOdds: String(odd.odds), // SDK returns as string
-      fairSpread: odd.line != null ? String(odd.line) : undefined,
-      fairOverUnder: odd.line != null ? String(odd.line) : undefined,
-      bookOdds: String(odd.odds), // Use same value as fallback
+      // Use bookOdds if available, fallback to legacy odds field for backwards compatibility
+      bookOdds: String(odd.bookOdds ?? odd.odds),
       bookSpread: odd.line != null ? String(odd.line) : undefined,
       bookOverUnder: odd.line != null ? String(odd.line) : undefined,
+      // fairOdds is optional (symmetric mathematical odds)
+      fairOdds: odd.fairOdds != null ? String(odd.fairOdds) : undefined,
+      fairSpread: odd.line != null ? String(odd.line) : undefined,
+      fairOverUnder: odd.line != null ? String(odd.line) : undefined,
     };
   });
   

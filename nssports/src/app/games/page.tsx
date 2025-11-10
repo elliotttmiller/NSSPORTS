@@ -2,15 +2,18 @@
 
 import { GameList } from '@/components/GameList';
 import { useLiveDataStore } from "@/store/liveDataStore";
+import { useRefresh } from "@/context";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 gsap.registerPlugin(ScrollTrigger);
 // ...existing code...
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 export default function GamesPage() {
   const [totalGames, setTotalGames] = useState<number | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const { registerRefreshHandler, unregisterRefreshHandler } = useRefresh();
   
   // ⭐ CRITICAL FIX: Enable streaming for real-time ODDS updates ONLY
   // Even upcoming games need streaming (betting lines move constantly)
@@ -34,6 +37,19 @@ export default function GamesPage() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [totalGames, streamingEnabled]); // Functions are stable in Zustand, don't include them
+
+  // Manual refresh handler for pull-to-refresh (forces cache bypass)
+  const handleRefresh = useCallback(async () => {
+    console.log('[GamesPage] 🔄 Manual refresh triggered - bypassing cache for fresh odds');
+    // Increment refresh key to force GameList remount with fresh data
+    setRefreshKey(prev => prev + 1);
+  }, []);
+
+  // Register refresh handler for pull-to-refresh
+  useEffect(() => {
+    registerRefreshHandler(handleRefresh);
+    return () => unregisterRefreshHandler();
+  }, [registerRefreshHandler, unregisterRefreshHandler, handleRefresh]);
   
   // No leagueId passed: fetch all games from all leagues
   // GameList will automatically filter out games that transition to live status
@@ -50,7 +66,14 @@ export default function GamesPage() {
         </div>
 
         {/* Unified Games List: all leagues, upcoming games only */}
-        <GameList limit={100} leagueId={undefined} status={undefined} onTotalGamesChange={setTotalGames} />
+        <GameList 
+          key={refreshKey} 
+          limit={100} 
+          leagueId={undefined} 
+          status={undefined} 
+          onTotalGamesChange={setTotalGames}
+          bypassCache={refreshKey > 0}
+        />
       </div>
     </div>
   );

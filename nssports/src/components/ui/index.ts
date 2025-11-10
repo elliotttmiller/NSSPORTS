@@ -5,7 +5,7 @@ export { Badge } from "./badge";
 export { Separator } from "./separator";
 export { Tabs, TabsList, TabsTrigger, TabsContent } from "./tabs";
 export { Checkbox } from "./checkbox";
-export { PullToRefresh } from "./PullToRefresh";
+export { GlobalPullToRefresh } from "./PullToRefresh";
 export { RefreshButton } from "./RefreshButton";
 export { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "./dialog";
 export { MetricCard, MetricCardSection, SystemHealthItem } from "./metric-card";

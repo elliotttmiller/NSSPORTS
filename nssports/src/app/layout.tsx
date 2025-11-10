@@ -3,7 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "sonner";
 import { QueryProvider } from "@/components/QueryProvider";
-import { BetSlipProvider, NavigationProvider, BetHistoryProvider, MobileScrollProvider, StreamingProvider } from "@/context";
+import { BetSlipProvider, NavigationProvider, BetHistoryProvider, MobileScrollProvider, StreamingProvider, RefreshProvider } from "@/context";
 import { ConditionalLayout } from "@/components/layouts";
 import { SmoothScrollProvider } from "@/components/SmoothScrollProvider";
 import { AuthProvider, LiveDataProvider } from "@/components/providers";
@@ -30,14 +30,8 @@ export const metadata: Metadata = {
     telephone: false,
   },
   icons: {
-    icon: [
-      { url: "/mn-outline.svg", sizes: "any", type: "image/svg+xml" },
-      { url: "/app/icon.svg", sizes: "any", type: "image/svg+xml" },
-    ],
-    apple: [
-      { url: "/mn-outline.svg", sizes: "180x180", type: "image/svg+xml" },
-      { url: "/app/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
-    ],
+    icon: "/mn-outline.svg",
+    apple: "/app/apple-touch-icon.png",
   },
   other: {
     'mobile-web-app-capable': 'yes',
@@ -50,10 +44,7 @@ export const viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: "cover",
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
-  ],
+  themeColor: "#0a0a0a",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -102,12 +93,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   <SmoothScrollProvider>
                     <NavigationProvider>
                       <MobileScrollProvider>
-                        <BetSlipProvider>
-                          <BetHistoryProvider>
-                            <ConditionalLayout>{children}</ConditionalLayout>
-                            <Toaster richColors position="top-right" />
-                          </BetHistoryProvider>
-                        </BetSlipProvider>
+                        <RefreshProvider>
+                          <BetSlipProvider>
+                            <BetHistoryProvider>
+                              <ConditionalLayout>{children}</ConditionalLayout>
+                              <Toaster richColors position="top-right" />
+                            </BetHistoryProvider>
+                          </BetSlipProvider>
+                        </RefreshProvider>
                       </MobileScrollProvider>
                     </NavigationProvider>
                   </SmoothScrollProvider>
