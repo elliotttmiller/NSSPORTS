@@ -12,10 +12,13 @@ import {
   User,
   RadioButton,
   CaretDown,
-  CaretRight
+  CaretRight,
+  DotsThree
 } from "@phosphor-icons/react/dist/ssr";
 import type { Sport } from "@/types";
 import { getSports } from "@/services/api";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 const navItems = [
   { href: "/", label: "Home", icon: House },
@@ -25,10 +28,64 @@ const navItems = [
   { href: "/account", label: "Account", icon: User },
 ];
 
+// Other bet types (same as mobile)
+const otherBetTypes = [
+  { 
+    id: "bet-it-all", 
+    name: "Bet It All", 
+    description: "Wager all winnings on next bet",
+    route: "/bet-it-all"
+  },
+  { 
+    id: "teaser", 
+    name: "Teaser", 
+    description: "Adjust spreads in your favor",
+    route: "/teasers"
+  },
+  { 
+    id: "round-robin", 
+    name: "Round Robin", 
+    description: "Multiple parlay combinations",
+    route: "/round-robin"
+  },
+  { 
+    id: "if-win-only", 
+    name: "If Win Only", 
+    description: "Conditional bet on win",
+    route: "/if-bets"
+  },
+  { 
+    id: "if-win-or-tie", 
+    name: "If Win or Tie", 
+    description: "Conditional bet on win/tie",
+    route: "/if-bets"
+  },
+  { 
+    id: "win-reverse", 
+    name: "Win Reverse", 
+    description: "Reverse action on win",
+    route: "/reverse-bets"
+  },
+  { 
+    id: "action-reverse", 
+    name: "Action Reverse", 
+    description: "Reverse action regardless",
+    route: "/reverse-bets"
+  },
+  { 
+    id: "fill-open", 
+    name: "Fill Open", 
+    description: "Fill remaining positions",
+    route: null // Not implemented yet
+  },
+];
+
 export function SideNavPanel() {
   const pathname = usePathname();
+  const router = useRouter();
   const [sports, setSports] = useState<Sport[]>([]);
   const [expandedSports, setExpandedSports] = useState<Set<string>>(new Set());
+  const [expandedOther, setExpandedOther] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -80,7 +137,7 @@ export function SideNavPanel() {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-md transition-all duration-300 ease-[cubic-bezier(.4,0,.2,1)] shadow-sm hover:shadow-lg hover:-translate-y-1 hover:scale-[1.04] active:scale-95 focus-within:ring-2 focus-within:ring-accent/40 cursor-pointer",
+                "flex items-center gap-3 px-3 py-2.5 rounded-md transition-all duration-300 ease-in-out shadow-sm hover:shadow-lg hover:-translate-y-1 hover:scale-[1.04] active:scale-95 focus-within:ring-2 focus-within:ring-accent/40 cursor-pointer",
                 isActive
                   ? "bg-accent text-accent-foreground font-medium"
                   : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
@@ -91,6 +148,49 @@ export function SideNavPanel() {
             </Link>
           );
         })}
+      </div>
+
+      {/* Other Bet Types Section */}
+      <div className="mt-8 space-y-2">
+        <button
+          className="flex items-center gap-2 px-3 py-2 w-full text-left rounded-md hover:bg-accent/20 transition-colors"
+          onClick={() => setExpandedOther(!expandedOther)}
+          aria-expanded={expandedOther}
+        >
+          {expandedOther ? <CaretDown size={16} /> : <CaretRight size={16} />}
+          <DotsThree size={20} weight="bold" />
+          <span className="font-medium">Other</span>
+        </button>
+        
+        {/* Other bet types dropdown */}
+        {expandedOther && (
+          <div className="ml-4 space-y-1">
+            {otherBetTypes.map((betType) => (
+              <button
+                key={betType.id}
+                onClick={() => {
+                  if (betType.route) {
+                    router.push(betType.route);
+                  } else {
+                    toast.info(`${betType.name} coming soon!`, {
+                      description: "This bet type is under development",
+                      duration: 3000,
+                    });
+                  }
+                }}
+                className={cn(
+                  "flex flex-col gap-1 px-3 py-2 rounded-md text-sm transition-colors w-full text-left",
+                  pathname === betType.route
+                    ? "bg-accent/70 text-accent-foreground font-medium"
+                    : "text-muted-foreground hover:bg-accent/30 hover:text-foreground"
+                )}
+              >
+                <span className="font-medium">{betType.name}</span>
+                <span className="text-xs text-muted-foreground">{betType.description}</span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Sports Section */}
