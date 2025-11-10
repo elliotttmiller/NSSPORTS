@@ -25,7 +25,8 @@ import {
   Flame,
   Eye,
   RefreshCw,
-  Calculator
+  Calculator,
+  Zap
 } from "lucide-react";
 import { toast } from "sonner";
 import AdvancedCalculators from "@/components/admin/AdvancedCalculators";
@@ -50,6 +51,10 @@ interface JuiceConfig {
   minOdds: number;
   maxOdds: number;
   isActive: boolean;
+  // Advanced options
+  favoriteMultiplier?: number;
+  underdogMultiplier?: number;
+  dynamicPricing?: boolean;
 }
 
 // Preset templates - Enhanced with more strategies
@@ -195,6 +200,9 @@ export default function OddsConfigPage() {
           totalMargin: data.totalMargin * 100,
           playerPropsMargin: data.playerPropsMargin * 100,
           gamePropsMargin: data.gamePropsMargin * 100,
+          favoriteMultiplier: data.favoriteMultiplier || 1.0,
+          underdogMultiplier: data.underdogMultiplier || 1.0,
+          dynamicPricing: data.dynamicPricing || false,
         });
         
         // Convert league overrides from stored format to UI format
@@ -599,6 +607,14 @@ export default function OddsConfigPage() {
             >
               <Flame className="w-3 h-3 md:w-4 md:h-4" />
               Props
+            </TabsTrigger>
+            <TabsTrigger 
+              onClick={() => setActiveTab("advanced")}
+              data-state={activeTab === "advanced" ? "active" : "inactive"}
+              className="gap-1 md:gap-2 text-xs md:text-sm"
+            >
+              <Zap className="w-3 h-3 md:w-4 md:h-4" />
+              <span className="hidden sm:inline">Advanced </span>Options
             </TabsTrigger>
             <TabsTrigger 
               onClick={() => setActiveTab("leagues")}
@@ -1060,6 +1076,118 @@ export default function OddsConfigPage() {
                     Player and game props have inherently higher variance and less liquidity than main markets.
                     Industry standard is 7-12% margins to compensate for increased risk and modeling difficulty.
                     Props also tend to attract sharper action, requiring additional protection.
+                  </p>
+                </div>
+              </div>
+            </Card>
+          </TabsContent>
+          )}
+
+          {/* Advanced Options Tab */}
+          {activeTab === "advanced" && (
+            <TabsContent className="space-y-4 md:space-y-6 mt-4 md:mt-6">
+            <Card className="p-4 md:p-6">
+              <div className="flex items-center gap-2 mb-3 md:mb-4">
+                <Zap className="w-5 h-5 md:w-6 md:h-6 text-accent" />
+                <h2 className="text-lg md:text-xl font-semibold">Advanced Juice Options</h2>
+              </div>
+              <p className="text-xs md:text-sm text-muted-foreground mb-4 md:mb-6">
+                State-of-the-art odds manipulation techniques used by professional sportsbooks. These advanced settings give you maximum control over how juice is applied.
+              </p>
+
+              <div className="space-y-6">
+                {/* Favorite vs Underdog Multipliers */}
+                <div>
+                  <h3 className="text-base md:text-lg font-semibold mb-3">Differential Pricing</h3>
+                  <p className="text-xs md:text-sm text-muted-foreground mb-4">
+                    Apply different juice levels to favorites vs underdogs. Industry practice: more juice on favorites, less on underdogs to balance action.
+                  </p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="favoriteMultiplier" className="text-sm md:text-base">Favorite Multiplier</Label>
+                      <Input
+                        id="favoriteMultiplier"
+                        type="number"
+                        step="0.1"
+                        min="0.5"
+                        max="2.0"
+                        value={config.favoriteMultiplier || 1.0}
+                        onChange={(e) => setConfig({ ...config, favoriteMultiplier: parseFloat(e.target.value) || 1.0 })}
+                        className="mt-2"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        1.0 = standard, 1.2 = 20% more juice on favorites
+                      </p>
+                    </div>
+                    <div>
+                      <Label htmlFor="underdogMultiplier" className="text-sm md:text-base">Underdog Multiplier</Label>
+                      <Input
+                        id="underdogMultiplier"
+                        type="number"
+                        step="0.1"
+                        min="0.5"
+                        max="2.0"
+                        value={config.underdogMultiplier || 1.0}
+                        onChange={(e) => setConfig({ ...config, underdogMultiplier: parseFloat(e.target.value) || 1.0 })}
+                        className="mt-2"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        1.0 = standard, 0.8 = 20% less juice on underdogs
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Dynamic Pricing */}
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <h3 className="text-base md:text-lg font-semibold">Dynamic Pricing</h3>
+                      <p className="text-xs md:text-sm text-muted-foreground mt-1">
+                        Automatically increase juice on extreme lines (heavy favorites/underdogs). Used by top sportsbooks to manage risk on lopsided markets.
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setConfig({ ...config, dynamicPricing: !config.dynamicPricing })}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                        config.dynamicPricing ? 'bg-accent' : 'bg-muted'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-lg transition-transform ${
+                          config.dynamicPricing ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                  </div>
+
+                  {config.dynamicPricing && (
+                    <Card className="p-3 bg-muted/30 mt-3">
+                      <p className="text-xs md:text-sm">
+                        <strong>Active:</strong> Lines with odds ≥ ±200 get 25% more juice, odds ≥ ±150 get 15% more juice. Lines near even (100-140) use standard adjustment.
+                      </p>
+                    </Card>
+                  )}
+                </div>
+              </div>
+            </Card>
+
+            {/* Example Impact */}
+            <Card className="p-4 md:p-6 bg-accent/5 border-accent/20">
+              <div className="flex gap-2 md:gap-3">
+                <Info className="w-4 h-4 md:w-5 md:h-5 text-accent shrink-0 mt-0.5" />
+                <div className="text-xs md:text-sm text-foreground">
+                  <p className="font-semibold mb-2">Advanced Options Impact</p>
+                  <ul className="list-disc list-inside space-y-1">
+                    <li><strong>Favorite Multiplier 1.2:</strong> A -150 favorite with 5% base margin becomes 6% (extra juice on favorites)</li>
+                    <li><strong>Underdog Multiplier 0.8:</strong> A +200 underdog with 5% base margin becomes 4% (reduced juice attracts action)</li>
+                    <li><strong>Dynamic Pricing:</strong> A -300 favorite automatically gets 25% extra juice for risk management</li>
+                  </ul>
+                  <p className="mt-3">
+                    <strong>Pro Tip:</strong> Use favoriteMultiplier &gt; 1.0 and underdogMultiplier &lt; 1.0 to naturally balance action while maintaining profitability.
                   </p>
                 </div>
               </div>

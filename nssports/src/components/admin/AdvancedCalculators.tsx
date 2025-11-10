@@ -9,21 +9,14 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { 
   Calculator, 
-  TrendingUp, 
   Target,
-  DollarSign,
-  Percent,
   Info,
-  ArrowRight,
-  CheckCircle,
-  XCircle,
-  AlertTriangle
 } from "lucide-react";
 import { toast } from "sonner";
 
 /**
- * Advanced Calculators Component
- * Provides professional-grade betting calculators for operators
+ * Essential Calculators Component
+ * Kelly Criterion and De-vigging - The two most important professional tools
  */
 export default function AdvancedCalculators() {
   // Kelly Criterion Calculator State
@@ -44,19 +37,6 @@ export default function AdvancedCalculators() {
   });
   const [devigResult, setDevigResult] = useState<any>(null);
   const [devigLoading, setDevigLoading] = useState(false);
-
-  // Market Efficiency Calculator State
-  const [efficiencyInputs, setEfficiencyInputs] = useState({
-    yourOdds: -115,
-    marketConsensus: -110,
-    sharpOdds: -108,
-  });
-  const [efficiencyResult, setEfficiencyResult] = useState<any>(null);
-  const [efficiencyLoading, setEfficiencyLoading] = useState(false);
-
-  // Break-Even Calculator State
-  const [breakEvenOdds, setBreakEvenOdds] = useState(-110);
-  const [breakEvenResult, setBreakEvenResult] = useState<any>(null);
 
   // Calculate Kelly Criterion
   const calculateKelly = async () => {
@@ -110,55 +90,6 @@ export default function AdvancedCalculators() {
       toast.error('Error calculating devig');
     } finally {
       setDevigLoading(false);
-    }
-  };
-
-  // Calculate Market Efficiency
-  const calculateEfficiency = async () => {
-    setEfficiencyLoading(true);
-    try {
-      const res = await fetch('/api/admin/odds-analytics', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          operation: 'market_efficiency',
-          data: efficiencyInputs,
-        }),
-      });
-
-      if (res.ok) {
-        const result = await res.json();
-        setEfficiencyResult(result);
-      } else {
-        toast.error('Failed to calculate market efficiency');
-      }
-    } catch (error) {
-      toast.error('Error calculating market efficiency');
-    } finally {
-      setEfficiencyLoading(false);
-    }
-  };
-
-  // Calculate Break-Even
-  const calculateBreakEven = async () => {
-    try {
-      const res = await fetch('/api/admin/odds-analytics', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          operation: 'break_even',
-          data: { americanOdds: breakEvenOdds },
-        }),
-      });
-
-      if (res.ok) {
-        const result = await res.json();
-        setBreakEvenResult(result);
-      } else {
-        toast.error('Failed to calculate break-even');
-      }
-    } catch (error) {
-      toast.error('Error calculating break-even');
     }
   };
 
@@ -367,10 +298,24 @@ export default function AdvancedCalculators() {
         )}
       </Card>
 
-      {/* Market Efficiency Analyzer */}
-      <Card className="p-4 md:p-6">
-        <div className="flex items-center gap-2 mb-3 md:mb-4">
-          <TrendingUp className="w-5 h-5 md:w-6 md:h-6 text-accent" />
+      {/* Info Card */}
+      <Card className="p-3 md:p-4 bg-accent/5 border-accent/20">
+        <div className="flex gap-2 md:gap-3">
+          <Info className="w-4 h-4 md:w-5 md:h-5 text-accent shrink-0 mt-0.5" />
+          <div className="text-xs md:text-sm text-foreground">
+            <p className="font-semibold mb-1">Professional Calculator Suite</p>
+            <p>
+              <strong>Kelly Criterion:</strong> Optimal bankroll management used by professional bettors to maximize long-term growth while minimizing risk of ruin.
+            </p>
+            <p className="mt-2">
+              <strong>De-vigging:</strong> Removes house juice to reveal true fair odds. Essential for accurate pricing and identifying value in the market.
+            </p>
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
+}
           <h2 className="text-lg md:text-xl font-semibold">Market Efficiency Analyzer</h2>
         </div>
         <p className="text-xs md:text-sm text-muted-foreground mb-4 md:mb-6">

@@ -40,10 +40,20 @@ export interface JuiceConfig {
   playerPropsMargin: number;
   gamePropsMargin: number;
   
+  // Advanced configuration options
   roundingMethod: 'nearest5' | 'nearest10' | 'ceiling';
   minOdds: number;
   maxOdds: number;
   liveGameMultiplier: number;
+  
+  // ADVANCED: Favorite vs Underdog differential (optional)
+  favoriteMultiplier?: number;   // Apply extra juice to favorites (e.g., 1.2 = 20% more)
+  underdogMultiplier?: number;   // Different juice for underdogs (e.g., 0.8 = 20% less)
+  
+  // ADVANCED: Dynamic adjustment based on line value
+  dynamicPricing?: boolean;      // Enable smart pricing based on odds value
+  
+  // League-specific overrides
   leagueOverrides?: Record<string, Partial<JuiceConfig>>;
 }
 
@@ -199,6 +209,28 @@ class OddsJuiceService {
       if (overrideAdjustment !== undefined) {
         adjustment = overrideAdjustment;
       }
+    }
+    
+    // ADVANCED: Apply favorite/underdog multipliers for dynamic pricing
+    if (config.favoriteMultiplier && input.bookOdds < 0) {
+      // This is a favorite - apply favorite multiplier
+      adjustment = Math.round(adjustment * config.favoriteMultiplier);
+    } else if (config.underdogMultiplier && input.bookOdds > 0) {
+      // This is an underdog - apply underdog multiplier
+      adjustment = Math.round(adjustment * config.underdogMultiplier);
+    }
+    
+    // ADVANCED: Dynamic pricing based on line value (more juice on extreme lines)
+    if (config.dynamicPricing) {
+      const absOdds = Math.abs(input.bookOdds);
+      if (absOdds >= 200) {
+        // Heavy favorites/underdogs - increase juice by 25%
+        adjustment = Math.round(adjustment * 1.25);
+      } else if (absOdds >= 150) {
+        // Moderate favorites/underdogs - increase juice by 15%
+        adjustment = Math.round(adjustment * 1.15);
+      }
+      // Lines close to even (100-140) use standard adjustment
     }
     
     // Apply live game multiplier (increase adjustment for live markets)

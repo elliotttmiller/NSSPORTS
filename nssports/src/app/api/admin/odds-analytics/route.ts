@@ -3,16 +3,8 @@ import { getAdminUser } from "@/lib/adminAuth";
 import {
   calculateKellyCriterion,
   devig,
-  calculateProfitability,
-  analyzeMarketEfficiency,
-  calculateExpectedValue,
-  calculateBreakEvenRate,
-  calculateCLV,
   type KellyCriterionInput,
   type DeviggingInput,
-  type ProfitabilityInput,
-  type MarketEfficiencyInput,
-  type CLVInput,
 } from "@/lib/odds-analytics";
 
 /**
@@ -39,36 +31,6 @@ export async function POST(req: NextRequest) {
       case 'devig': {
         const input = data as DeviggingInput;
         const result = devig(input);
-        return NextResponse.json(result);
-      }
-
-      case 'profitability': {
-        const input = data as ProfitabilityInput;
-        const result = calculateProfitability(input);
-        return NextResponse.json(result);
-      }
-
-      case 'market_efficiency': {
-        const input = data as MarketEfficiencyInput;
-        const result = analyzeMarketEfficiency(input);
-        return NextResponse.json(result);
-      }
-
-      case 'expected_value': {
-        const { winProbability, americanOdds, betAmount } = data;
-        const result = calculateExpectedValue(winProbability, americanOdds, betAmount);
-        return NextResponse.json({ expectedValue: result });
-      }
-
-      case 'break_even': {
-        const { americanOdds } = data;
-        const result = calculateBreakEvenRate(americanOdds);
-        return NextResponse.json({ breakEvenRate: result });
-      }
-
-      case 'clv': {
-        const input = data as CLVInput;
-        const result = calculateCLV(input);
         return NextResponse.json(result);
       }
 

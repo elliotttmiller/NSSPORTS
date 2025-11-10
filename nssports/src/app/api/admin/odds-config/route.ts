@@ -71,6 +71,9 @@ export async function POST(req: NextRequest) {
       maxOdds,
       isActive,
       leagueOverrides,
+      favoriteMultiplier,
+      underdogMultiplier,
+      dynamicPricing,
     } = body;
 
     // Fetch current config for history
@@ -99,6 +102,9 @@ export async function POST(req: NextRequest) {
         maxOdds,
         isActive,
         leagueOverrides: leagueOverrides || null,
+        favoriteMultiplier: favoriteMultiplier || 1.0,
+        underdogMultiplier: underdogMultiplier || 1.0,
+        dynamicPricing: dynamicPricing || false,
         modifiedBy: admin.id,
       },
     });

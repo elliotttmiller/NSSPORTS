@@ -439,8 +439,15 @@ model OddsConfiguration {
   // League-specific overrides (JSON)
   leagueOverrides   Json?    // { "NBA": { "spreadMargin": 0.05 }, "NFL": { ... } }
   
-  // Time-based adjustments (optional)
-  liveGameMultiplier Float   @default(1.0)     // Increase margins for live games
+  // Time-based adjustments
+  liveGameMultiplier Float   @default(1.0)     // Increase margins for live games (e.g., 1.2 = 20% more)
+  
+  // ADVANCED: Favorite vs Underdog differential pricing
+  favoriteMultiplier Float?  @default(1.0)     // Extra juice on favorites (e.g., 1.2 = 20% more juice)
+  underdogMultiplier Float?  @default(1.0)     // Different juice for underdogs (e.g., 0.8 = 20% less juice)
+  
+  // ADVANCED: Dynamic pricing based on line value
+  dynamicPricing    Boolean  @default(false)   // Enable smart pricing (more juice on extreme lines)
   
   // Audit trail
   createdAt         DateTime @default(now())
