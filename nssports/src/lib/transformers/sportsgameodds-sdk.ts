@@ -421,31 +421,23 @@ function extractOdds(event: ExtendedSDKEvent) {
     
     const data = oddData as Record<string, unknown>;
     
-    // OFFICIAL CONSENSUS ALGORITHM IMPLEMENTATION
-    // Per: https://sportsgameodds.com/docs/info/consensus-odds
+    // PROFESSIONAL-GRADE SOLUTION: STRICT bookOdds enforcement
+    // Real sportsbooks ALWAYS have asymmetric odds - this is fundamental to how betting works
+    // If bookOdds is missing, it means:
+    // 1. API didn't include consensus calculations (includeConsensus: true not set)
+    // 2. Not enough reputable bookmakers have odds for this market yet
+    // 3. Market is temporarily unavailable
+    //
+    // We NEVER use fairOdds as it's mathematically derived, not real market data
+    // Better to show "Odds Unavailable" than incorrect symmetric odds
     
-    // Step 1: Check if book odds calculations were successful
-    const bookOddsAvailable = data.bookOddsAvailable === true;
-    
-    // Step 2: Extract odds values
-    // STRICTLY USE bookOdds (real market consensus) - NO FALLBACK to fairOdds
-    // Real sportsbooks ALWAYS have asymmetric odds due to:
-    // - House edge/juice (books take a cut on both sides)
-    // - Betting action imbalance (more money on favorites = adjusted odds)
-    // - Risk management (books manage exposure, don't want 50/50 split)
-    // If bookOdds is unavailable, return null rather than showing incorrect symmetric odds
-    if (!bookOddsAvailable || !data.bookOdds) {
-      return null; // Don't display odds if real market data isn't available
-    }
-    
+    // Extract bookOdds ONLY (real market consensus - asymmetric)
     const oddsValue = data.bookOdds;
-    
-    // Step 3: Extract line values (spread or total)
-    // STRICTLY USE bookSpread/bookOverUnder - NO FALLBACK to fair values
     const spreadValue = data.bookSpread;
     const totalValue = data.bookOverUnder;
     const lineValue = spreadValue ?? totalValue;
     
+    // If no bookOdds, return null (market unavailable)
     if (!oddsValue) return null;
     
     return {
@@ -521,88 +513,89 @@ async function applyJuiceToOdds(
   isLive: boolean
 ): Promise<void> {
   try {
+    // INDUSTRY STANDARD: Apply juice to BOOK ODDS (real market consensus), not fair odds
     // Apply juice to spread odds
     if (odds.spread.home.odds !== 0 && odds.spread.away.odds !== 0) {
       const [homeResult, awayResult] = await Promise.all([
         oddsJuiceService.applyJuice({
-          fairOdds: odds.spread.home.odds,
+          bookOdds: odds.spread.home.odds, // Use bookOdds (real market)
           marketType: 'spread',
           league,
           isLive,
         }),
         oddsJuiceService.applyJuice({
-          fairOdds: odds.spread.away.odds,
+          bookOdds: odds.spread.away.odds, // Use bookOdds (real market)
           marketType: 'spread',
           league,
           isLive,
         }),
       ]);
       
-      // Keep fair odds for reference
+      // Keep market odds for reference
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (odds.spread.home as any).fairOdds = odds.spread.home.odds;
+      (odds.spread.home as any).marketOdds = odds.spread.home.odds;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (odds.spread.away as any).fairOdds = odds.spread.away.odds;
+      (odds.spread.away as any).marketOdds = odds.spread.away.odds;
       
-      // Apply juiced odds
-      odds.spread.home.odds = homeResult.juicedOdds;
-      odds.spread.away.odds = awayResult.juicedOdds;
+      // Apply adjusted odds
+      odds.spread.home.odds = homeResult.adjustedOdds;
+      odds.spread.away.odds = awayResult.adjustedOdds;
     }
 
     // Apply juice to moneyline odds
     if (odds.moneyline.home.odds !== 0 && odds.moneyline.away.odds !== 0) {
       const [homeResult, awayResult] = await Promise.all([
         oddsJuiceService.applyJuice({
-          fairOdds: odds.moneyline.home.odds,
+          bookOdds: odds.moneyline.home.odds, // Use bookOdds (real market)
           marketType: 'moneyline',
           league,
           isLive,
         }),
         oddsJuiceService.applyJuice({
-          fairOdds: odds.moneyline.away.odds,
+          bookOdds: odds.moneyline.away.odds, // Use bookOdds (real market)
           marketType: 'moneyline',
           league,
           isLive,
         }),
       ]);
       
-      // Keep fair odds for reference
+      // Keep market odds for reference
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (odds.moneyline.home as any).fairOdds = odds.moneyline.home.odds;
+      (odds.moneyline.home as any).marketOdds = odds.moneyline.home.odds;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (odds.moneyline.away as any).fairOdds = odds.moneyline.away.odds;
+      (odds.moneyline.away as any).marketOdds = odds.moneyline.away.odds;
       
-      // Apply juiced odds
-      odds.moneyline.home.odds = homeResult.juicedOdds;
-      odds.moneyline.away.odds = awayResult.juicedOdds;
+      // Apply adjusted odds
+      odds.moneyline.home.odds = homeResult.adjustedOdds;
+      odds.moneyline.away.odds = awayResult.adjustedOdds;
     }
 
     // Apply juice to total odds (over/under)
     if (odds.total.over.odds !== 0 && odds.total.under.odds !== 0) {
       const [overResult, underResult] = await Promise.all([
         oddsJuiceService.applyJuice({
-          fairOdds: odds.total.over.odds,
+          bookOdds: odds.total.over.odds, // Use bookOdds (real market)
           marketType: 'total',
           league,
           isLive,
         }),
         oddsJuiceService.applyJuice({
-          fairOdds: odds.total.under.odds,
+          bookOdds: odds.total.under.odds, // Use bookOdds (real market)
           marketType: 'total',
           league,
           isLive,
         }),
       ]);
       
-      // Keep fair odds for reference
+      // Keep market odds for reference
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (odds.total.over as any).fairOdds = odds.total.over.odds;
+      (odds.total.over as any).marketOdds = odds.total.over.odds;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (odds.total.under as any).fairOdds = odds.total.under.odds;
+      (odds.total.under as any).marketOdds = odds.total.under.odds;
       
-      // Apply juiced odds
-      odds.total.over.odds = overResult.juicedOdds;
-      odds.total.under.odds = underResult.juicedOdds;
+      // Apply adjusted odds
+      odds.total.over.odds = overResult.adjustedOdds;
+      odds.total.under.odds = underResult.adjustedOdds;
       
       // Also update the home/away aliases
       odds.total.home = odds.total.over;

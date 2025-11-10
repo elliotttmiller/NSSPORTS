@@ -2,13 +2,12 @@
 
 import { Suspense, useEffect, useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { loginAction, type LoginState } from "../actions";
-import { useSession } from "next-auth/react";
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -26,8 +25,6 @@ function SubmitButton() {
 
 function LoginForm() {
   const searchParams = useSearchParams();
-  const router = useRouter();
-  const { update } = useSession();
   const callbackUrl = searchParams.get("callbackUrl") || "/";
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [loginType, setLoginType] = useState<"player" | "agent">("player");
@@ -45,49 +42,20 @@ function LoginForm() {
       
       console.log('[Login] Login successful, initiating redirect...');
       
-      // Determine redirect URL based on login type and user role
-      let redirectUrl = callbackUrl;
+      // Determine redirect URL based on login type
+      const redirectUrl = loginType === "agent" 
+        ? "/agent" 
+        : (callbackUrl === "/agent" ? "/" : callbackUrl);
       
-      // Update session first, then redirect
-      update()
-        .then(() => {
-          console.log('[Login] Session updated successfully');
-          
-          // Small delay to ensure session is fully synced
-          setTimeout(() => {
-            // Get the latest session data after update
-            if (loginType === "agent") {
-              redirectUrl = "/agent";
-              console.log('[Login] Agent login - redirecting to agent dashboard');
-            } else {
-              redirectUrl = callbackUrl === "/agent" ? "/" : callbackUrl;
-              console.log('[Login] Player login - redirecting to:', redirectUrl);
-            }
-            
-            console.log('[Login] Navigating to:', redirectUrl);
-            router.push(redirectUrl);
-            
-            // Force a refresh after navigation to ensure everything loads properly
-            setTimeout(() => {
-              router.refresh();
-            }, 100);
-          }, 300);
-        })
-        .catch((error) => {
-          console.error('[Login] Session update error:', error);
-          // Redirect anyway - session should still be valid
-          setTimeout(() => {
-            const fallbackUrl = loginType === "agent" ? "/agent" : callbackUrl;
-            console.log('[Login] Fallback navigation to:', fallbackUrl);
-            router.push(fallbackUrl);
-            router.refresh();
-          }, 500);
-        });
+      console.log('[Login] Redirecting to:', redirectUrl);
+      
+      // Direct redirect without session update - NextAuth handles session automatically
+      window.location.href = redirectUrl;
     } else if (state.error) {
       toast.error(state.error);
       setIsRedirecting(false);
     }
-  }, [state, callbackUrl, router, update, loginType, isRedirecting]);
+  }, [state, callbackUrl, loginType, isRedirecting]);
 
   // Show loading overlay during redirect
   if (isRedirecting) {

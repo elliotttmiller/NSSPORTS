@@ -38,6 +38,7 @@ async function getCachedAllGames() {
   // - finalized: false → Exclude finished games (includes both live and upcoming)
   // - oddIDs: Official market IDs (reduces payload 50-90%)
   // - includeOpposingOddIDs: true → Get both sides automatically (home/away, over/under)
+  // - includeConsensus: true → CRITICAL: Get bookOdds (real market consensus)
   // Note: NOT using `live` parameter here - we want both live AND upcoming
   const [nbaResult, nflResult, nhlResult] = await Promise.allSettled([
     getEventsWithCache({ 
@@ -47,6 +48,7 @@ async function getCachedAllGames() {
       startsBefore: startsBefore.toISOString(),
       oddIDs: MAIN_LINE_ODDIDS,        // ✅ OFFICIAL: Main lines only (ML, spread, total)
       includeOpposingOddIDs: true,     // ✅ OFFICIAL: Auto-include opposing sides
+      includeConsensus: true,          // ✅ CRITICAL: Request bookOdds calculations
       limit: fetchLimit,
     }),
     getEventsWithCache({ 
@@ -56,6 +58,7 @@ async function getCachedAllGames() {
       startsBefore: startsBefore.toISOString(),
       oddIDs: MAIN_LINE_ODDIDS,        // ✅ OFFICIAL: Main lines only
       includeOpposingOddIDs: true,     // ✅ OFFICIAL: Auto-include opposing sides
+      includeConsensus: true,          // ✅ CRITICAL: Request bookOdds calculations
       limit: fetchLimit,
     }),
     getEventsWithCache({ 
@@ -65,6 +68,7 @@ async function getCachedAllGames() {
       startsBefore: startsBefore.toISOString(),
       oddIDs: MAIN_LINE_ODDIDS,        // ✅ OFFICIAL: Main lines only
       includeOpposingOddIDs: true,     // ✅ OFFICIAL: Auto-include opposing sides
+      includeConsensus: true,          // ✅ CRITICAL: Request bookOdds calculations
       limit: fetchLimit,
     }),
   ]);

@@ -101,6 +101,7 @@ export async function GET(request: NextRequest) {
         eventIDs: gameIds.join(','), // Official batch format
         oddIDs,
         includeOpposingOddIDs: true,
+        includeConsensus: true,      // ✅ CRITICAL: Request bookOdds calculations
         oddsAvailable: true,
       });
 

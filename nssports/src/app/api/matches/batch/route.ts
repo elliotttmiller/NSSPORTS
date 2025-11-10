@@ -113,6 +113,7 @@ export async function GET(request: NextRequest) {
         eventIDs: eventIdArray,          // ✅ OFFICIAL: Batch parameter
         oddIDs,                          // Filter specific markets
         includeOpposingOddIDs: true,    // Get both sides of markets
+        includeConsensus: true,          // ✅ CRITICAL: Request bookOdds calculations
         limit: MAX_BATCH_SIZE,
       });
       

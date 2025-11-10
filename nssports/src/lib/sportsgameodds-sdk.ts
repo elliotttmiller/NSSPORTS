@@ -356,6 +356,7 @@ export async function getEvents(options: {
   oddIDs?: string; // Filter specific markets (e.g., "game-ml,game-ats,game-ou" for main lines)
   bookmakerID?: string; // Filter specific sportsbooks (defaults to REPUTABLE_BOOKMAKERS)
   includeOpposingOddIDs?: boolean; // Get both sides of markets (recommended: true)
+  includeConsensus?: boolean; // TRUE = include bookOdds/fairOdds consensus calculations (REQUIRED for real market odds)
   live?: boolean; // Live games with changing odds
   finalized?: boolean; // FALSE = upcoming/live games only
   limit?: number;
@@ -365,13 +366,28 @@ export async function getEvents(options: {
   const client = getSportsGameOddsClient();
   
   try {
+    // ✅ CRITICAL: ALWAYS request consensus odds calculations
+    // This is what gives us bookOdds (real market consensus)
+    // Without this, SDK only returns individual sportsbook odds, no bookOdds
+    const consensusEnabled = options.includeConsensus !== false; // Default to true
+    
     // ✅ APPLY REPUTABLE BOOKMAKERS FILTER GLOBALLY
     // If no bookmakerID specified, use our curated list of top-tier sportsbooks
     // This ensures all consensus odds calculations use only reputable sources
     const params = {
       ...options,
       bookmakerID: options.bookmakerID || REPUTABLE_BOOKMAKERS,
+      includeConsensus: consensusEnabled, // CRITICAL: Request bookOdds calculations
     };
+    
+    // Log to verify includeConsensus is being set
+    logger.info('SDK getEvents params:', {
+      includeConsensus: params.includeConsensus,
+      hasBookmakerID: !!params.bookmakerID,
+      bookmakerCount: params.bookmakerID?.split(',').length || 0,
+      leagueID: params.leagueID,
+      eventIDsCount: Array.isArray(params.eventIDs) ? params.eventIDs.length : (params.eventIDs ? 1 : 0),
+    });
     
     // Generate unique request ID for deduplication
     const requestId = `events:${JSON.stringify(params)}`;
@@ -396,10 +412,17 @@ export async function getEvents(options: {
         
         // Debug: Log first event's odds structure to understand what we're getting
         if (page.data.length > 0 && page.data[0].odds) {
-          logger.debug('Sample event odds structure:', {
+          const firstOdd = Object.values(page.data[0].odds || {})[0] as any;
+          logger.info('ODDS DEBUG - Sample odds structure:', {
             eventID: page.data[0].eventID,
-            oddsKeys: Object.keys(page.data[0].odds || {}),
-            sampleOdds: JSON.stringify(page.data[0].odds).substring(0, 500)
+            totalOddsMarkets: Object.keys(page.data[0].odds || {}).length,
+            firstOddID: Object.keys(page.data[0].odds || {})[0],
+            hasBookOdds: firstOdd?.bookOdds !== undefined,
+            hasFairOdds: firstOdd?.fairOdds !== undefined,
+            bookOddsValue: firstOdd?.bookOdds,
+            fairOddsValue: firstOdd?.fairOdds,
+            bookOddsAvailable: firstOdd?.bookOddsAvailable,
+            sampleOddKeys: firstOdd ? Object.keys(firstOdd) : []
           });
         } else {
           logger.warn('No odds data in SDK response', {
@@ -680,19 +703,19 @@ export function extractPlayerProps(event: any, playerDataMap?: Map<string, any>)
     const isUnder = oddID.includes('-under');
     if (!isOver && !isUnder) return;
     
-    // Extract odds values - STRICTLY USE bookOdds (real market consensus)
-    // NO FALLBACK to fairOdds - if book odds aren't available, skip this prop
-    if (!oddData.bookOdds) return; // Skip if real market data isn't available
+    // PROFESSIONAL-GRADE: STRICT bookOdds enforcement (no fallback allowed)
+    // Only use real market consensus data - never mathematical fair odds
+    if (!oddData.bookOdds) return; // Skip this prop if real market data unavailable
     
     const oddsValue = parseFloat(String(oddData.bookOdds)) || 0;
     
-    // For over/under markets, STRICTLY use bookOverUnder
-    // NO FALLBACK to fairOverUnder - if book line isn't available, skip this prop
+    // For over/under markets, strictly use bookOverUnder or bookLine
     const lineValue = oddData.bookOverUnder 
       ? parseFloat(String(oddData.bookOverUnder))
       : (oddData.bookLine ? parseFloat(String(oddData.bookLine)) : undefined);
     
-    if (!lineValue) return; // Skip if we don't have a real market line
+    // Skip if we don't have real market data
+    if (!oddsValue || !lineValue) return;
     
     // Create group key
     const groupKey = `${playerID}_${statType}`;
@@ -797,13 +820,16 @@ export function extractGameProps(event: any): any[] {
     if (periodID === 'game' && betTypeID === 'sp' && entity !== 'all') return; // Skip main spread (keep alt spreads)
     if (periodID === 'game' && betTypeID === 'ou' && entity === 'all') return; // Skip main total (keep team totals)
     
-    // Extract odds and line values - STRICTLY USE bookOdds (real market consensus)
-    // NO FALLBACK to fairOdds - if book odds aren't available, skip this prop
-    if (!oddData.bookOdds) return; // Skip if real market data isn't available
+    // PROFESSIONAL-GRADE: STRICT bookOdds enforcement (no fallback allowed)
+    // Only use real market consensus data - never mathematical fair odds
+    if (!oddData.bookOdds) return; // Skip this prop if real market data unavailable
     
     const oddsValue = parseFloat(String(oddData.bookOdds)) || 0;
     const spreadValue = oddData.bookSpread ? parseFloat(String(oddData.bookSpread)) : undefined;
     const totalValue = oddData.bookOverUnder ? parseFloat(String(oddData.bookOverUnder)) : undefined;
+    
+    // Skip if we don't have odds
+    if (!oddsValue) return;
     
     // Determine market category and description
     let marketCategory = '';
@@ -900,6 +926,7 @@ export async function getPlayerProps(
       eventIDs: eventID,
       oddsAvailable: true,
       includeOpposingOddIDs: true, // CRITICAL: Get both over AND under for each prop
+      includeConsensus: true, // CRITICAL: Request bookOdds for real market data
     });
     
     if (events.length === 0) {
@@ -958,6 +985,7 @@ export async function getGameProps(
       eventIDs: eventID,
       oddsAvailable: true,
       includeOpposingOddIDs: true, // CRITICAL: Get both sides of all markets (over/under, home/away)
+      includeConsensus: true, // CRITICAL: Request bookOdds for real market data
     });
     
     if (events.length === 0) {

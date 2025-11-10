@@ -33,57 +33,57 @@ async function main() {
   console.log(`   Total Margin: ${(config.totalMargin * 100).toFixed(2)}%`);
   console.log(`   Live Multiplier: ${config.liveGameMultiplier}x`);
 
-  // 2. Test juice calculation
-  console.log('\n📋 Step 2: Testing juice calculations...');
+  // 2. Test odds adjustment calculation (INDUSTRY STANDARD: bookOdds + point adjustments)
+  console.log('\n📋 Step 2: Testing odds adjustments...');
   
   // Import the juice service
   const { oddsJuiceService } = await import('../../src/lib/odds-juice-service');
   
   const testCases = [
-    { fairOdds: -110, marketType: 'spread' as const, description: 'Standard spread' },
-    { fairOdds: +150, marketType: 'moneyline' as const, description: 'Underdog moneyline' },
-    { fairOdds: -200, marketType: 'moneyline' as const, description: 'Favorite moneyline' },
-    { fairOdds: -110, marketType: 'total' as const, description: 'Over/Under' },
+    { bookOdds: -110, marketType: 'spread' as const, description: 'Standard spread' },
+    { bookOdds: +150, marketType: 'moneyline' as const, description: 'Underdog moneyline' },
+    { bookOdds: -200, marketType: 'moneyline' as const, description: 'Favorite moneyline' },
+    { bookOdds: -110, marketType: 'total' as const, description: 'Over/Under' },
   ];
 
   for (const testCase of testCases) {
     const result = await oddsJuiceService.applyJuice({
-      fairOdds: testCase.fairOdds,
+      bookOdds: testCase.bookOdds,
       marketType: testCase.marketType,
       league: 'NBA',
       isLive: false,
     });
 
-    const change = result.juicedOdds - result.fairOdds;
+    const change = result.adjustedOdds - testCase.bookOdds;
     const changeStr = change > 0 ? `+${change}` : `${change}`;
     
     console.log(`\n   ${testCase.description}:`);
-    console.log(`     Fair Odds:   ${result.fairOdds}`);
-    console.log(`     Juiced Odds: ${result.juicedOdds} (${changeStr})`);
-    console.log(`     Margin:      ${(result.marginApplied * 100).toFixed(2)}%`);
-    console.log(`     House Edge:  ${result.holdPercentage.toFixed(2)}%`);
+    console.log(`     Market Odds:   ${testCase.bookOdds}`);
+    console.log(`     Adjusted Odds: ${result.adjustedOdds} (${changeStr} points)`);
+    console.log(`     Adjustment:    ${result.adjustment} points`);
+    console.log(`     House Edge:    ${result.impliedHold.toFixed(2)}%`);
   }
 
   // 3. Test live game multiplier
   console.log('\n📋 Step 3: Testing live game multiplier...');
   
   const preLiveResult = await oddsJuiceService.applyJuice({
-    fairOdds: -110,
+    bookOdds: -110,
     marketType: 'spread',
     league: 'NBA',
     isLive: false,
   });
   
   const liveResult = await oddsJuiceService.applyJuice({
-    fairOdds: -110,
+    bookOdds: -110,
     marketType: 'spread',
     league: 'NBA',
     isLive: true,
   });
 
-  console.log(`   Pre-game: -110 → ${preLiveResult.juicedOdds}`);
-  console.log(`   Live:     -110 → ${liveResult.juicedOdds}`);
-  console.log(`   Difference: ${liveResult.juicedOdds - preLiveResult.juicedOdds} (${config.liveGameMultiplier}x multiplier)`);
+  console.log(`   Pre-game: -110 → ${preLiveResult.adjustedOdds}`);
+  console.log(`   Live:     -110 → ${liveResult.adjustedOdds}`);
+  console.log(`   Difference: ${liveResult.adjustedOdds - preLiveResult.adjustedOdds} (${config.liveGameMultiplier}x multiplier)`);
 
   // 4. Summary
   console.log('\n' + '='.repeat(70));

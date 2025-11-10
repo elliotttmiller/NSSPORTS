@@ -94,6 +94,7 @@ export async function GET(request: NextRequest) {
         leagueID,
         live: true,                     // ✅ OFFICIAL: Only in-progress games
         finalized: false,               // ✅ OFFICIAL: Exclude finished games
+        includeConsensus: true,         // ✅ CRITICAL: Request bookOdds calculations
         limit: 50,
       });
       
@@ -105,6 +106,7 @@ export async function GET(request: NextRequest) {
         finalized: false,                          // ✅ OFFICIAL: Not finished
         startsAfter: now.toISOString(),           // ✅ From current time forward
         startsBefore: fourteenDaysFromNow.toISOString(), // ✅ Max 14 days ahead
+        includeConsensus: true,                   // ✅ CRITICAL: Request bookOdds calculations
         limit: 100,
       });
       

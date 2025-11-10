@@ -92,6 +92,7 @@ export async function GET(request: NextRequest) {
         eventIDs: gameIds.join(','),
         oddIDs,
         includeOpposingOddIDs: true,
+        includeConsensus: true,      // ✅ CRITICAL: Request bookOdds calculations
         oddsAvailable: true,
       });
 

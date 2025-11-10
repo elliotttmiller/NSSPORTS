@@ -1,25 +1,45 @@
 /**
- * Odds Juice/Margin Application Service
+ * Odds Adjustment Service - INDUSTRY STANDARD IMPLEMENTATION
  * 
- * Applies custom house margins (juice/vig) to fair odds from SportsGameOdds API
+ * Professional-grade odds adjustment system based on real sportsbook practices
  * 
- * How it works:
- * 1. Receive fair odds (juice-free consensus from SDK)
- * 2. Apply configured margin percentage
- * 3. Convert back to American odds format
- * 4. Apply rounding rules
- * 5. Return juiced odds for display
+ * How Real Sportsbooks Work:
+ * 1. Start with MARKET CONSENSUS (bookOdds) - what other sharp books are offering
+ * 2. Apply COMPETITIVE ADJUSTMENTS - not synthetic margins
+ * 3. Consider market position, liability, and sharp action
+ * 4. Maintain competitive odds to attract action on both sides
+ * 
+ * Key Differences from Amateur Systems:
+ * ✅ Uses bookOdds (real market) as base, NOT fairOdds (mathematical)
+ * ✅ Applies point-based adjustments (±10-20 points), NOT percentage margins
+ * ✅ Asymmetric output (reflects real market imbalance)
+ * ✅ Competitive with major sportsbooks
+ * 
+ * Industry Benchmarks:
+ * - Spreads/Totals: Typically -110/-110 (4.55% total hold, ~2.3% per side)
+ * - Moneylines: Variable based on line (favorites have higher juice)
+ * - Props: Higher margins (5-10%) due to lower liquidity
  */
 
 import { prisma } from './prisma';
 import { logger } from './logger';
 
 export interface JuiceConfig {
+  // Point-based adjustments (not percentages!)
+  // How many points to ADD to odds to make them slightly worse for bettors
+  spreadAdjustment: number;      // Typical: 5-10 points (e.g., -110 → -115)
+  moneylineAdjustment: number;   // Typical: 5-15 points depending on line
+  totalAdjustment: number;       // Typical: 5-10 points (e.g., -110 → -115)
+  playerPropsAdjustment: number; // Typical: 10-20 points (higher margin)
+  gamePropsAdjustment: number;   // Typical: 10-20 points (higher margin)
+  
+  // Legacy percentage fields (kept for database compatibility, but converted to points)
   spreadMargin: number;
   moneylineMargin: number;
   totalMargin: number;
   playerPropsMargin: number;
   gamePropsMargin: number;
+  
   roundingMethod: 'nearest5' | 'nearest10' | 'ceiling';
   minOdds: number;
   maxOdds: number;
@@ -28,17 +48,18 @@ export interface JuiceConfig {
 }
 
 export interface OddsInput {
-  fairOdds: number;          // American odds (e.g., -110, +150)
+  bookOdds: number;          // REAL market consensus (e.g., -900, +525)
+  fairOdds?: number;         // Optional: symmetric odds (NOT used as base)
   marketType: 'spread' | 'moneyline' | 'total' | 'player_prop' | 'game_prop';
-  league?: string;           // e.g., 'NBA', 'NFL'
+  league?: string;
   isLive?: boolean;
 }
 
 export interface OddsOutput {
-  juicedOdds: number;        // Adjusted American odds
-  fairOdds: number;          // Original fair odds
-  marginApplied: number;     // Actual margin % applied
-  holdPercentage: number;    // House edge %
+  adjustedOdds: number;      // Final odds shown to user
+  marketOdds: number;        // Original market consensus (bookOdds)
+  adjustment: number;        // Points added (e.g., +10 means -110 → -120)
+  impliedHold: number;       // Estimated house edge %
 }
 
 /**
@@ -85,12 +106,20 @@ class OddsJuiceService {
                            this.cachedConfig.spreadMargin !== config.spreadMargin ||
                            this.cachedConfig.moneylineMargin !== config.moneylineMargin;
 
+      // Convert percentage margins to point-based adjustments (industry standard)
+      // Industry standard: 4.5% margin ≈ 10 points (e.g., -110 → -120)
+      // Formula: points = margin * 200 (approximate conversion)
       this.cachedConfig = {
         spreadMargin: config.spreadMargin,
         moneylineMargin: config.moneylineMargin,
         totalMargin: config.totalMargin,
         playerPropsMargin: config.playerPropsMargin,
         gamePropsMargin: config.gamePropsMargin,
+        spreadAdjustment: Math.round(config.spreadMargin * 200),         // 4.5% → 9 points
+        moneylineAdjustment: Math.round(config.moneylineMargin * 200),   // 5% → 10 points
+        totalAdjustment: Math.round(config.totalMargin * 200),           // 4.5% → 9 points
+        playerPropsAdjustment: Math.round(config.playerPropsMargin * 200), // 8% → 16 points
+        gamePropsAdjustment: Math.round(config.gamePropsMargin * 200),   // 8% → 16 points
         roundingMethod: config.roundingMethod as 'nearest5' | 'nearest10' | 'ceiling',
         minOdds: config.minOdds,
         maxOdds: config.maxOdds,
@@ -133,84 +162,90 @@ class OddsJuiceService {
   }
 
   /**
-   * Apply juice to fair odds
-   * Returns original fair odds if juice is disabled
+   * Apply competitive odds adjustment using INDUSTRY STANDARD methodology
+   * 
+   * PROFESSIONAL APPROACH:
+   * 1. Start with bookOdds (real market consensus) - NOT fairOdds
+   * 2. Apply point-based adjustments to make odds slightly less favorable
+   * 3. Maintain market competitiveness while ensuring house edge
+   * 
+   * Example:
+   * - Market: -110 (bookOdds)
+   * - Adjustment: +10 points
+   * - Final: -120 (your odds)
+   * 
+   * This creates ~2-3% hold per side, which is industry standard for spreads/totals
    */
   async applyJuice(input: OddsInput): Promise<OddsOutput> {
     const config = await this.getConfig();
     
-    // ✅ If juice is disabled (no active config), return fair odds unchanged
+    // ✅ If juice is disabled (no active config), return market odds unchanged
     if (!config) {
       return {
-        juicedOdds: input.fairOdds,
-        fairOdds: input.fairOdds,
-        marginApplied: 0,
-        holdPercentage: 0,
+        adjustedOdds: input.bookOdds,
+        marketOdds: input.bookOdds,
+        adjustment: 0,
+        impliedHold: 0,
       };
     }
     
-    // Get margin for this market type
-    let margin = this.getMarginForMarket(input.marketType, config);
+    // Get adjustment for this market type (in points, not percentage)
+    let adjustment = this.getAdjustmentForMarket(input.marketType, config);
     
     // Apply league-specific override if exists
     if (input.league && config.leagueOverrides?.[input.league]) {
       const override = config.leagueOverrides[input.league];
-      const overrideMargin = this.getMarginForMarket(input.marketType, override as JuiceConfig);
-      if (overrideMargin !== undefined) {
-        margin = overrideMargin;
+      const overrideAdjustment = this.getAdjustmentForMarket(input.marketType, override as JuiceConfig);
+      if (overrideAdjustment !== undefined) {
+        adjustment = overrideAdjustment;
       }
     }
     
-    // Apply live game multiplier
+    // Apply live game multiplier (increase adjustment for live markets)
     if (input.isLive) {
-      margin *= config.liveGameMultiplier;
+      adjustment = Math.round(adjustment * config.liveGameMultiplier);
     }
 
-    // Convert American odds to probability
-    const fairProbability = this.americanOddsToProbability(input.fairOdds);
+    // INDUSTRY STANDARD: Apply point-based adjustment to market odds
+    let adjustedOdds = this.applyPointAdjustment(input.bookOdds, adjustment);
     
-    // Apply juice by adjusting implied probability
-    const juicedProbability = fairProbability * (1 + margin);
+    // Apply rounding (industry standard: nearest 5 or 10)
+    adjustedOdds = this.roundOdds(adjustedOdds, config.roundingMethod);
     
-    // Convert back to American odds
-    let juicedOdds = this.probabilityToAmericanOdds(juicedProbability);
+    // Enforce min/max limits (safety bounds)
+    adjustedOdds = Math.max(config.minOdds, Math.min(config.maxOdds, adjustedOdds));
     
-    // Apply rounding
-    juicedOdds = this.roundOdds(juicedOdds, config.roundingMethod);
-    
-    // Enforce min/max limits
-    juicedOdds = Math.max(config.minOdds, Math.min(config.maxOdds, juicedOdds));
-    
-    // Calculate hold percentage (house edge)
-    const holdPercentage = this.calculateHoldPercentage(input.fairOdds, juicedOdds);
+    // Calculate implied hold (house edge estimation)
+    const impliedHold = this.calculateHoldFromAdjustment(adjustment);
 
     return {
-      juicedOdds,
-      fairOdds: input.fairOdds,
-      marginApplied: margin,
-      holdPercentage,
+      adjustedOdds,
+      marketOdds: input.bookOdds,
+      adjustment,
+      impliedHold,
     };
   }
 
   /**
    * Apply juice to both sides of a two-way market (spread, total)
+   * Uses bookOdds for both sides
    */
   async applyJuiceToTwoWayMarket(
-    side1FairOdds: number,
-    side2FairOdds: number,
+    side1BookOdds: number,
+    side2BookOdds: number,
     marketType: 'spread' | 'total',
     league?: string,
     isLive?: boolean
   ): Promise<{ side1: OddsOutput; side2: OddsOutput }> {
     const side1 = await this.applyJuice({
-      fairOdds: side1FairOdds,
+      bookOdds: side1BookOdds,
       marketType,
       league,
       isLive,
     });
     
     const side2 = await this.applyJuice({
-      fairOdds: side2FairOdds,
+      bookOdds: side2BookOdds,
       marketType,
       league,
       isLive,
@@ -220,26 +255,60 @@ class OddsJuiceService {
   }
 
   /**
-   * Get margin for specific market type
+   * Get point-based adjustment for specific market type
+   * Returns adjustment in American odds points (e.g., 10 means add 10 points)
    */
-  private getMarginForMarket(
+  private getAdjustmentForMarket(
     marketType: OddsInput['marketType'],
     config: Partial<JuiceConfig>
   ): number {
     switch (marketType) {
       case 'spread':
-        return config.spreadMargin ?? 0.045;
+        return config.spreadAdjustment ?? 10; // Default: 10 points (industry standard)
       case 'moneyline':
-        return config.moneylineMargin ?? 0.05;
+        return config.moneylineAdjustment ?? 10;
       case 'total':
-        return config.totalMargin ?? 0.045;
+        return config.totalAdjustment ?? 10;
       case 'player_prop':
-        return config.playerPropsMargin ?? 0.08;
+        return config.playerPropsAdjustment ?? 15; // Higher margin for props
       case 'game_prop':
-        return config.gamePropsMargin ?? 0.08;
+        return config.gamePropsAdjustment ?? 15;
       default:
-        return 0.05; // Default 5%
+        return 10;
     }
+  }
+
+  /**
+   * INDUSTRY STANDARD: Apply point-based adjustment to odds
+   * 
+   * How it works:
+   * - Favorites (negative odds): Make MORE negative (worse for bettor)
+   * - Underdogs (positive odds): Make LESS positive (worse for bettor)
+   * 
+   * Examples:
+   * - -110 + 10 points = -120 (worse for bettor)
+   * - +150 + 10 points = +140 (worse for bettor)
+   */
+  private applyPointAdjustment(odds: number, points: number): number {
+    if (odds < 0) {
+      // Favorite: Make more negative
+      // -110 with +10 adjustment → -120
+      return odds - points;
+    } else {
+      // Underdog: Make less positive
+      // +150 with +10 adjustment → +140
+      return odds - points;
+    }
+  }
+
+  /**
+   * Calculate implied house hold from point adjustment
+   * Rough estimate: 10 points ≈ 2-3% hold
+   */
+  private calculateHoldFromAdjustment(points: number): number {
+    // Approximate formula: points / 4 = hold percentage
+    // 10 points ≈ 2.5% hold
+    return points / 4;
   }
 
   /**
@@ -316,19 +385,20 @@ class OddsJuiceService {
 export const oddsJuiceService = new OddsJuiceService();
 
 /**
- * Helper function for quick juice application
+ * Helper function for quick odds adjustment
+ * Uses bookOdds as input (industry standard)
  */
 export async function applyCustomJuice(
-  fairOdds: number,
+  bookOdds: number,
   marketType: OddsInput['marketType'],
   league?: string,
   isLive?: boolean
 ): Promise<number> {
   const result = await oddsJuiceService.applyJuice({
-    fairOdds,
+    bookOdds,
     marketType,
     league,
     isLive,
   });
-  return result.juicedOdds;
+  return result.adjustedOdds;
 }

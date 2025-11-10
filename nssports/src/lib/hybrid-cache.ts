@@ -141,6 +141,7 @@ export async function getEventsWithCache(options: {
   oddIDs?: string; // Filter specific markets (e.g., "game-ml,game-ats,game-ou")
   bookmakerID?: string; // Filter specific sportsbooks
   includeOpposingOddIDs?: boolean; // Get both sides of markets (recommended: true)
+  includeConsensus?: boolean; // CRITICAL: Request bookOdds calculations (defaults to true)
   live?: boolean;
   finalized?: boolean;
   limit?: number;
@@ -164,8 +165,12 @@ export async function getEventsWithCache(options: {
   }
   
   // 2. Fetch from SDK (source of truth)
-  logger.info('Fetching events from SDK', options);
-  const { data: events } = await sdkGetEvents(options);
+  // CRITICAL: Always request consensus odds (bookOdds) for real market data
+  logger.info('Fetching events from SDK with consensus odds', options);
+  const { data: events } = await sdkGetEvents({
+    ...options,
+    includeConsensus: options.includeConsensus !== false, // Default to true
+  });
   
   // 3. Update Prisma cache for next request (async, non-blocking)
   updateEventsCache(events).catch(error => {
