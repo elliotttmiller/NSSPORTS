@@ -540,9 +540,29 @@ export function BetCardTeaser({
               return null;
             }
             
-            const betId = `${leg.game.homeTeam.shortName}-${leg.game.awayTeam.shortName}-${idx}`;
-            const originalLine = teaserMetadata?.originalLines?.[betId];
-            const adjustedLine = teaserMetadata?.adjustedLines?.[betId] || leg.line;
+            // The leg.line contains the ADJUSTED line (what was saved to DB after teaser adjustment)
+            // We need to calculate the ORIGINAL line by reversing the adjustment
+            const adjustedLine = leg.line;
+            let originalLine: number | undefined = undefined;
+            
+            if (adjustedLine !== undefined && adjustedLine !== null) {
+              const isSpread = leg.betType === 'spread';
+              const isTotal = leg.betType === 'total';
+              
+              if (isSpread) {
+                // For spread: adjusted = original + pointAdjustment, so original = adjusted - pointAdjustment
+                originalLine = adjustedLine - pointAdjustment;
+              } else if (isTotal) {
+                // For totals: 
+                // - Over: adjusted = original - pointAdjustment, so original = adjusted + pointAdjustment
+                // - Under: adjusted = original + pointAdjustment, so original = adjusted - pointAdjustment
+                if (leg.selection === 'over') {
+                  originalLine = adjustedLine + pointAdjustment;
+                } else if (leg.selection === 'under') {
+                  originalLine = adjustedLine - pointAdjustment;
+                }
+              }
+            }
             
             // Determine which team was selected
             const selectedTeam = leg.selection === 'home' ? leg.game.homeTeam.shortName : 
@@ -588,12 +608,14 @@ export function BetCardTeaser({
                 </div>
                 
                 {/* Adjusted line: "-1 → +3 (+4 pts)" */}
-                <div className="text-sm mb-1">
-                  <span className="text-muted-foreground/70">{originalFormatted}</span>
-                  <span className="text-muted-foreground/50 mx-1">→</span>
-                  <span className="text-blue-400 font-semibold">{adjustedFormatted}</span>
-                  <span className="text-blue-400/70 ml-1">(+{pointAdjustment} pts)</span>
-                </div>
+                {originalFormatted && adjustedFormatted && (
+                  <div className="text-sm mb-1">
+                    <span className="text-muted-foreground/70">{originalFormatted}</span>
+                    <span className="text-muted-foreground/50 mx-1">→</span>
+                    <span className="text-blue-400 font-semibold">{adjustedFormatted}</span>
+                    <span className="text-blue-400/70 ml-1">(+{pointAdjustment} pts)</span>
+                  </div>
+                )}
                 
                 {/* Game matchup: "BOS @ PHI" */}
                 <div className="text-xs text-muted-foreground/60">
