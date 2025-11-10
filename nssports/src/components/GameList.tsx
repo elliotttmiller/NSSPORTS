@@ -16,6 +16,7 @@ export type GameListProps = Partial<UsePaginatedGamesParams> & {
   limit?: number;
   onTotalGamesChange?: (total: number) => void;
   bypassCache?: boolean; // Force fresh data from SDK (for manual refresh)
+  onRefreshReady?: (refreshFn: () => Promise<void>) => void; // Callback to expose refresh function to parent
 };
 
 // ⭐ MEMOIZED: League header to prevent re-renders
@@ -49,13 +50,12 @@ const DateFilterButton = memo(({
 ));
 DateFilterButton.displayName = 'DateFilterButton';
 
-export function GameList({ leagueId, status, limit = 10, onTotalGamesChange, bypassCache = false }: GameListProps) {
+export function GameList({ leagueId, status, limit = 10, onTotalGamesChange, bypassCache = false, onRefreshReady }: GameListProps) {
   const [allGames, setAllGames] = useState<Game[]>([]);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
-  const { data, isLoading, isError, fetchNextPage, hasNextPage, isFetchingNextPage, refetch } = useInfiniteGames({ 
+  const { data, isLoading, isError, fetchNextPage, hasNextPage, isFetchingNextPage, refetch, isRefetching } = useInfiniteGames({ 
     leagueId, 
     status, 
     limit,
@@ -68,13 +68,18 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange, byp
   // Manual refresh handler - forces cache bypass
   const handleRefresh = useCallback(async () => {
     console.log('[GameList] 🔄 Refreshing with cache bypass for fresh odds');
-    setIsRefreshing(true);
-    try {
-      await refetch();
-    } finally {
-      setIsRefreshing(false);
-    }
+    await refetch();
   }, [refetch]);
+
+  // Expose refresh function to parent component
+  useEffect(() => {
+    if (onRefreshReady) {
+      onRefreshReady(handleRefresh);
+    }
+  }, [onRefreshReady, handleRefresh]);
+
+  // isRefreshing is true when refetching but we already have data
+  const isRefreshing = isRefetching && allGames.length > 0;
 
   useEffect(() => {
     // Merge pages uniquely by id

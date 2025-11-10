@@ -1,72 +1,58 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { useMobileScroll, useRefresh } from "@/context";
 import { useIsMobile } from "@/hooks";
+
+interface GlobalPullToRefreshProps {
+  children: ReactNode;
+}
 
 /**
  * Global Pull-to-Refresh Component
  * 
  * Features:
- * - Automatically hooks into the global refresh context
- * - Smooth, natural pull interaction with physics-based resistance
- * - Works only on mobile devices
- * - Requires being at the absolute top of the scroll container
- * - Beautiful animated indicator with progress feedback
- * - Prevents conflicts with page scrolling
+ * - Seamlessly integrated inside scroll container for natural feel
+ * - Content wrapper transforms down to reveal indicator above
+ * - Smooth, physics-based pull interaction like Instagram/Twitter
+ * - Works only on mobile devices at the top of scroll
+ * - Professional PWA-style refresh experience
  */
-export function GlobalPullToRefresh() {
+export function GlobalPullToRefresh({ children }: GlobalPullToRefreshProps) {
   const [pullDistance, setPullDistance] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const touchStartY = useRef(0);
   const isDragging = useRef(false);
-  const wasAtTopOnStart = useRef(false);
-  const { scrollContainerRef, isAtTop: contextIsAtTop } = useMobileScroll();
+  const { scrollContainerRef } = useMobileScroll();
   const { triggerRefresh } = useRefresh();
   const isMobile = useIsMobile();
 
   const threshold = 80; // Pull distance needed to trigger refresh
   const maxPull = 140; // Maximum pull distance
 
-  const isAtTop = useCallback(() => {
-    return contextIsAtTop();
-  }, [contextIsAtTop]);
-
   const handleTouchStart = useCallback((e: TouchEvent) => {
-    if (isRefreshing || !isMobile) {
-      wasAtTopOnStart.current = false;
-      return;
-    }
+    if (isRefreshing || !isMobile) return;
     
-    const atTop = isAtTop();
-    wasAtTopOnStart.current = atTop;
+    const container = scrollContainerRef.current;
+    if (!container) return;
     
-    if (atTop) {
+    // Only initiate if at the very top
+    if (container.scrollTop === 0) {
       touchStartY.current = e.touches[0].clientY;
       isDragging.current = true;
     }
-  }, [isRefreshing, isAtTop, isMobile]);
+  }, [isRefreshing, scrollContainerRef, isMobile]);
 
   const handleTouchMove = useCallback((e: TouchEvent) => {
-    if (!isDragging.current || isRefreshing || !wasAtTopOnStart.current || !isMobile) {
-      return;
-    }
+    if (!isDragging.current || isRefreshing || !isMobile) return;
 
     const container = scrollContainerRef.current;
-    if (!container) {
-      isDragging.current = false;
-      wasAtTopOnStart.current = false;
-      setPullDistance(0);
-      return;
-    }
+    if (!container) return;
     
-    const currentScrollTop = container.scrollTop || 0;
-    
-    // If user has scrolled down at all, cancel
-    if (currentScrollTop > 0) {
+    // Must still be at top
+    if (container.scrollTop > 0) {
       isDragging.current = false;
-      wasAtTopOnStart.current = false;
       setPullDistance(0);
       return;
     }
@@ -74,37 +60,33 @@ export function GlobalPullToRefresh() {
     const touchY = e.touches[0].clientY;
     const pullDelta = touchY - touchStartY.current;
 
-    // Only activate if pulling DOWN and past minimum threshold
-    if (wasAtTopOnStart.current && currentScrollTop === 0 && pullDelta > 10) {
-      // Prevent default to stop scroll bouncing
+    // Only activate if pulling DOWN
+    if (pullDelta > 5) {
+      // Prevent default scrolling when pulling down from top
       e.preventDefault();
       
-      // Apply resistance curve for smooth, natural feel
+      // Apply resistance curve for natural feel (less resistance = more natural)
       const resistance = 2.5;
       const distance = Math.min(pullDelta / resistance, maxPull);
       setPullDistance(distance);
-    } else if (pullDelta < 0) {
-      // User is scrolling up, cancel
+    } else if (pullDelta < -5) {
+      // User is scrolling up
       isDragging.current = false;
-      wasAtTopOnStart.current = false;
       setPullDistance(0);
     }
   }, [isRefreshing, maxPull, scrollContainerRef, isMobile]);
 
   const handleTouchEnd = useCallback(async () => {
-    if (!isDragging.current || !wasAtTopOnStart.current || !isMobile) {
+    if (!isDragging.current || !isMobile) {
       isDragging.current = false;
-      wasAtTopOnStart.current = false;
       setPullDistance(0);
       return;
     }
     
     isDragging.current = false;
-    const wasAtTop = wasAtTopOnStart.current;
-    wasAtTopOnStart.current = false;
 
     // Trigger refresh if pulled past threshold
-    if (pullDistance >= threshold && !isRefreshing && wasAtTop && isAtTop()) {
+    if (pullDistance >= threshold && !isRefreshing) {
       setIsRefreshing(true);
       setPullDistance(threshold); // Lock at threshold during refresh
       
@@ -117,80 +99,86 @@ export function GlobalPullToRefresh() {
         setTimeout(() => {
           setIsRefreshing(false);
           setPullDistance(0);
-        }, 600);
+        }, 500);
       }
     } else {
-      // Quick bounce back animation
+      // Quick bounce back
       setPullDistance(0);
     }
-  }, [pullDistance, threshold, isRefreshing, triggerRefresh, isAtTop, isMobile]);
+  }, [pullDistance, threshold, isRefreshing, triggerRefresh, isMobile]);
 
-  // Attach listeners to document
+  // Attach listeners to scroll container
   useEffect(() => {
     if (!isMobile) return;
+
+    const container = scrollContainerRef.current;
+    if (!container) return;
 
     const options: AddEventListenerOptions = { passive: false };
     const passiveOptions: AddEventListenerOptions = { passive: true };
     
-    document.addEventListener('touchstart', handleTouchStart, passiveOptions);
-    document.addEventListener('touchmove', handleTouchMove, options);
-    document.addEventListener('touchend', handleTouchEnd, passiveOptions);
-    document.addEventListener('touchcancel', handleTouchEnd, passiveOptions);
+    container.addEventListener('touchstart', handleTouchStart, passiveOptions);
+    container.addEventListener('touchmove', handleTouchMove, options);
+    container.addEventListener('touchend', handleTouchEnd, passiveOptions);
+    container.addEventListener('touchcancel', handleTouchEnd, passiveOptions);
 
     return () => {
-      document.removeEventListener('touchstart', handleTouchStart);
-      document.removeEventListener('touchmove', handleTouchMove);
-      document.removeEventListener('touchend', handleTouchEnd);
-      document.removeEventListener('touchcancel', handleTouchEnd);
+      container.removeEventListener('touchstart', handleTouchStart);
+      container.removeEventListener('touchmove', handleTouchMove);
+      container.removeEventListener('touchend', handleTouchEnd);
+      container.removeEventListener('touchcancel', handleTouchEnd);
     };
-  }, [handleTouchStart, handleTouchMove, handleTouchEnd, isMobile]);
+  }, [handleTouchStart, handleTouchMove, handleTouchEnd, scrollContainerRef, isMobile]);
 
   // Don't render on desktop
-  if (!isMobile) return null;
+  if (!isMobile) return <>{children}</>;
 
   const progress = Math.min(pullDistance / threshold, 1);
   const isOverThreshold = pullDistance >= threshold;
   const spinnerRotation = progress * 360;
-  const opacity = Math.min(pullDistance / 20, 1);
 
-  // Only show indicator if there's pull distance or refreshing
-  if (pullDistance === 0 && !isRefreshing) return null;
-
+  // Wrap content with pull transformation
   return (
-    <>
-      {/* Pull to Refresh Indicator - Fixed position */}
+    <div 
+      className="relative min-h-full pb-4"
+      style={{
+        transform: `translateY(${pullDistance}px)`,
+        transition: isRefreshing || pullDistance === 0
+          ? 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)'
+          : 'none',
+      }}
+    >
+      {/* Pull-to-Refresh Indicator - Positioned above visible area */}
       <div
-        className="fixed left-1/2 -translate-x-1/2 z-9999 flex flex-col items-center justify-center pointer-events-none"
+        className="absolute left-0 right-0 flex flex-col items-center justify-center pointer-events-none"
         style={{
-          top: isRefreshing ? '100px' : `${Math.max(pullDistance + 40, 40)}px`,
-          opacity: isRefreshing ? 1 : opacity,
-          transition: isRefreshing 
-            ? 'top 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease-out' 
-            : 'opacity 0.2s ease-out',
+          top: `-70px`, // Hidden above visible area
+          height: '70px',
+          opacity: Math.min(pullDistance / 30, 1),
         }}
       >
         {/* Spinner Circle */}
         <div
           className={cn(
-            "relative flex items-center justify-center rounded-full shadow-2xl backdrop-blur-lg border-2",
-            "transition-all duration-300 ease-out",
+            "relative flex items-center justify-center rounded-full shadow-lg backdrop-blur-md border-2",
+            "transition-all duration-200 ease-out",
             isRefreshing 
-              ? "w-14 h-14 bg-primary/95 border-primary/50" 
+              ? "w-11 h-11 bg-accent/95 border-accent/60" 
               : isOverThreshold
-              ? "w-14 h-14 bg-primary/90 border-primary/60 scale-110"
-              : "w-11 h-11 bg-primary/75 border-primary/40"
+              ? "w-11 h-11 bg-accent/90 border-accent/70 scale-105"
+              : "w-9 h-9 bg-accent/80 border-accent/50"
           )}
           style={{
             transform: isRefreshing 
               ? 'scale(1) rotate(0deg)' 
-              : `rotate(${spinnerRotation}deg) scale(${isOverThreshold ? 1.1 : 1})`,
-            animation: isRefreshing ? 'spin 1s cubic-bezier(0.4, 0, 0.2, 1) infinite' : undefined,
+              : `rotate(${spinnerRotation}deg) scale(${isOverThreshold ? 1.05 : 1})`,
+            animation: isRefreshing ? 'spin 1s linear infinite' : undefined,
           }}
         >
           <svg
             className={cn(
-              "text-primary-foreground transition-all duration-200",
-              isRefreshing ? "w-7 h-7" : isOverThreshold ? "w-6 h-6" : "w-5 h-5"
+              "text-accent-foreground transition-all duration-200",
+              isRefreshing ? "w-5 h-5" : isOverThreshold ? "w-5 h-5" : "w-4 h-4"
             )}
             fill="none"
             stroke="currentColor"
@@ -206,27 +194,32 @@ export function GlobalPullToRefresh() {
         </div>
 
         {/* Status Text */}
-        <div
-          className={cn(
-            "mt-3 text-xs font-bold px-4 py-2 rounded-full backdrop-blur-lg shadow-lg border",
-            "transition-all duration-300 ease-out",
-            isRefreshing 
-              ? "text-primary bg-primary/20 border-primary/30 scale-100" 
-              : isOverThreshold
-              ? "text-primary bg-primary/20 border-primary/30 scale-105"
-              : "text-muted-foreground bg-background/80 border-border/50 scale-95"
-          )}
-          style={{
-            opacity: pullDistance > 15 || isRefreshing ? 1 : pullDistance / 15,
-          }}
-        >
-          {isRefreshing 
-            ? "Refreshing odds..." 
-            : isOverThreshold 
-            ? "Release to refresh" 
-            : "Pull down"}
-        </div>
+        {pullDistance > 20 && (
+          <div
+            className={cn(
+              "mt-2 text-[10px] font-semibold px-3 py-1 rounded-full backdrop-blur-md shadow-md border",
+              "transition-all duration-200 ease-out",
+              isRefreshing 
+                ? "text-accent bg-accent/20 border-accent/30" 
+                : isOverThreshold
+                ? "text-accent bg-accent/20 border-accent/30"
+                : "text-muted-foreground bg-background/80 border-border/50"
+            )}
+            style={{
+              opacity: Math.min((pullDistance - 20) / 20, 1),
+            }}
+          >
+            {isRefreshing 
+              ? "Refreshing..." 
+              : isOverThreshold 
+              ? "Release to refresh" 
+              : "Pull down"}
+          </div>
+        )}
       </div>
+
+      {/* Page Content */}
+      {children}
 
       {/* Smooth spin animation */}
       <style jsx global>{`
@@ -235,6 +228,6 @@ export function GlobalPullToRefresh() {
           to { transform: rotate(360deg); }
         }
       `}</style>
-    </>
+    </div>
   );
 }

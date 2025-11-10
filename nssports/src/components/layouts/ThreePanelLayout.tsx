@@ -88,14 +88,15 @@ export function ThreePanelLayout({ children }: ThreePanelLayoutProps) {
                   top: 'calc(4rem + env(safe-area-inset-top))',
                   bottom: 'calc(5rem + env(safe-area-inset-bottom))',
                   WebkitOverflowScrolling: 'touch',
-                  overscrollBehavior: 'contain',
+                  overscrollBehavior: 'contain', // Prevent native overscroll
                   touchAction: 'pan-y', // Only allow vertical scrolling, prevent other touch gestures
                 }}
                 data-mobile-scroll
               >
-                <div className="min-h-full pb-4">
+                {/* Pull-to-Refresh integrated with content */}
+                <GlobalPullToRefresh>
                   {children}
-                </div>
+                </GlobalPullToRefresh>
               </div>
             ) : (
               /* Desktop: Scrollable content with proper header spacing */
@@ -129,7 +130,6 @@ export function ThreePanelLayout({ children }: ThreePanelLayoutProps) {
       {/* Mobile Components */}
       {isMobile && (
         <>
-          <GlobalPullToRefresh />
           <FloatingBetSlipButton />
           <MobileBetSlipPanel />
           <MobileSportsPanel />

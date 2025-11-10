@@ -8,11 +8,11 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 gsap.registerPlugin(ScrollTrigger);
 // ...existing code...
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
 export default function GamesPage() {
   const [totalGames, setTotalGames] = useState<number | null>(null);
-  const [refreshKey, setRefreshKey] = useState(0);
+  const gameListRefreshRef = useRef<(() => Promise<void>) | null>(null);
   const { registerRefreshHandler, unregisterRefreshHandler } = useRefresh();
   
   // ⭐ CRITICAL FIX: Enable streaming for real-time ODDS updates ONLY
@@ -40,9 +40,11 @@ export default function GamesPage() {
 
   // Manual refresh handler for pull-to-refresh (forces cache bypass)
   const handleRefresh = useCallback(async () => {
-    console.log('[GamesPage] 🔄 Manual refresh triggered - bypassing cache for fresh odds');
-    // Increment refresh key to force GameList remount with fresh data
-    setRefreshKey(prev => prev + 1);
+    console.log('[GamesPage] 🔄 Manual refresh triggered - calling GameList refresh');
+    // Call the GameList's internal refresh handler directly
+    if (gameListRefreshRef.current) {
+      await gameListRefreshRef.current();
+    }
   }, []);
 
   // Register refresh handler for pull-to-refresh
@@ -67,12 +69,11 @@ export default function GamesPage() {
 
         {/* Unified Games List: all leagues, upcoming games only */}
         <GameList 
-          key={refreshKey} 
           limit={100} 
           leagueId={undefined} 
           status={undefined} 
           onTotalGamesChange={setTotalGames}
-          bypassCache={refreshKey > 0}
+          onRefreshReady={(refreshFn) => { gameListRefreshRef.current = refreshFn; }}
         />
       </div>
     </div>
