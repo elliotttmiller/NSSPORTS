@@ -923,7 +923,7 @@ export default function OddsConfigPage() {
                   </div>
                   <div className="relative w-32 h-1.5 rounded-full bg-muted/40 overflow-hidden group">
                     <div 
-                      className="absolute left-0 top-0 h-full bg-gradient-to-r from-emerald-500 via-emerald-400 to-emerald-500 
+                      className="absolute left-0 top-0 h-full bg-linear-to-r from-emerald-500 via-emerald-400 to-emerald-500 
                                  transition-all duration-300 ease-out shadow-sm"
                       style={{ width: `${(config.playerPropsMargin / 20) * 100}%` }}
                     />
@@ -981,7 +981,7 @@ export default function OddsConfigPage() {
                   </div>
                   <div className="relative w-32 h-1.5 rounded-full bg-muted/40 overflow-hidden group">
                     <div 
-                      className="absolute left-0 top-0 h-full bg-gradient-to-r from-emerald-500 via-emerald-400 to-emerald-500 
+                      className="absolute left-0 top-0 h-full bg-linear-to-r from-emerald-500 via-emerald-400 to-emerald-500 
                                  transition-all duration-300 ease-out shadow-sm"
                       style={{ width: `${(config.gamePropsMargin / 20) * 100}%` }}
                     />
