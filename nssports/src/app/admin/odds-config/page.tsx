@@ -28,6 +28,7 @@ import {
   Calculator
 } from "lucide-react";
 import { toast } from "sonner";
+import AdvancedCalculators from "@/components/admin/AdvancedCalculators";
 
 interface LeagueOverride {
   league: string;
@@ -51,12 +52,26 @@ interface JuiceConfig {
   isActive: boolean;
 }
 
-// Preset templates
+// Preset templates - Enhanced with more strategies
 const PRESET_TEMPLATES = {
+  sharp: {
+    name: "Sharp/Reduced Juice",
+    icon: Shield,
+    description: "Ultra-low margins to attract sharp bettors - 2-3% juice",
+    color: "blue",
+    config: {
+      spreadMargin: 2.5,
+      moneylineMargin: 3.0,
+      totalMargin: 2.5,
+      playerPropsMargin: 5.0,
+      gamePropsMargin: 5.0,
+      liveGameMultiplier: 1.0,
+    }
+  },
   conservative: {
     name: "Conservative",
     icon: Shield,
-    description: "Lower margins, more competitive odds",
+    description: "Lower margins, more competitive odds - 3.5-4% juice",
     color: "blue",
     config: {
       spreadMargin: 3.5,
@@ -68,9 +83,9 @@ const PRESET_TEMPLATES = {
     }
   },
   standard: {
-    name: "Standard",
+    name: "Standard/Industry",
     icon: Target,
-    description: "Industry standard margins",
+    description: "Industry standard margins - 4.5-5% juice",
     color: "emerald",
     config: {
       spreadMargin: 4.5,
@@ -84,7 +99,7 @@ const PRESET_TEMPLATES = {
   aggressive: {
     name: "Aggressive",
     icon: Flame,
-    description: "Higher margins, maximum revenue",
+    description: "Higher margins, maximum revenue - 6-7% juice",
     color: "red",
     config: {
       spreadMargin: 6.0,
@@ -93,6 +108,20 @@ const PRESET_TEMPLATES = {
       playerPropsMargin: 10.0,
       gamePropsMargin: 10.0,
       liveGameMultiplier: 1.2,
+    }
+  },
+  premium: {
+    name: "Premium/Max Margin",
+    icon: TrendingUp,
+    description: "Maximum margins for premium markets - 7-8% juice",
+    color: "purple",
+    config: {
+      spreadMargin: 7.5,
+      moneylineMargin: 8.0,
+      totalMargin: 7.5,
+      playerPropsMargin: 12.0,
+      gamePropsMargin: 12.0,
+      liveGameMultiplier: 1.5,
     }
   }
 };
@@ -586,6 +615,14 @@ export default function OddsConfigPage() {
             >
               <Eye className="w-3 h-3 md:w-4 md:h-4" />
               <span className="hidden sm:inline">Preview & </span>Analytics
+            </TabsTrigger>
+            <TabsTrigger 
+              onClick={() => setActiveTab("calculators")}
+              data-state={activeTab === "calculators" ? "active" : "inactive"}
+              className="gap-1 md:gap-2 text-xs md:text-sm"
+            >
+              <Calculator className="w-3 h-3 md:w-4 md:h-4" />
+              Calculators
             </TabsTrigger>
           </TabsList>
 
@@ -1471,6 +1508,13 @@ export default function OddsConfigPage() {
               </div>
             </Card>
           </TabsContent>
+          )}
+
+          {/* Calculators Tab */}
+          {activeTab === "calculators" && (
+            <TabsContent className="space-y-4 md:space-y-6 mt-4 md:mt-6">
+              <AdvancedCalculators />
+            </TabsContent>
           )}
         </Tabs>
 
