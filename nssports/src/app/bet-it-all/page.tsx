@@ -87,7 +87,7 @@ export default function BetItAllPage() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="sticky z-10 bg-background/90 backdrop-blur-sm border-b border-border" style={{ top: '64px' }}>
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4">
+        <div className="container mx-auto px-4 sm:px-6 max-w-4xl py-4">
           <div className="flex items-center justify-between">
             <button
               onClick={() => router.back()}
@@ -109,7 +109,7 @@ export default function BetItAllPage() {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+      <div className="container mx-auto px-4 sm:px-6 max-w-4xl py-6 space-y-6">
         {/* Info Banner */}
         <div className="bg-accent/10 border border-accent/20 rounded-lg p-4">
           <div className="flex items-start gap-3">
@@ -161,9 +161,24 @@ export default function BetItAllPage() {
                   </div>
 
                   <div className="flex-1">
-                    <div className="font-medium">{bet!.selection}</div>
-                    <div className="text-sm text-muted-foreground">
+                    <div className="font-semibold text-foreground">
                       {bet!.game.awayTeam.shortName} @ {bet!.game.homeTeam.shortName}
+                    </div>
+                    <div className="text-sm text-muted-foreground capitalize flex items-center gap-2">
+                      <span>{bet!.betType === "spread" ? "Spread" : bet!.betType === "total" ? "Total" : bet!.betType}</span>
+                      <span className="text-accent">•</span>
+                      <span className="font-medium text-foreground">
+                        {bet!.betType === "spread" 
+                          ? (bet!.selection === "home" ? bet!.game.homeTeam.shortName : bet!.game.awayTeam.shortName)
+                          : bet!.betType === "total"
+                          ? (bet!.selection === "over" ? "Over" : "Under")
+                          : bet!.selection}
+                        {bet!.line !== null && bet!.line !== undefined && (
+                          <span className="ml-1">
+                            {bet!.betType === "spread" ? (bet!.line > 0 ? `+${bet!.line}` : bet!.line) : bet!.line}
+                          </span>
+                        )}
+                      </span>
                     </div>
                   </div>
 

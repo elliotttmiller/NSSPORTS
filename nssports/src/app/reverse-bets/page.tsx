@@ -67,7 +67,7 @@ export default function ReverseBetsPage() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="sticky z-10 bg-background/90 backdrop-blur-sm border-b border-border" style={{ top: '64px' }}>
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4">
+        <div className="container mx-auto px-4 sm:px-6 max-w-4xl py-4">
           <div className="flex items-center justify-between">
             <button
               onClick={() => router.back()}
@@ -89,7 +89,7 @@ export default function ReverseBetsPage() {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+      <div className="container mx-auto px-4 sm:px-6 max-w-4xl py-6 space-y-6">
         {/* Type Selector */}
         <div className="bg-card border border-border rounded-lg p-6">
           <h2 className="text-lg font-semibold mb-4">Reverse Type</h2>
@@ -141,9 +141,24 @@ export default function ReverseBetsPage() {
                 className="flex items-center justify-between p-4 bg-card rounded-lg border border-border"
               >
                 <div className="flex-1">
-                  <div className="font-medium">{bet.selection}</div>
-                  <div className="text-sm text-muted-foreground">
+                  <div className="font-semibold text-foreground">
                     {bet.game.awayTeam.shortName} @ {bet.game.homeTeam.shortName}
+                  </div>
+                  <div className="text-sm text-muted-foreground capitalize flex items-center gap-2">
+                    <span>{bet.betType === "spread" ? "Spread" : bet.betType === "total" ? "Total" : bet.betType}</span>
+                    <span className="text-accent">•</span>
+                    <span className="font-medium text-foreground">
+                      {bet.betType === "spread" 
+                        ? (bet.selection === "home" ? bet.game.homeTeam.shortName : bet.game.awayTeam.shortName)
+                        : bet.betType === "total"
+                        ? (bet.selection === "over" ? "Over" : "Under")
+                        : bet.selection}
+                      {bet.line !== null && bet.line !== undefined && (
+                        <span className="ml-1">
+                          {bet.betType === "spread" ? (bet.line > 0 ? `+${bet.line}` : bet.line) : bet.line}
+                        </span>
+                      )}
+                    </span>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -168,7 +183,7 @@ export default function ReverseBetsPage() {
 
         {/* Sequences Preview */}
         {sequences.length > 0 && (
-          <div className="bg-slate-900 rounded-lg p-6">
+          <div className="bg-card border border-border rounded-lg p-6">
             <h2 className="text-lg font-semibold mb-4">
               Generated Sequences ({sequences.length})
             </h2>
@@ -176,19 +191,30 @@ export default function ReverseBetsPage() {
               {sequences.slice(0, 10).map((seq, index) => (
                 <div
                   key={index}
-                  className="flex items-center gap-2 p-3 bg-slate-800 rounded text-sm"
+                  className="flex items-center gap-2 p-3 bg-background rounded text-sm border border-border/50"
                 >
-                  <span className="text-slate-400">#{index + 1}</span>
-                  <span className="flex-1">
-                    {seq.map(id => {
+                  <span className="text-muted-foreground font-mono">#{index + 1}</span>
+                  <span className="flex-1 font-medium">
+                    {seq.map((id, idx) => {
                       const bet = betSlip.bets.find(b => b.id === id);
-                      return bet?.selection || id;
-                    }).join(" → ")}
+                      if (!bet) return id;
+                      const displaySelection = bet.betType === "spread" 
+                        ? (bet.selection === "home" ? bet.game.homeTeam.shortName : bet.game.awayTeam.shortName)
+                        : bet.betType === "total"
+                        ? (bet.selection === "over" ? "O" : "U")
+                        : bet.selection;
+                      return (
+                        <span key={id}>
+                          {idx > 0 && <span className="text-accent mx-1">→</span>}
+                          {displaySelection}
+                        </span>
+                      );
+                    })}
                   </span>
                 </div>
               ))}
               {sequences.length > 10 && (
-                <div className="text-center text-slate-500 text-sm py-2">
+                <div className="text-center text-muted-foreground text-sm py-2">
                   ... and {sequences.length - 10} more sequences
                 </div>
               )}

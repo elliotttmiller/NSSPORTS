@@ -82,7 +82,7 @@ export default function RoundRobinPage() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-background/90 backdrop-blur-sm border-b border-border" style={{ top: '64px' }}>
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4">
+        <div className="container mx-auto px-4 sm:px-6 max-w-4xl py-4">
           <div className="flex items-center justify-between">
             <button
               onClick={() => router.back()}
@@ -104,7 +104,7 @@ export default function RoundRobinPage() {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+      <div className="container mx-auto px-4 sm:px-6 max-w-4xl py-6 space-y-6">
         {/* Selections */}
         <div className="bg-card border border-border rounded-lg p-6">
           <div className="flex items-center justify-between mb-4">
@@ -123,9 +123,24 @@ export default function RoundRobinPage() {
                 className="flex items-center justify-between p-4 bg-card rounded-lg border border-border"
               >
                 <div className="flex-1">
-                  <div className="font-medium">{bet.selection}</div>
-                  <div className="text-sm text-muted-foreground">
+                  <div className="font-semibold text-foreground">
                     {bet.game.awayTeam.shortName} @ {bet.game.homeTeam.shortName}
+                  </div>
+                  <div className="text-sm text-muted-foreground capitalize flex items-center gap-2">
+                    <span>{bet.betType === "spread" ? "Spread" : bet.betType === "total" ? "Total" : bet.betType}</span>
+                    <span className="text-accent">•</span>
+                    <span className="font-medium text-foreground">
+                      {bet.betType === "spread" 
+                        ? (bet.selection === "home" ? bet.game.homeTeam.shortName : bet.game.awayTeam.shortName)
+                        : bet.betType === "total"
+                        ? (bet.selection === "over" ? "Over" : "Under")
+                        : bet.selection}
+                      {bet.line !== null && bet.line !== undefined && (
+                        <span className="ml-1">
+                          {bet.betType === "spread" ? (bet.line > 0 ? `+${bet.line}` : bet.line) : bet.line}
+                        </span>
+                      )}
+                    </span>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
