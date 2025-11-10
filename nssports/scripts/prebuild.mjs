@@ -60,16 +60,59 @@ async function removeIfExists(path, name) {
   
   if (await pathExists(fullPath)) {
     try {
+      // Get size before deletion for reporting
+      let sizeMB = 0;
+      try {
+        const { execSync } = await import('child_process');
+        if (process.platform === 'win32') {
+          // Windows - use PowerShell to get folder size
+          const cmd = `powershell -Command "(Get-ChildItem '${fullPath}' -Recurse -File -ErrorAction SilentlyContinue | Measure-Object -Property Length -Sum).Sum / 1MB"`;
+          const output = execSync(cmd, { encoding: 'utf8' });
+          sizeMB = parseFloat(output) || 0;
+        }
+      } catch {
+        // Ignore size calculation errors
+      }
+      
       await rm(fullPath, { recursive: true, force: true });
-      log.success(`Cleared: ${name}`);
-      return true;
+      
+      if (sizeMB > 0) {
+        log.success(`Cleared: ${name} (${sizeMB.toFixed(2)} MB)`);
+      } else {
+        log.success(`Cleared: ${name}`);
+      }
+      return { cleared: true, size: sizeMB };
     } catch (error) {
       log.error(`Failed to clear ${name}: ${error.message}`);
-      return false;
+      return { cleared: false, size: 0 };
     }
   } else {
     log.info(`Skipped: ${name} (doesn't exist)`);
-    return false;
+    return { cleared: false, size: 0 };
+  }
+}
+
+/**
+ * Check available disk space (Windows only)
+ */
+async function checkDiskSpace() {
+  if (process.platform !== 'win32') return;
+  
+  try {
+    const { execSync } = await import('child_process');
+    const cmd = `powershell -Command "(Get-PSDrive C).Free / 1GB"`;
+    const output = execSync(cmd, { encoding: 'utf8' });
+    const freeGB = parseFloat(output);
+    
+    if (!isNaN(freeGB)) {
+      if (freeGB < 2) {
+        log.warning(`Low disk space: ${freeGB.toFixed(2)} GB free (recommend 5+ GB for builds)`);
+      } else {
+        log.info(`Disk space available: ${freeGB.toFixed(2)} GB`);
+      }
+    }
+  } catch {
+    // Ignore disk space check errors
   }
 }
 
@@ -79,8 +122,12 @@ async function removeIfExists(path, name) {
 async function prebuild() {
   log.header('🧹 PREBUILD: Clearing All Caches');
   
+  // Check disk space first
+  await checkDiskSpace();
+  
   const startTime = Date.now();
   let clearedCount = 0;
+  let totalSpaceFreed = 0;
   
   // List of cache directories to clear
   const cachesToClear = [
@@ -110,20 +157,42 @@ async function prebuild() {
     
     // Vercel cache (if exists)
     { path: '.vercel', name: 'Vercel cache' },
+    
+    // Webpack cache (legacy builds)
+    { path: 'node_modules/.cache/webpack', name: 'Webpack cache' },
+    
+    // Babel cache
+    { path: 'node_modules/.cache/babel-loader', name: 'Babel cache' },
+    
+    // Next.js trace files
+    { path: '.next/trace', name: 'Next.js trace files' },
+    
+    // Build info files
+    { path: '.next/build-manifest.json', name: 'Build manifest' },
+    { path: '.next/build-id', name: 'Build ID' },
+    
+    // TypeScript incremental build
+    { path: '.tsbuildinfo', name: 'TS build info' },
   ];
   
   log.info(`Scanning ${cachesToClear.length} cache locations...\n`);
   
   // Clear all caches
   for (const cache of cachesToClear) {
-    const cleared = await removeIfExists(cache.path, cache.name);
-    if (cleared) clearedCount++;
+    const result = await removeIfExists(cache.path, cache.name);
+    if (result.cleared) {
+      clearedCount++;
+      totalSpaceFreed += result.size;
+    }
   }
   
   const duration = ((Date.now() - startTime) / 1000).toFixed(2);
   
   log.header('✨ PREBUILD COMPLETE');
   log.info(`Cleared ${clearedCount} cache location(s) in ${duration}s`);
+  if (totalSpaceFreed > 0) {
+    log.success(`Freed ${totalSpaceFreed.toFixed(2)} MB of disk space`);
+  }
   log.info('Ready for fresh build!\n');
   
   // Regenerate Prisma client after clearing cache
