@@ -214,10 +214,10 @@ export function Header() {
     }}
   >
       {/* Desktop Centered Logo */}
-      <div className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+      <div className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
         <Link
           href="/"
-          className="flex items-center space-x-1 hover:opacity-80 transition-opacity"
+          className="flex items-center space-x-1 hover:opacity-80 transition-opacity cursor-pointer"
         >
           <Image
             src="/mn-outline.svg"
@@ -232,10 +232,10 @@ export function Header() {
       </div>
 
       {/* Mobile Centered Logo */}
-      <div className="md:hidden absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+      <div className="md:hidden absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
         <Link
           href="/"
-          className="flex items-center space-x-2 hover:opacity-80 transition-opacity"
+          className="flex items-center space-x-2 hover:opacity-80 transition-opacity cursor-pointer"
         >
           <Image
             src="/mn-outline.svg"
