@@ -623,94 +623,213 @@ export default function OddsConfigPage() {
                 Fine-tune profit margins for standard bet types using sliders or direct input.
               </p>
 
-              <div className="flex flex-row flex-wrap gap-4 items-center justify-between">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
                 {/* Spread Margin */}
-                <div className="flex flex-col items-center min-w-[120px]">
-                  <Label htmlFor="spreadMargin" className="text-xs font-medium mb-1">Spread</Label>
-                  <Input
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    max="20"
-                    value={config.spreadMargin}
-                    onChange={(e) => setConfig({ ...config, spreadMargin: parseFloat(e.target.value) || 0 })}
-                    className="w-14 text-center font-semibold h-7 mb-1"
-                  />
-                  <input
-                    type="range"
-                    min="0"
-                    max="15"
-                    step="0.1"
-                    value={config.spreadMargin}
-                    onChange={(e) => setConfig({ ...config, spreadMargin: parseFloat(e.target.value) })}
-                    className="w-20 h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
-                  />
+                <div className="flex flex-col items-center space-y-4">
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Spread</span>
+                  <div className="relative w-24">
+                    <input
+                      id="spreadMargin"
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      max="20"
+                      value={config.spreadMargin}
+                      onChange={(e) => setConfig({ ...config, spreadMargin: parseFloat(e.target.value) || 0 })}
+                      style={{ 
+                        lineHeight: '2.5rem',
+                        padding: '0',
+                        appearance: 'textfield'
+                      }}
+                      className="w-full h-10 text-center text-lg font-bold rounded-lg border-2 border-input bg-background 
+                                 hover:border-ring transition-colors
+                                 focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/20
+                                 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                    />
+                  </div>
+                  <div className="relative w-24 h-1.5 rounded-full bg-muted/40 overflow-hidden group">
+                    <div 
+                      className="absolute left-0 top-0 h-full bg-linear-to-r from-emerald-500 via-emerald-400 to-emerald-500 
+                                 transition-all duration-300 ease-out shadow-sm"
+                      style={{ width: `${(config.spreadMargin / 15) * 100}%` }}
+                    />
+                    <input
+                      type="range"
+                      min="0"
+                      max="15"
+                      step="0.1"
+                      value={config.spreadMargin}
+                      onChange={(e) => setConfig({ ...config, spreadMargin: parseFloat(e.target.value) })}
+                      className="absolute inset-0 w-full appearance-none cursor-pointer bg-transparent
+                                 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5
+                                 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white
+                                 [&::-webkit-slider-thumb]:cursor-grab [&::-webkit-slider-thumb]:shadow-lg
+                                 [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-emerald-500
+                                 [&::-webkit-slider-thumb]:transition-all [&::-webkit-slider-thumb]:duration-150
+                                 [&::-webkit-slider-thumb]:hover:scale-125 [&::-webkit-slider-thumb]:hover:shadow-xl
+                                 [&::-webkit-slider-thumb]:active:scale-110 [&::-webkit-slider-thumb]:active:cursor-grabbing
+                                 [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:rounded-full
+                                 [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:cursor-grab [&::-moz-range-thumb]:shadow-lg
+                                 [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-emerald-500
+                                 [&::-moz-range-thumb]:transition-all [&::-moz-range-thumb]:hover:scale-125"
+                    />
+                  </div>
                 </div>
+                
                 {/* Moneyline Margin */}
-                <div className="flex flex-col items-center min-w-[120px]">
-                  <Label htmlFor="moneylineMargin" className="text-xs font-medium mb-1">Moneyline</Label>
-                  <Input
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    max="20"
-                    value={config.moneylineMargin}
-                    onChange={(e) => setConfig({ ...config, moneylineMargin: parseFloat(e.target.value) || 0 })}
-                    className="w-14 text-center font-semibold h-7 mb-1"
-                  />
-                  <input
-                    type="range"
-                    min="0"
-                    max="15"
-                    step="0.1"
-                    value={config.moneylineMargin}
-                    onChange={(e) => setConfig({ ...config, moneylineMargin: parseFloat(e.target.value) })}
-                    className="w-20 h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
-                  />
+                <div className="flex flex-col items-center space-y-4">
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Moneyline</span>
+                  <div className="relative w-24">
+                    <input
+                      id="moneylineMargin"
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      max="20"
+                      value={config.moneylineMargin}
+                      onChange={(e) => setConfig({ ...config, moneylineMargin: parseFloat(e.target.value) || 0 })}
+                      style={{ 
+                        lineHeight: '2.5rem',
+                        padding: '0',
+                        appearance: 'textfield'
+                      }}
+                      className="w-full h-10 text-center text-lg font-bold rounded-lg border-2 border-input bg-background 
+                                 hover:border-ring transition-colors
+                                 focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/20
+                                 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                    />
+                  </div>
+                  <div className="relative w-24 h-1.5 rounded-full bg-muted/40 overflow-hidden group">
+                    <div 
+                      className="absolute left-0 top-0 h-full bg-linear-to-r from-emerald-500 via-emerald-400 to-emerald-500 
+                                 transition-all duration-300 ease-out shadow-sm"
+                      style={{ width: `${(config.moneylineMargin / 15) * 100}%` }}
+                    />
+                    <input
+                      type="range"
+                      min="0"
+                      max="15"
+                      step="0.1"
+                      value={config.moneylineMargin}
+                      onChange={(e) => setConfig({ ...config, moneylineMargin: parseFloat(e.target.value) })}
+                      className="absolute inset-0 w-full appearance-none cursor-pointer bg-transparent
+                                 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5
+                                 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white
+                                 [&::-webkit-slider-thumb]:cursor-grab [&::-webkit-slider-thumb]:shadow-lg
+                                 [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-emerald-500
+                                 [&::-webkit-slider-thumb]:transition-all [&::-webkit-slider-thumb]:duration-150
+                                 [&::-webkit-slider-thumb]:hover:scale-125 [&::-webkit-slider-thumb]:hover:shadow-xl
+                                 [&::-webkit-slider-thumb]:active:scale-110 [&::-webkit-slider-thumb]:active:cursor-grabbing
+                                 [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:rounded-full
+                                 [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:cursor-grab [&::-moz-range-thumb]:shadow-lg
+                                 [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-emerald-500
+                                 [&::-moz-range-thumb]:transition-all [&::-moz-range-thumb]:hover:scale-125"
+                    />
+                  </div>
                 </div>
+                
                 {/* Total Margin */}
-                <div className="flex flex-col items-center min-w-[120px]">
-                  <Label htmlFor="totalMargin" className="text-xs font-medium mb-1">Total</Label>
-                  <Input
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    max="20"
-                    value={config.totalMargin}
-                    onChange={(e) => setConfig({ ...config, totalMargin: parseFloat(e.target.value) || 0 })}
-                    className="w-14 text-center font-semibold h-7 mb-1"
-                  />
-                  <input
-                    type="range"
-                    min="0"
-                    max="15"
-                    step="0.1"
-                    value={config.totalMargin}
-                    onChange={(e) => setConfig({ ...config, totalMargin: parseFloat(e.target.value) })}
-                    className="w-20 h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
-                  />
+                <div className="flex flex-col items-center space-y-4">
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Total</span>
+                  <div className="relative w-24">
+                    <input
+                      id="totalMargin"
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      max="20"
+                      value={config.totalMargin}
+                      onChange={(e) => setConfig({ ...config, totalMargin: parseFloat(e.target.value) || 0 })}
+                      style={{ 
+                        lineHeight: '2.5rem',
+                        padding: '0',
+                        appearance: 'textfield'
+                      }}
+                      className="w-full h-10 text-center text-lg font-bold rounded-lg border-2 border-input bg-background 
+                                 hover:border-ring transition-colors
+                                 focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/20
+                                 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                    />
+                  </div>
+                  <div className="relative w-24 h-1.5 rounded-full bg-muted/40 overflow-hidden group">
+                    <div 
+                      className="absolute left-0 top-0 h-full bg-linear-to-r from-emerald-500 via-emerald-400 to-emerald-500 
+                                 transition-all duration-300 ease-out shadow-sm"
+                      style={{ width: `${(config.totalMargin / 15) * 100}%` }}
+                    />
+                    <input
+                      type="range"
+                      min="0"
+                      max="15"
+                      step="0.1"
+                      value={config.totalMargin}
+                      onChange={(e) => setConfig({ ...config, totalMargin: parseFloat(e.target.value) })}
+                      className="absolute inset-0 w-full appearance-none cursor-pointer bg-transparent
+                                 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5
+                                 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white
+                                 [&::-webkit-slider-thumb]:cursor-grab [&::-webkit-slider-thumb]:shadow-lg
+                                 [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-emerald-500
+                                 [&::-webkit-slider-thumb]:transition-all [&::-webkit-slider-thumb]:duration-150
+                                 [&::-webkit-slider-thumb]:hover:scale-125 [&::-webkit-slider-thumb]:hover:shadow-xl
+                                 [&::-webkit-slider-thumb]:active:scale-110 [&::-webkit-slider-thumb]:active:cursor-grabbing
+                                 [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:rounded-full
+                                 [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:cursor-grab [&::-moz-range-thumb]:shadow-lg
+                                 [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-emerald-500
+                                 [&::-moz-range-thumb]:transition-all [&::-moz-range-thumb]:hover:scale-125"
+                    />
+                  </div>
                 </div>
+                
                 {/* Live Multiplier */}
-                <div className="flex flex-col items-center min-w-[120px]">
-                  <Label htmlFor="liveMultiplier" className="text-xs font-medium mb-1">Live Mult</Label>
-                  <Input
-                    type="number"
-                    step="0.1"
-                    min="1"
-                    max="2"
-                    value={config.liveGameMultiplier}
-                    onChange={(e) => setConfig({ ...config, liveGameMultiplier: parseFloat(e.target.value) || 1 })}
-                    className="w-14 text-center font-semibold h-7 mb-1"
-                  />
-                  <input
-                    type="range"
-                    min="1"
-                    max="2"
-                    step="0.01"
-                    value={config.liveGameMultiplier}
-                    onChange={(e) => setConfig({ ...config, liveGameMultiplier: parseFloat(e.target.value) })}
-                    className="w-20 h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
-                  />
+                <div className="flex flex-col items-center space-y-4">
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Live Mult</span>
+                  <div className="relative w-24">
+                    <input
+                      id="liveMultiplier"
+                      type="number"
+                      step="0.1"
+                      min="1"
+                      max="2"
+                      value={config.liveGameMultiplier}
+                      onChange={(e) => setConfig({ ...config, liveGameMultiplier: parseFloat(e.target.value) || 1 })}
+                      style={{ 
+                        lineHeight: '2.5rem',
+                        padding: '0',
+                        appearance: 'textfield'
+                      }}
+                      className="w-full h-10 text-center text-lg font-bold rounded-lg border-2 border-input bg-background 
+                                 hover:border-ring transition-colors
+                                 focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/20
+                                 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                    />
+                  </div>
+                  <div className="relative w-24 h-1.5 rounded-full bg-muted/40 overflow-hidden group">
+                    <div 
+                      className="absolute left-0 top-0 h-full bg-linear-to-r from-emerald-500 via-emerald-400 to-emerald-500 
+                                 transition-all duration-300 ease-out shadow-sm"
+                      style={{ width: `${((config.liveGameMultiplier - 1) / 1) * 100}%` }}
+                    />
+                    <input
+                      type="range"
+                      min="1"
+                      max="2"
+                      step="0.01"
+                      value={config.liveGameMultiplier}
+                      onChange={(e) => setConfig({ ...config, liveGameMultiplier: parseFloat(e.target.value) })}
+                      className="absolute inset-0 w-full appearance-none cursor-pointer bg-transparent
+                                 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5
+                                 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white
+                                 [&::-webkit-slider-thumb]:cursor-grab [&::-webkit-slider-thumb]:shadow-lg
+                                 [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-emerald-500
+                                 [&::-webkit-slider-thumb]:transition-all [&::-webkit-slider-thumb]:duration-150
+                                 [&::-webkit-slider-thumb]:hover:scale-125 [&::-webkit-slider-thumb]:hover:shadow-xl
+                                 [&::-webkit-slider-thumb]:active:scale-110 [&::-webkit-slider-thumb]:active:cursor-grabbing
+                                 [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:rounded-full
+                                 [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:cursor-grab [&::-moz-range-thumb]:shadow-lg
+                                 [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-emerald-500
+                                 [&::-moz-range-thumb]:transition-all [&::-moz-range-thumb]:hover:scale-125"
+                    />
+                  </div>
                 </div>
               </div>
             </Card>
@@ -775,68 +894,120 @@ export default function OddsConfigPage() {
                 Props typically have higher margins due to increased complexity and risk.
               </p>
 
-              <div className="space-y-6 md:space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* Player Props */}
-                <div>
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-0 sm:justify-between mb-3">
-                    <Label htmlFor="playerPropsMargin" className="flex flex-wrap items-center gap-2 text-sm md:text-base">
-                      Player Props Margin
-                      <Badge variant="outline" className="text-[10px] md:text-xs">Standard: 7-10%</Badge>
-                    </Label>
-                    <Input
+                <div className="flex flex-col items-center space-y-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Player Props</span>
+                    <Badge variant="outline" className="text-[9px]">7-10%</Badge>
+                  </div>
+                  <div className="relative w-32">
+                    <input
+                      id="playerPropsMargin"
                       type="number"
                       step="0.5"
                       min="0"
                       max="30"
                       value={config.playerPropsMargin}
                       onChange={(e) => setConfig({ ...config, playerPropsMargin: parseFloat(e.target.value) || 0 })}
-                      className="w-full sm:w-24 text-center font-semibold"
+                      style={{ 
+                        lineHeight: '2.5rem',
+                        padding: '0',
+                        appearance: 'textfield'
+                      }}
+                      className="w-full h-10 text-center text-lg font-bold rounded-lg border-2 border-input bg-background 
+                                 hover:border-ring transition-colors
+                                 focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/20
+                                 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                     />
                   </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="20"
-                    step="0.5"
-                    value={config.playerPropsMargin}
-                    onChange={(e) => setConfig({ ...config, playerPropsMargin: parseFloat(e.target.value) })}
-                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
-                  />
-                  <p className="text-[10px] md:text-xs text-muted-foreground mt-2">
-                    Applied to player stats bets (points, rebounds, assists, etc.)
+                  <div className="relative w-32 h-1.5 rounded-full bg-muted/40 overflow-hidden group">
+                    <div 
+                      className="absolute left-0 top-0 h-full bg-gradient-to-r from-emerald-500 via-emerald-400 to-emerald-500 
+                                 transition-all duration-300 ease-out shadow-sm"
+                      style={{ width: `${(config.playerPropsMargin / 20) * 100}%` }}
+                    />
+                    <input
+                      type="range"
+                      min="0"
+                      max="20"
+                      step="0.5"
+                      value={config.playerPropsMargin}
+                      onChange={(e) => setConfig({ ...config, playerPropsMargin: parseFloat(e.target.value) })}
+                      className="absolute inset-0 w-full appearance-none cursor-pointer bg-transparent
+                                 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5
+                                 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white
+                                 [&::-webkit-slider-thumb]:cursor-grab [&::-webkit-slider-thumb]:shadow-lg
+                                 [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-emerald-500
+                                 [&::-webkit-slider-thumb]:transition-all [&::-webkit-slider-thumb]:duration-150
+                                 [&::-webkit-slider-thumb]:hover:scale-125 [&::-webkit-slider-thumb]:hover:shadow-xl
+                                 [&::-webkit-slider-thumb]:active:scale-110 [&::-webkit-slider-thumb]:active:cursor-grabbing
+                                 [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:rounded-full
+                                 [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:cursor-grab [&::-moz-range-thumb]:shadow-lg
+                                 [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-emerald-500
+                                 [&::-moz-range-thumb]:transition-all [&::-moz-range-thumb]:hover:scale-125"
+                    />
+                  </div>
+                  <p className="text-[10px] text-muted-foreground text-center max-w-[200px]">
+                    Player stats bets (points, rebounds, assists)
                   </p>
                 </div>
 
-                <Separator />
-
                 {/* Game Props */}
-                <div>
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-0 sm:justify-between mb-3">
-                    <Label htmlFor="gamePropsMargin" className="flex flex-wrap items-center gap-2 text-sm md:text-base">
-                      Game Props Margin
-                      <Badge variant="outline" className="text-[10px] md:text-xs">Standard: 7-10%</Badge>
-                    </Label>
-                    <Input
+                <div className="flex flex-col items-center space-y-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Game Props</span>
+                    <Badge variant="outline" className="text-[9px]">7-10%</Badge>
+                  </div>
+                  <div className="relative w-32">
+                    <input
+                      id="gamePropsMargin"
                       type="number"
                       step="0.5"
                       min="0"
                       max="30"
                       value={config.gamePropsMargin}
                       onChange={(e) => setConfig({ ...config, gamePropsMargin: parseFloat(e.target.value) || 0 })}
-                      className="w-full sm:w-24 text-center font-semibold"
+                      style={{ 
+                        lineHeight: '2.5rem',
+                        padding: '0',
+                        appearance: 'textfield'
+                      }}
+                      className="w-full h-10 text-center text-lg font-bold rounded-lg border-2 border-input bg-background 
+                                 hover:border-ring transition-colors
+                                 focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/20
+                                 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                     />
                   </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="20"
-                    step="0.5"
-                    value={config.gamePropsMargin}
-                    onChange={(e) => setConfig({ ...config, gamePropsMargin: parseFloat(e.target.value) })}
-                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
-                  />
-                  <p className="text-[10px] md:text-xs text-muted-foreground mt-2">
-                    Applied to game props (team totals, quarters, halves, etc.)
+                  <div className="relative w-32 h-1.5 rounded-full bg-muted/40 overflow-hidden group">
+                    <div 
+                      className="absolute left-0 top-0 h-full bg-gradient-to-r from-emerald-500 via-emerald-400 to-emerald-500 
+                                 transition-all duration-300 ease-out shadow-sm"
+                      style={{ width: `${(config.gamePropsMargin / 20) * 100}%` }}
+                    />
+                    <input
+                      type="range"
+                      min="0"
+                      max="20"
+                      step="0.5"
+                      value={config.gamePropsMargin}
+                      onChange={(e) => setConfig({ ...config, gamePropsMargin: parseFloat(e.target.value) })}
+                      className="absolute inset-0 w-full appearance-none cursor-pointer bg-transparent
+                                 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5
+                                 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white
+                                 [&::-webkit-slider-thumb]:cursor-grab [&::-webkit-slider-thumb]:shadow-lg
+                                 [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-emerald-500
+                                 [&::-webkit-slider-thumb]:transition-all [&::-webkit-slider-thumb]:duration-150
+                                 [&::-webkit-slider-thumb]:hover:scale-125 [&::-webkit-slider-thumb]:hover:shadow-xl
+                                 [&::-webkit-slider-thumb]:active:scale-110 [&::-webkit-slider-thumb]:active:cursor-grabbing
+                                 [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:rounded-full
+                                 [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:cursor-grab [&::-moz-range-thumb]:shadow-lg
+                                 [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-emerald-500
+                                 [&::-moz-range-thumb]:transition-all [&::-moz-range-thumb]:hover:scale-125"
+                    />
+                  </div>
+                  <p className="text-[10px] text-muted-foreground text-center max-w-[200px]">
+                    Team totals, quarters, halves
                   </p>
                 </div>
               </div>
