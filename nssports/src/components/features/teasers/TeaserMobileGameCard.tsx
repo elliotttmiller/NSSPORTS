@@ -129,10 +129,10 @@ export const TeaserMobileGameCard = memo(({ game, teaserType }: Props) => {
       {/* Teaser Indicator Badge */}
       <div className="bg-accent/10 border-b border-accent/20 px-3 py-1.5">
         <div className="flex items-center justify-between text-xs">
-          <span className="text-accent font-semibold">
-            ⚡ {pointAdjustment > 0 ? '+' : ''}{pointAdjustment} Point Teaser
+          <span className="text-foreground font-semibold">
+            {pointAdjustment > 0 ? '+' : ''}{pointAdjustment} Point Teaser
           </span>
-          <span className="text-muted-foreground">
+          <span className="text-foreground/70">
             {teaserConfig.displayName}
           </span>
         </div>
@@ -142,7 +142,7 @@ export const TeaserMobileGameCard = memo(({ game, teaserType }: Props) => {
       <div className="p-3">
         {/* Time Header */}
         <div className="flex justify-between items-center mb-2">
-          <div className="text-xs text-muted-foreground font-semibold">{game.leagueId.toUpperCase()}</div>
+          <div className="text-xs text-foreground font-semibold">{game.leagueId.toUpperCase()}</div>
           <div className="text-xs text-muted-foreground font-medium">
             {timeString}
           </div>
@@ -217,14 +217,14 @@ export const TeaserMobileGameCard = memo(({ game, teaserType }: Props) => {
                     : "border-accent/30 hover:bg-accent/10 hover:border-accent/50 hover:shadow-md"
                 )}
               >
-                {/* Original Line - Strikethrough */}
-                <span className="text-[9px] text-muted-foreground/70 line-through leading-none">
+                {/* Original Line - Strikethrough White */}
+                <span className="text-[9px] text-foreground/50 line-through leading-none">
                   {awaySpread.original}
                 </span>
-                {/* Adjusted Line - Bold Accent */}
+                {/* Adjusted Line - Bold White */}
                 <span className={cn(
                   "text-xs font-bold leading-none mt-0.5",
-                  isBetInSlip("spread", "away") ? "text-white" : "text-accent"
+                  isBetInSlip("spread", "away") ? "text-white" : "text-foreground"
                 )}>
                   {awaySpread.adjusted}
                 </span>
@@ -247,14 +247,14 @@ export const TeaserMobileGameCard = memo(({ game, teaserType }: Props) => {
                     : "border-accent/30 hover:bg-accent/10 hover:border-accent/50 hover:shadow-md"
                 )}
               >
-                {/* Original Line - Strikethrough */}
-                <span className="text-[9px] text-muted-foreground/70 line-through leading-none">
+                {/* Original Line - Strikethrough White */}
+                <span className="text-[9px] text-foreground/50 line-through leading-none">
                   {homeSpread.original}
                 </span>
-                {/* Adjusted Line - Bold Accent */}
+                {/* Adjusted Line - Bold White */}
                 <span className={cn(
                   "text-xs font-bold leading-none mt-0.5",
-                  isBetInSlip("spread", "home") ? "text-white" : "text-accent"
+                  isBetInSlip("spread", "home") ? "text-white" : "text-foreground"
                 )}>
                   {homeSpread.adjusted}
                 </span>
@@ -280,16 +280,16 @@ export const TeaserMobileGameCard = memo(({ game, teaserType }: Props) => {
                     : "border-accent/30 hover:bg-accent/10 hover:border-accent/50 hover:shadow-md"
                 )}
               >
-                {/* Over Label */}
-                <span className="text-[9px] text-muted-foreground/70 leading-none">Over</span>
+                {/* Over Label - White */}
+                <span className="text-[9px] text-foreground/70 leading-none">Over</span>
                 {/* Original → Adjusted */}
                 <div className="flex items-center gap-1 mt-0.5">
-                  <span className="text-[8px] text-muted-foreground/70 line-through leading-none">
+                  <span className="text-[8px] text-foreground/50 line-through leading-none">
                     {overTotal.original}
                   </span>
                   <span className={cn(
                     "text-xs font-bold leading-none",
-                    isBetInSlip("total", "over") ? "text-white" : "text-accent"
+                    isBetInSlip("total", "over") ? "text-white" : "text-foreground"
                   )}>
                     {overTotal.adjusted}
                   </span>
@@ -313,16 +313,16 @@ export const TeaserMobileGameCard = memo(({ game, teaserType }: Props) => {
                     : "border-accent/30 hover:bg-accent/10 hover:border-accent/50 hover:shadow-md"
                 )}
               >
-                {/* Under Label */}
-                <span className="text-[9px] text-muted-foreground/70 leading-none">Under</span>
+                {/* Under Label - White */}
+                <span className="text-[9px] text-foreground/70 leading-none">Under</span>
                 {/* Original → Adjusted */}
                 <div className="flex items-center gap-1 mt-0.5">
-                  <span className="text-[8px] text-muted-foreground/70 line-through leading-none">
+                  <span className="text-[8px] text-foreground/50 line-through leading-none">
                     {underTotal.original}
                   </span>
                   <span className={cn(
                     "text-xs font-bold leading-none",
-                    isBetInSlip("total", "under") ? "text-white" : "text-accent"
+                    isBetInSlip("total", "under") ? "text-white" : "text-foreground"
                   )}>
                     {underTotal.adjusted}
                   </span>
@@ -332,8 +332,8 @@ export const TeaserMobileGameCard = memo(({ game, teaserType }: Props) => {
           </div>
         </div>
 
-        {/* Point Adjustment Reminder */}
-        <div className="mt-3 pt-2 border-t border-border/20 text-center text-[10px] text-accent/70">
+        {/* Point Adjustment Reminder - White Text */}
+        <div className="mt-3 pt-2 border-t border-border/20 text-center text-[10px] text-foreground/70">
           Lines adjusted by <span className="font-semibold">{pointAdjustment > 0 ? '+' : ''}{pointAdjustment} pts</span> • Odds: <span className="font-semibold">{teaserConfig.odds > 0 ? '+' : ''}{teaserConfig.odds}</span>
         </div>
       </div>

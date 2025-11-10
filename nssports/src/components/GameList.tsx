@@ -250,7 +250,8 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange, byp
 
   return (
   <div className="space-y-6" ref={containerRef} style={{ scrollBehavior: 'smooth', overscrollBehavior: 'contain' }}>
-      {isLoading && allGames.length === 0 ? (
+      {/* Show loading indicator for initial load OR during pull-to-refresh */}
+      {(isLoading && allGames.length === 0) || isRefreshing ? (
         <div className="text-center py-12">
           <div className="animate-spin w-8 h-8 border-2 border-accent border-t-transparent rounded-full mx-auto mb-4"></div>
           <p className="text-muted-foreground">Loading games...</p>
