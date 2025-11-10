@@ -62,14 +62,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         
         {/* Theme color for mobile browsers */}
         <meta name="theme-color" content="#0a0a0a" />
-        <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
-        <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0a0a" />
         
-        {/* Apple Touch Icons */}
+        {/* Apple Touch Icon */}
         <link rel="apple-touch-icon" href="/app/apple-touch-icon.png" />
-        <link rel="apple-touch-icon" sizes="152x152" href="/app/apple-touch-icon.png" />
-        <link rel="apple-touch-icon" sizes="180x180" href="/app/apple-touch-icon.png" />
-        <link rel="apple-touch-icon" sizes="167x167" href="/app/apple-touch-icon.png" />
         
         {/* Manifest */}
         <link rel="manifest" href="/manifest.webmanifest" />

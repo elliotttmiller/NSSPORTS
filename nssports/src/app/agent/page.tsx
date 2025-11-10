@@ -171,13 +171,12 @@ export default function AgentDashboard() {
   }
 
   return (
-    <div className="bg-background min-h-screen" style={{ paddingTop: 'calc(4rem + 1rem)' }}>
-      {/* Header - Mobile Optimized */}
+    <div className="bg-background min-h-full">
+      {/* Header - Seamless (not sticky) */}
       <motion.div 
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-card border-b border-border p-3 sm:p-4 sticky z-40 shadow-sm"
-        style={{ top: 'calc(4rem + 0.5rem)' }}
+        className="bg-card border-b border-border p-3 sm:p-4"
       >
         <h1 className="text-xl sm:text-2xl font-bold text-foreground">Agent Dashboard</h1>
         <p className="text-xs text-muted-foreground mt-1">Manage your players and balances</p>
