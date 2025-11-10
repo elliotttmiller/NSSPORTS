@@ -24,6 +24,18 @@ export async function POST(request: NextRequest) {
 
     logger.info('[Streaming API] Connecting to stream', { feed, leagueID, eventID });
 
+    // Check if streaming is enabled (All-Star plan feature)
+    if (!process.env.SPORTSGAMEODDS_STREAMING_ENABLED || process.env.SPORTSGAMEODDS_STREAMING_ENABLED === 'false') {
+      logger.info('[Streaming API] Streaming disabled - Pro plan uses REST API polling');
+      return successResponse({
+        status: 'disabled',
+        message: 'Streaming requires All-Star plan. Using REST API polling.',
+        feed,
+        leagueID,
+        eventID,
+      });
+    }
+
     const streamingService = getStreamingService();
     
     await streamingService.connect(feed, {

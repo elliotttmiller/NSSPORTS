@@ -11,6 +11,7 @@ import { BetCardSingle, BetCardParlay } from "@/components/bets/BetCard";
 import { CustomBetSlipContent } from "./CustomBetSlipContent";
 import { TeaserSelector } from "@/components/betting/TeaserSelector";
 import { validateBetPlacement } from "@/lib/betting-rules";
+import { getTeaserConfig, calculateAdjustedLine } from "@/types/teaser";
 
 export function BetSlipPanel() {
   const { betSlip, removeBet, updateStake, setBetType, clearBetSlip } = useBetSlip();
@@ -450,22 +451,69 @@ export function BetSlipPanel() {
               <div className="rounded-lg border border-border bg-card p-4">
                 <h4 className="text-sm font-medium mb-3">Teaser Legs ({betSlip.bets.length})</h4>
                 <div className="space-y-2">
-                  {betSlip.bets.map((bet) => (
-                    <div key={bet.id} className="flex justify-between items-center text-xs p-2 bg-background/50 rounded">
-                      <div className="flex-1">
-                        <div className="font-medium">{bet.game.awayTeam.shortName} @ {bet.game.homeTeam.shortName}</div>
-                        <div className="text-muted-foreground">{bet.betType} - {bet.selection}</div>
+                  {betSlip.bets.map((bet) => {
+                    // Get the teaser configuration
+                    const config = getTeaserConfig(betSlip.teaserType as import("@/types/teaser").TeaserType);
+                    
+                    // Determine point adjustment based on league
+                    const leagueId = bet.game?.leagueId?.toUpperCase();
+                    const isNBA = leagueId === "NBA" || leagueId === "NCAAB";
+                    const pointAdjustment = isNBA && config.nbaPointAdjustment 
+                      ? config.nbaPointAdjustment 
+                      : config.pointAdjustment;
+                    
+                    // Calculate adjusted line
+                    const adjustedLine = bet.line !== undefined && bet.line !== null
+                      ? calculateAdjustedLine(
+                          bet.line,
+                          bet.selection,
+                          pointAdjustment,
+                          bet.betType as "spread" | "total"
+                        )
+                      : null;
+                    
+                    const originalLine = bet.line !== undefined && bet.line !== null ? bet.line : null;
+                    
+                    return (
+                      <div key={bet.id} className="flex justify-between items-start text-xs p-3 bg-background/50 rounded border border-border/50">
+                        <div className="flex-1 space-y-1">
+                          <div className="font-medium text-foreground">
+                            {bet.game.awayTeam.shortName} @ {bet.game.homeTeam.shortName}
+                          </div>
+                          <div className="text-muted-foreground capitalize">
+                            {bet.betType === "spread" ? "Spread" : bet.betType === "total" ? "Total" : bet.betType}
+                          </div>
+                          <div className="flex items-center gap-2 text-xs">
+                            <span className="text-accent font-semibold">
+                              {bet.betType === "spread" 
+                                ? (bet.selection === "home" ? bet.game.homeTeam.shortName : bet.game.awayTeam.shortName)
+                                : bet.betType === "total"
+                                ? (bet.selection === "over" ? "Over" : "Under")
+                                : bet.selection}
+                            </span>
+                            {adjustedLine !== null && originalLine !== null && (
+                              <span className="text-green-400 font-semibold">
+                                {adjustedLine > 0 ? "+" : ""}{adjustedLine}
+                              </span>
+                            )}
+                          </div>
+                          {adjustedLine !== null && originalLine !== null && (
+                            <div className="text-[10px] text-muted-foreground">
+                              Original: {originalLine > 0 ? "+" : ""}{originalLine} → Adjusted by {pointAdjustment} pts
+                            </div>
+                          )}
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeBet(bet.id)}
+                          className="h-6 w-6 p-0 shrink-0"
+                        >
+                          <X size={12} />
+                        </Button>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeBet(bet.id)}
-                        className="h-6 w-6 p-0"
-                      >
-                        <X size={12} />
-                      </Button>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
                 
                 <Separator className="my-3" />

@@ -95,19 +95,30 @@ export function StreamingProvider({ children }: StreamingProviderProps) {
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to connect to streaming: ${response.statusText}`);
+        const errorData = await response.json().catch(() => ({ error: response.statusText }));
+        throw new Error(`Failed to connect to streaming: ${errorData.error || response.statusText}`);
       }
 
       const data = await response.json();
+      
+      // Check if streaming was actually enabled (might be disabled on Pro plan)
+      if (data.status === 'disabled' || data.status === 'unavailable') {
+        logger.info('[Streaming] Streaming not available - using REST API polling', data);
+        setIsStreaming(false);
+        setIsConnected(false);
+        return; // Exit gracefully without error
+      }
+      
       logger.info('[Streaming] Connected to streaming service', data);
       setIsConnected(true);
       setConnectionState('connected');
 
     } catch (error) {
-      logger.error('[Streaming] Failed to start streaming', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.warn('[Streaming] Could not start streaming, falling back to REST polling', { error: errorMessage });
       setIsStreaming(false);
       setIsConnected(false);
-      throw error;
+      // Don't throw - let the app fall back to REST API polling gracefully
     }
   }, [isStreaming]);
 

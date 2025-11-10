@@ -152,7 +152,13 @@ export class StreamingService {
       logger.info('[Streaming] Streaming mode', { mode: this.streamingMode });
 
       // Dynamically import Pusher (only when needed)
-      const PusherConstructor = await this.loadPusher();
+      let PusherConstructor;
+      try {
+        PusherConstructor = await this.loadPusher();
+      } catch (pusherError) {
+        logger.error('[Streaming] Failed to load Pusher library', pusherError);
+        throw new Error('Pusher library not available. Install pusher-js: npm install pusher-js');
+      }
       
       // Get stream connection info from API (Step 1 - Official Pattern)
       const streamInfo = await this.getStreamConnectionInfo(feed, options);

@@ -98,7 +98,7 @@ export default function TeasersPage() {
   if (!selectedTeaserType) {
     return (
       <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-6 max-w-4xl">
+        <div className="container mx-auto px-4 sm:px-6 max-w-4xl" style={{ paddingTop: '80px' }}>
           {/* Header */}
           <div className="flex items-center gap-4 mb-6">
             <Button
@@ -109,7 +109,7 @@ export default function TeasersPage() {
             >
               <ArrowLeft size={20} />
             </Button>
-            <h1 className="text-2xl font-bold">Teaser Bets</h1>
+            <h1 className="text-xl sm:text-2xl font-bold">Teaser Bets</h1>
           </div>
           
           {/* Info Card */}
@@ -203,9 +203,9 @@ export default function TeasersPage() {
   
   return (
     <div className="min-h-screen bg-background pb-32">
-      <div className="container mx-auto px-4 py-6">
+      <div className="container mx-auto px-4 sm:px-6" style={{ paddingTop: '80px' }}>
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div className="flex items-center gap-4">
             <Button
               variant="ghost"
@@ -216,7 +216,7 @@ export default function TeasersPage() {
               <ArrowLeft size={20} />
             </Button>
             <div>
-              <h1 className="text-2xl font-bold">{teaserConfig.displayName}</h1>
+              <h1 className="text-xl sm:text-2xl font-bold">{teaserConfig.displayName}</h1>
               <p className="text-sm text-muted-foreground">
                 {teaserConfig.pointAdjustment} point adjustment • {teaserConfig.odds > 0 ? '+' : ''}{teaserConfig.odds} odds
               </p>

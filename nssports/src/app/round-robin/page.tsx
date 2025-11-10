@@ -79,24 +79,24 @@ export default function RoundRobinPage() {
   const canPlace = betSlip.bets.length >= 3 && selectedTypes.length > 0 && stakeValue > 0;
 
   return (
-    <div className="min-h-screen bg-linear-to-b from-slate-950 to-slate-900 text-white">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-slate-950/90 backdrop-blur-sm border-b border-slate-800">
-        <div className="max-w-4xl mx-auto px-4 py-4">
+      <div className="sticky top-0 z-10 bg-background/90 backdrop-blur-sm border-b border-border" style={{ top: '64px' }}>
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between">
             <button
               onClick={() => router.back()}
-              className="flex items-center gap-2 text-slate-400 hover:text-white"
+              className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
             >
               <ArrowLeft size={20} />
-              Back
+              <span className="hidden sm:inline">Back</span>
             </button>
-            <h1 className="text-xl font-bold">Round Robin Builder</h1>
+            <h1 className="text-lg sm:text-xl font-bold">Round Robin Builder</h1>
             <Button
               onClick={() => clearBetSlip()}
               variant="ghost"
               size="sm"
-              className="text-slate-400"
+              className="text-muted-foreground hover:text-foreground"
             >
               Clear All
             </Button>
@@ -104,9 +104,9 @@ export default function RoundRobinPage() {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6">
         {/* Selections */}
-        <div className="bg-slate-900 rounded-lg p-6">
+        <div className="bg-card border border-border rounded-lg p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold">
               Your Selections ({betSlip.bets.length})
@@ -132,7 +132,7 @@ export default function RoundRobinPage() {
                   <Badge className="bg-accent text-accent-foreground">{formatOdds(bet.odds)}</Badge>
                   <button
                     onClick={() => removeBet(bet.id)}
-                    className="text-muted-foreground hover:text-destructive"
+                    className="text-muted-foreground hover:text-destructive transition-colors"
                   >
                     <X size={20} />
                   </button>
@@ -164,10 +164,10 @@ export default function RoundRobinPage() {
                     disabled={isDisabled}
                     className={`p-4 rounded-lg border-2 transition-all ${
                       selectedTypes.includes(key as RoundRobinType)
-                        ? "border-accent bg-accent/10"
+                        ? "border-accent bg-accent/10 text-accent-foreground"
                         : isDisabled
-                        ? "border-border bg-card/50 opacity-50 cursor-not-allowed"
-                        : "border-border hover:border-accent/50"
+                        ? "border-border bg-muted/50 opacity-50 cursor-not-allowed"
+                        : "border-border hover:border-accent/50 hover:bg-accent/5"
                     }`}
                   >
                     <div className="font-semibold">{config.displayName}</div>

@@ -13,7 +13,7 @@ import {
   RadioButton,
   CaretDown,
   CaretRight,
-  DotsThree
+  List
 } from "@phosphor-icons/react/dist/ssr";
 import type { Sport } from "@/types";
 import { getSports } from "@/services/api";
@@ -26,6 +26,7 @@ const navItems = [
   { href: "/live", label: "Live", icon: RadioButton },
   { href: "/my-bets", label: "My Bets", icon: ChartLine },
   { href: "/account", label: "Account", icon: User },
+  { href: null, label: "Other Bets", icon: List, expandable: true },
 ];
 
 // Other bet types (same as mobile)
@@ -125,79 +126,88 @@ export function SideNavPanel() {
   };
 
   return (
-    <div className="h-full w-full overflow-y-auto p-4">
-      <div className="space-y-2">
-        <h2 className="text-lg font-semibold mb-4 px-3">Navigation</h2>
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = pathname === item.href;
-          
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-md transition-all duration-300 ease-in-out shadow-sm hover:shadow-lg hover:-translate-y-1 hover:scale-[1.04] active:scale-95 focus-within:ring-2 focus-within:ring-accent/40 cursor-pointer",
-                isActive
-                  ? "bg-accent text-accent-foreground font-medium"
-                  : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
-              )}
-            >
-              <Icon size={20} weight={isActive ? "fill" : "regular"} />
-              <span>{item.label}</span>
-            </Link>
-          );
-        })}
-      </div>
-
-      {/* Other Bet Types Section */}
-      <div className="mt-8 space-y-2">
-        <button
-          className="flex items-center gap-2 px-3 py-2 w-full text-left rounded-md hover:bg-accent/20 transition-colors"
-          onClick={() => setExpandedOther(!expandedOther)}
-          aria-expanded={expandedOther}
-        >
-          {expandedOther ? <CaretDown size={16} /> : <CaretRight size={16} />}
-          <DotsThree size={20} weight="bold" />
-          <span className="font-medium">Other</span>
-        </button>
-        
-        {/* Other bet types dropdown */}
-        {expandedOther && (
-          <div className="ml-4 space-y-1">
-            {otherBetTypes.map((betType) => (
-              <button
-                key={betType.id}
-                onClick={() => {
-                  if (betType.route) {
-                    router.push(betType.route);
-                  } else {
-                    toast.info(`${betType.name} coming soon!`, {
-                      description: "This bet type is under development",
-                      duration: 3000,
-                    });
-                  }
-                }}
+    <div className="h-full w-full flex flex-col overflow-hidden">
+      <div className="flex-1 overflow-y-auto p-4">
+        <div className="space-y-2">
+          <h2 className="text-lg font-semibold mb-4 px-3">Navigation</h2>
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = item.href ? pathname === item.href : false;
+            
+            // Handle expandable "Other" nav item
+            if (item.expandable) {
+              return (
+                <div key={item.label}>
+                  <button
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2.5 rounded-md transition-all duration-300 ease-in-out shadow-sm hover:shadow-lg hover:-translate-y-1 hover:scale-[1.04] active:scale-95 focus-within:ring-2 focus-within:ring-accent/40 cursor-pointer w-full",
+                      expandedOther
+                        ? "bg-accent/50 text-foreground"
+                        : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+                    )}
+                    onClick={() => setExpandedOther(!expandedOther)}
+                    aria-expanded={expandedOther}
+                  >
+                    {expandedOther ? <CaretDown size={16} className="shrink-0" /> : <CaretRight size={16} className="shrink-0" />}
+                    <span>{item.label}</span>
+                  </button>
+                  
+                  {/* Other bet types dropdown */}
+                  {expandedOther && (
+                    <div className="ml-8 mt-1 space-y-1">
+                      {otherBetTypes.map((betType) => (
+                        <button
+                          key={betType.id}
+                          onClick={() => {
+                            if (betType.route) {
+                              router.push(betType.route);
+                            } else {
+                              toast.info(`${betType.name} coming soon!`, {
+                                description: "This bet type is under development",
+                                duration: 3000,
+                              });
+                            }
+                          }}
+                          className={cn(
+                            "flex flex-col gap-1 px-3 py-2 rounded-md text-sm transition-colors w-full text-left",
+                            pathname === betType.route
+                              ? "bg-accent/70 text-accent-foreground font-medium"
+                              : "text-muted-foreground hover:bg-accent/30 hover:text-foreground"
+                          )}
+                        >
+                          <span className="font-medium">{betType.name}</span>
+                          <span className="text-xs text-muted-foreground">{betType.description}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+            
+            return (
+              <Link
+                key={item.href}
+                href={item.href!}
                 className={cn(
-                  "flex flex-col gap-1 px-3 py-2 rounded-md text-sm transition-colors w-full text-left",
-                  pathname === betType.route
-                    ? "bg-accent/70 text-accent-foreground font-medium"
-                    : "text-muted-foreground hover:bg-accent/30 hover:text-foreground"
+                  "flex items-center gap-3 px-3 py-2.5 rounded-md transition-all duration-300 ease-in-out shadow-sm hover:shadow-lg hover:-translate-y-1 hover:scale-[1.04] active:scale-95 focus-within:ring-2 focus-within:ring-accent/40 cursor-pointer",
+                  isActive
+                    ? "bg-accent text-accent-foreground font-medium"
+                    : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
                 )}
               >
-                <span className="font-medium">{betType.name}</span>
-                <span className="text-xs text-muted-foreground">{betType.description}</span>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
+                <Icon size={20} weight={isActive ? "fill" : "regular"} />
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
+        </div>
 
-      {/* Sports Section */}
-      <div className="mt-8 space-y-2">
-        <h3 className="text-sm font-semibold mb-3 px-3 text-muted-foreground uppercase">
-          Sports
-        </h3>
+        {/* Sports Section */}
+        <div className="mt-8 space-y-2">
+          <h3 className="text-sm font-semibold mb-3 px-3 text-muted-foreground uppercase">
+            Sports
+          </h3>
         {loading ? (
           <div className="px-3 py-2 text-sm text-muted-foreground">Loading sports...</div>
         ) : error ? (
@@ -251,6 +261,7 @@ export function SideNavPanel() {
           })
         )}
       </div>
+    </div>
     </div>
   );
 }

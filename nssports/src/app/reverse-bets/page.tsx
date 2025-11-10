@@ -66,22 +66,22 @@ export default function ReverseBetsPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-background/90 backdrop-blur-sm border-b border-border">
-        <div className="max-w-4xl mx-auto px-4 py-4">
+      <div className="sticky z-10 bg-background/90 backdrop-blur-sm border-b border-border" style={{ top: '64px' }}>
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between">
             <button
               onClick={() => router.back()}
               className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
             >
               <ArrowLeft size={20} />
-              Back
+              <span className="hidden sm:inline">Back</span>
             </button>
-            <h1 className="text-xl font-bold">Reverse Bet Builder</h1>
+            <h1 className="text-lg sm:text-xl font-bold">Reverse Bet Builder</h1>
             <Button
               onClick={() => clearBetSlip()}
               variant="ghost"
               size="sm"
-              className="text-slate-400"
+              className="text-muted-foreground hover:text-foreground"
             >
               Clear All
             </Button>
@@ -89,7 +89,7 @@ export default function ReverseBetsPage() {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6">
         {/* Type Selector */}
         <div className="bg-card border border-border rounded-lg p-6">
           <h2 className="text-lg font-semibold mb-4">Reverse Type</h2>
