@@ -26,6 +26,7 @@ interface AgentUser {
   balance: number;
   available: number;
   risk: number;
+  freePlay: number;
   lastBalanceUpdate: string | null;
   createdAt: string;
   lastLogin: string | null;
@@ -315,6 +316,19 @@ export default function AgentDashboard() {
                             <p className="text-xs font-bold text-foreground leading-tight">${user.balance.toFixed(2)}</p>
                             <p className="text-[9px] text-muted-foreground uppercase tracking-wide leading-tight mt-0.5">Balance</p>
                           </div>
+                          
+                          {/* Freeplay (only show if > 0) */}
+                          {user.freePlay > 0 && (
+                            <>
+                              {/* Divider */}
+                              <div className="h-8 w-px bg-border mx-0.5"></div>
+                              
+                              <div className="text-right min-w-[70px]">
+                                <p className="text-xs font-bold text-blue-500 leading-tight">${user.freePlay.toFixed(2)}</p>
+                                <p className="text-[9px] text-muted-foreground uppercase tracking-wide leading-tight mt-0.5">Freeplay</p>
+                              </div>
+                            </>
+                          )}
                           
                           {/* Expand/Collapse Icon */}
                           <div className="ml-2">

@@ -16,14 +16,17 @@ export async function GET() {
 
 		try {
 			const account = await prisma.account.findUnique({ where: { userId } }) as { userId: string; balance: number; freePlay?: number; createdAt: Date; updatedAt: Date } | null;
-			balance = account ? Number(account.balance) : 0;
+			const cashBalance = account ? Number(account.balance) : 0;
 			freePlay = account ? Number(account.freePlay ?? 0) : 0;
+			// Total balance includes both cash and freeplay
+			balance = cashBalance + freePlay;
 
 			const pendingBets = await prisma.bet.findMany({
 				where: { userId, status: "pending" },
 				select: { stake: true },
 			});
 			risk = pendingBets.reduce((s, b) => s + Number(b.stake), 0);
+			// Available = Total Balance (cash + freeplay) - Risk
 			available = Math.max(0, balance - risk);
 		} catch (err) {
 			// If the accounts table is missing, gracefully return zeros

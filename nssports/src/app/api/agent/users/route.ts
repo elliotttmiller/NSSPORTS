@@ -37,6 +37,7 @@ export async function GET() {
           account: {
             select: {
               balance: true,
+              freePlay: true,
               updatedAt: true,
             },
           },
@@ -56,7 +57,11 @@ export async function GET() {
 
       // Transform the data for the frontend
       const usersWithBalances = users.map(user => {
-        const balance = user.account ? Number(user.account.balance) : 0;
+        const cashBalance = user.account ? Number(user.account.balance) : 0;
+        const freePlayBalance = user.account ? Number(user.account.freePlay) : 0;
+        // Total balance includes both cash and freeplay
+        const balance = cashBalance + freePlayBalance;
+        
         // Calculate risk from pending bets (same logic as /api/account)
         const risk = user.bets.reduce((sum, bet) => sum + Number(bet.stake), 0);
         // Available = Balance - Risk (money not locked in pending bets)
@@ -69,6 +74,7 @@ export async function GET() {
           balance,
           available,
           risk,
+          freePlay: freePlayBalance,
           lastBalanceUpdate: user.account?.updatedAt,
           createdAt: user.createdAt,
           lastLogin: user.lastLogin,
