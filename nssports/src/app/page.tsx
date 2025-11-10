@@ -284,7 +284,7 @@ function AuthenticatedHomePage({ session }: { session: Session }) {
 
   return (
     <div className="bg-background text-foreground">
-  <div className="container mx-auto px-6 md:px-8 xl:px-12 py-6 max-w-screen-2xl">
+      <div className="container mx-auto px-4 sm:px-6 md:px-8 xl:px-12 py-6 max-w-screen-2xl">
         <div className="space-y-6">
           {/* ...existing code... */}
           <div className="text-center py-8 md:py-12">
@@ -335,7 +335,7 @@ function AuthenticatedHomePage({ session }: { session: Session }) {
 
           {/* Trending Games Section */}
           <div className="mt-12">
-            <div className="flex items-center space-x-2 mb-4">
+            <div className="flex items-center space-x-2 mb-4 px-1">
               {/* Animated Pulsing Live Indicator */}
               <div className="relative flex items-center justify-center">
                 {/* Outer pulsing ring */}
@@ -352,8 +352,8 @@ function AuthenticatedHomePage({ session }: { session: Session }) {
             </div>
             
             {/* Sport/League Filter - Always Visible */}
-            <div className="mb-4 -mx-6 md:-mx-8 xl:-mx-12 px-6 md:px-8 xl:px-12">
-              <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2 snap-x snap-mandatory">
+            <div className="mb-4">
+              <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2 snap-x snap-mandatory px-1">
                 {availableSports.map((sport) => {
                   const isSelected = selectedSport === sport.name;
                   const sportLabel = sport.name === "all" ? "All Sports" : sport.name.toUpperCase();
