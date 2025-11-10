@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAdminUser } from "@/lib/adminAuth";
 import { oddsJuiceService } from "@/lib/odds-juice-service";
+import { logger } from "@/lib/logger";
 
 /**
  * GET /api/admin/odds-config
@@ -102,6 +103,50 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    // Log configuration state change
+    const wasActive = currentConfig?.isActive ?? false;
+    if (wasActive !== isActive) {
+      if (isActive) {
+        logger.info('🎯 [OddsConfig] Juice/Margins ENABLED by admin', {
+          adminId: admin.id,
+          adminUsername: admin.username,
+          margins: {
+            spread: `${(spreadMargin * 100).toFixed(2)}%`,
+            moneyline: `${(moneylineMargin * 100).toFixed(2)}%`,
+            total: `${(totalMargin * 100).toFixed(2)}%`,
+            playerProps: `${(playerPropsMargin * 100).toFixed(2)}%`,
+            gameProps: `${(gamePropsMargin * 100).toFixed(2)}%`,
+          },
+          liveMultiplier: liveGameMultiplier,
+          roundingMethod,
+          timestamp: new Date().toISOString(),
+        });
+      } else {
+        logger.info('🚫 [OddsConfig] Juice/Margins DISABLED by admin', {
+          adminId: admin.id,
+          adminUsername: admin.username,
+          note: 'Using SDK fair odds without house margins',
+          timestamp: new Date().toISOString(),
+        });
+      }
+    } else if (isActive) {
+      // Config updated but still active
+      logger.info('⚙️  [OddsConfig] Juice/Margins configuration updated', {
+        adminId: admin.id,
+        adminUsername: admin.username,
+        margins: {
+          spread: `${(spreadMargin * 100).toFixed(2)}%`,
+          moneyline: `${(moneylineMargin * 100).toFixed(2)}%`,
+          total: `${(totalMargin * 100).toFixed(2)}%`,
+          playerProps: `${(playerPropsMargin * 100).toFixed(2)}%`,
+          gameProps: `${(gamePropsMargin * 100).toFixed(2)}%`,
+        },
+        liveMultiplier: liveGameMultiplier,
+        roundingMethod,
+        timestamp: new Date().toISOString(),
+      });
+    }
+
     // Log the change in history
     if (currentConfig) {
       await prisma.oddsConfigHistory.create({
@@ -148,6 +193,11 @@ export async function POST(req: NextRequest) {
 
     // Invalidate juice service cache
     oddsJuiceService.invalidateCache();
+
+    // Clear all odds cache to force re-transformation with new juice settings
+    // This ensures users see updated odds immediately
+    await prisma.odds.deleteMany({});
+    logger.info('🗑️  [OddsConfig] Cleared all odds cache to apply new juice settings');
 
     return NextResponse.json({
       success: true,

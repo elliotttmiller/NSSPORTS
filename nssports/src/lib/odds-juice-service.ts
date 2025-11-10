@@ -71,6 +71,13 @@ class OddsJuiceService {
         // Cache the default config to avoid repeated DB queries
         this.cachedConfig = this.getDefaultConfig();
         this.lastFetchTime = now;
+        logger.info('[OddsJuice] Using default configuration (no active config found)', {
+          margins: {
+            spread: `${(this.cachedConfig.spreadMargin * 100).toFixed(2)}%`,
+            moneyline: `${(this.cachedConfig.moneylineMargin * 100).toFixed(2)}%`,
+            total: `${(this.cachedConfig.totalMargin * 100).toFixed(2)}%`,
+          }
+        });
         return this.cachedConfig;
       }
 
@@ -88,6 +95,22 @@ class OddsJuiceService {
       };
       
       this.lastFetchTime = now;
+      
+      // Log the active configuration status
+      logger.info('[OddsJuice] Loaded active configuration from database', {
+        configId: config.id,
+        margins: {
+          spread: `${(config.spreadMargin * 100).toFixed(2)}%`,
+          moneyline: `${(config.moneylineMargin * 100).toFixed(2)}%`,
+          total: `${(config.totalMargin * 100).toFixed(2)}%`,
+          playerProps: `${(config.playerPropsMargin * 100).toFixed(2)}%`,
+          gameProps: `${(config.gamePropsMargin * 100).toFixed(2)}%`,
+        },
+        liveMultiplier: config.liveGameMultiplier,
+        roundingMethod: config.roundingMethod,
+        lastModified: config.lastModified.toISOString(),
+      });
+      
       return this.cachedConfig;
     } catch (error) {
       logger.error('[OddsJuice] Failed to fetch configuration', { error });

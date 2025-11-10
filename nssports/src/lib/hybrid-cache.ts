@@ -210,20 +210,32 @@ async function updateEventsCache(events: any[]) {
       const awayTeam = event.teams.away;
       const leagueId = event.leagueID; // Keep uppercase to match SDK (NBA, NFL, NHL)
       
+      // Helper function to generate local logo path using exact SDK team ID
+      const getTeamLogoPath = (teamID: string, leagueId: string): string => {
+        const leagueLogoPaths: Record<string, string> = {
+          'NBA': '/logos/nba',
+          'NFL': '/logos/nfl',
+          'NHL': '/logos/nhl',
+        };
+        const logoPath = leagueLogoPaths[leagueId];
+        // Use the exact SDK team ID (e.g., SACRAMENTO_KINGS_NBA.svg)
+        return logoPath ? `${logoPath}/${teamID}.svg` : '';
+      };
+      
       // Ensure teams exist in database first
       await prisma.team.upsert({
         where: { id: homeTeam.teamID },
         update: {
           name: homeTeam.names.long,
           shortName: homeTeam.names.short,
-          logo: homeTeam.logo || '', // Only use SDK-provided logos
+          logo: getTeamLogoPath(homeTeam.teamID, leagueId),
           record: homeTeam.standings?.record || null,
         },
         create: {
           id: homeTeam.teamID,
           name: homeTeam.names.long,
           shortName: homeTeam.names.short,
-          logo: homeTeam.logo || '', // Only use SDK-provided logos
+          logo: getTeamLogoPath(homeTeam.teamID, leagueId),
           leagueId: leagueId,
           record: homeTeam.standings?.record || null,
         },
@@ -234,14 +246,14 @@ async function updateEventsCache(events: any[]) {
         update: {
           name: awayTeam.names.long,
           shortName: awayTeam.names.short,
-          logo: awayTeam.logo || '', // Only use SDK-provided logos
+          logo: getTeamLogoPath(awayTeam.teamID, leagueId),
           record: awayTeam.standings?.record || null,
         },
         create: {
           id: awayTeam.teamID,
           name: awayTeam.names.long,
           shortName: awayTeam.names.short,
-          logo: awayTeam.logo || '', // Only use SDK-provided logos
+          logo: getTeamLogoPath(awayTeam.teamID, leagueId),
           leagueId: leagueId,
           record: awayTeam.standings?.record || null,
         },
@@ -540,10 +552,26 @@ async function getEventsFromCache(options: {
       home: {
         teamID: game.homeTeamId,
         name: game.homeTeam.name,
+        names: {
+          long: game.homeTeam.name,
+          short: game.homeTeam.shortName || game.homeTeam.name,
+        },
+        logo: game.homeTeam.logo || '',
+        standings: game.homeTeam.record ? {
+          record: game.homeTeam.record,
+        } : undefined,
       },
       away: {
         teamID: game.awayTeamId,
         name: game.awayTeam.name,
+        names: {
+          long: game.awayTeam.name,
+          short: game.awayTeam.shortName || game.awayTeam.name,
+        },
+        logo: game.awayTeam.logo || '',
+        standings: game.awayTeam.record ? {
+          record: game.awayTeam.record,
+        } : undefined,
       },
     },
     scores: game.homeScore !== null ? {

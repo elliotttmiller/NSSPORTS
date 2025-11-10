@@ -466,7 +466,50 @@ export default function OddsConfigPage() {
 
               {/* Toggle Switch */}
               <button
-                onClick={() => setConfig({ ...config, isActive: !config.isActive })}
+                onClick={async () => {
+                  const newActiveState = !config.isActive;
+                  setConfig({ ...config, isActive: newActiveState });
+                  
+                  // Auto-save when toggling
+                  try {
+                    const payload = {
+                      ...config,
+                      isActive: newActiveState,
+                      spreadMargin: config.spreadMargin / 100,
+                      moneylineMargin: config.moneylineMargin / 100,
+                      totalMargin: config.totalMargin / 100,
+                      playerPropsMargin: config.playerPropsMargin / 100,
+                      gamePropsMargin: config.gamePropsMargin / 100,
+                      leagueOverrides: leagueOverrides.length > 0 ? leagueOverrides.reduce((acc, override) => {
+                        acc[override.league] = {
+                          ...(override.spreadMargin !== undefined && { spreadMargin: override.spreadMargin / 100 }),
+                          ...(override.moneylineMargin !== undefined && { moneylineMargin: override.moneylineMargin / 100 }),
+                          ...(override.totalMargin !== undefined && { totalMargin: override.totalMargin / 100 }),
+                          ...(override.playerPropsMargin !== undefined && { playerPropsMargin: override.playerPropsMargin / 100 }),
+                          ...(override.gamePropsMargin !== undefined && { gamePropsMargin: override.gamePropsMargin / 100 }),
+                        };
+                        return acc;
+                      }, {} as Record<string, Record<string, number>>) : null,
+                    };
+
+                    const res = await fetch('/api/admin/odds-config', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(payload),
+                    });
+
+                    if (res.ok) {
+                      toast.success(newActiveState ? 'Juice/Margins enabled!' : 'Juice/Margins disabled - using fair odds');
+                      await fetchConfig();
+                    } else {
+                      throw new Error('Failed to save');
+                    }
+                  } catch {
+                    toast.error('Failed to update status');
+                    // Revert state on error
+                    setConfig({ ...config, isActive: !newActiveState });
+                  }
+                }}
                 className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 ${
                   config.isActive ? 'bg-green-500' : 'bg-muted'
                 }`}

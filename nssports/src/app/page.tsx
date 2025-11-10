@@ -38,12 +38,12 @@ function AuthenticatedHomePage({ session }: { session: Session }) {
   const [_isBackgroundRefreshing, setIsBackgroundRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  // Mobile optimization: Track page visibility to pause updates when app is backgrounded
+  // Track page visibility to pause updates when app is backgrounded (saves battery)
   const [_isPageVisible, setIsPageVisible] = useState(true);
   
   // Fetch live games on mount
   const fetchLiveGames = useCallback(async (isBackgroundUpdate = false) => {
-    // Use separate loading state for background updates to preserve mobile bet slip state
+    // Use separate loading state for background updates to preserve bet slip state
     if (isBackgroundUpdate) {
       setIsBackgroundRefreshing(true);
     } else {
@@ -52,30 +52,29 @@ function AuthenticatedHomePage({ session }: { session: Session }) {
     
     setError(null);
     try {
-      console.log(`[HomePage Mobile] ${isBackgroundUpdate ? 'Background refreshing odds' : 'Initial fetch'} from /api/games/live...`);
+      console.log(`[HomePage] ${isBackgroundUpdate ? 'Background refreshing odds' : 'Initial fetch'} from /api/games/live...`);
       const response = await fetch('/api/games/live', {
-        // Mobile: Add cache control to get fresh data without page reload
         headers: {
           'Cache-Control': 'no-cache',
         },
-        // Mobile: Add timeout for slow connections
-        signal: AbortSignal.timeout(8000), // 8 second timeout for mobile
+        // Longer timeout for initial load when Next.js may still be compiling
+        signal: AbortSignal.timeout(isBackgroundUpdate ? 8000 : 20000),
       });
       if (!response.ok) {
         throw new Error(`Failed to fetch: ${response.status}`);
       }
       const json = await response.json();
       const games = Array.isArray(json.data) ? json.data : [];
-      console.log(`[HomePage Mobile] ${isBackgroundUpdate ? '✅ Odds refreshed' : '✅ Games loaded'} - ${games.length} live games (bet slip preserved)`);
+      console.log(`[HomePage] ${isBackgroundUpdate ? '✅ Odds refreshed' : '✅ Games loaded'} - ${games.length} live games`);
       setLiveGamesData(games);
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to fetch live games';
-      console.error('[HomePage Mobile] Error:', errorMsg);
-      // Mobile: Only set error on initial load to avoid disrupting user experience
+      console.error('[HomePage] Error:', errorMsg);
+      // Only set error on initial load to avoid disrupting user experience
       if (!isBackgroundUpdate) {
         setError(errorMsg);
       } else {
-        console.log('[HomePage Mobile] Background refresh failed - keeping existing odds');
+        console.log('[HomePage] Background refresh failed - keeping existing odds');
       }
     } finally {
       if (isBackgroundUpdate) {
@@ -90,7 +89,7 @@ function AuthenticatedHomePage({ session }: { session: Session }) {
     const handleVisibilityChange = () => {
       setIsPageVisible(!document.hidden);
       if (!document.hidden) {
-        console.log('[HomePage Mobile] Page visible - triggering immediate refresh');
+        console.log('[HomePage] Page visible - triggering immediate refresh');
         fetchLiveGames(true); // Refresh when user returns to page
       }
     };
@@ -103,19 +102,19 @@ function AuthenticatedHomePage({ session }: { session: Session }) {
     fetchLiveGames(false); // Initial load
   }, [fetchLiveGames]);
   
-  // ⭐ Mobile-Optimized Auto-refresh: Updates odds every 30s WITHOUT page refresh
+  // ⭐ Auto-refresh: Updates odds every 30s WITHOUT page refresh
   // ✅ Preserves user's bet selections and UI state
-  // ✅ Only refreshes when page is visible (saves mobile battery)
+  // ✅ Only refreshes when page is visible (saves battery)
   // ✅ Silent updates - no loading spinners or interruptions
   useEffect(() => {
     // Only run interval when page is visible
     if (!_isPageVisible) {
-      console.log('[HomePage Mobile] Page hidden - pausing auto-refresh to save battery');
+      console.log('[HomePage] Page hidden - pausing auto-refresh');
       return;
     }
     
     const interval = setInterval(() => {
-      console.log('[HomePage Mobile] 🔄 Auto-refreshing odds (silent, preserves bet slip)...');
+      console.log('[HomePage] 🔄 Auto-refreshing odds...');
       fetchLiveGames(true); // Background update
     }, 30000); // 30 seconds
     

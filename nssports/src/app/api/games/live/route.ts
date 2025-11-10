@@ -8,9 +8,11 @@ import { applyStratifiedSampling } from '@/lib/devDataLimit';
 import { MAIN_LINE_ODDIDS } from '@/lib/sportsgameodds-sdk';
 import type { ExtendedSDKEvent } from '@/lib/transformers/sportsgameodds-sdk';
 
-export const revalidate = 30; // Increased from 15 to reduce API calls
+// Smart cache strategy: Let hybrid-cache.ts handle TTL (15s for live, 30-60s for upcoming)
+// Route revalidation should be shorter than cache TTL to ensure fresh data
+export const revalidate = 10; // Revalidate every 10 seconds (cache handles the rest)
 export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic'; // Always run fresh, no static generation
 
 export async function GET() {
   return withErrorHandling(async () => {

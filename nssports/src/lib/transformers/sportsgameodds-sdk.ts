@@ -155,9 +155,11 @@ export function getSportForLeague(leagueId: string): string {
  */
 interface SDKTeam {
   teamID?: string;
-  name?: string;
-  shortName?: string;
-  logo?: string;
+  names?: {
+    long?: string;
+    medium?: string;
+    short?: string;
+  };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any; // Allow additional properties from SDK
 }
@@ -283,24 +285,37 @@ function getTeamShortName(team: SDKTeam): string {
     }
   }
 
-  // Fallback: Try to extract from team name
-  if (team.name) {
-    const normalizedName = team.name.replace(/\s+/g, '_').toUpperCase();
+  // Fallback: Try to extract from team names
+  if (team.names?.long) {
+    const normalizedName = team.names.long.replace(/\s+/g, '_').toUpperCase();
     if (officialAbbreviations[normalizedName]) {
       return officialAbbreviations[normalizedName];
     }
   }
 
-  // Last resort: use SDK shortName or first 3 letters of last word
-  return team.shortName || team.name?.split(' ').pop()?.substring(0, 3).toUpperCase() || team.name || '';
+  // Last resort: use SDK short name or first 3 letters of last word
+  return team.names?.short || team.names?.medium?.split(' ').pop()?.substring(0, 3).toUpperCase() || '';
 }
 
 /**
- * Get team logo URL from SDK (no fallback)
+ * Get team logo URL - SDK doesn't provide logos, so we use local assets
+ * Uses the actual SDK team ID directly (e.g., SACRAMENTO_KINGS_NBA.svg)
  */
-function getTeamLogo(team: SDKTeam): string {
-  // Only use SDK-provided logos, no local fallbacks
-  return team.logo || '';
+function getTeamLogo(team: SDKTeam, leagueId: string): string {
+  if (!team.teamID) return '';
+  
+  // Map league IDs to logo paths
+  const leagueLogoPaths: Record<string, string> = {
+    'NBA': '/logos/nba',
+    'NFL': '/logos/nfl',
+    'NHL': '/logos/nhl',
+  };
+  
+  const logoPath = leagueLogoPaths[leagueId];
+  if (!logoPath) return '';
+  
+  // Use the exact SDK team ID (e.g., SACRAMENTO_KINGS_NBA.svg)
+  return `${logoPath}/${team.teamID}.svg`;
 }
 
 // ⭐ Extend Official SDK Event Type with Additional Properties
@@ -743,8 +758,8 @@ export async function transformSDKEvent(event: ExtendedSDKEvent): Promise<GamePa
       logger.warn(`Missing status.startsAt for event ${eventID} (${leagueID}). Skipping event.`, {
         eventID,
         leagueID,
-        homeTeam: homeTeam.name,
-        awayTeam: awayTeam.name,
+        homeTeam: homeTeam.names?.long || homeTeam.names?.medium || 'Unknown',
+        awayTeam: awayTeam.names?.long || awayTeam.names?.medium || 'Unknown',
         hasStatus: !!event.status,
       });
       // Return null instead of using fallback - if SDK doesn't provide start time, 
@@ -777,17 +792,17 @@ export async function transformSDKEvent(event: ExtendedSDKEvent): Promise<GamePa
       id: eventID,
       leagueId: officialLeagueId, // Official uppercase format
       homeTeam: {
-        id: homeTeam.teamID || `${officialLeagueId}-${homeTeam.name || 'unknown'}`.toLowerCase().replace(/\s+/g, '-'),
-        name: homeTeam.name || 'Unknown',
+        id: homeTeam.teamID || `${officialLeagueId}-${homeTeam.names?.long || 'unknown'}`.toLowerCase().replace(/\s+/g, '-'),
+        name: homeTeam.names?.long || homeTeam.names?.medium || 'Unknown',
         shortName: getTeamShortName(homeTeam),
-        logo: getTeamLogo(homeTeam),
+        logo: getTeamLogo(homeTeam, officialLeagueId),
         record: homeTeam.standings?.record || undefined,
       },
       awayTeam: {
-        id: awayTeam.teamID || `${officialLeagueId}-${awayTeam.name || 'unknown'}`.toLowerCase().replace(/\s+/g, '-'),
-        name: awayTeam.name || 'Unknown',
+        id: awayTeam.teamID || `${officialLeagueId}-${awayTeam.names?.long || 'unknown'}`.toLowerCase().replace(/\s+/g, '-'),
+        name: awayTeam.names?.long || awayTeam.names?.medium || 'Unknown',
         shortName: getTeamShortName(awayTeam),
-        logo: getTeamLogo(awayTeam),
+        logo: getTeamLogo(awayTeam, officialLeagueId),
         record: awayTeam.standings?.record || undefined,
       },
       startTime: startDateTime,
