@@ -429,29 +429,21 @@ function extractOdds(event: ExtendedSDKEvent) {
     const _bookOddsAvailable = data.bookOddsAvailable === true;
     
     // Step 2: Extract odds values
-    // Use bookOdds (real market consensus with juice) not fairOdds (symmetric no-vig)
+    // ALWAYS prefer bookOdds (real market consensus) over fairOdds (symmetric no-vig)
+    // Only fallback to fairOdds if bookOdds is literally unavailable (null/undefined)
+    // Ignore bookOddsAvailable flag as it fluctuates and causes flickering
     // Real sportsbooks ALWAYS have asymmetric odds due to:
     // - House edge/juice (books take a cut on both sides)
     // - Betting action imbalance (more money on favorites = adjusted odds)
     // - Risk management (books manage exposure, don't want 50/50 split)
-    // Example: Real market -560/+350, bookOdds -900/+525, fairOdds -563/+563
-    
-    // CRITICAL FIX: Only use bookOdds if bookOddsAvailable is true
-    // Sometimes SDK returns both but bookOdds is stale/unreliable
-    const useBookOdds = _bookOddsAvailable && data.bookOdds !== null && data.bookOdds !== undefined;
-    const oddsValue = useBookOdds ? data.bookOdds : data.fairOdds;
+    const oddsValue = data.bookOdds ?? data.fairOdds;
     
     // Step 3: Extract line values (spread or total)
-    // Always prefer bookSpread/bookOverUnder when available and reliable
-    // Check bookOddsAvailable flag to ensure book consensus is valid
-    const useBookLines = _bookOddsAvailable;
-    const spreadValue = (useBookLines && data.bookSpread !== null && data.bookSpread !== undefined) 
-      ? data.bookSpread as string | number
-      : data.fairSpread as string | number | undefined;
-    const totalValue = (useBookLines && data.bookOverUnder !== null && data.bookOverUnder !== undefined)
-      ? data.bookOverUnder as string | number
-      : data.fairOverUnder as string | number | undefined;
-    const lineValue = spreadValue || totalValue;
+    // ALWAYS prefer bookSpread/bookOverUnder over fair values
+    // Only fallback when book values are literally unavailable
+    const spreadValue = data.bookSpread ?? data.fairSpread;
+    const totalValue = data.bookOverUnder ?? data.fairOverUnder;
+    const lineValue = spreadValue ?? totalValue;
     
     if (!oddsValue) return null;
     
