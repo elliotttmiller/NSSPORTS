@@ -172,10 +172,12 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange, byp
 
   const groupedByLeague = useMemo(() => groupGamesByLeagueAndDate(contextFilteredGames), [contextFilteredGames, groupGamesByLeagueAndDate]);
   // Use official uppercase league IDs per SportsGameOdds API specification
-  const leagueOrder = useMemo(() => ['NBA', 'NFL', 'NHL'], []);
+  const leagueOrder = useMemo(() => ['NBA', 'NCAAB', 'NFL', 'NCAAF', 'NHL'], []);
   const leagueNames: Record<string, string> = useMemo(() => ({
     NBA: 'NBA',
+    NCAAB: 'NCAA Basketball',
     NFL: 'NFL',
+    NCAAF: 'NCAA Football',
     NHL: 'NHL',
     other: 'Other',
   }), []);

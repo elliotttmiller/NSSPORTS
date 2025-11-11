@@ -40,7 +40,7 @@ async function getCachedAllGames() {
   // - includeOpposingOddIDs: true → Get both sides automatically (home/away, over/under)
   // - includeConsensus: true → CRITICAL: Get bookOdds (real market consensus)
   // Note: NOT using `live` parameter here - we want both live AND upcoming
-  const [nbaResult, nflResult, nhlResult] = await Promise.allSettled([
+  const [nbaResult, ncaabResult, nflResult, ncaafResult, nhlResult] = await Promise.allSettled([
     getEventsWithCache({ 
       leagueID: 'NBA',
       finalized: false,                // ✅ OFFICIAL: Exclude finished (includes live + upcoming)
@@ -52,7 +52,27 @@ async function getCachedAllGames() {
       limit: fetchLimit,
     }),
     getEventsWithCache({ 
+      leagueID: 'NCAAB',
+      finalized: false,                // ✅ OFFICIAL: Exclude finished (includes live + upcoming)
+      startsAfter: startsAfter.toISOString(),
+      startsBefore: startsBefore.toISOString(),
+      oddIDs: MAIN_LINE_ODDIDS,        // ✅ OFFICIAL: Main lines only (ML, spread, total)
+      includeOpposingOddIDs: true,     // ✅ OFFICIAL: Auto-include opposing sides
+      includeConsensus: true,          // ✅ CRITICAL: Request bookOdds calculations
+      limit: fetchLimit,
+    }),
+    getEventsWithCache({ 
       leagueID: 'NFL',
+      finalized: false,                // ✅ OFFICIAL: Exclude finished (includes live + upcoming)
+      startsAfter: startsAfter.toISOString(),
+      startsBefore: startsBefore.toISOString(),
+      oddIDs: MAIN_LINE_ODDIDS,        // ✅ OFFICIAL: Main lines only
+      includeOpposingOddIDs: true,     // ✅ OFFICIAL: Auto-include opposing sides
+      includeConsensus: true,          // ✅ CRITICAL: Request bookOdds calculations
+      limit: fetchLimit,
+    }),
+    getEventsWithCache({ 
+      leagueID: 'NCAAF',
       finalized: false,                // ✅ OFFICIAL: Exclude finished (includes live + upcoming)
       startsAfter: startsAfter.toISOString(),
       startsBefore: startsBefore.toISOString(),
@@ -74,13 +94,15 @@ async function getCachedAllGames() {
   ]);
   
   const nbaEvents = nbaResult.status === 'fulfilled' ? nbaResult.value.data : [];
+  const ncaabEvents = ncaabResult.status === 'fulfilled' ? ncaabResult.value.data : [];
   const nflEvents = nflResult.status === 'fulfilled' ? nflResult.value.data : [];
+  const ncaafEvents = ncaafResult.status === 'fulfilled' ? ncaafResult.value.data : [];
   const nhlEvents = nhlResult.status === 'fulfilled' ? nhlResult.value.data : [];
   
-  const allEvents = [...nbaEvents, ...nflEvents, ...nhlEvents];
+  const allEvents = [...nbaEvents, ...ncaabEvents, ...nflEvents, ...ncaafEvents, ...nhlEvents];
   
   logger.info(`Fetched ${allEvents.length} total events from hybrid cache`);
-  logger.info(`Events by league - NBA: ${nbaEvents.length}, NFL: ${nflEvents.length}, NHL: ${nhlEvents.length}`);
+  logger.info(`Events by league - NBA: ${nbaEvents.length}, NCAAB: ${ncaabEvents.length}, NFL: ${nflEvents.length}, NCAAF: ${ncaafEvents.length}, NHL: ${nhlEvents.length}`);
   return allEvents;
 }
 

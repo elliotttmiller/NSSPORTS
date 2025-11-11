@@ -64,14 +64,27 @@ export async function ensureGameExists(game: Game): Promise<string> {
   // Use a transaction to ensure atomicity
   await prisma.$transaction(async (tx) => {
     // Ensure league exists
+    const sportIdMap: Record<string, string> = {
+      NBA: 'basketball',
+      WNBA: 'basketball',
+  NCAAB: 'basketball',
+  NCAAM: 'basketball',
+      EUROLEAGUE: 'basketball',
+      NFL: 'football',
+      NCAAF: 'football',
+      CFL: 'football',
+      NHL: 'hockey',
+      AHL: 'hockey',
+      KHL: 'hockey',
+      SHL: 'hockey',
+    };
+
     await tx.league.upsert({
       where: { id: game.leagueId },
       create: {
         id: game.leagueId,
         name: game.leagueId.toUpperCase(), // Fallback name
-        sportId: game.leagueId === 'NBA' ? 'basketball' : 
-                 game.leagueId === 'NFL' ? 'football' : 
-                 game.leagueId === 'NHL' ? 'hockey' : 'other',
+        sportId: sportIdMap[game.leagueId] || 'other',
         logo: '', // Will be populated by other means
       },
       update: {}, // No update needed if it exists

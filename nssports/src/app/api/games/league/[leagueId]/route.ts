@@ -13,14 +13,18 @@ export const dynamic = 'force-dynamic';
 
 /**
  * Map internal/URL league IDs to SportsGameOdds SDK league IDs
- * Allows lowercase URLs (nba, nfl, nhl) to map to SDK format (NBA, NFL, NHL)
+ * Allows lowercase URLs (nba, nfl, nhl, ncaab, ncaaf) to map to SDK format (NBA, NFL, NHL, NCAAB, NCAAF)
  */
 const LEAGUE_ID_TO_API: Record<string, string> = {
   'nba': 'NBA',
+  'ncaab': 'NCAAB',
   'nfl': 'NFL',
+  'ncaaf': 'NCAAF',
   'nhl': 'NHL',
   'NBA': 'NBA', // Also accept uppercase
+  'NCAAB': 'NCAAB',
   'NFL': 'NFL',
+  'NCAAF': 'NCAAF',
   'NHL': 'NHL',
 };
 

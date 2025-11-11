@@ -31,7 +31,7 @@ export async function GET() {
       // - finalized: false → Exclude games that have finished
       // - oddIDs: Official market IDs (reduces payload 50-90%)
       // - includeOpposingOddIDs: true → Get both sides automatically
-      const [nbaResult, nflResult, nhlResult] = await Promise.allSettled([
+      const [nbaResult, ncaabResult, nflResult, ncaafResult, nhlResult] = await Promise.allSettled([
         getEventsWithCache({ 
           leagueID: 'NBA',
           live: true,                      // ✅ OFFICIAL: Only live/in-progress games
@@ -41,7 +41,23 @@ export async function GET() {
           limit: fetchLimit,
         }),
         getEventsWithCache({ 
+          leagueID: 'NCAAB',
+          live: true,                      // ✅ OFFICIAL: Only live/in-progress games
+          finalized: false,                // ✅ OFFICIAL: Exclude finished games
+          oddIDs: MAIN_LINE_ODDIDS,        // ✅ OFFICIAL: Main lines only (ML, spread, total)
+          includeOpposingOddIDs: true,     // ✅ OFFICIAL: Auto-include opposing sides
+          limit: fetchLimit,
+        }),
+        getEventsWithCache({ 
           leagueID: 'NFL',
+          live: true,                      // ✅ OFFICIAL: Only live/in-progress games
+          finalized: false,                // ✅ OFFICIAL: Exclude finished games
+          oddIDs: MAIN_LINE_ODDIDS,        // ✅ OFFICIAL: Main lines only
+          includeOpposingOddIDs: true,     // ✅ OFFICIAL: Auto-include opposing sides
+          limit: fetchLimit,
+        }),
+        getEventsWithCache({ 
+          leagueID: 'NCAAF',
           live: true,                      // ✅ OFFICIAL: Only live/in-progress games
           finalized: false,                // ✅ OFFICIAL: Exclude finished games
           oddIDs: MAIN_LINE_ODDIDS,        // ✅ OFFICIAL: Main lines only
@@ -60,7 +76,9 @@ export async function GET() {
       
       const liveEvents = [
         ...(nbaResult.status === 'fulfilled' ? nbaResult.value.data : []),
+        ...(ncaabResult.status === 'fulfilled' ? ncaabResult.value.data : []),
         ...(nflResult.status === 'fulfilled' ? nflResult.value.data : []),
+        ...(ncaafResult.status === 'fulfilled' ? ncaafResult.value.data : []),
         ...(nhlResult.status === 'fulfilled' ? nhlResult.value.data : []),
       ];
       

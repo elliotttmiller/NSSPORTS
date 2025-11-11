@@ -34,6 +34,13 @@ const GAME_PROP_ODD_IDS = {
     'first_half_total-game-ou',
     'first_quarter_total-game-ou',
   ].join(','),
+  NCAAM: [
+    'team_total-HOME-game-ou',
+    'team_total-AWAY-game-ou',
+    'first_half_spread-game-ats',
+    'first_half_total-game-ou',
+    'first_quarter_total-game-ou',
+  ].join(','),
   NFL: [
     'team_total-HOME-game-ou',
     'team_total-AWAY-game-ou',
@@ -44,6 +51,19 @@ const GAME_PROP_ODD_IDS = {
     'team_total-HOME-game-ou',
     'team_total-AWAY-game-ou',
     'first_period_total-game-ou',
+  ].join(','),
+  NCAAB: [
+    'team_total-HOME-game-ou',
+    'team_total-AWAY-game-ou',
+    'first_half_spread-game-ats',
+    'first_half_total-game-ou',
+    'first_quarter_total-game-ou',
+  ].join(','),
+  NCAAF: [
+    'team_total-HOME-game-ou',
+    'team_total-AWAY-game-ou',
+    'first_half_spread-game-ats',
+    'first_half_total-game-ou',
   ].join(','),
 };
 

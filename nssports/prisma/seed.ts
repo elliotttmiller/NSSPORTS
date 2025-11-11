@@ -82,10 +82,22 @@ async function main() {
       logo: '/logos/nba/NBA.svg' 
     },
     { 
+      id: 'NCAAB',  // ← UPPERCASE per official SDK specification
+      name: 'NCAA Basketball', 
+      sportId: 'basketball', 
+      logo: '' 
+    },
+    { 
       id: 'NFL',  // ← UPPERCASE per official SDK specification
       name: 'NFL', 
       sportId: 'football', 
       logo: '/logos/nfl/NFL.svg' 
+    },
+    { 
+      id: 'NCAAF',  // ← UPPERCASE per official SDK specification
+      name: 'NCAA Football', 
+      sportId: 'football', 
+      logo: '' 
     },
     { 
       id: 'NHL',  // ← UPPERCASE per official SDK specification

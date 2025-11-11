@@ -30,7 +30,7 @@ export async function GET() {
       // - finalized: false → Exclude games that have finished
       // - oddsAvailable: true → Only games with betting odds
       // - startsAfter/startsBefore → Time window for upcoming games
-      const [nbaResult, nflResult, nhlResult] = await Promise.allSettled([
+      const [nbaResult, ncaabResult, nflResult, ncaafResult, nhlResult] = await Promise.allSettled([
         getEventsWithCache({ 
           leagueID: 'NBA',
           live: false,                     // ✅ OFFICIAL: Only non-live (upcoming) games
@@ -43,7 +43,29 @@ export async function GET() {
           limit: fetchLimit,
         }),
         getEventsWithCache({ 
+          leagueID: 'NCAAB',
+          live: false,                     // ✅ OFFICIAL: Only non-live (upcoming) games
+          finalized: false,                // ✅ OFFICIAL: Exclude finished games
+          oddsAvailable: true,             // ✅ OFFICIAL: Only games with odds
+          startsAfter: now.toISOString(),
+          startsBefore: sevenDaysFromNow.toISOString(),
+          oddIDs: 'game-ml,game-ats,game-ou', // Main lines: moneyline, spread, total
+          includeOpposingOddIDs: true, // Get both sides of each market
+          limit: fetchLimit,
+        }),
+        getEventsWithCache({ 
           leagueID: 'NFL',
+          live: false,                     // ✅ OFFICIAL: Only non-live (upcoming) games
+          finalized: false,                // ✅ OFFICIAL: Exclude finished games
+          oddsAvailable: true,             // ✅ OFFICIAL: Only games with odds
+          startsAfter: now.toISOString(),
+          startsBefore: sevenDaysFromNow.toISOString(),
+          oddIDs: 'game-ml,game-ats,game-ou', // Main lines: moneyline, spread, total
+          includeOpposingOddIDs: true,
+          limit: fetchLimit,
+        }),
+        getEventsWithCache({ 
+          leagueID: 'NCAAF',
           live: false,                     // ✅ OFFICIAL: Only non-live (upcoming) games
           finalized: false,                // ✅ OFFICIAL: Exclude finished games
           oddsAvailable: true,             // ✅ OFFICIAL: Only games with odds
@@ -68,7 +90,9 @@ export async function GET() {
       
       const upcomingEvents = [
         ...(nbaResult.status === 'fulfilled' ? nbaResult.value.data : []),
+        ...(ncaabResult.status === 'fulfilled' ? ncaabResult.value.data : []),
         ...(nflResult.status === 'fulfilled' ? nflResult.value.data : []),
+        ...(ncaafResult.status === 'fulfilled' ? ncaafResult.value.data : []),
         ...(nhlResult.status === 'fulfilled' ? nhlResult.value.data : []),
       ];
       

@@ -31,14 +31,16 @@ import type { ExtendedSDKEvent } from "@/lib/transformers/sportsgameodds-sdk";
 // Map sport keys to league IDs
 const SPORT_TO_LEAGUE_MAP: Record<string, string> = {
   "basketball_nba": "NBA",
+  "basketball_ncaab": "NCAAB",
   "americanfootball_nfl": "NFL",
+  "americanfootball_ncaaf": "NCAAF",
   "icehockey_nhl": "NHL",
 };
 
 // Query parameters schema
 const QuerySchema = z.object({
   sport: z
-    .enum(["basketball_nba", "americanfootball_nfl", "icehockey_nhl"])
+    .enum(["basketball_nba", "basketball_ncaab", "americanfootball_nfl", "americanfootball_ncaaf", "icehockey_nhl"])
     .default("basketball_nba"),
   lines: z
     .enum(["main", "all"])

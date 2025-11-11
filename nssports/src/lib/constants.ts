@@ -22,7 +22,9 @@ export const ROUTES = {
 
 export const SPORTS = {
   NBA: "nba",
+  NCAAB: "ncaab",
   NFL: "nfl",
+  NCAAF: "ncaaf",
   NHL: "nhl",
   MLB: "mlb",
 } as const;
