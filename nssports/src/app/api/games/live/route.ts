@@ -17,7 +17,7 @@ export const dynamic = 'force-dynamic'; // Always run fresh, no static generatio
 export async function GET() {
   return withErrorHandling(async () => {
     try {
-      logger.info('Fetching live games - checking all events for live/started status');
+      // Silent operation - reduce log spam with 5s polling
       
       // Development-friendly limits
       const isDevelopment = process.env.NODE_ENV === 'development';
@@ -82,9 +82,7 @@ export async function GET() {
         ...(nhlResult.status === 'fulfilled' ? nhlResult.value.data : []),
       ];
       
-      logger.info(`[/api/games/live] ✅ SDK returned ${liveEvents.length} LIVE events using official filters`, {
-        filters: { live: true, finalized: false, oddIDs: 'MAIN_LINE_ODDIDS' }
-      });
+      // Silent operation - only log errors, not every successful fetch
       
       // Transform SDK events to internal format
       // The transformer will use official Event.status fields to map status
@@ -96,56 +94,33 @@ export async function GET() {
       // This catches any SDK errors or historical data leakage
       const fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000);
       const now = new Date();
-      const beforeFilter = games.length;
       
       games = games.filter(game => {
         const gameTime = new Date(game.startTime);
         
         // Game must have started (not upcoming)
         if (gameTime > now) {
-          logger.debug(`Filtered out upcoming game incorrectly marked as live`, {
-            gameId: game.id,
-            startTime: game.startTime,
-            status: game.status
-          });
           return false;
         }
         
         // Game must have started within last 4 hours (not historical)
         if (gameTime <= fourHoursAgo) {
-          logger.debug(`Filtered out historical game incorrectly marked as live`, {
-            gameId: game.id,
-            startTime: game.startTime,
-            hoursAgo: (now.getTime() - gameTime.getTime()) / (1000 * 60 * 60)
-          });
           return false;
         }
         
         // Game must be marked as live (not finished)
         if (game.status !== 'live') {
-          logger.debug(`Filtered out non-live game from live endpoint`, {
-            gameId: game.id,
-            status: game.status
-          });
           return false;
         }
         
         return true;
       });
       
-      if (beforeFilter > games.length) {
-        logger.warn(`Filtered out ${beforeFilter - games.length} invalid games from live endpoint`, {
-          beforeFilter,
-          afterFilter: games.length
-        });
-      }
-      
       // Apply stratified sampling in development (Protocol I-IV)
       games = applyStratifiedSampling(games, 'leagueId');
       
       const parsed = z.array(GameSchema).parse(games);
       
-      logger.info(`Returning ${parsed.length} live games`);
       return successResponse(parsed);
     } catch (error) {
       logger.error('Error fetching live games', error);

@@ -52,29 +52,35 @@ function AuthenticatedHomePage({ session }: { session: Session }) {
     
     setError(null);
     try {
-      console.log(`[HomePage] ${isBackgroundUpdate ? 'Background refreshing odds' : 'Initial fetch'} from /api/games/live...`);
+      // Silent background updates - no logging spam
+      if (!isBackgroundUpdate) {
+        console.log('[HomePage] Initial fetch from /api/games/live...');
+      }
       const response = await fetch('/api/games/live', {
         headers: {
           'Cache-Control': 'no-cache',
         },
-        // Longer timeout for initial load when Next.js may still be compiling
-        signal: AbortSignal.timeout(isBackgroundUpdate ? 8000 : 20000),
+        // Increased timeout to prevent abort errors - 15s for background, 20s for initial
+        signal: AbortSignal.timeout(isBackgroundUpdate ? 15000 : 20000),
       });
       if (!response.ok) {
         throw new Error(`Failed to fetch: ${response.status}`);
       }
       const json = await response.json();
       const games = Array.isArray(json.data) ? json.data : [];
-      console.log(`[HomePage] ${isBackgroundUpdate ? '✅ Odds refreshed' : '✅ Games loaded'} - ${games.length} live games`);
+      if (!isBackgroundUpdate) {
+        console.log(`[HomePage] ✅ Games loaded - ${games.length} live games`);
+      }
       setLiveGamesData(games);
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to fetch live games';
-      console.error('[HomePage] Error:', errorMsg);
+      // Only log errors, not every background update
+      if (!isBackgroundUpdate || errorMsg.includes('abort')) {
+        console.error('[HomePage] Error:', errorMsg);
+      }
       // Only set error on initial load to avoid disrupting user experience
       if (!isBackgroundUpdate) {
         setError(errorMsg);
-      } else {
-        console.log('[HomePage] Background refresh failed - keeping existing odds');
       }
     } finally {
       if (isBackgroundUpdate) {
@@ -89,7 +95,6 @@ function AuthenticatedHomePage({ session }: { session: Session }) {
     const handleVisibilityChange = () => {
       setIsPageVisible(!document.hidden);
       if (!document.hidden) {
-        console.log('[HomePage] Page visible - triggering immediate refresh');
         fetchLiveGames(true); // Refresh when user returns to page
       }
     };

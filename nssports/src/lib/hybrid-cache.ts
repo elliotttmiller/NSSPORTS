@@ -60,9 +60,10 @@ import {
  * TTL VALUES (Optimized for Pro Plan - 300 req/min):
  * 
  * LIVE GAMES (Game in progress):
- * - TTL: 15 seconds (sub-minute updates)
- * - Why: In-game odds change rapidly, Pro plan allows frequent polling
- * - Rate limit: ~4 req/min per game (well within 300/min for 20+ concurrent games)
+ * - TTL: 5 seconds (aggressive real-time updates)
+ * - Why: In-game odds change VERY rapidly during live play, need near-instant updates
+ * - Rate limit: ~12 req/min per game (300/min allows 25+ concurrent live games)
+ * - Critical for accurate live betting odds
  * 
  * CRITICAL WINDOW (Game starts in < 1 hour):
  * - TTL: 30 seconds  
@@ -79,12 +80,12 @@ import {
  * - Why: Odds relatively stable, lower betting volume
  * - Rate limit: ~1 req/min per game (optimized for many future games)
  * 
- * KEY INSIGHT: Pro Plan sub-minute update frequency means we can poll more
- * aggressively than previous 10s/30s/60s/120s strategy. New values provide
- * better real-time experience while staying well within 300 req/min limit.
+ * KEY INSIGHT: Live games need MUCH more aggressive polling than pre-game.
+ * 5s TTL ensures odds changes are reflected almost immediately, which is
+ * critical for live betting accuracy and user trust.
  */
 const CACHE_TTL = {
-  live: 15,        // Live games - sub-minute updates for Pro plan
+  live: 5,         // Live games - aggressive real-time updates (was 15s, now 5s)
   critical: 30,    // <1hr to start - line movements accelerate
   active: 45,      // 1-24hr to start - moderate market activity  
   standard: 60,    // 24hr+ to start - stable odds
@@ -152,13 +153,9 @@ export async function getEventsWithCache(options: {
   try {
     const cachedEvents = await getEventsFromCache(options);
     if (cachedEvents.length > 0) {
-      logger.info(
-        `✅ Smart Cache HIT: Returning ${cachedEvents.length} events ` +
-        `(dynamic TTL: 30s critical, 60s active, 120s standard)`
-      );
+      // Silent cache hits - only log on cache miss for debugging
       return { data: cachedEvents, source: 'cache' as const };
     }
-    logger.info('Smart Cache MISS: Fetching fresh data from SDK');
   } catch (cacheError) {
     logger.warn('Cache check failed, will fetch from SDK', { error: cacheError });
     // Continue to SDK fetch - cache errors shouldn't break the flow
@@ -166,7 +163,6 @@ export async function getEventsWithCache(options: {
   
   // 2. Fetch from SDK (source of truth)
   // CRITICAL: Always request consensus odds (bookOdds) for real market data
-  logger.info('Fetching events from SDK with consensus odds', options);
   const { data: events } = await sdkGetEvents({
     ...options,
     includeConsensus: options.includeConsensus !== false, // Default to true
@@ -178,7 +174,6 @@ export async function getEventsWithCache(options: {
     // Don't throw - cache update failure shouldn't break the response
   });
   
-  logger.info(`Fetched ${events.length} events from SDK`);
   return { data: events, source: 'sdk' as const };
 }
 
@@ -651,20 +646,15 @@ export async function getPlayerPropsWithCache(eventID: string) {
   try {
     const cachedProps = await getPlayerPropsFromCache(eventID);
     if (cachedProps.length > 0) {
-      logger.info(
-        `✅ Smart Cache HIT: Returning ${cachedProps.length} player props ` +
-        `(dynamic TTL based on game start time)`
-      );
+      // Silent cache hits - reduce logging spam
       return { data: cachedProps, source: 'cache' as const };
     }
-    logger.info('Smart Cache MISS: Fetching fresh player props from SDK');
   } catch (cacheError) {
     logger.warn('Cache check failed for player props, will fetch from SDK', { error: cacheError });
     // Continue to SDK fetch
   }
   
   // 2. Fetch from SDK (source of truth)
-  logger.info(`Fetching player props for event ${eventID} from SDK`);
   const props = await sdkGetPlayerProps(eventID);
   
   // 3. Update Prisma cache for next request (async, non-blocking)
@@ -673,7 +663,6 @@ export async function getPlayerPropsWithCache(eventID: string) {
     // Don't throw - cache update failure shouldn't break the response
   });
   
-  logger.info(`Fetched ${props.length} player props from SDK`);
   return { data: props, source: 'sdk' as const };
 }
 
@@ -857,20 +846,15 @@ export async function getGamePropsWithCache(eventID: string) {
   try {
     const cachedProps = await getGamePropsFromCache(eventID);
     if (cachedProps.length > 0) {
-      logger.info(
-        `✅ Smart Cache HIT: Returning ${cachedProps.length} game props ` +
-        `(dynamic TTL based on game start time)`
-      );
+      // Silent cache hits - reduce logging spam
       return { data: cachedProps, source: 'cache' as const };
     }
-    logger.info('Smart Cache MISS: Fetching fresh game props from SDK');
   } catch (cacheError) {
     logger.warn('Cache check failed for game props, will fetch from SDK', { error: cacheError });
     // Continue to SDK fetch
   }
   
   // 2. Fetch from SDK (source of truth)
-  logger.info(`Fetching game props for event ${eventID} from SDK`);
   const props = await sdkGetGameProps(eventID);
   
   // 3. Update Prisma cache for next request (async, non-blocking)
@@ -879,7 +863,6 @@ export async function getGamePropsWithCache(eventID: string) {
     // Don't throw - cache update failure shouldn't break the response
   });
   
-  logger.info(`Fetched ${props.length} game props from SDK`);
   return { data: props, source: 'sdk' as const };
 }
 

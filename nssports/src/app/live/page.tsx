@@ -35,30 +35,36 @@ export default function LivePage() {
     
     setError(null);
     try {
-      console.log(`[LivePage Mobile] ${isBackgroundUpdate ? 'Background refreshing odds' : 'Initial fetch'} from /api/games/live...`);
+      // Silent background updates - no logging spam
+      if (!isBackgroundUpdate) {
+        console.log('[LivePage] Initial fetch from /api/games/live...');
+      }
       const response = await fetch('/api/games/live', {
         // Mobile: Add cache control to get fresh data without page reload
         headers: {
           'Cache-Control': 'no-cache',
         },
-        // Mobile: Add timeout for slow connections
-        signal: AbortSignal.timeout(8000), // 8 second timeout
+        // Mobile: Add timeout - increased to 15s to prevent abort errors with 5s polling
+        signal: AbortSignal.timeout(15000),
       });
       if (!response.ok) {
         throw new Error(`Failed to fetch: ${response.status}`);
       }
       const json = await response.json();
       const games = Array.isArray(json.data) ? json.data : [];
-      console.log(`[LivePage Mobile] ${isBackgroundUpdate ? '✅ Odds refreshed' : '✅ Games loaded'} - ${games.length} live games (bet slip preserved)`);
+      if (!isBackgroundUpdate) {
+        console.log(`[LivePage] ✅ Games loaded - ${games.length} live games`);
+      }
       setLiveGamesData(games);
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to fetch live games';
-      console.error('[LivePage Mobile] Error:', errorMsg);
+      // Only log errors, not every background update
+      if (!isBackgroundUpdate || errorMsg.includes('abort')) {
+        console.error('[LivePage] Error:', errorMsg);
+      }
       // Mobile: Only set error on initial load to avoid disrupting user experience
       if (!isBackgroundUpdate) {
         setError(errorMsg);
-      } else {
-        console.log('[LivePage Mobile] Background refresh failed - keeping existing odds');
       }
     } finally {
       if (isBackgroundUpdate) {
@@ -71,7 +77,6 @@ export default function LivePage() {
 
   // Manual refresh handler for pull-to-refresh
   const handleRefresh = useCallback(async () => {
-    console.log('[LivePage] 🔄 Manual refresh triggered');
     await fetchLiveGames(true);
   }, [fetchLiveGames]);
 
@@ -86,7 +91,6 @@ export default function LivePage() {
     const handleVisibilityChange = () => {
       setIsPageVisible(!document.hidden);
       if (!document.hidden) {
-        console.log('[LivePage Mobile] Page visible - triggering immediate refresh');
         fetchLiveGames(true);
       }
     };
@@ -100,21 +104,20 @@ export default function LivePage() {
     fetchLiveGames(false); // Initial load
   }, [fetchLiveGames]);
   
-  // ⭐ Mobile-Optimized Auto-refresh: Updates odds every 30s WITHOUT page refresh
+  // ⭐ Mobile-Optimized Auto-refresh: Updates odds every 5s for real-time accuracy
   // ✅ Preserves user's bet selections and UI state
   // ✅ Only refreshes when page is visible (saves mobile battery)
   // ✅ Silent updates - no loading spinners or interruptions
+  // ✅ Matches backend cache TTL (5s) for maximum freshness
   useEffect(() => {
     // Only run interval when page is visible
     if (!_isPageVisible) {
-      console.log('[LivePage Mobile] Page hidden - pausing auto-refresh to save battery');
       return;
     }
     
     const interval = setInterval(() => {
-      console.log('[LivePage Mobile] 🔄 Auto-refreshing odds (silent, preserves bet slip)...');
-      fetchLiveGames(true); // Background update
-    }, 30000); // 30 seconds
+      fetchLiveGames(true); // Silent background update
+    }, 5000); // 5 seconds - aggressive real-time updates for live betting accuracy
     
     return () => clearInterval(interval);
   }, [fetchLiveGames, _isPageVisible]);
@@ -122,7 +125,7 @@ export default function LivePage() {
   // ⭐ PHASE 4: WebSocket Streaming for Real-Time ODDS Updates ONLY
   // OPTIONAL ENHANCEMENT: WebSocket streaming for instant updates
   // - When enabled: <1s update latency via 'events:live' feed
-  // - When disabled: Smart cache system still provides real-time data (10s TTL for live games)
+  // - When disabled: Smart cache system still provides real-time data (5s TTL for live games)
   // - Reality: System works perfectly either way, streaming is optimization for premium UX
   const enableStreaming = useLiveDataStore((state) => state.enableStreaming);
   const disableStreaming = useLiveDataStore((state) => state.disableStreaming);
@@ -140,15 +143,12 @@ export default function LivePage() {
   useEffect(() => {
     // OPTIONAL: Enable WebSocket for <1s latency (smart cache still works without this)
     if (displayGames.length > 0 && !streamingEnabled && typeof enableStreaming === 'function') {
-      console.log('[LivePage] Enabling WebSocket streaming for', displayGames.length, 'live games');
-      console.log('[LivePage] Note: Smart cache (10s TTL) is primary system, streaming enhances it');
       enableStreaming(); // Connects to 'events:live' feed (all sports)
     }
     
     // Cleanup: disable streaming when component unmounts
     return () => {
       if (streamingEnabled && typeof disableStreaming === 'function') {
-        console.log('[LivePage] Disabling streaming on unmount');
         disableStreaming();
       }
     };
