@@ -40,7 +40,7 @@ import {
   gradeParlayBet,
   type LegGradingResult
 } from '@/services/bet-settlement';
-import { fetchPlayerStats } from '@/lib/player-stats';
+import { fetchAllPlayerStats } from '@/lib/player-stats';
 import type { ExtendedSDKEvent } from '@/lib/transformers/sportsgameodds-sdk';
 
 // Test configuration
@@ -416,68 +416,138 @@ async function testPlayerProps(game: ExtendedSDKEvent, config: TestConfig): Prom
       return results;
     }
     
-    // Fetch player stats from SDK
-    const statsData = await fetchPlayerStats(game.eventID, 'ANY_PLAYER'); // Will get all players
+    // Fetch all player stats from SDK
+    const allPlayerStats = await fetchAllPlayerStats(game.eventID);
     
-    if (!statsData || Object.keys(statsData).length === 0) {
+    console.log(`      📊 fetchAllPlayerStats returned: ${allPlayerStats ? allPlayerStats.size : 0} players`);
+    
+    if (!allPlayerStats || allPlayerStats.size === 0) {
       results.push({
         betType: 'player_prop',
         testName: 'Player stats availability',
         passed: false,
         expected: 'Stats available',
         actual: 'No stats returned',
-        details: 'SDK did not return player stats for this game'
+        details: `SDK did not return player stats for game ${game.eventID}`
       });
       return results;
     }
 
-    // Test with actual player stats
-    const statTypes = Object.keys(statsData);
-    for (const statType of statTypes.slice(0, 3)) { // Test first 3 stat types
-      const actualValue = statsData[statType];
-      const testLines = [actualValue - 5.5, actualValue, actualValue + 5.5];
+    // Test with first player's stats
+    const firstPlayer = Array.from(allPlayerStats.entries())[0];
+    if (!firstPlayer) {
+      results.push({
+        betType: 'player_prop',
+        testName: 'Player data extraction',
+        passed: false,
+        expected: 'At least one player',
+        actual: 'No players found',
+        details: 'Could not extract player data from stats'
+      });
+      return results;
+    }
 
-      for (const line of testLines) {
-        // Test over
-        const overResult = gradePlayerPropBet({
-          selection: 'over',
-          line,
-          playerId: 'TEST_PLAYER',
-          statType
-        }, statsData);
+    const [playerId, statsData] = firstPlayer;
+    console.log(`      👤 Testing player: ${playerId}`);
+    console.log(`      📈 All stats:`, Object.keys(statsData).join(', '));
+    console.log(`      🏀 Points: ${statsData.points}, Rebounds: ${statsData.rebounds}, Assists: ${statsData.assists}`);
+    
+    // Test points if available
+    if (statsData.points !== undefined) {
+      const actualPoints = statsData.points;
+      const testLine = actualPoints + 0.5; // Test line above actual
 
-        const overExpected = actualValue === line ? 'push' :
-                           actualValue > line ? 'won' : 'lost';
+      const overResult = gradePlayerPropBet({
+        selection: 'over',
+        line: testLine,
+        playerId,
+        statType: 'points'
+      }, statsData);
 
-        results.push({
-          betType: 'player_prop',
-          testName: `${statType} Over ${line}`,
-          passed: overResult.status === overExpected,
-          expected: overExpected,
-          actual: overResult.status,
-          details: `Actual: ${actualValue}`
-        });
+      console.log(`         🎯 Points Over ${testLine}: Expected=lost, Actual=${overResult.status}, Passed=${overResult.status === 'lost'}`);
 
-        // Test under
-        const underResult = gradePlayerPropBet({
-          selection: 'under',
-          line,
-          playerId: 'TEST_PLAYER',
-          statType
-        }, statsData);
+      results.push({
+        betType: 'player_prop',
+        testName: `${playerId} Points Over ${testLine}`,
+        passed: overResult.status === 'lost', // Should lose (actual < line)
+        expected: 'lost',
+        actual: overResult.status,
+        details: `Actual: ${actualPoints}, Line: ${testLine}`
+      });
 
-        const underExpected = actualValue === line ? 'push' :
-                             actualValue < line ? 'won' : 'lost';
+      const underResult = gradePlayerPropBet({
+        selection: 'under',
+        line: testLine,
+        playerId,
+        statType: 'points'
+      }, statsData);
 
-        results.push({
-          betType: 'player_prop',
-          testName: `${statType} Under ${line}`,
-          passed: underResult.status === underExpected,
-          expected: underExpected,
-          actual: underResult.status,
-          details: `Actual: ${actualValue}`
-        });
-      }
+      console.log(`         🎯 Points Under ${testLine}: Expected=won, Actual=${underResult.status}, Passed=${underResult.status === 'won'}`);
+
+      results.push({
+        betType: 'player_prop',
+        testName: `${playerId} Points Under ${testLine}`,
+        passed: underResult.status === 'won', // Should win (actual < line)
+        expected: 'won',
+        actual: underResult.status,
+        details: `Actual: ${actualPoints}, Line: ${testLine}`
+      });
+    }
+    
+    // Test rebounds if available
+    if (statsData.rebounds !== undefined) {
+      const actualRebounds = statsData.rebounds;
+      const testLine = actualRebounds - 0.5; // Test line below actual
+
+      const overResult = gradePlayerPropBet({
+        selection: 'over',
+        line: testLine,
+        playerId,
+        statType: 'rebounds'
+      }, statsData);
+
+      results.push({
+        betType: 'player_prop',
+        testName: `${playerId} Rebounds Over ${testLine}`,
+        passed: overResult.status === 'won', // Should win (actual > line)
+        expected: 'won',
+        actual: overResult.status,
+        details: `Actual: ${actualRebounds}, Line: ${testLine}`
+      });
+    }
+    
+    // Test assists if available
+    if (statsData.assists !== undefined) {
+      const actualAssists = statsData.assists;
+      const pushLine = actualAssists; // Test exact push
+
+      const overResult = gradePlayerPropBet({
+        selection: 'over',
+        line: pushLine,
+        playerId,
+        statType: 'assists'
+      }, statsData);
+
+      results.push({
+        betType: 'player_prop',
+        testName: `${playerId} Assists Over ${pushLine} (push)`,
+        passed: overResult.status === 'push', // Should push (actual === line)
+        expected: 'push',
+        actual: overResult.status,
+        details: `Actual: ${actualAssists}, Line: ${pushLine}`
+      });
+    }
+
+    // If no stats available for testing
+    if (statsData.points === undefined && statsData.rebounds === undefined && statsData.assists === undefined) {
+      results.push({
+        betType: 'player_prop',
+        testName: 'Common stats availability',
+        passed: false,
+        expected: 'Points/Rebounds/Assists available',
+        actual: 'No common stats found',
+        details: `Available stats: ${Object.keys(statsData).join(', ')}`
+      });
     }
 
   } catch (error) {

@@ -100,6 +100,68 @@ export async function fetchPlayerStats(
 }
 
 /**
+ * Fetch all player stats from a finished game
+ * Returns stats for all players who participated in the game
+ * 
+ * @param gameId - The eventID of the finished game
+ * @returns Map of playerID to stats object
+ * 
+ * @example
+ * ```typescript
+ * const allStats = await fetchAllPlayerStats("20231115_LAL_GSW_NBA");
+ * // Returns: Map {
+ * //   "LEBRON_JAMES_1_NBA" => { points: 28, rebounds: 8, assists: 5 },
+ * //   "ANTHONY_DAVIS_1_NBA" => { points: 25, rebounds: 12, assists: 3 },
+ * //   ...
+ * // }
+ * ```
+ */
+export async function fetchAllPlayerStats(
+  gameId: string
+): Promise<Map<string, PlayerGameStats>> {
+  const statsMap = new Map<string, PlayerGameStats>();
+
+  try {
+    logger.info(`[fetchAllPlayerStats] Fetching all player stats for game ${gameId}`);
+
+    // Fetch event from SDK
+    const response = await getEvents({
+      eventIDs: gameId,
+    });
+
+    if (!response.data || response.data.length === 0) {
+      logger.warn(`[fetchAllPlayerStats] Game ${gameId} not found in SDK`);
+      return statsMap;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const event = response.data[0] as any;
+
+    if (!event.results || !event.results['game']) {
+      logger.warn(`[fetchAllPlayerStats] No game results data for game ${gameId}`);
+      return statsMap;
+    }
+
+    const gameResults = event.results['game'];
+
+    // Extract all player data (keys that look like player IDs)
+    Object.entries(gameResults).forEach(([key, value]) => {
+      // Player IDs contain underscores and league suffix (e.g., "LEBRON_JAMES_1_NBA")
+      if (key.includes('_') && key !== 'home' && key !== 'away' && typeof value === 'object' && value !== null) {
+        statsMap.set(key, value as PlayerGameStats);
+      }
+    });
+
+    logger.info(`[fetchAllPlayerStats] Found stats for ${statsMap.size} players`);
+    return statsMap;
+
+  } catch (error) {
+    logger.error(`[fetchAllPlayerStats] Error fetching all player stats for game ${gameId}:`, error);
+    return statsMap;
+  }
+}
+
+/**
  * Fetch stats for multiple players from a finished game (more efficient)
  * 
  * @param gameId - The eventID of the finished game
