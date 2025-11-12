@@ -39,9 +39,9 @@ const DateFilterButton = memo(({
   onClick: () => void;
 }) => (
   <button
-    className={`px-4 py-2 rounded-full font-medium whitespace-nowrap transition-all duration-150 ${
+    className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all duration-150 ${
       isSelected 
-        ? 'bg-accent text-accent-foreground shadow' 
+        ? 'bg-accent text-accent-foreground shadow-md' 
         : 'bg-muted/10 text-muted-foreground hover:bg-accent/10'
     }`}
     onClick={onClick}
@@ -326,25 +326,10 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange, byp
         </div>
       ) : (
         <>
-          {/* Single date filter bar for all leagues with refresh button */}
-          <div className="flex items-center gap-2 overflow-x-auto py-2 px-1 bg-background border-b border-border sticky top-0 z-20" style={{ willChange: 'scroll-position', WebkitOverflowScrolling: 'touch' }}>
-            {/* Refresh Button */}
-            <RefreshButton onRefresh={handleRefresh} isLoading={isRefreshing} />
-            {/* Date Filters - Memoized */}
-            {uniqueSortedDates.map((dateStr) => (
-              <DateFilterButton
-                key={dateStr}
-                dateStr={dateStr}
-                isSelected={selectedDate === dateStr}
-                onClick={() => setSelectedDate(dateStr)}
-              />
-            ))}
-          </div>
-          
-          {/* Sport/League Filter - Always show if not filtering by specific league */}
+          {/* Sport/League Filter - Compact version */}
           {!leagueId && availableSports.length > 0 && (
-            <div className="mb-4 mt-2">
-              <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2 snap-x snap-mandatory px-1">
+            <div className="mb-2">
+              <div className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-1.5 snap-x snap-mandatory px-1">
                 {availableSports.map((sport) => {
                   const isSelected = selectedSport === sport.name;
                   const sportLabel = sport.name === "all" ? "All Sports" : sport.name.toUpperCase();
@@ -354,19 +339,19 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange, byp
                       key={sport.name}
                       onClick={() => setSelectedSport(sport.name)}
                       className={`
-                        snap-start shrink-0 px-4 py-2 rounded-full text-xs sm:text-sm font-medium
+                        snap-start shrink-0 px-3 py-1.5 rounded-full text-xs font-medium
                         transition-all duration-300 ease-out
                         touch-action-manipulation active:scale-95
-                        flex items-center gap-2
+                        flex items-center gap-1.5
                         ${isSelected 
-                          ? 'bg-accent text-accent-foreground shadow-lg shadow-accent/20 scale-105' 
+                          ? 'bg-accent text-accent-foreground shadow-md scale-105' 
                           : 'bg-card/50 text-muted-foreground hover:bg-card hover:text-foreground border border-border/30'
                         }
                       `}
                     >
                       <span>{sportLabel}</span>
                       <span className={`
-                        inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-xs font-bold
+                        inline-flex items-center justify-center min-w-4 h-4 px-1 rounded-full text-[10px] font-bold
                         ${isSelected 
                           ? 'bg-accent-foreground/20 text-accent-foreground' 
                           : 'bg-accent/10 text-accent'
@@ -380,6 +365,23 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange, byp
               </div>
             </div>
           )}
+          
+          {/* Date filter bar with refresh button - Compact and sticky */}
+          <div className="flex items-center gap-1.5 overflow-x-auto py-1.5 px-1 bg-background/95 backdrop-blur-sm border-b border-border sticky top-0 z-20 mb-4" style={{ willChange: 'scroll-position', WebkitOverflowScrolling: 'touch' }}>
+            {/* Refresh Button - Compact */}
+            <div className="shrink-0">
+              <RefreshButton onRefresh={handleRefresh} isLoading={isRefreshing} />
+            </div>
+            {/* Date Filters - Compact */}
+            {uniqueSortedDates.map((dateStr) => (
+              <DateFilterButton
+                key={dateStr}
+                dateStr={dateStr}
+                isSelected={selectedDate === dateStr}
+                onClick={() => setSelectedDate(dateStr)}
+              />
+            ))}
+          </div>
           
           {/* No games message for selected sport */}
           {sportFilteredGames.length === 0 && selectedSport !== "all" && (
