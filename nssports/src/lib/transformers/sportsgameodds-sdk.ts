@@ -321,7 +321,8 @@ function getTeamLogo(team: SDKTeam, leagueId: string): string {
 // ⭐ Extend Official SDK Event Type with Additional Properties
 // The official SDK Event type doesn't include all properties we use, so we extend it
 // This maintains type safety while supporting additional fields from the API response
-export interface ExtendedSDKEvent extends SDKEvent {
+// Note: We omit 'results' to provide a simpler type definition for our use case
+export interface ExtendedSDKEvent extends Omit<SDKEvent, 'results'> {
   venue?: string;
   scores?: {
     home?: number | null;
@@ -332,6 +333,15 @@ export interface ExtendedSDKEvent extends SDKEvent {
   teams?: {
     home?: ExtendedSDKTeam;
     away?: ExtendedSDKTeam;
+  };
+  // ⭐ Player stats and results from finished games
+  // Per SDK docs: https://sportsgameodds.com/docs/explorer
+  // event.results contains actual player performance: { "points": { "PLAYER_ID": 28 } }
+  // Simplified from SDK's nested structure for easier access
+  results?: {
+    [statID: string]: {
+      [playerID: string]: number; // e.g., { "points": { "LEBRON_JAMES_1_NBA": 28 } }
+    };
   };
 }
 

@@ -9,6 +9,12 @@ Comprehensive bet settlement system that automatically grades and settles bets w
 ```
 Game Finishes (status='finished')
     ↓
+SDK Polling Updates Scores
+    - hybrid-cache.ts polls SDK every 5-60s (based on game status)
+    - When game status = 'finished', SDK returns final scores
+    - Scores stored in Game.homeScore and Game.awayScore
+    - Game.status updated to 'finished'
+    ↓
 Cron Job / Manual Trigger
     ↓
 Settlement Service
@@ -38,6 +44,42 @@ Update Database
     ↓
 Bets Appear in History Section
 ```
+
+## How Scores Are Captured
+
+**Critical: Score updates happen AUTOMATICALLY via the hybrid cache system**
+
+1. **Polling Frequency** (from `src/lib/hybrid-cache.ts`):
+   - Live games: Every 5 seconds
+   - Games starting <1hr: Every 30 seconds  
+   - Games starting 1-24hr: Every 45 seconds
+   - Games starting 24hr+: Every 60 seconds
+
+2. **Score Extraction** (from SDK):
+   - SDK provides `event.scores.home` and `event.scores.away`
+   - Available when `event.status.completed` or `event.status.ended` is true
+   - Stored in `Game.homeScore` and `Game.awayScore` columns
+
+3. **Status Transition**:
+   - SDK reports `event.status.completed = true` when game finishes
+   - Cache updates `Game.status = 'finished'`
+   - Scores are populated at the same time
+
+4. **Settlement Verification**:
+   ```typescript
+   // Settlement service checks BOTH status AND scores
+   if (game.status !== "finished") {
+     console.log("Game not finished yet");
+     return null;
+   }
+   
+   if (game.homeScore === null || game.awayScore === null) {
+     console.error("Game finished but missing scores - SDK issue");
+     return null;
+   }
+   ```
+
+**Important**: Settlement will FAIL if SDK doesn't provide scores for a finished game. Check logs for "Game finished but missing scores" errors.
 
 ## Components
 

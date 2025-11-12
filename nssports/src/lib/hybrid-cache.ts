@@ -269,12 +269,24 @@ async function updateEventsCache(events: any[]) {
         gameStatus = 'upcoming';
       }
       
+      // Extract scores from SDK event (for live and finished games)
+      // Per SDK docs: event.scores contains { home: number, away: number } when available
+      const homeScore = event.scores?.home ?? null;
+      const awayScore = event.scores?.away ?? null;
+      
+      // Log score updates for finished games (critical for settlement verification)
+      if (gameStatus === 'finished' && (homeScore !== null || awayScore !== null)) {
+        logger.info(`[updateEventsCache] Storing final scores for ${event.eventID}: ${awayTeam.names.short} ${awayScore} @ ${homeTeam.names.short} ${homeScore}`);
+      }
+      
       // Upsert game
       await prisma.game.upsert({
         where: { id: event.eventID },
         update: {
           startTime,
           status: gameStatus,
+          homeScore, // ⭐ CRITICAL: Update scores for settlement
+          awayScore, // ⭐ CRITICAL: Update scores for settlement
           updatedAt: new Date(),
         },
         create: {
@@ -284,6 +296,8 @@ async function updateEventsCache(events: any[]) {
           awayTeamId: awayTeam.teamID,
           startTime,
           status: gameStatus,
+          homeScore, // Store initial scores (null for upcoming games)
+          awayScore,
         },
       });
       

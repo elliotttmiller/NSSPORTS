@@ -13,6 +13,8 @@
  */
 
 import { prisma } from "@/lib/prisma";
+import { fetchPlayerStats } from "@/lib/player-stats";
+import { getPeriodScore } from "@/lib/period-scores";
 
 // ============================================================================
 // TYPES & INTERFACES
@@ -192,7 +194,7 @@ export function gradeGamePropBet(params: {
   line?: number;
   homeScore: number;
   awayScore: number;
-}, gameData?: unknown): BetGradingResult {
+}, periodScores?: { home: number; away: number } | null): BetGradingResult {
   const { propType, selection, line, homeScore, awayScore } = params;
 
   // Team total props (e.g., "Home team over 110.5 points")
@@ -220,16 +222,41 @@ export function gradeGamePropBet(params: {
     }
   }
 
-  // Quarter/Period props (requires period-specific data)
-  if (propType.includes("quarter") || propType.includes("period") || propType.includes("half")) {
-    if (!gameData || !(gameData as { periods?: unknown }).periods) {
+  // Quarter/Period props (e.g., "1q", "2q", "1h", "1p")
+  // Format: propType might be "1q_team_total" or "1h_ou" etc.
+  if (propType.includes("quarter") || propType.includes("period") || propType.includes("half") ||
+      /^(1q|2q|3q|4q|1h|2h|1p|2p|3p)/.test(propType)) {
+    
+    // Check if we have period scores data
+    if (!periodScores) {
       console.warn(`[gradeGamePropBet] No period data available for ${propType}, marking as push`);
       return { status: "push", reason: "Period data unavailable" };
     }
 
-    // TODO: Implement period-specific grading
-    // This would require parsing period data from game
-    return { status: "push", reason: "Period props not yet implemented" };
+    if (!line) {
+      return { status: "push", reason: "No line available" };
+    }
+
+    // Determine which team and direction
+    const isHomeTeam = selection.includes("home");
+    const isOver = selection.includes("over");
+    const teamScore = isHomeTeam ? periodScores.home : periodScores.away;
+
+    // Check for push
+    if (teamScore === line) {
+      return { status: "push", reason: `Period total exactly ${line}` };
+    }
+
+    // Grade over/under
+    if (isOver) {
+      return teamScore > line
+        ? { status: "won", reason: `Period: ${teamScore}, over ${line}` }
+        : { status: "lost", reason: `Period: ${teamScore}, under ${line}` };
+    } else {
+      return teamScore < line
+        ? { status: "won", reason: `Period: ${teamScore}, under ${line}` }
+        : { status: "lost", reason: `Period: ${teamScore}, over ${line}` };
+    }
   }
 
   // Default: unable to grade
@@ -455,23 +482,78 @@ export async function settleBet(betId: string): Promise<SettlementResult | null>
         break;
 
       case "player_prop":
-        // TODO: Fetch actual player stats
+        // Extract player prop metadata from bet.legs JSON
+        let playerPropMetadata: { playerId?: string; statType?: string } | undefined;
+        try {
+          if (bet.legs) {
+            const metadata = typeof bet.legs === 'string' ? JSON.parse(bet.legs) : bet.legs;
+            playerPropMetadata = metadata.playerProp;
+          }
+        } catch (e) {
+          console.error(`[settleBet] Failed to parse player prop metadata for bet ${betId}:`, e);
+        }
+
+        if (!playerPropMetadata?.playerId || !playerPropMetadata?.statType) {
+          console.error(`[settleBet] Player prop bet ${betId} missing required metadata (playerId/statType)`);
+          return null;
+        }
+
+        if (!bet.gameId) {
+          console.error(`[settleBet] Player prop bet ${betId} missing gameId`);
+          return null;
+        }
+
+        // ✅ Fetch actual player stats from SDK
+        console.log(`[settleBet] Fetching player stats for ${playerPropMetadata.playerId} in game ${bet.gameId}`);
+        const playerStats = await fetchPlayerStats(bet.gameId, playerPropMetadata.playerId);
+        
+        if (!playerStats) {
+          console.warn(`[settleBet] Player stats unavailable for player ${playerPropMetadata.playerId} - marking as push`);
+        }
+        
         result = gradePlayerPropBet({
           selection: bet.selection,
           line: bet.line || 0,
-          playerId: "", // Would come from bet.legs JSON
-          statType: "" // Would come from bet.legs JSON
-        });
+          playerId: playerPropMetadata.playerId,
+          statType: playerPropMetadata.statType
+        }, playerStats || undefined);
         break;
 
       case "game_prop":
+        // Extract game prop metadata from bet.legs JSON
+        let gamePropMetadata: { propType?: string; periodID?: string } | undefined;
+        try {
+          if (bet.legs) {
+            const metadata = typeof bet.legs === 'string' ? JSON.parse(bet.legs) : bet.legs;
+            gamePropMetadata = metadata.gameProp;
+          }
+        } catch (e) {
+          console.error(`[settleBet] Failed to parse game prop metadata for bet ${betId}:`, e);
+        }
+
+        if (!gamePropMetadata?.propType) {
+          console.error(`[settleBet] Game prop bet ${betId} missing propType in metadata`);
+          return null;
+        }
+
+        // Check if this is a period/quarter prop
+        let periodScoresForProp: { home: number; away: number } | null = null;
+        if (gamePropMetadata.periodID && bet.gameId) {
+          console.log(`[settleBet] Fetching period ${gamePropMetadata.periodID} scores for game ${bet.gameId}`);
+          periodScoresForProp = await getPeriodScore(bet.gameId, gamePropMetadata.periodID);
+          
+          if (!periodScoresForProp) {
+            console.warn(`[settleBet] Period ${gamePropMetadata.periodID} scores unavailable - marking as push`);
+          }
+        }
+
         result = gradeGamePropBet({
-          propType: "", // Would come from bet.legs JSON
+          propType: gamePropMetadata.propType,
           selection: bet.selection,
           line: bet.line ?? undefined,
           homeScore: bet.game.homeScore,
           awayScore: bet.game.awayScore
-        });
+        }, periodScoresForProp);
         break;
 
       case "parlay":
@@ -641,7 +723,61 @@ async function gradeParlayLegs(bet: { legs: unknown }): Promise<LegGradingResult
         });
         break;
 
+      case "player_prop":
+        // Extract player prop metadata from leg
+        if (!leg.playerProp?.playerId || !leg.playerProp?.statType) {
+          console.error(`[gradeParlayLegs] Player prop leg missing metadata:`, leg);
+          legResult = { status: "push", reason: "Missing player prop metadata" };
+        } else if (!leg.gameId) {
+          console.error(`[gradeParlayLegs] Player prop leg missing gameId:`, leg);
+          legResult = { status: "push", reason: "Missing gameId" };
+        } else {
+          // ✅ Fetch actual player stats
+          console.log(`[gradeParlayLegs] Fetching player stats for ${leg.playerProp.playerId} in game ${leg.gameId}`);
+          const playerStats = await fetchPlayerStats(leg.gameId, leg.playerProp.playerId);
+          
+          if (!playerStats) {
+            console.warn(`[gradeParlayLegs] Player stats unavailable - marking leg as push`);
+          }
+          
+          legResult = gradePlayerPropBet({
+            selection: leg.selection,
+            line: leg.line ?? 0,
+            playerId: leg.playerProp.playerId,
+            statType: leg.playerProp.statType
+          }, playerStats || undefined);
+        }
+        break;
+
+      case "game_prop":
+        // Extract game prop metadata from leg
+        if (!leg.gameProp?.propType) {
+          console.error(`[gradeParlayLegs] Game prop leg missing propType:`, leg);
+          legResult = { status: "push", reason: "Missing game prop metadata" };
+        } else {
+          // Check if this is a period/quarter prop
+          let periodScoresForLeg: { home: number; away: number } | null = null;
+          if (leg.gameProp.periodID && leg.gameId) {
+            console.log(`[gradeParlayLegs] Fetching period ${leg.gameProp.periodID} scores for game ${leg.gameId}`);
+            periodScoresForLeg = await getPeriodScore(leg.gameId, leg.gameProp.periodID);
+            
+            if (!periodScoresForLeg) {
+              console.warn(`[gradeParlayLegs] Period ${leg.gameProp.periodID} scores unavailable - marking leg as push`);
+            }
+          }
+
+          legResult = gradeGamePropBet({
+            propType: leg.gameProp.propType,
+            selection: leg.selection,
+            line: leg.line ?? undefined,
+            homeScore: game.homeScore,
+            awayScore: game.awayScore
+          }, periodScoresForLeg);
+        }
+        break;
+
       default:
+        console.warn(`[gradeParlayLegs] Unsupported leg type: ${leg.betType}`);
         legResult = { status: "push", reason: "Unsupported leg type" };
     }
 
