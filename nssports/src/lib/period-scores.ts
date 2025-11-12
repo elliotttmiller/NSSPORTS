@@ -41,11 +41,8 @@ export interface ExpandedPeriodScores {
 /**
  * Fetch period/quarter scores from a finished game
  * 
- * INVESTIGATION STATUS: The SDK's exact format for period scores is unclear from docs.
- * This function will:
- * 1. Check event.results for period-based stat entries
- * 2. Check for a potential event.periods or event.periodScores field
- * 3. Log what's actually available for debugging
+ * SDK Structure: event.results[periodID] contains { home: { points: X }, away: { points: Y } }
+ * Example: event.results['1q'] = { home: { points: 31 }, away: { points: 28 } }
  * 
  * @param gameId - The eventID of the finished game
  * @returns Period scores object, or null if unavailable
@@ -53,7 +50,7 @@ export interface ExpandedPeriodScores {
  * @example
  * ```typescript
  * const scores = await fetchPeriodScores("20231115_LAL_GSW_NBA");
- * // Expected: { 
+ * // Returns: { 
  * //   "1q": { home: 28, away: 25 },
  * //   "2q": { home: 30, away: 27 },
  * //   "3q": { home: 26, away: 23 },
@@ -78,129 +75,42 @@ export async function fetchPeriodScores(
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const event = response.data[0] as any; // Use 'any' to inspect unknown fields
+    const event = response.data[0] as any;
 
-    // INVESTIGATION: Log the entire event structure to see what's available
-    logger.info(`[fetchPeriodScores] Event structure keys:`, { keys: Object.keys(event) });
+    // SDK structure: event.results[periodID] = { home: { points: X }, away: { points: Y } }
+    if (!event.results) {
+      logger.warn(`[fetchPeriodScores] No results field in event ${gameId}`);
+      return null;
+    }
+
+    const periodScores: PeriodScores = {};
     
-    // Check for common field names that might contain period data
-    if (event.periods) {
-      logger.info(`[fetchPeriodScores] Found event.periods field:`, event.periods);
-    }
-    if (event.periodScores) {
-      logger.info(`[fetchPeriodScores] Found event.periodScores field:`, event.periodScores);
-    }
-    if (event.quarters) {
-      logger.info(`[fetchPeriodScores] Found event.quarters field:`, event.quarters);
-    }
-    if (event.periodData) {
-      logger.info(`[fetchPeriodScores] Found event.periodData field:`, event.periodData);
-    }
+    // Known period IDs from SDK docs
+    const periodIDs = ['1q', '2q', '3q', '4q', '1h', '2h', '1p', '2p', '3p', 'game', 'reg', 'ot'];
     
-    // Check if results contains period-based entries
-    if (event.results) {
-      logger.info(`[fetchPeriodScores] event.results keys:`, { keys: Object.keys(event.results) });
-      
-      // Look for period-related keys in results
-      const periodKeys = Object.keys(event.results).filter(key => 
-        /^(1q|2q|3q|4q|1h|2h|1p|2p|3p|1i|2i|3i|4i|5i|6i|7i|8i|9i)/.test(key)
-      );
-      
-      if (periodKeys.length > 0) {
-        logger.info(`[fetchPeriodScores] Found period keys in results:`, { periodKeys });
-        logger.info(`[fetchPeriodScores] Sample period data:`, event.results[periodKeys[0]]);
-      }
-    }
-
-    // ATTEMPT 1: Check for event.periods field (most likely location)
-    if (event.periods && typeof event.periods === 'object') {
-      const periodScores: PeriodScores = {};
-      
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      Object.entries(event.periods).forEach(([periodID, periodData]: [string, any]) => {
-        if (periodData && typeof periodData === 'object') {
-          // Check various possible structures
-          if (periodData.home !== undefined && periodData.away !== undefined) {
-            periodScores[periodID] = {
-              home: Number(periodData.home),
-              away: Number(periodData.away),
-            };
-          } else if (periodData.scores) {
-            periodScores[periodID] = {
-              home: Number(periodData.scores.home),
-              away: Number(periodData.scores.away),
-            };
-          }
-        }
-      });
-      
-      if (Object.keys(periodScores).length > 0) {
-        logger.info(`[fetchPeriodScores] Successfully parsed ${Object.keys(periodScores).length} periods from event.periods`);
-        return periodScores;
-      }
-    }
-
-    // ATTEMPT 2: Check results field for period-based stats
-    if (event.results && typeof event.results === 'object') {
-      // Results structure might be: { "1q": { "home": 28, "away": 25 }, ... }
-      // OR: { "1q_home": { "team": 28 }, "1q_away": { "team": 25 }, ... }
-      
-      const periodScores: PeriodScores = {};
-      const potentialPeriods = ['1q', '2q', '3q', '4q', '1h', '2h', '1p', '2p', '3p', 'reg', 'ot'];
-      
-      potentialPeriods.forEach(periodID => {
-        // Try direct period key
-        if (event.results[periodID]) {
-          const periodData = event.results[periodID];
-          if (typeof periodData === 'object' && periodData.home !== undefined && periodData.away !== undefined) {
-            periodScores[periodID] = {
-              home: Number(periodData.home),
-              away: Number(periodData.away),
-            };
-          }
-        }
+    for (const periodID of periodIDs) {
+      const periodData = event.results[periodID];
+      if (periodData && periodData.home && periodData.away) {
+        // Extract points from home/away objects
+        const homePoints = periodData.home.points;
+        const awayPoints = periodData.away.points;
         
-        // Try split keys (e.g., "1q_home" and "1q_away")
-        const homeKey = `${periodID}_home`;
-        const awayKey = `${periodID}_away`;
-        if (event.results[homeKey] && event.results[awayKey]) {
+        if (typeof homePoints === 'number' && typeof awayPoints === 'number') {
           periodScores[periodID] = {
-            home: Number(event.results[homeKey]),
-            away: Number(event.results[awayKey]),
+            home: homePoints,
+            away: awayPoints
           };
         }
-      });
-      
-      if (Object.keys(periodScores).length > 0) {
-        logger.info(`[fetchPeriodScores] Successfully parsed ${Object.keys(periodScores).length} periods from event.results`);
-        return periodScores;
       }
     }
 
-    // ATTEMPT 3: Check for periodScores field
-    if (event.periodScores && typeof event.periodScores === 'object') {
-      const periodScores: PeriodScores = {};
-      
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      Object.entries(event.periodScores).forEach(([periodID, scores]: [string, any]) => {
-        if (scores && typeof scores === 'object') {
-          periodScores[periodID] = {
-            home: Number(scores.home || 0),
-            away: Number(scores.away || 0),
-          };
-        }
-      });
-      
-      if (Object.keys(periodScores).length > 0) {
-        logger.info(`[fetchPeriodScores] Successfully parsed ${Object.keys(periodScores).length} periods from event.periodScores`);
-        return periodScores;
-      }
+    if (Object.keys(periodScores).length === 0) {
+      logger.warn(`[fetchPeriodScores] No period scores found in results for game ${gameId}`);
+      return null;
     }
 
-    logger.warn(`[fetchPeriodScores] No period score data found for game ${gameId}`);
-    logger.warn(`[fetchPeriodScores] Available event fields:`, { fields: Object.keys(event) });
-    
-    return null;
+    logger.info(`[fetchPeriodScores] Successfully extracted ${Object.keys(periodScores).length} periods for game ${gameId}`);
+    return periodScores;
 
   } catch (error) {
     logger.error(`[fetchPeriodScores] Error fetching period scores for game ${gameId}:`, error);

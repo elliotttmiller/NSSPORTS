@@ -195,16 +195,48 @@ export function gradeGamePropBet(params: {
   homeScore: number;
   awayScore: number;
 }, periodScores?: { home: number; away: number } | null): BetGradingResult {
-  const { propType, selection, line, homeScore, awayScore } = params;
+  const { propType, selection, line, homeScore: _homeScore, awayScore: _awayScore } = params;
 
   // Team total props (e.g., "Home team over 110.5 points")
+  // First check if this is a PERIOD-SPECIFIC team total (1q_team_total_home_over)
+  if (/^(1q|2q|3q|4q|1h|2h|1p|2p|3p)_team_total/.test(propType)) {
+    // Period-specific team total
+    if (!periodScores) {
+      console.warn(`[gradeGamePropBet] No period data available for ${propType}, marking as push`);
+      return { status: "push", reason: "Period data unavailable" };
+    }
+
+    if (!line) {
+      return { status: "push", reason: "No line available" };
+    }
+
+    const isHomeTeam = selection.includes("home");
+    const isOver = selection.includes("over");
+    const teamScore = isHomeTeam ? periodScores.home : periodScores.away;
+
+    if (teamScore === line) {
+      return { status: "push", reason: `Period team total exactly ${line}` };
+    }
+
+    if (isOver) {
+      return teamScore > line
+        ? { status: "won", reason: `Period: ${teamScore}, over ${line}` }
+        : { status: "lost", reason: `Period: ${teamScore}, under ${line}` };
+    } else {
+      return teamScore < line
+        ? { status: "won", reason: `Period: ${teamScore}, under ${line}` }
+        : { status: "lost", reason: `Period: ${teamScore}, over ${line}` };
+    }
+  }
+  
+  // Regular FULL GAME team total (team_total_home_over)
   if (propType.includes("team_total")) {
     if (!line) {
       return { status: "push", reason: "No line available" };
     }
 
     const isHomeTeam = selection.includes("home");
-    const teamScore = isHomeTeam ? homeScore : awayScore;
+    const teamScore = isHomeTeam ? _homeScore : _awayScore;
     const isOver = selection.includes("over");
 
     if (teamScore === line) {
@@ -219,43 +251,6 @@ export function gradeGamePropBet(params: {
       return teamScore < line
         ? { status: "won", reason: `Team scored ${teamScore}, under ${line}` }
         : { status: "lost", reason: `Team scored ${teamScore}, over ${line}` };
-    }
-  }
-
-  // Quarter/Period props (e.g., "1q", "2q", "1h", "1p")
-  // Format: propType might be "1q_team_total" or "1h_ou" etc.
-  if (propType.includes("quarter") || propType.includes("period") || propType.includes("half") ||
-      /^(1q|2q|3q|4q|1h|2h|1p|2p|3p)/.test(propType)) {
-    
-    // Check if we have period scores data
-    if (!periodScores) {
-      console.warn(`[gradeGamePropBet] No period data available for ${propType}, marking as push`);
-      return { status: "push", reason: "Period data unavailable" };
-    }
-
-    if (!line) {
-      return { status: "push", reason: "No line available" };
-    }
-
-    // Determine which team and direction
-    const isHomeTeam = selection.includes("home");
-    const isOver = selection.includes("over");
-    const teamScore = isHomeTeam ? periodScores.home : periodScores.away;
-
-    // Check for push
-    if (teamScore === line) {
-      return { status: "push", reason: `Period total exactly ${line}` };
-    }
-
-    // Grade over/under
-    if (isOver) {
-      return teamScore > line
-        ? { status: "won", reason: `Period: ${teamScore}, over ${line}` }
-        : { status: "lost", reason: `Period: ${teamScore}, under ${line}` };
-    } else {
-      return teamScore < line
-        ? { status: "won", reason: `Period: ${teamScore}, under ${line}` }
-        : { status: "lost", reason: `Period: ${teamScore}, over ${line}` };
     }
   }
 

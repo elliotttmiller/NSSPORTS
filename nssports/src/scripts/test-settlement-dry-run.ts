@@ -22,6 +22,14 @@
  *   npm run test:settlement-dry-run -- --verbose
  */
 
+// Load environment variables from .env files
+import { config } from 'dotenv';
+import { resolve } from 'path';
+
+// Load .env and .env.local files
+config({ path: resolve(process.cwd(), '.env') });
+config({ path: resolve(process.cwd(), '.env.local') });
+
 import { getEvents } from '@/lib/sportsgameodds-sdk';
 import { 
   gradeSpreadBet, 
@@ -80,6 +88,8 @@ export async function runSettlementDryRun(config: TestConfig = {}): Promise<Test
   try {
     // Step 1: Fetch finished games from SDK
     console.log('📡 Step 1: Fetching finished games from SDK...');
+    console.log('   (This may take 10-20 seconds...)');
+    
     const finishedGames = await fetchFinishedGames(config.league, config.maxGames || 5);
     
     if (finishedGames.length === 0) {
@@ -150,27 +160,44 @@ export async function runSettlementDryRun(config: TestConfig = {}): Promise<Test
  */
 async function fetchFinishedGames(league?: string, maxGames: number = 5): Promise<ExtendedSDKEvent[]> {
   try {
+    console.log(`   Requesting ${maxGames} finished ${league || 'NBA'} games...`);
+    
     const response = await getEvents({
       leagueID: league || 'NBA',
-      finalized: true,
-      limit: maxGames,
+      limit: maxGames * 2, // Get more since not all will be finished
     });
 
-    // Filter to games with scores  
-    const gamesWithScores = response.data.filter((game) => {
-      const extGame = game as unknown as ExtendedSDKEvent;
-      return (
-        extGame.scores?.home !== null &&
-        extGame.scores?.home !== undefined &&
-        extGame.scores?.away !== null &&
-        extGame.scores?.away !== undefined
-      );
-    });
+    console.log(`   Received ${response.data.length} events from SDK`);
 
-    // Cast to ExtendedSDKEvent[]
-    return gamesWithScores as unknown as ExtendedSDKEvent[];
+    // Filter to completed games with team scores and normalize the score structure
+    const gamesWithScores = response.data
+      .filter((game) => {
+        return (
+          game.status?.completed === true &&
+          game.teams?.home?.score != null &&
+          game.teams?.away?.score != null
+        );
+      })
+      .slice(0, maxGames)
+      .map((game) => {
+        // Normalize: add scores property from teams.home.score / teams.away.score
+        const normalized = game as unknown as ExtendedSDKEvent;
+        normalized.scores = {
+          home: game.teams?.home?.score ?? null,
+          away: game.teams?.away?.score ?? null,
+        };
+        return normalized;
+      });
+
+    console.log(`   Filtered to ${gamesWithScores.length} completed games with scores`);
+
+    return gamesWithScores;
   } catch (error) {
-    console.error('Error fetching finished games:', error);
+    console.error('❌ Error fetching finished games:', error);
+    if (error instanceof Error) {
+      console.error('   Error message:', error.message);
+      console.error('   Error stack:', error.stack);
+    }
     return [];
   }
 }
@@ -779,12 +806,10 @@ async function main() {
   process.exit(summary.failed > 0 ? 1 : 0);
 }
 
-// Run if called directly
-if (require.main === module) {
-  main().catch(error => {
-    console.error('Fatal error:', error);
-    process.exit(1);
-  });
-}
+// Run if called directly (ESM compatible)
+main().catch(error => {
+  console.error('Fatal error:', error);
+  process.exit(1);
+});
 
 export type { TestConfig, TestSummary, TestResult };

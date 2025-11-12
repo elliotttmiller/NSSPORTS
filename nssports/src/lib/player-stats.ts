@@ -4,15 +4,25 @@
  * Fetches actual player performance stats from finished games
  * for accurate player prop settlement.
  * 
- * Per SDK Docs: https://sportsgameodds.com/docs/explorer
- * - Event.results contains player stats: { "points": { "PLAYER_ID": 28 } }
- * - Available for finished games only
- * - Includes all standard stat types (points, rebounds, assists, etc.)
+ * SDK Structure:
+ * - event.results['game'][playerID] contains player stats
+ * - Player IDs format: "FIRSTNAME_LASTNAME_#_LEAGUE" (e.g., "LEBRON_JAMES_1_NBA")
+ * - Stats available: points, rebounds, assists, steals, blocks, turnovers, etc.
+ * 
+ * Example:
+ * event.results['game']['LEBRON_JAMES_1_NBA'] = {
+ *   points: 28,
+ *   rebounds: 8,
+ *   assists: 5,
+ *   steals: 2,
+ *   blocks: 1,
+ *   turnovers: 3,
+ *   ...
+ * }
  */
 
 import { getEvents } from '@/lib/sportsgameodds-sdk';
 import { logger } from '@/lib/logger';
-import type { ExtendedSDKEvent } from '@/lib/transformers/sportsgameodds-sdk';
 
 /**
  * Player stats structure returned by SDK
@@ -23,6 +33,8 @@ export interface PlayerGameStats {
 
 /**
  * Fetch player stats from a finished game
+ * 
+ * SDK Structure: event.results['game'][playerID] = { points: X, rebounds: Y, ... }
  * 
  * @param gameId - The eventID of the finished game
  * @param playerId - The playerID (e.g., "LEBRON_JAMES_1_NBA")
@@ -41,11 +53,9 @@ export async function fetchPlayerStats(
   try {
     logger.info(`[fetchPlayerStats] Fetching stats for player ${playerId} in game ${gameId}`);
 
-    // Fetch event with results data from SDK
+    // Fetch event from SDK
     const response = await getEvents({
       eventIDs: gameId,
-      // No need for odds, just results
-      // SDK should include results automatically for finished games
     });
 
     if (!response.data || response.data.length === 0) {
@@ -53,33 +63,35 @@ export async function fetchPlayerStats(
       return null;
     }
 
-    const event = response.data[0] as ExtendedSDKEvent;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const event = response.data[0] as any;
 
-    // Check if event has results data
-    if (!event.results) {
-      logger.warn(`[fetchPlayerStats] No results data for game ${gameId} - may not be finished yet`);
+    // SDK structure: event.results['game'][playerID] = { points: X, rebounds: Y, ... }
+    if (!event.results || !event.results['game']) {
+      logger.warn(`[fetchPlayerStats] No game results data for game ${gameId} - may not be finished yet`);
       return null;
     }
 
-    // Extract player stats from results
-    // Results structure: { "points": { "PLAYER_ID": 28 }, "rebounds": { "PLAYER_ID": 8 }, ... }
-    const playerStats: PlayerGameStats = {};
-
-    Object.entries(event.results).forEach(([statType, playerData]) => {
-      // playerData is an object: { "PLAYER_ID_1": value1, "PLAYER_ID_2": value2, ... }
-      if (typeof playerData === 'object' && playerData[playerId] !== undefined) {
-        playerStats[statType] = Number(playerData[playerId]);
-      }
-    });
-
-    if (Object.keys(playerStats).length === 0) {
-      logger.warn(`[fetchPlayerStats] No stats found for player ${playerId} in game ${gameId}`);
-      return null;
-    }
-
-    logger.info(`[fetchPlayerStats] Found ${Object.keys(playerStats).length} stat types for player ${playerId}:`, playerStats);
+    const gameResults = event.results['game'];
     
-    return playerStats;
+    // Check if player data exists
+    if (!gameResults[playerId]) {
+      logger.warn(`[fetchPlayerStats] No stats found for player ${playerId} in game ${gameId}`);
+      const availablePlayers = Object.keys(gameResults).filter(k => k.includes('_NBA') || k.includes('_NFL') || k.includes('_NHL')).slice(0, 5);
+      logger.info(`[fetchPlayerStats] Sample available players: ${availablePlayers.join(', ')}`);
+      return null;
+    }
+
+    const playerStats = gameResults[playerId];
+    
+    if (typeof playerStats !== 'object') {
+      logger.warn(`[fetchPlayerStats] Invalid stats format for player ${playerId}`);
+      return null;
+    }
+
+    logger.info(`[fetchPlayerStats] Found ${Object.keys(playerStats).length} stat types for player ${playerId}`);
+    
+    return playerStats as PlayerGameStats;
 
   } catch (error) {
     logger.error(`[fetchPlayerStats] Error fetching stats for player ${playerId} in game ${gameId}:`, error);
@@ -115,7 +127,7 @@ export async function fetchMultiplePlayerStats(
   try {
     logger.info(`[fetchMultiplePlayerStats] Fetching stats for ${playerIds.length} players in game ${gameId}`);
 
-    // Fetch event with results data from SDK
+    // Fetch event from SDK
     const response = await getEvents({
       eventIDs: gameId,
     });
@@ -125,25 +137,20 @@ export async function fetchMultiplePlayerStats(
       return statsMap;
     }
 
-    const event = response.data[0] as ExtendedSDKEvent;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const event = response.data[0] as any;
 
-    if (!event.results) {
-      logger.warn(`[fetchMultiplePlayerStats] No results data for game ${gameId}`);
+    if (!event.results || !event.results['game']) {
+      logger.warn(`[fetchMultiplePlayerStats] No game results data for game ${gameId}`);
       return statsMap;
     }
 
+    const gameResults = event.results['game'];
+
     // Extract stats for each player
     playerIds.forEach(playerId => {
-      const playerStats: PlayerGameStats = {};
-
-      Object.entries(event.results!).forEach(([statType, playerData]) => {
-        if (typeof playerData === 'object' && playerData[playerId] !== undefined) {
-          playerStats[statType] = Number(playerData[playerId]);
-        }
-      });
-
-      if (Object.keys(playerStats).length > 0) {
-        statsMap.set(playerId, playerStats);
+      if (gameResults[playerId] && typeof gameResults[playerId] === 'object') {
+        statsMap.set(playerId, gameResults[playerId] as PlayerGameStats);
       }
     });
 
