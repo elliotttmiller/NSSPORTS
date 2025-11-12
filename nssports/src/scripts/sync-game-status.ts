@@ -149,7 +149,7 @@ export async function syncFinishedGames(): Promise<SyncResult> {
 }
 
 // Allow running as standalone script for testing
-if (require.main === module || import.meta.url === `file://${process.argv[1]}`) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   syncFinishedGames()
     .then((result) => {
       console.log('\n✅ Sync completed successfully!');

@@ -53,9 +53,6 @@ export default function GamesPage() {
     return () => unregisterRefreshHandler();
   }, [registerRefreshHandler, unregisterRefreshHandler, handleRefresh]);
   
-  // No leagueId passed: fetch all games from all leagues
-  // GameList will automatically filter out games that transition to live status
-  // Those games will appear on /live page with LiveGameRow component
   return (
     <div className="bg-background h-full">
       <div className="container mx-auto px-6 md:px-8 xl:px-12 pb-6 max-w-screen-2xl md:pt-6" style={{ paddingTop: '40px' }}>
@@ -67,7 +64,7 @@ export default function GamesPage() {
           </p>
         </div>
 
-        {/* Unified Games List: all leagues, upcoming games only */}
+        {/* Unified Games List with internal sport filter */}
         <GameList 
           limit={100} 
           leagueId={undefined} 

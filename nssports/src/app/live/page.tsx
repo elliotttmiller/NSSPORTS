@@ -140,6 +140,36 @@ export default function LivePage() {
     return liveGamesData.filter(game => shouldShowInCurrentContext(game, 'live'));
   }, [liveGamesData, shouldShowInCurrentContext]);
   
+  // ⭐ Sport/League Filter State
+  const [selectedSport, setSelectedSport] = useState<string>("all");
+  
+  // ⭐ Extract unique sports from ALL live games (before filtering)
+  // This ensures filter bar always shows all available sports
+  const availableSports = useMemo(() => {
+    const sportCounts = new Map<string, number>();
+    displayGames.forEach(game => {
+      if (game.leagueId) {
+        sportCounts.set(game.leagueId, (sportCounts.get(game.leagueId) || 0) + 1);
+      }
+    });
+    
+    const sports = [
+      { name: "all", count: displayGames.length },
+      ...Array.from(sportCounts.entries())
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([name, count]) => ({ name, count }))
+    ];
+    
+    return sports;
+  }, [displayGames]);
+  
+  // ⭐ Apply sport filter AFTER building available sports list
+  const filteredDisplayGames = useMemo(() => {
+    return selectedSport === "all" 
+      ? displayGames 
+      : displayGames.filter(game => game.leagueId === selectedSport);
+  }, [displayGames, selectedSport]);
+  
   useEffect(() => {
     // OPTIONAL: Enable WebSocket for <1s latency (smart cache still works without this)
     if (displayGames.length > 0 && !streamingEnabled && typeof enableStreaming === 'function') {
@@ -205,10 +235,48 @@ export default function LivePage() {
               <h1 className="text-3xl font-bold text-foreground">Live Games</h1>
             </div>
             <p className="text-muted-foreground mt-1">
-              {displayGames.length} game{displayGames.length !== 1 ? "s" : ""} in progress
+              {filteredDisplayGames.length} game{filteredDisplayGames.length !== 1 ? "s" : ""} in progress
             </p>
           </div>
           <RefreshButton onRefresh={handleRefresh} isLoading={loading} />
+        </div>
+
+        {/* Sport/League Filter - Always Visible */}
+        <div className="mb-4">
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2 snap-x snap-mandatory px-1">
+            {availableSports.map((sport) => {
+              const isSelected = selectedSport === sport.name;
+              const sportLabel = sport.name === "all" ? "All Sports" : sport.name.toUpperCase();
+              
+              return (
+                <button
+                  key={sport.name}
+                  onClick={() => setSelectedSport(sport.name)}
+                  className={`
+                    snap-start shrink-0 px-4 py-2 rounded-full text-xs sm:text-sm font-medium
+                    transition-all duration-300 ease-out
+                    touch-action-manipulation active:scale-95
+                    flex items-center gap-2
+                    ${isSelected 
+                      ? 'bg-accent text-accent-foreground shadow-lg shadow-accent/20 scale-105' 
+                      : 'bg-card/50 text-muted-foreground hover:bg-card hover:text-foreground border border-border/30'
+                    }
+                  `}
+                >
+                  <span>{sportLabel}</span>
+                  <span className={`
+                    inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-xs font-bold
+                    ${isSelected 
+                      ? 'bg-accent-foreground/20 text-accent-foreground' 
+                      : 'bg-accent/10 text-accent'
+                    }
+                  `}>
+                    {sport.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
   {/* Games List */}
@@ -231,6 +299,21 @@ export default function LivePage() {
                 Check back later for upcoming games
               </p>
             </div>
+          ) : filteredDisplayGames.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">
+                No live {selectedSport.toUpperCase()} games right now.
+              </p>
+              <p className="text-sm text-muted-foreground mt-2">
+                Try selecting a different sport or view all sports
+              </p>
+              <button
+                onClick={() => setSelectedSport("all")}
+                className="mt-4 px-4 py-2 rounded-lg bg-accent text-accent-foreground text-sm font-medium hover:bg-accent/90 transition-colors"
+              >
+                View All Sports
+              </button>
+            </div>
           ) : (
             <>
               {/* Desktop Table Header */}
@@ -241,14 +324,14 @@ export default function LivePage() {
                 <MobileGameTableHeader />
               </div>
               
-              {displayGames.map((game, index) => (
+              {filteredDisplayGames.map((game, index) => (
                 <div key={game.id}>
                   {/* Desktop View */}
                   <div className="hidden lg:block">
                     <LiveGameRow 
                       game={game} 
                       isFirstInGroup={index === 0}
-                      isLastInGroup={index === displayGames.length - 1}
+                      isLastInGroup={index === filteredDisplayGames.length - 1}
                     />
                   </div>
 

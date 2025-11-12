@@ -155,21 +155,25 @@ export async function GET(request: NextRequest) {
       }
       
       // ⭐ CRITICAL: Additional time-based filter to catch historical data
-      // This prevents any games older than 4 hours from being displayed
-      // even if SDK incorrectly marks them as live/upcoming
-      const fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000);
+      // This prevents games older than 12 hours from being displayed
+      // Allows for status sync lag while filtering truly historical data
+      const twelveHoursAgo = new Date(Date.now() - 12 * 60 * 60 * 1000);
       const beforeHistoricalFilter = games.length;
       games = games.filter(game => {
         const gameTime = new Date(game.startTime);
-        // Keep upcoming games (any future time)
-        if (game.status === 'upcoming' && gameTime > new Date()) return true;
-        // Keep live games only if they started within last 4 hours
-        if (game.status === 'live' && gameTime > fourHoursAgo) return true;
-        // Filter out everything else (historical data)
-        return false;
+        
+        // ✅ Keep all upcoming games (even if start time passed - status sync may be delayed)
+        if (game.status === 'upcoming') return true;
+        
+        // ✅ Keep live games if they started within last 12 hours (allows for long games)
+        if (game.status === 'live' && gameTime > twelveHoursAgo) return true;
+        
+        // ❌ Filter out games that started more than 12 hours ago (historical data)
+        // This catches games with stale status that should have finished by now
+        return gameTime > twelveHoursAgo;
       });
       if (beforeHistoricalFilter > games.length) {
-        logger.warn(`Filtered out ${beforeHistoricalFilter - games.length} historical games (older than 4 hours)`, {
+        logger.warn(`Filtered out ${beforeHistoricalFilter - games.length} historical games (older than 12 hours)`, {
           beforeFilter: beforeHistoricalFilter,
           afterFilter: games.length
         });

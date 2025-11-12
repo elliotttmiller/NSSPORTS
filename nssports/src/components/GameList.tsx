@@ -17,6 +17,7 @@ export type GameListProps = Partial<UsePaginatedGamesParams> & {
   onTotalGamesChange?: (total: number) => void;
   bypassCache?: boolean; // Force fresh data from SDK (for manual refresh)
   onRefreshReady?: (refreshFn: () => Promise<void>) => void; // Callback to expose refresh function to parent
+  onSportFilterChange?: (sport: string | undefined) => void; // Callback when sport filter changes (for parent-managed filters)
 };
 
 // ⭐ MEMOIZED: League header to prevent re-renders
@@ -50,9 +51,10 @@ const DateFilterButton = memo(({
 ));
 DateFilterButton.displayName = 'DateFilterButton';
 
-export function GameList({ leagueId, status, limit = 10, onTotalGamesChange, bypassCache = false, onRefreshReady }: GameListProps) {
+export function GameList({ leagueId, status, limit = 10, onTotalGamesChange, bypassCache = false, onRefreshReady, onSportFilterChange }: GameListProps) {
   const [allGames, setAllGames] = useState<Game[]>([]);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [selectedSport, setSelectedSport] = useState<string>("all");
   const containerRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const { data, isLoading, isError, fetchNextPage, hasNextPage, isFetchingNextPage, refetch, isRefetching } = useInfiniteGames({ 
@@ -170,7 +172,47 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange, byp
     return visibleGames.filter(game => shouldShowInCurrentContext(game, 'upcoming'));
   }, [visibleGames, shouldShowInCurrentContext]);
 
-  const groupedByLeague = useMemo(() => groupGamesByLeagueAndDate(contextFilteredGames), [contextFilteredGames, groupGamesByLeagueAndDate]);
+  // ⭐ Extract unique sports from games with counts (BEFORE sport filtering)
+  // This ensures filter bar always shows all available sports, not just selected one
+  const availableSports = useMemo(() => {
+    const sportCounts = new Map<string, number>();
+    contextFilteredGames.forEach(game => {
+      if (game.leagueId) {
+        sportCounts.set(game.leagueId, (sportCounts.get(game.leagueId) || 0) + 1);
+      }
+    });
+    
+    const sports = [
+      { name: "all", count: contextFilteredGames.length },
+      ...Array.from(sportCounts.entries())
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([name, count]) => ({ name, count }))
+    ];
+    
+    return sports;
+  }, [contextFilteredGames]);
+  
+  // ⭐ Apply sport filter AFTER extracting available sports
+  const sportFilteredGames = useMemo(() => {
+    if (leagueId) {
+      // If parent component passed leagueId, use that (e.g., individual league pages)
+      return contextFilteredGames;
+    }
+    // Otherwise use local sport filter state
+    return selectedSport === "all" 
+      ? contextFilteredGames 
+      : contextFilteredGames.filter(game => game.leagueId === selectedSport);
+  }, [contextFilteredGames, selectedSport, leagueId]);
+  
+  // Notify parent when sport filter changes
+  useEffect(() => {
+    if (onSportFilterChange && !leagueId) {
+      // Only notify if parent wants updates and we're not already filtering by leagueId
+      onSportFilterChange(selectedSport === "all" ? undefined : selectedSport);
+    }
+  }, [selectedSport, onSportFilterChange, leagueId]);
+
+  const groupedByLeague = useMemo(() => groupGamesByLeagueAndDate(sportFilteredGames), [sportFilteredGames, groupGamesByLeagueAndDate]);
   // Use official uppercase league IDs per SportsGameOdds API specification
   const leagueOrder = useMemo(() => ['NBA', 'NCAAB', 'NFL', 'NCAAF', 'NHL'], []);
   const leagueNames: Record<string, string> = useMemo(() => ({
@@ -183,15 +225,31 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange, byp
   }), []);
 
   useEffect(() => {
-    if (!selectedDate && contextFilteredGames.length > 0) {
+    if (!selectedDate && sportFilteredGames.length > 0) {
       const allDates: string[] = [];
-      Object.values(groupGamesByLeagueAndDate(contextFilteredGames)).forEach(dateGroups => {
+      Object.values(groupGamesByLeagueAndDate(sportFilteredGames)).forEach(dateGroups => {
         allDates.push(...Object.keys(dateGroups));
       });
       const sortedDates = allDates.sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
       if (sortedDates.length > 0) setSelectedDate(sortedDates[0]);
     }
-  }, [contextFilteredGames, selectedDate, groupGamesByLeagueAndDate]);
+  }, [sportFilteredGames, selectedDate, groupGamesByLeagueAndDate]);
+  
+  // ⭐ Auto-select first available date when sport filter changes
+  useEffect(() => {
+    if (sportFilteredGames.length > 0) {
+      const allDates: string[] = [];
+      Object.values(groupGamesByLeagueAndDate(sportFilteredGames)).forEach(dateGroups => {
+        allDates.push(...Object.keys(dateGroups));
+      });
+      const sortedDates = allDates.sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+      
+      // If current selected date doesn't exist in filtered games, select first available date
+      if (sortedDates.length > 0 && !sortedDates.includes(selectedDate || '')) {
+        setSelectedDate(sortedDates[0]);
+      }
+    }
+  }, [sportFilteredGames, selectedDate, groupGamesByLeagueAndDate]);
 
   const uniqueSortedDates = useMemo(() => {
     const dates: string[] = [];
@@ -282,6 +340,65 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange, byp
               />
             ))}
           </div>
+          
+          {/* Sport/League Filter - Always show if not filtering by specific league */}
+          {!leagueId && availableSports.length > 0 && (
+            <div className="mb-4 mt-2">
+              <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2 snap-x snap-mandatory px-1">
+                {availableSports.map((sport) => {
+                  const isSelected = selectedSport === sport.name;
+                  const sportLabel = sport.name === "all" ? "All Sports" : sport.name.toUpperCase();
+                  
+                  return (
+                    <button
+                      key={sport.name}
+                      onClick={() => setSelectedSport(sport.name)}
+                      className={`
+                        snap-start shrink-0 px-4 py-2 rounded-full text-xs sm:text-sm font-medium
+                        transition-all duration-300 ease-out
+                        touch-action-manipulation active:scale-95
+                        flex items-center gap-2
+                        ${isSelected 
+                          ? 'bg-accent text-accent-foreground shadow-lg shadow-accent/20 scale-105' 
+                          : 'bg-card/50 text-muted-foreground hover:bg-card hover:text-foreground border border-border/30'
+                        }
+                      `}
+                    >
+                      <span>{sportLabel}</span>
+                      <span className={`
+                        inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-xs font-bold
+                        ${isSelected 
+                          ? 'bg-accent-foreground/20 text-accent-foreground' 
+                          : 'bg-accent/10 text-accent'
+                        }
+                      `}>
+                        {sport.count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          
+          {/* No games message for selected sport */}
+          {sportFilteredGames.length === 0 && selectedSport !== "all" && (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">
+                No {selectedSport.toUpperCase()} games available.
+              </p>
+              <p className="text-sm text-muted-foreground mt-2">
+                Try selecting a different sport or view all sports
+              </p>
+              <button
+                onClick={() => setSelectedSport("all")}
+                className="mt-4 px-4 py-2 rounded-lg bg-accent text-accent-foreground text-sm font-medium hover:bg-accent/90 transition-colors"
+              >
+                View All Sports
+              </button>
+            </div>
+          )}
+          
           {/* Virtualized list of league headers + games for selected date */}
           <div style={{ height: virtualizer.getTotalSize(), position: 'relative', contain: 'layout paint size', willChange: 'transform' }}>
             {virtualizer.getVirtualItems().map((vi) => {

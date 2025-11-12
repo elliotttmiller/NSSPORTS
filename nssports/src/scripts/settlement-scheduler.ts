@@ -152,7 +152,7 @@ function setupGracefulShutdown(): void {
 }
 
 // CLI execution
-if (require.main === module || import.meta.url === `file://${process.argv[1]}`) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   const runOnce = process.argv.includes('--once');
 
   if (runOnce) {
