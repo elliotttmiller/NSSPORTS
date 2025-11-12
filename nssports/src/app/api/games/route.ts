@@ -27,9 +27,9 @@ async function getCachedAllGames() {
   const startsAfter = sixHoursAgo; // Include games that started up to 6 hours ago (live games)
   const startsBefore = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000); // 14 days ahead (2 weeks)
   
-  // Development-friendly limits: fetch only what we need (3-5 games per league)
+  // Development-friendly limits: fetch ALL available games
   const isDevelopment = process.env.NODE_ENV === 'development';
-  const fetchLimit = isDevelopment ? 10 : 100; // Fetch more games in dev to find any available
+  const fetchLimit = isDevelopment ? 500 : 100; // Fetch more games to show all available
   
   logger.info(`Searching for games from ${startsAfter.toISOString()} to ${startsBefore.toISOString()}`);
   

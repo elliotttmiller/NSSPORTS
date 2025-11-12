@@ -13,7 +13,8 @@ import {
   CaretUp,
   ArrowDown,
   ArrowUp,
-  Minus
+  Minus,
+  Trash
 } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui";
@@ -76,6 +77,42 @@ export default function AgentDashboard() {
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
   const [transactions, setTransactions] = useState<Record<string, Transaction[]>>({});
   const [loadingTransactions, setLoadingTransactions] = useState<Record<string, boolean>>({});
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
+
+  // Delete/deactivate a player
+  const handleDeletePlayer = useCallback(async (userId: string, username: string) => {
+    if (!confirm(`Are you sure you want to deactivate player "${username}"? This action will prevent them from logging in and placing bets.`)) {
+      return;
+    }
+
+    setDeletingUserId(userId);
+
+    try {
+      const response = await fetch(`/api/agent/users/${userId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to deactivate player');
+      }
+
+      // Remove player from the list
+      setAgentUsers(prev => prev.filter(user => user.id !== userId));
+      
+      // Update summary
+      setUsersSummary(prev => ({
+        totalUsers: prev.totalUsers - 1,
+        totalBalance: prev.totalBalance - (agentUsers.find(u => u.id === userId)?.balance || 0),
+        activeUsers: prev.activeUsers - 1,
+      }));
+
+    } catch (error) {
+      console.error('Error deactivating player:', error);
+      alert('Failed to deactivate player. Please try again.');
+    } finally {
+      setDeletingUserId(null);
+    }
+  }, [agentUsers]);
 
   // Fetch transactions for a specific user
   const fetchUserTransactions = useCallback(async (userId: string) => {
@@ -274,70 +311,77 @@ export default function AgentDashboard() {
                   const isLoadingTxn = loadingTransactions[user.id];
 
                   return (
-                    <div key={user.id} className="bg-background border border-border rounded-lg overflow-hidden">
+                    <div key={user.id} className="relative group bg-background border border-border rounded-lg overflow-hidden">
                       {/* Player Header - Clickable */}
                       <button
                         onClick={() => toggleExpanded(user.id)}
-                        className="w-full flex items-center justify-between p-3 hover:bg-accent/5 transition-colors"
+                        className="w-full p-3 hover:bg-accent/5 transition-colors"
                       >
-                        <div className="flex-1 min-w-0 text-left">
-                          <div className="flex items-center gap-2">
-                            <p className="text-sm font-medium text-foreground truncate">
-                              {user.name || user.username}
-                            </p>
-                            {user.lastLogin && new Date().getTime() - new Date(user.lastLogin).getTime() < 7 * 24 * 60 * 60 * 1000 && (
-                              <Badge variant="secondary" className="text-xs py-0 px-1.5">Active</Badge>
-                            )}
-                          </div>
-                          <p className="text-xs text-muted-foreground">@{user.username}</p>
-                        </div>
-                        <div className="flex items-center gap-1.5 ml-2">
-                          {/* Available */}
-                          <div className="text-right min-w-[70px]">
-                            <p className="text-xs font-bold text-accent leading-tight">${user.available.toFixed(2)}</p>
-                            <p className="text-[9px] text-muted-foreground uppercase tracking-wide leading-tight mt-0.5">Available</p>
+                        <div className="flex items-start justify-between gap-3">
+                          {/* Left: Name, Username, Active Badge */}
+                          <div className="flex flex-col gap-0.5">
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-medium text-foreground whitespace-nowrap">
+                                {user.name || user.username}
+                              </p>
+                              {user.lastLogin && new Date().getTime() - new Date(user.lastLogin).getTime() < 7 * 24 * 60 * 60 * 1000 && (
+                                <Badge variant="secondary" className="text-xs py-0 px-1.5">Active</Badge>
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground whitespace-nowrap">@{user.username}</p>
                           </div>
                           
-                          {/* Divider */}
-                          <div className="h-8 w-px bg-border mx-0.5"></div>
-                          
-                          {/* Risk */}
-                          <div className="text-right min-w-[70px]">
-                            <p className="text-xs font-bold text-destructive leading-tight">${user.risk.toFixed(2)}</p>
-                            <p className="text-[9px] text-muted-foreground uppercase tracking-wide leading-tight mt-0.5">Risk</p>
-                          </div>
-                          
-                          {/* Divider */}
-                          <div className="h-8 w-px bg-border mx-0.5"></div>
-                          
-                          {/* Balance */}
-                          <div className="text-right min-w-[70px]">
-                            <p className="text-xs font-bold text-foreground leading-tight">${user.balance.toFixed(2)}</p>
-                            <p className="text-[9px] text-muted-foreground uppercase tracking-wide leading-tight mt-0.5">Balance</p>
-                          </div>
-                          
-                          {/* Freeplay (only show if > 0) */}
-                          {user.freePlay > 0 && (
-                            <>
-                              {/* Divider */}
-                              <div className="h-8 w-px bg-border mx-0.5"></div>
-                              
-                              <div className="text-right min-w-[70px]">
-                                <p className="text-xs font-bold text-blue-500 leading-tight">${user.freePlay.toFixed(2)}</p>
-                                <p className="text-[9px] text-muted-foreground uppercase tracking-wide leading-tight mt-0.5">Freeplay</p>
+                          {/* Right: Horizontal Scrollable Balance Cards + Expand Icon + Delete */}
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <div className="flex gap-2 overflow-x-auto scrollbar-hide snap-x snap-mandatory flex-1">
+                              {/* Available */}
+                              <div className="snap-start shrink-0 bg-card rounded-lg p-2 min-w-[90px] border border-border">
+                                <p className="text-[9px] text-muted-foreground uppercase tracking-wide mb-0.5">Available</p>
+                                <p className="text-sm font-bold text-accent">${user.available.toFixed(2)}</p>
                               </div>
-                            </>
-                          )}
-                          
-                          {/* Expand/Collapse Icon */}
-                          <div className="ml-2">
-                            {isExpanded ? (
-                              <CaretUp size={16} className="text-muted-foreground" />
-                            ) : (
-                              <CaretDown size={16} className="text-muted-foreground" />
-                            )}
+                              
+                              {/* At Risk */}
+                              <div className="snap-start shrink-0 bg-card rounded-lg p-2 min-w-[90px] border border-border">
+                                <p className="text-[9px] text-muted-foreground uppercase tracking-wide mb-0.5">At Risk</p>
+                                <p className="text-sm font-bold text-destructive">${user.risk.toFixed(2)}</p>
+                              </div>
+                              
+                              {/* Balance */}
+                              <div className="snap-start shrink-0 bg-card rounded-lg p-2 min-w-[90px] border border-border">
+                                <p className="text-[9px] text-muted-foreground uppercase tracking-wide mb-0.5">Balance</p>
+                                <p className="text-sm font-bold text-foreground">${user.balance.toFixed(2)}</p>
+                              </div>
+                              
+                              {/* Freeplay */}
+                              <div className="snap-start shrink-0 bg-card rounded-lg p-2 min-w-[90px] border border-border">
+                                <p className="text-[9px] text-muted-foreground uppercase tracking-wide mb-0.5">Freeplay</p>
+                                <p className="text-sm font-bold text-blue-500">${user.freePlay.toFixed(2)}</p>
+                              </div>
+                            </div>
+                            
+                            {/* Expand/Collapse Icon */}
+                            <div className="shrink-0">
+                              {isExpanded ? (
+                                <CaretUp size={16} className="text-muted-foreground" />
+                              ) : (
+                                <CaretDown size={16} className="text-muted-foreground" />
+                              )}
+                            </div>
                           </div>
                         </div>
+                      </button>
+
+                      {/* Delete Button - Always visible on mobile, hover on desktop */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeletePlayer(user.id, user.username);
+                        }}
+                        disabled={deletingUserId === user.id}
+                        className="absolute top-2 right-2 p-1.5 rounded-md hover:bg-destructive/10 transition-colors opacity-60 hover:opacity-100 disabled:opacity-30"
+                        title="Deactivate player"
+                      >
+                        <Trash size={16} className="text-muted-foreground hover:text-destructive" />
                       </button>
 
                       {/* Expanded Transactions Section */}

@@ -40,68 +40,56 @@ export async function GET() {
       totalPlayers,
       totalAgents,
       activeBets,
-      todayStats,
-      systemStats,
+      totalBalance,
+      todayBets,
+      recentLogins,
     ] = await Promise.all([
-      // Total players count
-      prisma.dashboardPlayer.count({ where: { status: "active" } }),
+      // Total players count (users with player role)
+      prisma.user.count(),
       
       // Total agents count
       prisma.agent.count({ where: { status: { not: "suspended" } } }),
       
-      // Active bets (pending)
-      prisma.playerBet.count({ where: { status: "pending" } }),
+      // Active bets (pending) - use correct Bet table
+      prisma.bet.count({ where: { status: "pending" } }),
       
-      // Today's stats
-      prisma.playerTransaction.groupBy({
-        by: ["type"],
+      // Get total platform balance from Account table
+      prisma.account.aggregate({
+        _sum: { balance: true },
+      }),
+      
+      // Today's bets for GGR calculation
+      prisma.bet.findMany({
         where: {
-          createdAt: {
+          placedAt: {
             gte: new Date(new Date().setHours(0, 0, 0, 0)),
           },
-          type: { in: ["deposit", "withdrawal"] },
+          status: { in: ["won", "lost"] },
         },
-        _sum: {
-          amount: true,
+        select: {
+          stake: true,
+          potentialPayout: true,
+          status: true,
         },
       }),
       
-      // System stats (placeholder - would come from monitoring service)
-      Promise.resolve({
-        uptime: 99.98,
-        responseTime: 87,
-        sessions: await prisma.dashboardPlayer.count({
-          where: { lastLogin: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } },
-        }),
+      // Recent logins (users active in last 24h)
+      prisma.user.count({
+        where: { 
+          updatedAt: { 
+            gte: new Date(Date.now() - 24 * 60 * 60 * 1000) 
+          } 
+        },
       }),
     ]);
 
-    // Calculate today's deposits and withdrawals
-    const todayDeposits = todayStats.find(s => s.type === "deposit")?._sum.amount || 0;
-    const todayWithdrawals = todayStats.find(s => s.type === "withdrawal")?._sum.amount || 0;
+    // Calculate today's deposits and withdrawals (placeholder - you may need transaction tracking)
+    const todayDeposits = 0; // TODO: Implement transaction tracking
+    const todayWithdrawals = 0; // TODO: Implement transaction tracking
 
-    // Get total platform balance
-    const totalBalance = await prisma.dashboardPlayer.aggregate({
-      _sum: { balance: true },
-    });
-
-    // Calculate today's GGR (simplified - bet amount - winnings)
-    const todayBets = await prisma.playerBet.findMany({
-      where: {
-        placedAt: {
-          gte: new Date(new Date().setHours(0, 0, 0, 0)),
-        },
-        status: { in: ["won", "lost"] },
-      },
-      select: {
-        amount: true,
-        potentialWin: true,
-        status: true,
-      },
-    });
-
+    // Calculate today's GGR (bet stake - payouts)
     const todayGGR = todayBets.reduce((sum, bet) => {
-      return sum + bet.amount - (bet.status === "won" ? bet.potentialWin : 0);
+      return sum + bet.stake - (bet.status === "won" ? bet.potentialPayout : 0);
     }, 0);
 
     return NextResponse.json({
@@ -120,10 +108,10 @@ export async function GET() {
         netMovement: Math.round((todayDeposits - todayWithdrawals) * 100) / 100,
       },
       systemHealth: {
-        platformUptime: systemStats.uptime,
-        apiResponseTime: systemStats.responseTime,
-        activeSessions: systemStats.sessions,
-        systemLoad: Math.round(Math.random() * 60 + 20), // Placeholder - would come from system monitoring
+        platformUptime: 99.98, // Placeholder
+        apiResponseTime: 87, // Placeholder
+        activeSessions: recentLogins,
+        systemLoad: Math.round(Math.random() * 60 + 20), // Placeholder
       },
     });
   } catch (error) {

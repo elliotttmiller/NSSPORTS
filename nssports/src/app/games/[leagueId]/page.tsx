@@ -106,8 +106,8 @@ export default function LeaguePage() {
   const filteredDates = selectedDate ? [selectedDate] : sortedDates;
 
   return (
-    <div className="bg-background">
-      <div className="container mx-auto px-6 md:px-8 xl:px-12 pb-6 max-w-screen-2xl md:pt-6" style={{ paddingTop: '40px' }}>
+    <div className="bg-background min-h-screen pb-20">
+      <div className="container mx-auto px-6 md:px-8 xl:px-12 pb-6 max-w-screen-2xl pt-16">
         {/* Page Header */}
         <div className="mb-8 flex items-center justify-between">
           <div className="flex items-center gap-5">
@@ -132,10 +132,10 @@ export default function LeaguePage() {
           <RefreshButton onRefresh={handleRefresh} isLoading={isLoading} />
         </div>
 
-          {/* Horizontal date tabs bar */}
-          {upcomingOnlyGames.length > 0 && (
-            <div className="flex items-center gap-2 overflow-x-auto py-2 px-1 bg-background border-b border-border sticky top-0 z-20">
-              {/* Date Filters */}
+        {/* Horizontal date tabs bar */}
+        {upcomingOnlyGames.length > 0 && (
+          <div className="flex items-center gap-2 overflow-x-auto py-2 px-1 bg-background border-b border-border mb-4">
+            {/* Date Filters */}
               {sortedDates.map((dateStr) => (
                 <button
                   key={dateStr}

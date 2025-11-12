@@ -288,8 +288,8 @@ function AuthenticatedHomePage({ session }: { session: Session }) {
   const displayName = session?.user?.name || session?.user?.username || 'NorthStar User';
 
   return (
-    <div className="bg-background text-foreground">
-      <div className="container mx-auto px-4 sm:px-6 md:px-8 xl:px-12 py-6 max-w-screen-2xl">
+    <div className="bg-background text-foreground min-h-screen pb-20">
+      <div className="container mx-auto px-4 sm:px-6 md:px-8 xl:px-12 py-6 max-w-screen-2xl pt-16">
         <div className="space-y-6">
           {/* ...existing code... */}
           <div className="text-center py-8 md:py-12">

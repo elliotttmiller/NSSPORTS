@@ -13,7 +13,6 @@ import {
   ArrowsClockwise
 } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui";
 import { Input } from "@/components/ui";
 
 /**
@@ -51,6 +50,7 @@ export default function ViewPlayersPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<"all" | "active" | "inactive">("all");
   const [sortBy, setSortBy] = useState<"newest" | "oldest" | "balance-high" | "balance-low">("newest");
+  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
 
   const [summary, setSummary] = useState({
     totalUsers: 0,
@@ -161,6 +161,18 @@ export default function ViewPlayersPage() {
     return new Date(player.lastLogin) > sevenDaysAgo;
   };
 
+  const toggleCard = (playerId: string) => {
+    setExpandedCards(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(playerId)) {
+        newSet.delete(playerId);
+      } else {
+        newSet.add(playerId);
+      }
+      return newSet;
+    });
+  };
+
   if (isLoading || status === "loading") {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
@@ -173,9 +185,9 @@ export default function ViewPlayersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-20" style={{ paddingTop: 'calc(4rem + 1rem)' }}>
+    <div className="min-h-screen bg-background pb-20 pt-16">
       {/* Header - Mobile Optimized */}
-      <div className="bg-card border-b border-border p-3 sm:p-4 sticky z-40 shadow-sm" style={{ top: 'calc(4rem + 0.5rem)' }}>
+      <div className="bg-card border-b border-border p-3 sm:p-4 mb-4">
         <div className="flex items-center justify-between mb-3 sm:mb-4">
           <div className="flex items-center gap-3">
             <Button
@@ -205,28 +217,36 @@ export default function ViewPlayersPage() {
           </Button>
         </div>
 
-        {/* Summary Stats - Responsive Text Sizing */}
-        <div className="grid grid-cols-3 gap-2">
-          <div className="bg-accent/5 border border-accent/10 rounded-lg p-2 sm:p-3">
-            <div className="flex items-center gap-1.5 mb-1">
-              <Users size={14} className="text-accent" />
-              <span className="text-[10px] sm:text-xs text-muted-foreground">Total</span>
+        {/* Summary Stats - Horizontal Scroll with Modern Cards */}
+        <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2 snap-x snap-mandatory px-1 -mx-1">
+          <div className="snap-start shrink-0 bg-linear-to-br from-accent/10 to-accent/5 border border-accent/20 rounded-xl p-4 min-w-[140px]">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-8 rounded-lg bg-accent/20 flex items-center justify-center">
+                <Users size={18} weight="bold" className="text-accent" />
+              </div>
+              <span className="text-xs font-medium text-muted-foreground">Total Players</span>
             </div>
-            <div className="text-base sm:text-lg md:text-xl font-bold text-foreground">{summary.totalUsers}</div>
+            <div className="text-2xl font-bold text-foreground">{summary.totalUsers}</div>
           </div>
-          <div className="bg-accent/5 border border-accent/10 rounded-lg p-2 sm:p-3">
-            <div className="flex items-center gap-1.5 mb-1">
-              <CurrencyDollar size={14} className="text-accent" />
-              <span className="text-[10px] sm:text-xs text-muted-foreground">Balance</span>
+          
+          <div className="snap-start shrink-0 bg-linear-to-br from-green-500/10 to-green-500/5 border border-green-500/20 rounded-xl p-4 min-w-[140px]">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center">
+                <CurrencyDollar size={18} weight="bold" className="text-green-500" />
+              </div>
+              <span className="text-xs font-medium text-muted-foreground">Total Balance</span>
             </div>
-            <div className="text-base sm:text-lg md:text-xl font-bold text-accent">${summary.totalBalance.toFixed(2)}</div>
+            <div className="text-2xl font-bold text-green-500">${summary.totalBalance.toFixed(2)}</div>
           </div>
-          <div className="bg-accent/5 border border-accent/10 rounded-lg p-2 sm:p-3">
-            <div className="flex items-center gap-1.5 mb-1">
-              <UserPlus size={14} className="text-accent" />
-              <span className="text-[10px] sm:text-xs text-muted-foreground">Active</span>
+          
+          <div className="snap-start shrink-0 bg-linear-to-br from-blue-500/10 to-blue-500/5 border border-blue-500/20 rounded-xl p-4 min-w-[140px]">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                <UserPlus size={18} weight="bold" className="text-blue-500" />
+              </div>
+              <span className="text-xs font-medium text-muted-foreground">Active (7d)</span>
             </div>
-            <div className="text-base sm:text-lg md:text-xl font-bold text-foreground">{summary.activeUsers}</div>
+            <div className="text-2xl font-bold text-blue-500">{summary.activeUsers}</div>
           </div>
         </div>
       </div>
@@ -314,79 +334,157 @@ export default function ViewPlayersPage() {
             )}
           </motion.div>
         ) : (
-          filteredPlayers.map((player, index) => (
-            <motion.div
-              key={player.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05 }}
-              className="bg-card border border-border rounded-xl p-3 sm:p-4 hover:border-accent/30 transition-colors"
-            >
-              <div className="flex items-start justify-between gap-3 sm:gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h3 className="text-sm font-semibold text-foreground truncate">
-                      {player.name || player.username}
-                    </h3>
-                    {isPlayerActive(player) && (
-                      <Badge variant="secondary" className="text-xs py-0 px-1.5">
-                        Active
-                      </Badge>
-                    )}
-                  </div>
-                  <p className="text-xs text-muted-foreground mb-2">@{player.username}</p>
-                  
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                    <div>
-                      <span className="text-muted-foreground">Registered:</span>
-                      <span className="ml-1 text-foreground">
-                        {new Date(player.createdAt).toLocaleDateString()}
-                      </span>
+          filteredPlayers.map((player, index) => {
+            const isExpanded = expandedCards.has(player.id);
+            
+            return (
+              <motion.div
+                key={player.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.05 }}
+                className="bg-linear-to-br from-card to-card/50 border border-border/50 rounded-2xl overflow-hidden hover:border-accent/30 hover:shadow-lg transition-all duration-300"
+              >
+                {/* Collapsed View - Professionally Structured */}
+                <div className="p-4 space-y-3">
+                  {/* Top Section: Name + Balance */}
+                  <div className="flex items-center justify-between gap-3">
+                    {/* Left: Player Info */}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-base font-bold text-foreground truncate">
+                        {player.name || player.username}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">@{player.username}</p>
+                      {isPlayerActive(player) && (
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
+                          <span className="text-xs text-green-500 font-medium">Active</span>
+                        </div>
+                      )}
                     </div>
-                    <div>
-                      <span className="text-muted-foreground">Last Login:</span>
-                      <span className="ml-1 text-foreground">
-                        {player.lastLogin 
-                          ? new Date(player.lastLogin).toLocaleDateString()
-                          : "Never"}
-                      </span>
+
+                    {/* Right: Main Balance */}
+                    <div className="text-right shrink-0">
+                      <div className="text-xs text-muted-foreground mb-1">Balance</div>
+                      <div className="text-xl font-bold text-accent">
+                        ${player.balance.toFixed(2)}
+                      </div>
                     </div>
                   </div>
+
+                  {/* Horizontal Scrollable Balance Details */}
+                  <div className="flex gap-2 overflow-x-auto scrollbar-hide snap-x snap-mandatory -mx-1 px-1">
+                    {/* Available Balance */}
+                    <div className="snap-start shrink-0 bg-card rounded-lg p-3 min-w-[130px] border border-border">
+                      <div className="text-xs text-muted-foreground mb-1.5">Available</div>
+                      <div className="text-lg font-bold text-foreground">${player.balance.toFixed(2)}</div>
+                    </div>
+                    
+                    {/* At Risk */}
+                    <div className="snap-start shrink-0 bg-card rounded-lg p-3 min-w-[130px] border border-border">
+                      <div className="text-xs text-muted-foreground mb-1.5">At Risk</div>
+                      <div className="text-lg font-bold text-foreground">$0.00</div>
+                    </div>
+                    
+                    {/* Win/Loss */}
+                    <div className="snap-start shrink-0 bg-card rounded-lg p-3 min-w-[130px] border border-border">
+                      <div className="text-xs text-muted-foreground mb-1.5">Win/Loss</div>
+                      <div className="text-lg font-bold text-foreground">$0.00</div>
+                    </div>
+                    
+                    {/* Total Bets */}
+                    <div className="snap-start shrink-0 bg-card rounded-lg p-3 min-w-[130px] border border-border">
+                      <div className="text-xs text-muted-foreground mb-1.5">Total Bets</div>
+                      <div className="text-lg font-bold text-foreground">0</div>
+                    </div>
+                  </div>
+
+                  {/* Expand Button */}
+                  <button
+                    onClick={() => toggleCard(player.id)}
+                    className="w-full py-2 flex items-center justify-center gap-2 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors touch-action-manipulation active:scale-95"
+                  >
+                    <span>{isExpanded ? 'Show Less' : 'Show More'}</span>
+                    <motion.div
+                      animate={{ rotate: isExpanded ? 180 : 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor">
+                        <path d="M4 6l4 4 4-4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </motion.div>
+                  </button>
                 </div>
 
-                <div className="text-right shrink-0">
-                  <div className="text-lg font-bold text-accent mb-1">
-                    ${player.balance.toFixed(2)}
-                  </div>
-                  <div className="text-xs text-muted-foreground">Balance</div>
-                </div>
-              </div>
+                {/* Expanded Section - Additional Info */}
+                <motion.div
+                  initial={false}
+                  animate={{
+                    height: isExpanded ? "auto" : 0,
+                    opacity: isExpanded ? 1 : 0
+                  }}
+                  transition={{ duration: 0.3, ease: "easeInOut" }}
+                  className="overflow-hidden"
+                >
+                  <div className="px-4 pb-4 space-y-3 border-t border-border pt-3">
+                    {/* Account Details */}
+                    <div className="bg-card rounded-lg p-3 border border-border">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <div className="text-xs text-muted-foreground mb-1">Registered</div>
+                          <div className="text-sm font-semibold text-foreground">
+                            {new Date(player.createdAt).toLocaleDateString('en-US', { 
+                              month: 'short', 
+                              day: 'numeric',
+                              year: 'numeric'
+                            })}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-muted-foreground mb-1">Last Login</div>
+                          <div className="text-sm font-semibold text-foreground">
+                            {player.lastLogin 
+                              ? new Date(player.lastLogin).toLocaleDateString('en-US', { 
+                                  month: 'short', 
+                                  day: 'numeric',
+                                  year: 'numeric'
+                                })
+                              : "Never"}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
 
-              {/* Quick Actions - Touch Optimized */}
-              <div className="flex flex-col sm:flex-row gap-2 mt-3 pt-3 border-t border-border">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex-1 text-xs touch-action-manipulation active:scale-95"
-                  onClick={() => {
-                    router.push(`/agent/adjust-balance`);
-                  }}
-                >
-                  Adjust Balance
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex-1 text-xs touch-action-manipulation active:scale-95"
-                  onClick={() => {
-                    router.push(`/agent/players/${player.id}`);
-                  }}
-                >
-                  View Details
-                </Button>
-              </div>
-            </motion.div>
-          ))
+                    {/* Action Buttons */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-10 text-sm font-medium touch-action-manipulation active:scale-95 transition-all duration-200"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/agent/adjust-balance`);
+                        }}
+                      >
+                        <CurrencyDollar size={16} className="mr-1.5" weight="bold" />
+                        Adjust Balance
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="h-10 text-sm font-medium touch-action-manipulation active:scale-95 transition-all duration-200"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/agent/players/${player.id}`);
+                        }}
+                      >
+                        View Details
+                      </Button>
+                    </div>
+                  </div>
+                </motion.div>
+              </motion.div>
+            );
+          })
         )}
       </div>
     </div>

@@ -18,7 +18,7 @@ from typing import Optional
 
 DEV_SERVER_PORT = 3000
 NGROK_STATIC_DOMAIN = "nssportsclub.ngrok.app"
-SERVER_TIMEOUT = 45
+SERVER_TIMEOUT = 90  # Increased to 90 seconds for initial page compilation
 PROJECT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'nssports')
 
 # ═══════════════════════════════════════════════════════════════
@@ -82,20 +82,29 @@ def wait_for_server(port: int, timeout: int) -> bool:
     """Wait for server to become responsive"""
     start_time = time.time()
     url = f"http://localhost:{port}"
-    print_status("Initializing server", "wait")
+    print_status("Waiting for Next.js to compile (first page compilation may take 40-60 seconds)", "wait")
     
-    time.sleep(3)
+    # Wait longer initially for Turbopack compilation
+    time.sleep(10)
     
+    attempts = 0
     while time.time() - start_time < timeout:
         try:
-            response = requests.get(url, timeout=3, allow_redirects=False)
-            # Accept any successful response (2xx) or redirect (3xx)
-            if 200 <= response.status_code < 400:
-                print_status("Server initialized successfully", "success")
+            # Allow redirects and follow to login page compilation
+            # This will trigger /auth/login compilation but that's okay - we wait for it
+            response = requests.get(url, timeout=10, allow_redirects=True)
+            # Accept any successful response (server is up and responding)
+            if response.status_code < 500:  # Any non-server-error means it's working
+                elapsed = int(time.time() - start_time)
+                print()  # New line after dots
+                print_status(f"Server ready after {elapsed} seconds", "success")
                 return True
-        except (requests.exceptions.ConnectionError, requests.exceptions.ReadTimeout):
-            print(f"{Style.GRAY}.", end="", flush=True)
-            time.sleep(2)
+        except (requests.exceptions.ConnectionError, requests.exceptions.ReadTimeout) as e:
+            attempts += 1
+            # Only show dots every 3rd attempt to reduce clutter
+            if attempts % 3 == 0:
+                print(f"{Style.GRAY}.", end="", flush=True)
+            time.sleep(4)
     
     print()  # New line after dots
     return False

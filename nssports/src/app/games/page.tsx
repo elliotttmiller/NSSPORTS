@@ -54,9 +54,9 @@ export default function GamesPage() {
   }, [registerRefreshHandler, unregisterRefreshHandler, handleRefresh]);
   
   return (
-    <div className="bg-background h-full">
-      <div className="container mx-auto px-6 md:px-8 xl:px-12 pb-6 max-w-screen-2xl md:pt-6" style={{ paddingTop: '40px' }}>
-        {/* Page Header with inline date filter */}
+    <div className="bg-background h-full min-h-screen pb-20">
+      <div className="container mx-auto px-6 md:px-8 xl:px-12 pb-6 max-w-screen-2xl pt-16">
+        {/* Page Header */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -70,7 +70,7 @@ export default function GamesPage() {
 
         {/* Unified Games List with internal sport and date filters */}
         <GameList 
-          limit={100} 
+          limit={500} 
           leagueId={undefined} 
           status={undefined} 
           onTotalGamesChange={setTotalGames}
