@@ -27,9 +27,8 @@ async function getCachedAllGames() {
   const startsAfter = sixHoursAgo; // Include games that started up to 6 hours ago (live games)
   const startsBefore = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000); // 14 days ahead (2 weeks)
   
-  // Development-friendly limits: fetch ALL available games
-  const isDevelopment = process.env.NODE_ENV === 'development';
-  const fetchLimit = isDevelopment ? 500 : 100; // Fetch more games to show all available
+  // API limit: Maximum 100 games per request (enforced by SportsGameOdds API)
+  const fetchLimit = 100; // Maximum allowed by API
   
   logger.info(`Searching for games from ${startsAfter.toISOString()} to ${startsBefore.toISOString()}`);
   
