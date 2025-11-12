@@ -43,6 +43,8 @@
     "cache:clear": "tsx scripts/clear-cache.ts",
     "settle-bets": "tsx scripts/settlement/settle-bets.ts",
     "settle-bets:dry-run": "tsx scripts/settlement/settle-bets.ts --dry-run",
+    "settlement:scheduler": "tsx src/scripts/settlement-scheduler.ts",
+    "settlement:once": "tsx src/scripts/settlement-scheduler.ts --once",
     "test:settlement": "tsx src/scripts/test-settlement-dry-run.ts",
     "test:settlement:verbose": "tsx src/scripts/test-settlement-dry-run.ts --verbose",
     "test": "jest",

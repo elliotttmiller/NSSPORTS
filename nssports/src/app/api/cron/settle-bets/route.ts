@@ -22,6 +22,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { settleAllFinishedGames } from "@/services/bet-settlement";
+import { syncFinishedGames } from "@/scripts/sync-game-status";
 
 /**
  * GET /api/cron/settle-bets
@@ -45,30 +46,51 @@ export async function GET(request: NextRequest) {
     console.log("[settle-bets cron] Starting settlement run...");
     const startTime = Date.now();
 
-    // Run settlement process
-    const result = await settleAllFinishedGames();
+    // STEP 1: Sync game status from SDK (NEW - CRITICAL)
+    console.log("[settle-bets cron] Step 1: Syncing game status from SDK...");
+    const syncResult = await syncFinishedGames();
+    console.log("[settle-bets cron] Game sync complete", syncResult);
+
+    // STEP 2: Run settlement process (catches any games missed by sync)
+    console.log("[settle-bets cron] Step 2: Running settlement for all finished games...");
+    const settlementResult = await settleAllFinishedGames();
 
     const duration = Date.now() - startTime;
 
     console.log("[settle-bets cron] Settlement run completed", {
-      gamesProcessed: result.gamesProcessed,
-      betsSettled: result.betsSettled,
+      sync: {
+        gamesChecked: syncResult.gamesChecked,
+        gamesUpdated: syncResult.gamesUpdated,
+        betsSettled: syncResult.betsSettled,
+        errors: syncResult.errors.length
+      },
+      settlement: {
+        gamesProcessed: settlementResult.gamesProcessed,
+        betsSettled: settlementResult.betsSettled
+      },
       durationMs: duration
     });
 
-    // Return summary
+    // Return comprehensive summary
     return NextResponse.json({
       success: true,
       timestamp: new Date().toISOString(),
       duration: `${duration}ms`,
-      summary: {
-        gamesProcessed: result.gamesProcessed,
-        betsSettled: result.betsSettled,
-        wonBets: result.results.filter(r => r.status === "won").length,
-        lostBets: result.results.filter(r => r.status === "lost").length,
-        pushBets: result.results.filter(r => r.status === "push").length
+      sync: {
+        gamesChecked: syncResult.gamesChecked,
+        gamesUpdated: syncResult.gamesUpdated,
+        betsSettledDuringSyncSync: syncResult.betsSettled,
+        errors: syncResult.errors
       },
-      bets: result.results.map(r => ({
+      settlement: {
+        gamesProcessed: settlementResult.gamesProcessed,
+        betsSettled: settlementResult.betsSettled,
+        wonBets: settlementResult.results.filter(r => r.status === "won").length,
+        lostBets: settlementResult.results.filter(r => r.status === "lost").length,
+        pushBets: settlementResult.results.filter(r => r.status === "push").length
+      },
+      totalBetsSettled: syncResult.betsSettled + settlementResult.betsSettled,
+      bets: settlementResult.results.map(r => ({
         betId: r.betId,
         status: r.status,
         payout: r.payout

@@ -1,0 +1,46 @@
+version: '3.8'
+
+# Optional Docker Compose configuration for running settlement as separate service
+# This allows you to run the settlement scheduler independently from your main app
+
+services:
+  settlement-scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nssports-settlement
+    restart: unless-stopped
+    command: npm run settlement:scheduler
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=${DATABASE_URL}
+      - DIRECT_URL=${DIRECT_URL}
+      - SPORTSGAMEODDS_API_KEY=${SPORTSGAMEODDS_API_KEY}
+    volumes:
+      - ./logs:/app/logs
+    networks:
+      - nssports-network
+    depends_on:
+      - postgres
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Optional: Add a simple health check endpoint
+  # settlement-health:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile.health
+  #   container_name: nssports-settlement-health
+  #   restart: unless-stopped
+  #   ports:
+  #     - "3001:3001"
+  #   networks:
+  #     - nssports-network
+
+networks:
+  nssports-network:
+    external: true
