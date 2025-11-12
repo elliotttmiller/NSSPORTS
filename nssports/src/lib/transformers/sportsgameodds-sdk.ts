@@ -321,7 +321,7 @@ function getTeamLogo(team: SDKTeam, leagueId: string): string {
 // ⭐ Extend Official SDK Event Type with Additional Properties
 // The official SDK Event type doesn't include all properties we use, so we extend it
 // This maintains type safety while supporting additional fields from the API response
-// Note: We omit 'results' to provide a simpler type definition for our use case
+// Note: We omit 'results' to provide a more accurate type definition for our use case
 export interface ExtendedSDKEvent extends Omit<SDKEvent, 'results'> {
   venue?: string;
   scores?: {
@@ -334,13 +334,19 @@ export interface ExtendedSDKEvent extends Omit<SDKEvent, 'results'> {
     home?: ExtendedSDKTeam;
     away?: ExtendedSDKTeam;
   };
-  // ⭐ Player stats and results from finished games
-  // Per SDK docs: https://sportsgameodds.com/docs/explorer
-  // event.results contains actual player performance: { "points": { "PLAYER_ID": 28 } }
-  // Simplified from SDK's nested structure for easier access
+  // ⭐ Results from finished games (player stats, period scores)
+  // SDK Structure: results[periodID or 'game'][entityID] = { statID: value, ... }
+  // 
+  // Period scores: results['1q'] = { home: { points: 31 }, away: { points: 28 } }
+  // Player stats: results['game']['PLAYER_ID'] = { points: 28, rebounds: 8, ... }
+  // Team stats: results['game']['home'] = { points: 117, rebounds: 42, ... }
+  //
+  // This is a complex nested structure - using flexible typing
   results?: {
-    [statID: string]: {
-      [playerID: string]: number; // e.g., { "points": { "LEBRON_JAMES_1_NBA": 28 } }
+    [periodOrGame: string]: {
+      [entityID: string]: {
+        [statID: string]: number;
+      };
     };
   };
 }

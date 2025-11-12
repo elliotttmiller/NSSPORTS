@@ -419,8 +419,6 @@ async function testPlayerProps(game: ExtendedSDKEvent, config: TestConfig): Prom
     // Fetch all player stats from SDK
     const allPlayerStats = await fetchAllPlayerStats(game.eventID);
     
-    console.log(`      📊 fetchAllPlayerStats returned: ${allPlayerStats ? allPlayerStats.size : 0} players`);
-    
     if (!allPlayerStats || allPlayerStats.size === 0) {
       results.push({
         betType: 'player_prop',
@@ -448,9 +446,6 @@ async function testPlayerProps(game: ExtendedSDKEvent, config: TestConfig): Prom
     }
 
     const [playerId, statsData] = firstPlayer;
-    console.log(`      👤 Testing player: ${playerId}`);
-    console.log(`      📈 All stats:`, Object.keys(statsData).join(', '));
-    console.log(`      🏀 Points: ${statsData.points}, Rebounds: ${statsData.rebounds}, Assists: ${statsData.assists}`);
     
     // Test points if available
     if (statsData.points !== undefined) {
@@ -463,8 +458,6 @@ async function testPlayerProps(game: ExtendedSDKEvent, config: TestConfig): Prom
         playerId,
         statType: 'points'
       }, statsData);
-
-      console.log(`         🎯 Points Over ${testLine}: Expected=lost, Actual=${overResult.status}, Passed=${overResult.status === 'lost'}`);
 
       results.push({
         betType: 'player_prop',
@@ -481,8 +474,6 @@ async function testPlayerProps(game: ExtendedSDKEvent, config: TestConfig): Prom
         playerId,
         statType: 'points'
       }, statsData);
-
-      console.log(`         🎯 Points Under ${testLine}: Expected=won, Actual=${underResult.status}, Passed=${underResult.status === 'won'}`);
 
       results.push({
         betType: 'player_prop',
