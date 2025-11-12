@@ -18,6 +18,7 @@ export type GameListProps = Partial<UsePaginatedGamesParams> & {
   bypassCache?: boolean; // Force fresh data from SDK (for manual refresh)
   onRefreshReady?: (refreshFn: () => Promise<void>) => void; // Callback to expose refresh function to parent
   onSportFilterChange?: (sport: string | undefined) => void; // Callback when sport filter changes (for parent-managed filters)
+  showDateFilterInHeader?: boolean; // Show date filter inline with league headers
 };
 
 // ⭐ MEMOIZED: League header to prevent re-renders
@@ -27,6 +28,45 @@ const LeagueHeader = memo(({ leagueName, isFirst }: { leagueName: string; isFirs
   </div>
 ));
 LeagueHeader.displayName = 'LeagueHeader';
+
+// ⭐ MEMOIZED: League header with inline date filter
+const LeagueHeaderWithDateFilter = memo(({ 
+  leagueName, 
+  isFirst,
+  dates,
+  selectedDate,
+  onDateSelect,
+  onRefresh,
+  isRefreshing
+}: { 
+  leagueName: string; 
+  isFirst: boolean;
+  dates: string[];
+  selectedDate: string | null;
+  onDateSelect: (date: string) => void;
+  onRefresh: () => Promise<void>;
+  isRefreshing: boolean;
+}) => (
+  <div className={`${isFirst ? '' : 'mt-6'}`}>
+    <div className="flex items-center justify-between gap-4 py-2 px-4 bg-muted/20 border-b border-border rounded shadow-sm mb-2">
+      <div className="text-base font-semibold text-accent">{leagueName}</div>
+      <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
+        <div className="shrink-0">
+          <RefreshButton onRefresh={onRefresh} isLoading={isRefreshing} />
+        </div>
+        {dates.map((dateStr) => (
+          <DateFilterButton
+            key={dateStr}
+            dateStr={dateStr}
+            isSelected={selectedDate === dateStr}
+            onClick={() => onDateSelect(dateStr)}
+          />
+        ))}
+      </div>
+    </div>
+  </div>
+));
+LeagueHeaderWithDateFilter.displayName = 'LeagueHeaderWithDateFilter';
 
 // ⭐ MEMOIZED: Date filter button to prevent re-renders
 const DateFilterButton = memo(({ 
@@ -51,7 +91,7 @@ const DateFilterButton = memo(({
 ));
 DateFilterButton.displayName = 'DateFilterButton';
 
-export function GameList({ leagueId, status, limit = 10, onTotalGamesChange, bypassCache = false, onRefreshReady, onSportFilterChange }: GameListProps) {
+export function GameList({ leagueId, status, limit = 10, onTotalGamesChange, bypassCache = false, onRefreshReady, onSportFilterChange, showDateFilterInHeader = false }: GameListProps) {
   const [allGames, setAllGames] = useState<Game[]>([]);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedSport, setSelectedSport] = useState<string>("all");
@@ -366,23 +406,6 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange, byp
             </div>
           )}
           
-          {/* Date filter bar with refresh button - Compact and sticky */}
-          <div className="flex items-center gap-1.5 overflow-x-auto py-1.5 px-1 bg-background/95 backdrop-blur-sm border-b border-border sticky top-0 z-20 mb-4" style={{ willChange: 'scroll-position', WebkitOverflowScrolling: 'touch' }}>
-            {/* Refresh Button - Compact */}
-            <div className="shrink-0">
-              <RefreshButton onRefresh={handleRefresh} isLoading={isRefreshing} />
-            </div>
-            {/* Date Filters - Compact */}
-            {uniqueSortedDates.map((dateStr) => (
-              <DateFilterButton
-                key={dateStr}
-                dateStr={dateStr}
-                isSelected={selectedDate === dateStr}
-                onClick={() => setSelectedDate(dateStr)}
-              />
-            ))}
-          </div>
-          
           {/* No games message for selected sport */}
           {sportFilteredGames.length === 0 && selectedSport !== "all" && (
             <div className="text-center py-12">
@@ -422,10 +445,22 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange, byp
                   ref={virtualizer.measureElement as unknown as React.Ref<HTMLDivElement>}
                 >
                   {it.kind === 'league-header' ? (
-                    <LeagueHeader 
-                      leagueName={leagueNames[it.leagueId] || it.leagueId}
-                      isFirst={vi.index === 0}
-                    />
+                    showDateFilterInHeader && vi.index === 0 ? (
+                      <LeagueHeaderWithDateFilter
+                        leagueName={leagueNames[it.leagueId] || it.leagueId}
+                        isFirst={true}
+                        dates={uniqueSortedDates}
+                        selectedDate={selectedDate}
+                        onDateSelect={setSelectedDate}
+                        onRefresh={handleRefresh}
+                        isRefreshing={isRefreshing}
+                      />
+                    ) : (
+                      <LeagueHeader 
+                        leagueName={leagueNames[it.leagueId] || it.leagueId}
+                        isFirst={vi.index === 0}
+                      />
+                    )
                   ) : it.kind === 'table-header' ? (
                     <>
                       <DesktopGameTableHeader />

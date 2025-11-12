@@ -56,21 +56,26 @@ export default function GamesPage() {
   return (
     <div className="bg-background h-full">
       <div className="container mx-auto px-6 md:px-8 xl:px-12 pb-6 max-w-screen-2xl md:pt-6" style={{ paddingTop: '40px' }}>
-        {/* Page Header */}
+        {/* Page Header with inline date filter */}
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-foreground">All Sports & Games</h1>
-          <p className="text-muted-foreground mt-1 text-base">
-            {totalGames !== null ? `${totalGames} Available Games` : "Loading games..."}
-          </p>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-3xl font-bold text-foreground">All Sports & Games</h1>
+              <p className="text-muted-foreground mt-1 text-base">
+                {totalGames !== null ? `${totalGames} Available Games` : "Loading games..."}
+              </p>
+            </div>
+          </div>
         </div>
 
-        {/* Unified Games List with internal sport filter */}
+        {/* Unified Games List with internal sport and date filters */}
         <GameList 
           limit={100} 
           leagueId={undefined} 
           status={undefined} 
           onTotalGamesChange={setTotalGames}
           onRefreshReady={(refreshFn) => { gameListRefreshRef.current = refreshFn; }}
+          showDateFilterInHeader={true}
         />
       </div>
     </div>
