@@ -2,7 +2,7 @@
 """
 NSSPORTS Development Server Launcher
 ────────────────────────────────────────────────────────────────
-Manages Next.js development server and ngrok tunnel initialization
+Manages Next.js development server, ngrok tunnel, and bet settlement scheduler
 """
 
 import subprocess
@@ -116,6 +116,7 @@ def run() -> None:
     npm_executable = 'npm.cmd' if os.name == 'nt' else 'npm'
     dev_server: Optional[subprocess.Popen] = None
     ngrok: Optional[subprocess.Popen] = None
+    settlement_scheduler: Optional[subprocess.Popen] = None
     
     try:
         # Start Next.js development server
@@ -142,12 +143,25 @@ def run() -> None:
         
         time.sleep(2)
         
+        # Start bet settlement scheduler
+        print_status("Starting bet settlement scheduler", "info")
+        settlement_scheduler = subprocess.Popen(
+            [npm_executable, 'run', 'settlement:scheduler'],
+            cwd=PROJECT_PATH,
+            shell=True,
+            env=os.environ.copy()
+        )
+        
+        time.sleep(1)
+        print_status("Settlement scheduler active (5min intervals)", "success")
+        
         # Display connection information
         print()
         print_separator()
         print(f"\n{Style.BOLD}{Style.GREEN}  ENVIRONMENT READY{Style.RESET}\n")
-        print(f"  {Style.BOLD}Local:{Style.RESET}   {Style.CYAN}http://localhost:{DEV_SERVER_PORT}{Style.RESET}")
-        print(f"  {Style.BOLD}Tunnel:{Style.RESET}  {Style.CYAN}https://{NGROK_STATIC_DOMAIN}{Style.RESET}\n")
+        print(f"  {Style.BOLD}Local:{Style.RESET}      {Style.CYAN}http://localhost:{DEV_SERVER_PORT}{Style.RESET}")
+        print(f"  {Style.BOLD}Tunnel:{Style.RESET}     {Style.CYAN}https://{NGROK_STATIC_DOMAIN}{Style.RESET}")
+        print(f"  {Style.BOLD}Settlement:{Style.RESET} {Style.GREEN}Active (every 5 minutes){Style.RESET}\n")
         print_separator()
         print(f"\n{Style.DIM}Press Ctrl+C to stop all services{Style.RESET}\n")
         
@@ -159,6 +173,9 @@ def run() -> None:
         print(f"\n\n{Style.YELLOW}Shutdown initiated{Style.RESET}")
         print_separator()
     finally:
+        if settlement_scheduler:
+            print_status("Stopping settlement scheduler", "shutdown")
+            settlement_scheduler.terminate()
         if ngrok:
             print_status("Terminating ngrok tunnel", "shutdown")
             ngrok.terminate()
