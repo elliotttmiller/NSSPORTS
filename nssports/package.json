@@ -41,6 +41,8 @@
     "db:studio": "prisma studio",
     "db:reset": "prisma migrate reset --force",
     "cache:clear": "tsx scripts/clear-cache.ts",
+    "settle-bets": "tsx scripts/settlement/settle-bets.ts",
+    "settle-bets:dry-run": "tsx scripts/settlement/settle-bets.ts --dry-run",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
