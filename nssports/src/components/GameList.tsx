@@ -23,7 +23,7 @@ export type GameListProps = Partial<UsePaginatedGamesParams> & {
 
 // ⭐ MEMOIZED: League header to prevent re-renders
 const LeagueHeader = memo(({ leagueName, isFirst }: { leagueName: string; isFirst: boolean }) => (
-  <div className={`py-2 px-4 bg-muted/20 border-b border-border text-base font-semibold text-accent rounded shadow-sm mb-2 ${isFirst ? '' : 'mt-6'}`}>
+  <div className={`py-2 px-4 bg-muted/20 border-b border-border text-base font-semibold text-accent rounded shadow-sm mb-2 text-left ${isFirst ? '' : 'mt-6'}`}>
     {leagueName}
   </div>
 ));
@@ -213,24 +213,39 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange, byp
   }, [visibleGames, shouldShowInCurrentContext]);
 
   // ⭐ Extract unique sports from games with counts (BEFORE sport filtering)
-  // This ensures filter bar always shows all available sports, not just selected one
+  // Now correlated with selected date - only show leagues that have games on that date
   const availableSports = useMemo(() => {
     const sportCounts = new Map<string, number>();
-    contextFilteredGames.forEach(game => {
-      if (game.leagueId) {
-        sportCounts.set(game.leagueId, (sportCounts.get(game.leagueId) || 0) + 1);
-      }
-    });
+    
+    // If no date selected, count all games
+    if (!selectedDate) {
+      contextFilteredGames.forEach(game => {
+        if (game.leagueId) {
+          sportCounts.set(game.leagueId, (sportCounts.get(game.leagueId) || 0) + 1);
+        }
+      });
+    } else {
+      // Only count games on the selected date
+      const groupedByLeague = groupGamesByLeagueAndDate(contextFilteredGames);
+      Object.entries(groupedByLeague).forEach(([leagueId, dateGroups]) => {
+        const gamesOnDate = dateGroups[selectedDate];
+        if (gamesOnDate && gamesOnDate.length > 0) {
+          sportCounts.set(leagueId, gamesOnDate.length);
+        }
+      });
+    }
+    
+    const totalGamesForDate = Array.from(sportCounts.values()).reduce((sum, count) => sum + count, 0);
     
     const sports = [
-      { name: "all", count: contextFilteredGames.length },
+      { name: "all", count: totalGamesForDate },
       ...Array.from(sportCounts.entries())
         .sort((a, b) => a[0].localeCompare(b[0]))
         .map(([name, count]) => ({ name, count }))
     ];
     
     return sports;
-  }, [contextFilteredGames]);
+  }, [contextFilteredGames, selectedDate, groupGamesByLeagueAndDate]);
   
   // ⭐ Apply sport filter AFTER extracting available sports
   const sportFilteredGames = useMemo(() => {
@@ -290,6 +305,21 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange, byp
       }
     }
   }, [sportFilteredGames, selectedDate, groupGamesByLeagueAndDate]);
+
+  // ⭐ NEW: Smart sport filter reset when date changes
+  // If selected sport has no games on the new date, reset to "all"
+  useEffect(() => {
+    if (!selectedDate || selectedSport === "all") return;
+    
+    const sportHasGamesOnDate = availableSports.some(
+      sport => sport.name === selectedSport && sport.count > 0
+    );
+    
+    if (!sportHasGamesOnDate) {
+      console.log(`[GameList] Selected sport "${selectedSport}" has no games on ${selectedDate}, resetting to "all"`);
+      setSelectedSport("all");
+    }
+  }, [selectedDate, selectedSport, availableSports]);
 
   const uniqueSortedDates = useMemo(() => {
     const dates: string[] = [];
@@ -366,35 +396,41 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange, byp
         </div>
       ) : (
         <>
-          {/* Sport/League Filter - Compact version */}
+          {/* Sport/League Filter - Compact version with date correlation */}
           {!leagueId && availableSports.length > 0 && (
             <div className="mb-2">
               <div className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-1.5 snap-x snap-mandatory px-1">
                 {availableSports.map((sport) => {
                   const isSelected = selectedSport === sport.name;
                   const sportLabel = sport.name === "all" ? "All Sports" : sport.name.toUpperCase();
+                  const hasGames = sport.count > 0;
                   
                   return (
                     <button
                       key={sport.name}
                       onClick={() => setSelectedSport(sport.name)}
+                      disabled={!hasGames && sport.name !== "all"}
                       className={`
                         snap-start shrink-0 px-3 py-1.5 rounded-full text-xs font-medium
                         transition-all duration-300 ease-out
                         touch-action-manipulation active:scale-95
                         flex items-center gap-1.5
-                        ${isSelected 
-                          ? 'bg-accent text-accent-foreground shadow-md scale-105' 
-                          : 'bg-card/50 text-muted-foreground hover:bg-card hover:text-foreground border border-border/30'
+                        ${!hasGames && sport.name !== "all"
+                          ? 'opacity-40 cursor-not-allowed bg-muted/20 text-muted-foreground/50'
+                          : isSelected 
+                            ? 'bg-accent text-accent-foreground shadow-md scale-105' 
+                            : 'bg-card/50 text-muted-foreground hover:bg-card hover:text-foreground border border-border/30'
                         }
                       `}
                     >
                       <span>{sportLabel}</span>
                       <span className={`
                         inline-flex items-center justify-center min-w-4 h-4 px-1 rounded-full text-[10px] font-bold
-                        ${isSelected 
-                          ? 'bg-accent-foreground/20 text-accent-foreground' 
-                          : 'bg-accent/10 text-accent'
+                        ${!hasGames && sport.name !== "all"
+                          ? 'bg-muted/10 text-muted-foreground/40'
+                          : isSelected 
+                            ? 'bg-accent-foreground/20 text-accent-foreground' 
+                            : 'bg-accent/10 text-accent'
                         }
                       `}>
                         {sport.count}
@@ -403,6 +439,11 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange, byp
                   );
                 })}
               </div>
+              {selectedDate && (
+                <p className="text-xs text-muted-foreground mt-2 px-1">
+                  Showing games for {selectedDate}
+                </p>
+              )}
             </div>
           )}
           

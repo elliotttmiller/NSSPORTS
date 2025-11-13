@@ -177,6 +177,28 @@ export default function LivePage() {
       : displayGames.filter(game => game.leagueId === selectedSport);
   }, [displayGames, selectedSport]);
   
+  // Group games by league for better organization
+  const groupedByLeague = useMemo(() => {
+    const groups: Record<string, Game[]> = {};
+    filteredDisplayGames.forEach(game => {
+      const league = game.leagueId || 'other';
+      if (!groups[league]) groups[league] = [];
+      groups[league].push(game);
+    });
+    return groups;
+  }, [filteredDisplayGames]);
+  
+  // League display order and names
+  const leagueOrder = ['NBA', 'NCAAB', 'NFL', 'NCAAF', 'NHL'];
+  const leagueNames: Record<string, string> = {
+    NBA: 'NBA',
+    NCAAB: 'NCAA Basketball',
+    NFL: 'NFL',
+    NCAAF: 'NCAA Football',
+    NHL: 'NHL',
+    other: 'Other',
+  };
+  
   useEffect(() => {
     // OPTIONAL: Enable WebSocket for <1s latency (smart cache still works without this)
     if (displayGames.length > 0 && !streamingEnabled && typeof enableStreaming === 'function') {
@@ -325,31 +347,50 @@ export default function LivePage() {
             </div>
           ) : (
             <>
-              {/* Desktop Table Header */}
-              <DesktopGameTableHeader />
-              
-              {/* Mobile/Tablet Table Header */}
-              <div className="lg:hidden">
-                <MobileGameTableHeader />
-              </div>
-              
-              {filteredDisplayGames.map((game, index) => (
-                <div key={game.id}>
-                  {/* Desktop View */}
-                  <div className="hidden lg:block">
-                    <LiveGameRow 
-                      game={game} 
-                      isFirstInGroup={index === 0}
-                      isLastInGroup={index === filteredDisplayGames.length - 1}
-                    />
-                  </div>
+              {/* Render games grouped by league */}
+              {leagueOrder
+                .concat(Object.keys(groupedByLeague).filter(l => !leagueOrder.includes(l)))
+                .map((leagueId, leagueIndex) => {
+                  const games = groupedByLeague[leagueId];
+                  if (!games || games.length === 0) return null;
+                  
+                  return (
+                    <div key={leagueId} className={leagueIndex > 0 ? 'mt-6' : ''}>
+                      {/* League Header - Green accent, left aligned */}
+                      <div className="py-2 px-4 bg-muted/20 border-b border-border text-base font-semibold text-accent rounded shadow-sm mb-2 text-left">
+                        {leagueNames[leagueId] || leagueId}
+                      </div>
+                      
+                      {/* Desktop Table Header */}
+                      <div className="hidden lg:block">
+                        <DesktopGameTableHeader />
+                      </div>
+                      
+                      {/* Mobile/Tablet Table Header */}
+                      <div className="lg:hidden">
+                        <MobileGameTableHeader />
+                      </div>
+                      
+                      {games.map((game, index) => (
+                        <div key={game.id}>
+                          {/* Desktop View */}
+                          <div className="hidden lg:block">
+                            <LiveGameRow 
+                              game={game} 
+                              isFirstInGroup={index === 0}
+                              isLastInGroup={index === games.length - 1}
+                            />
+                          </div>
 
-                  {/* Mobile/Tablet View */}
-                  <div className="lg:hidden">
-                    <LiveMobileGameRow game={game} />
-                  </div>
-                </div>
-              ))}
+                          {/* Mobile/Tablet View */}
+                          <div className="lg:hidden">
+                            <LiveMobileGameRow game={game} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })}
             </>
           )}
         </div>

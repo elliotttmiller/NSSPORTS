@@ -206,6 +206,28 @@ function AuthenticatedHomePage({ session }: { session: Session }) {
     return games.slice(0, 10); // Show maximum 10 trending games
   }, [filteredLiveGames, selectedSport]);
   
+  // Group games by league for better organization
+  const groupedByLeague = useMemo(() => {
+    const groups: Record<string, Game[]> = {};
+    trendingGames.forEach(game => {
+      const league = game.leagueId || 'other';
+      if (!groups[league]) groups[league] = [];
+      groups[league].push(game);
+    });
+    return groups;
+  }, [trendingGames]);
+  
+  // League display order and names
+  const leagueOrder = ['NBA', 'NCAAB', 'NFL', 'NCAAF', 'NHL'];
+  const leagueNames: Record<string, string> = {
+    NBA: 'NBA',
+    NCAAB: 'NCAA Basketball',
+    NFL: 'NFL',
+    NCAAF: 'NCAA Football',
+    NHL: 'NHL',
+    other: 'Other',
+  };
+  
   // Debug: Log available sports for troubleshooting
   useEffect(() => {
     if (availableSports.length > 0) {
@@ -443,31 +465,50 @@ function AuthenticatedHomePage({ session }: { session: Session }) {
                 </div>
               ) : (
                 <div key={selectedSport} className="animate-in fade-in duration-300">
-                  {/* Desktop Table Header */}
-                  <DesktopGameTableHeader />
-                  
-                  {/* Mobile/Tablet Table Header */}
-                  <div className="lg:hidden">
-                    <MobileGameTableHeader />
-                  </div>
-                  
-                  {trendingGames.map((game, index) => (
-                    <div key={game.id}>
-                      {/* Desktop View */}
-                      <div className="hidden lg:block">
-                        <LiveGameRow 
-                          game={game} 
-                          isFirstInGroup={index === 0}
-                          isLastInGroup={index === trendingGames.length - 1}
-                        />
-                      </div>
+                  {/* Render games grouped by league */}
+                  {leagueOrder
+                    .concat(Object.keys(groupedByLeague).filter(l => !leagueOrder.includes(l)))
+                    .map((leagueId, leagueIndex) => {
+                      const games = groupedByLeague[leagueId];
+                      if (!games || games.length === 0) return null;
+                      
+                      return (
+                        <div key={leagueId} className={leagueIndex > 0 ? 'mt-6' : ''}>
+                          {/* League Header - Green accent, left aligned */}
+                          <div className="py-2 px-4 bg-muted/20 border-b border-border text-base font-semibold text-accent rounded shadow-sm mb-2 text-left">
+                            {leagueNames[leagueId] || leagueId}
+                          </div>
+                          
+                          {/* Desktop Table Header */}
+                          <div className="hidden lg:block">
+                            <DesktopGameTableHeader />
+                          </div>
+                          
+                          {/* Mobile/Tablet Table Header */}
+                          <div className="lg:hidden">
+                            <MobileGameTableHeader />
+                          </div>
+                          
+                          {games.map((game, index) => (
+                            <div key={game.id}>
+                              {/* Desktop View */}
+                              <div className="hidden lg:block">
+                                <LiveGameRow 
+                                  game={game} 
+                                  isFirstInGroup={index === 0}
+                                  isLastInGroup={index === games.length - 1}
+                                />
+                              </div>
 
-                      {/* Mobile/Tablet View */}
-                      <div className="lg:hidden">
-                        <LiveMobileGameRow game={game} />
-                      </div>
-                    </div>
-                  ))}
+                              {/* Mobile/Tablet View */}
+                              <div className="lg:hidden">
+                                <LiveMobileGameRow game={game} />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })}
                 </div>
               )}
             </div>
