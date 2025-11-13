@@ -125,7 +125,6 @@ def run() -> None:
     npm_executable = 'npm.cmd' if os.name == 'nt' else 'npm'
     dev_server: Optional[subprocess.Popen] = None
     ngrok: Optional[subprocess.Popen] = None
-    settlement_scheduler: Optional[subprocess.Popen] = None
     
     try:
         # Start Next.js development server
@@ -152,17 +151,33 @@ def run() -> None:
         
         time.sleep(2)
         
-        # Start bet settlement scheduler
-        print_status("Starting bet settlement scheduler", "info")
-        settlement_scheduler = subprocess.Popen(
-            [npm_executable, 'run', 'settlement:scheduler'],
+        # Start bet settlement scheduler with PM2
+        print_status("Starting bet settlement scheduler with PM2", "info")
+        
+        # Stop any existing PM2 settlement process
+        subprocess.run(
+            ['pm2', 'delete', 'nssports-settlement'],
             cwd=PROJECT_PATH,
             shell=True,
-            env=os.environ.copy()
+            capture_output=True
         )
         
-        time.sleep(1)
-        print_status("Settlement scheduler active (5min intervals)", "success")
+        # Start settlement scheduler via PM2
+        result = subprocess.run(
+            ['pm2', 'start', 'ecosystem.config.cjs', '--only', 'nssports-settlement'],
+            cwd=PROJECT_PATH,
+            shell=True,
+            capture_output=True,
+            text=True
+        )
+        
+        if result.returncode == 0:
+            time.sleep(2)
+            print_status("Settlement scheduler active via PM2 (5min intervals)", "success")
+            print_status("View scheduler logs: pm2 logs nssports-settlement", "info")
+        else:
+            print_status("Failed to start PM2 settlement scheduler", "error")
+            print_status("Run manually: pm2 start ecosystem.config.js --only nssports-settlement", "info")
         
         # Display connection information
         print()
@@ -170,7 +185,9 @@ def run() -> None:
         print(f"\n{Style.BOLD}{Style.GREEN}  ENVIRONMENT READY{Style.RESET}\n")
         print(f"  {Style.BOLD}Local:{Style.RESET}      {Style.CYAN}http://localhost:{DEV_SERVER_PORT}{Style.RESET}")
         print(f"  {Style.BOLD}Tunnel:{Style.RESET}     {Style.CYAN}https://{NGROK_STATIC_DOMAIN}{Style.RESET}")
-        print(f"  {Style.BOLD}Settlement:{Style.RESET} {Style.GREEN}Active (every 5 minutes){Style.RESET}\n")
+        print(f"  {Style.BOLD}Settlement:{Style.RESET} {Style.GREEN}Active via PM2 (every 5 minutes){Style.RESET}")
+        print(f"  {Style.BOLD}PM2 Status:{Style.RESET} {Style.CYAN}pm2 list{Style.RESET}")
+        print(f"  {Style.BOLD}PM2 Logs:{Style.RESET}   {Style.CYAN}pm2 logs nssports-settlement{Style.RESET}\n")
         print_separator()
         print(f"\n{Style.DIM}Press Ctrl+C to stop all services{Style.RESET}\n")
         
@@ -182,15 +199,28 @@ def run() -> None:
         print(f"\n\n{Style.YELLOW}Shutdown initiated{Style.RESET}")
         print_separator()
     finally:
-        if settlement_scheduler:
-            print_status("Stopping settlement scheduler", "shutdown")
-            settlement_scheduler.terminate()
+        # Stop PM2 settlement scheduler
+        print_status("Stopping PM2 settlement scheduler", "shutdown")
+        subprocess.run(
+            ['pm2', 'stop', 'nssports-settlement'],
+            cwd=PROJECT_PATH,
+            shell=True,
+            capture_output=True
+        )
+        subprocess.run(
+            ['pm2', 'delete', 'nssports-settlement'],
+            cwd=PROJECT_PATH,
+            shell=True,
+            capture_output=True
+        )
+        
         if ngrok:
             print_status("Terminating ngrok tunnel", "shutdown")
             ngrok.terminate()
         if dev_server:
             print_status("Stopping development server", "shutdown")
             dev_server.terminate()
+        
         print_status("Shutdown complete", "success")
         print()
 

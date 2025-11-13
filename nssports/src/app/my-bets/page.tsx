@@ -34,7 +34,7 @@ export default function MyBetsPage() {
   // Ensure all bets are API-driven, no fallback/hardcoded data
   const betHistory: PlacedBet[] = Array.isArray(placedBets) ? placedBets : [];
   const activeBets = betHistory.filter((bet) => bet.status === "pending");
-  const settledBets = betHistory.filter((bet) => bet.status === "won" || bet.status === "lost");
+  const settledBets = betHistory.filter((bet) => bet.status === "won" || bet.status === "lost" || bet.status === "push");
 
   // Loading state
   if (loading) {
@@ -148,6 +148,7 @@ export default function MyBetsPage() {
                           game={bet.game}
                           playerProp={bet.playerProp}
                           gameProp={bet.gameProp}
+                          actualResult={bet.actualResult}
                         />
                       );
                     })}
@@ -232,6 +233,7 @@ export default function MyBetsPage() {
                           game={bet.game}
                           playerProp={bet.playerProp}
                           gameProp={bet.gameProp}
+                          actualResult={bet.actualResult}
                         />
                       );
                     })}

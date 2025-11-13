@@ -127,7 +127,10 @@ export function gradeTotalBet(params: {
   const { selection, line, homeScore, awayScore } = params;
   const totalScore = homeScore + awayScore;
 
-  if (totalScore === line) {
+  // Only push if line is a whole number and total matches exactly
+  // Decimal lines (220.5, 48.5) cannot push since scores are integers
+  const isWholeNumberLine = Number.isInteger(line);
+  if (isWholeNumberLine && totalScore === line) {
     return { status: "push", reason: `Total exactly ${line}` };
   }
 
@@ -168,7 +171,10 @@ export function gradePlayerPropBet(params: {
 
   const actualValue = playerStats[statType];
 
-  if (actualValue === line) {
+  // Only push if line is a whole number and stat matches exactly
+  // Decimal lines (9.5, 24.5) cannot push since stats are integers
+  const isWholeNumberLine = Number.isInteger(line);
+  if (isWholeNumberLine && actualValue === line) {
     return { status: "push", reason: `Exactly ${line} ${statType}` };
   }
 
@@ -214,7 +220,10 @@ export function gradeGamePropBet(params: {
     const isOver = selection.includes("over");
     const teamScore = isHomeTeam ? periodScores.home : periodScores.away;
 
-    if (teamScore === line) {
+    // Only push if line is a whole number and score matches exactly
+    // Decimal lines (48.5, 110.5) cannot push since scores are integers
+    const isWholeNumberLine = Number.isInteger(line);
+    if (isWholeNumberLine && teamScore === line) {
       return { status: "push", reason: `Period team total exactly ${line}` };
     }
 
@@ -239,7 +248,10 @@ export function gradeGamePropBet(params: {
     const teamScore = isHomeTeam ? _homeScore : _awayScore;
     const isOver = selection.includes("over");
 
-    if (teamScore === line) {
+    // Only push if line is a whole number and score matches exactly
+    // Decimal lines (110.5, 48.5) cannot push since scores are integers
+    const isWholeNumberLine = Number.isInteger(line);
+    if (isWholeNumberLine && teamScore === line) {
       return { status: "push", reason: `Team total exactly ${line}` };
     }
 
@@ -421,19 +433,24 @@ export async function settleBet(betId: string): Promise<SettlementResult | null>
       return null;
     }
 
-    if (!bet.game) {
-      console.error(`[settleBet] Bet ${betId} has no associated game`);
-      return null;
-    }
+    // Multi-leg bets (parlays, teasers, etc.) don't have a single gameId
+    const isMultiLegBet = ["parlay", "teaser", "if_bet", "reverse", "bet_it_all", "round_robin"].includes(bet.betType);
 
-    if (bet.game.status !== "finished") {
-      console.log(`[settleBet] Game ${bet.game.id} not finished yet (status: ${bet.game.status})`);
-      return null;
-    }
+    if (!isMultiLegBet) {
+      if (!bet.game) {
+        console.error(`[settleBet] Bet ${betId} has no associated game`);
+        return null;
+      }
 
-    if (bet.game.homeScore === null || bet.game.awayScore === null) {
-      console.error(`[settleBet] Game ${bet.game.id} missing final scores`);
-      return null;
+      if (bet.game.status !== "finished") {
+        console.log(`[settleBet] Game ${bet.game.id} not finished yet (status: ${bet.game.status})`);
+        return null;
+      }
+
+      if (bet.game.homeScore === null || bet.game.awayScore === null) {
+        console.error(`[settleBet] Game ${bet.game.id} missing final scores`);
+        return null;
+      }
     }
 
     // Grade bet based on type
@@ -450,16 +467,16 @@ export async function settleBet(betId: string): Promise<SettlementResult | null>
         result = gradeSpreadBet({
           selection: bet.selection,
           line: bet.line,
-          homeScore: bet.game.homeScore,
-          awayScore: bet.game.awayScore
+          homeScore: bet.game!.homeScore!,
+          awayScore: bet.game!.awayScore!
         });
         break;
 
       case "moneyline":
         result = gradeMoneylineBet({
           selection: bet.selection,
-          homeScore: bet.game.homeScore,
-          awayScore: bet.game.awayScore
+          homeScore: bet.game!.homeScore!,
+          awayScore: bet.game!.awayScore!
         });
         break;
 
@@ -471,8 +488,8 @@ export async function settleBet(betId: string): Promise<SettlementResult | null>
         result = gradeTotalBet({
           selection: bet.selection,
           line: bet.line,
-          homeScore: bet.game.homeScore,
-          awayScore: bet.game.awayScore
+          homeScore: bet.game!.homeScore!,
+          awayScore: bet.game!.awayScore!
         });
         break;
 
@@ -546,8 +563,8 @@ export async function settleBet(betId: string): Promise<SettlementResult | null>
           propType: gamePropMetadata.propType,
           selection: bet.selection,
           line: bet.line ?? undefined,
-          homeScore: bet.game.homeScore,
-          awayScore: bet.game.awayScore
+          homeScore: bet.game!.homeScore!,
+          awayScore: bet.game!.awayScore!
         }, periodScoresForProp);
         break;
 
@@ -639,17 +656,20 @@ export async function settleBet(betId: string): Promise<SettlementResult | null>
         }
       }),
       // Update account balance
-      prisma.account.update({
-        where: { userId: bet.userId },
-        data: {
-          balance: {
-            // For wins/pushes: add payout
-            // For losses: deduct stake
-            [result.status === "lost" ? "decrement" : "increment"]: 
-              result.status === "lost" ? bet.stake : payout
+      // Note: Stake was already deducted when bet was placed
+      // - For wins: add the full payout amount
+      // - For pushes: refund the stake
+      // - For losses: do nothing (stake already gone)
+      ...(result.status !== "lost" ? [
+        prisma.account.update({
+          where: { userId: bet.userId },
+          data: {
+            balance: {
+              increment: payout
+            }
           }
-        }
-      })
+        })
+      ] : [])
     ]);
 
     console.log(`[settleBet] Bet ${betId} settled as ${result.status}, payout: $${payout.toFixed(2)}`);
@@ -1101,13 +1121,58 @@ export async function settleAllFinishedGames(): Promise<{
       }
     });
 
-    console.log(`[settleAllFinishedGames] Found ${finishedGames.length} games with pending bets`);
+    console.log(`[settleAllFinishedGames] Found ${finishedGames.length} games with pending single bets`);
 
     const allResults: SettlementResult[] = [];
 
+    // Settle single bets on finished games
     for (const game of finishedGames) {
       const results = await settleGameBets(game.id);
       allResults.push(...results);
+    }
+
+    // Also check for pending multi-leg bets (parlays, teasers, etc.)
+    const pendingMultiLegBets = await prisma.bet.findMany({
+      where: {
+        status: "pending",
+        betType: {
+          in: ["parlay", "teaser", "if_bet", "reverse", "bet_it_all", "round_robin"]
+        }
+      },
+      select: {
+        id: true,
+        legs: true
+      }
+    });
+
+    console.log(`[settleAllFinishedGames] Found ${pendingMultiLegBets.length} pending multi-leg bets`);
+
+    // Check each multi-leg bet to see if all its games are finished
+    for (const bet of pendingMultiLegBets) {
+      if (!bet.legs || !Array.isArray(bet.legs)) continue;
+
+      const legs = bet.legs as Array<{ gameId?: string }>;
+      const gameIds = legs.map(leg => leg.gameId).filter(Boolean) as string[];
+
+      if (gameIds.length === 0) continue;
+
+      // Check if all games are finished
+      const games = await prisma.game.findMany({
+        where: {
+          id: { in: gameIds },
+          status: "finished"
+        },
+        select: { id: true }
+      });
+
+      // If all games are found and finished, settle the bet
+      if (games.length === gameIds.length) {
+        console.log(`[settleAllFinishedGames] All games finished for multi-leg bet ${bet.id}, settling...`);
+        const result = await settleBet(bet.id);
+        if (result) {
+          allResults.push(result);
+        }
+      }
     }
 
     console.log(`[settleAllFinishedGames] Settlement run complete. ` +

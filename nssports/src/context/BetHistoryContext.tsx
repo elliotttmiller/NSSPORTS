@@ -19,9 +19,10 @@ export interface PlacedBet {
   line?: number;
   stake: number;
   potentialPayout: number;
-  status: "pending" | "won" | "lost";
+  status: "pending" | "won" | "lost" | "push";
   placedAt?: string;
   settledAt?: string;
+  actualResult?: string; // Display the actual outcome (e.g., "Total: 211", "Bulls won by 11")
   game?: {
     id: string;
     homeTeam: {
@@ -97,6 +98,7 @@ export interface PlacedBet {
       description: string;
       marketCategory: string;
     };
+    actualResult?: string; // Display the actual outcome for this leg
   }>;
 }
 

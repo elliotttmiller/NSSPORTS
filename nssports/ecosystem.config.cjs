@@ -44,8 +44,8 @@ module.exports = {
     },
     {
       name: 'nssports-settlement',
-      script: 'npm',
-      args: 'run settlement:scheduler',
+      script: './node_modules/.bin/tsx',
+      args: 'src/scripts/settlement-scheduler.ts',
       cwd: './',
       instances: 1,
       autorestart: true,
@@ -57,7 +57,8 @@ module.exports = {
       error_file: './logs/settlement-error.log',
       out_file: './logs/settlement-out.log',
       log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
-      merge_logs: true
+      merge_logs: true,
+      interpreter: 'none'
     }
   ]
 };

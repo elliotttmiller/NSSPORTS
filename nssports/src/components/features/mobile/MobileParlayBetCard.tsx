@@ -87,6 +87,12 @@ export function MobileParlayBetCard({ bet }: MobileParlayBetCardProps) {
                   <div className="text-xs text-muted-foreground leading-tight">
                     {formatMatchup(leg)}
                   </div>
+                  {/* Actual Result - Show for settled parlays */}
+                  {leg.actualResult && bet.status !== 'pending' && (
+                    <div className="text-[10px] text-muted-foreground/60 mt-1 font-medium">
+                      Result: <span className="text-muted-foreground/80 font-semibold">{leg.actualResult}</span>
+                    </div>
+                  )}
                 </div>
               </div>
               <Badge

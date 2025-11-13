@@ -8,6 +8,8 @@ import { logger } from "@/lib/logger";
 import { ApiErrors, withErrorHandling, successResponse } from "@/lib/apiResponse";
 import { BetsResponseSchema, BetRequestSchema, ParlayBetRequestSchema, SingleBetRequestSchema, SingleBetResponseSchema, ParlayBetResponseSchema } from "@/lib/schemas/bets";
 import { getAuthUser } from "@/lib/authHelpers";
+import { batchFetchPlayerStats, type PlayerGameStats } from "@/lib/player-stats";
+import { getPeriodScore } from "@/lib/period-scores";
 
 // Minimal leg shape stored in Bet.legs JSON
 type ParlayLeg = {
@@ -68,6 +70,7 @@ function toLegArray(input: unknown): ParlayLeg[] | null {
           propType: typeof (obj.gameProp as any).propType === 'string' ? (obj.gameProp as any).propType : undefined,
           description: typeof (obj.gameProp as any).description === 'string' ? (obj.gameProp as any).description : undefined,
           marketCategory: typeof (obj.gameProp as any).marketCategory === 'string' ? (obj.gameProp as any).marketCategory : undefined,
+          periodID: typeof (obj.gameProp as any).periodID === 'string' ? (obj.gameProp as any).periodID : undefined,
         } : undefined,
       }));
     console.log('[toLegArray] Input:', input);
@@ -295,6 +298,119 @@ export async function GET() {
       return 0;
     };
 
+    // Compute the actual result for display on settled bets
+    const computeActualResult = (
+      betOrLeg: any, 
+      game: any, 
+      playerStatsMap: Map<string, PlayerGameStats>,
+      periodScoresMap: Map<string, { home: number; away: number }>,
+      parentStatus?: string
+    ): string | undefined => {
+      // Only show results for settled bets (check parent status for legs)
+      const status = parentStatus || betOrLeg.status;
+      if (status === 'pending') return undefined;
+      if (!game) return undefined;
+
+      const homeScore = game.homeScore;
+      const awayScore = game.awayScore;
+      
+      if (homeScore === null || awayScore === null) return undefined;
+
+      const betType = betOrLeg.betType;
+      const selection = betOrLeg.selection;
+      const line = betOrLeg.line;
+
+      switch (betType) {
+        case 'spread':
+          const spreadDiff = selection === 'home' 
+            ? homeScore - awayScore 
+            : awayScore - homeScore;
+          const team = selection === 'home' ? game.homeTeam?.shortName : game.awayTeam?.shortName;
+          return `${team} ${spreadDiff > 0 ? 'won' : 'lost'} by ${Math.abs(spreadDiff)}`;
+        
+        case 'moneyline':
+          const mlWinner = homeScore > awayScore ? 'home' : awayScore > homeScore ? 'away' : 'tie';
+          const mlTeam = selection === 'home' ? game.homeTeam?.shortName : game.awayTeam?.shortName;
+          return mlWinner === 'tie' 
+            ? `Tie ${homeScore}-${awayScore}` 
+            : `${mlTeam} ${mlWinner === selection ? 'won' : 'lost'} ${awayScore}-${homeScore}`;
+        
+        case 'total':
+          const total = homeScore + awayScore;
+          return `Total: ${total} (${line ? (total > line ? 'Over' : total < line ? 'Under' : 'Push') : ''})`;
+        
+        case 'player_prop':
+          // Display actual player stats using SDK structure: event.results['game'][playerID][statID]
+          const playerProp = betOrLeg.playerProp;
+          if (playerProp?.playerId && playerProp?.statType && game.id) {
+            const statsKey = `${game.id}:${playerProp.playerId}`;
+            const playerStats = playerStatsMap.get(statsKey);
+            
+            if (playerStats && playerStats[playerProp.statType] !== undefined) {
+              const actualValue = playerStats[playerProp.statType];
+              const statLabel = playerProp.statType.replace(/_/g, ' ');
+              return `${actualValue} ${statLabel}`;
+            }
+          }
+          
+          // No fallback - if stats unavailable, return undefined (no result shown)
+          return undefined;
+        
+        case 'game_prop':
+          // Display actual game prop results using SDK structure: event.results[periodID]['home'|'away'][statID]
+          const gameProp = betOrLeg.gameProp;
+          
+          // If we have periodID (quarter/half props), fetch the actual period score
+          if (gameProp?.periodID && game.id) {
+            const periodKey = `${game.id}:${gameProp.periodID}`;
+            const periodScore = periodScoresMap.get(periodKey);
+            
+            if (periodScore) {
+              const periodName = gameProp.periodID.toUpperCase();
+              
+              // Determine what to show based on prop type
+              const propDesc = gameProp.description?.toLowerCase() || gameProp.propType?.toLowerCase() || '';
+              
+              // Team-specific period prop (e.g., "Lakers 1Q points")
+              if (propDesc.includes('home') || propDesc.includes(game.homeTeam?.shortName?.toLowerCase() || '')) {
+                return `${game.homeTeam?.shortName} ${periodName}: ${periodScore.home} points`;
+              }
+              if (propDesc.includes('away') || propDesc.includes(game.awayTeam?.shortName?.toLowerCase() || '')) {
+                return `${game.awayTeam?.shortName} ${periodName}: ${periodScore.away} points`;
+              }
+              
+              // Total period prop (e.g., "1Q total points")
+              if (propDesc.includes('total')) {
+                const periodTotal = periodScore.home + periodScore.away;
+                return `${periodName} Total: ${periodTotal} points`;
+              }
+              
+              // Generic fallback: show both scores
+              return `${periodName}: ${game.awayTeam?.shortName} ${periodScore.away} - ${periodScore.home} ${game.homeTeam?.shortName}`;
+            }
+          }
+          
+          // Fallback for full-game props without periodID (use final scores)
+          const gamePropDesc = gameProp?.description || gameProp?.propType;
+          if (gamePropDesc && gamePropDesc.toLowerCase().includes('total')) {
+            const total = homeScore + awayScore;
+            return `Final Total: ${total} points`;
+          }
+          if (gamePropDesc && (gamePropDesc.toLowerCase().includes('home') || gamePropDesc.toLowerCase().includes(game.homeTeam?.shortName?.toLowerCase() || ''))) {
+            return `${game.homeTeam?.shortName} scored ${homeScore} points`;
+          }
+          if (gamePropDesc && (gamePropDesc.toLowerCase().includes('away') || gamePropDesc.toLowerCase().includes(game.awayTeam?.shortName?.toLowerCase() || ''))) {
+            return `${game.awayTeam?.shortName} scored ${awayScore} points`;
+          }
+          
+          // No result available
+          return undefined;
+        
+        default:
+          return undefined;
+      }
+    };
+
     // Transform game data to match BetCard expectations
     const transformGameForBetCard = (game: any) => {
       if (!game) return undefined;
@@ -325,6 +441,102 @@ export async function GET() {
       };
     };
     
+    // Batch fetch player stats for all player prop bets
+    const playerStatsRequests: Array<{ gameId: string; playerId: string }> = [];
+    const periodScoreRequests: Array<{ gameId: string; periodID: string }> = [];
+    
+    // Collect all player prop bets and game prop bets that need data
+    normalized.forEach((b: any) => {
+      if (b.status !== 'pending' && b.game?.id) {
+        // Player props: need player stats
+        if (b.betType === 'player_prop') {
+          let playerProp;
+          if (b.legs) {
+            try {
+              const metadata = typeof b.legs === 'string' ? JSON.parse(b.legs) : b.legs;
+              playerProp = metadata.playerProp;
+            } catch {
+              // Ignore parse errors
+            }
+          }
+          
+          if (playerProp?.playerId) {
+            playerStatsRequests.push({
+              gameId: b.game.id,
+              playerId: playerProp.playerId,
+            });
+          }
+        }
+        
+        // Game props: need period scores if periodID exists
+        if (b.betType === 'game_prop') {
+          let gameProp;
+          if (b.legs) {
+            try {
+              const metadata = typeof b.legs === 'string' ? JSON.parse(b.legs) : b.legs;
+              gameProp = metadata.gameProp;
+            } catch {
+              // Ignore parse errors
+            }
+          }
+          
+          if (gameProp?.periodID) {
+            periodScoreRequests.push({
+              gameId: b.game.id,
+              periodID: gameProp.periodID,
+            });
+          }
+        }
+      }
+      
+      // Check parlay legs for player props and game props
+      if (b.betType === 'parlay' && b.status !== 'pending' && Array.isArray(b.legs)) {
+        b.legs.forEach((leg: any) => {
+          if (leg.game?.id) {
+            // Player props in parlay
+            if (leg.betType === 'player_prop' && leg.playerProp?.playerId) {
+              playerStatsRequests.push({
+                gameId: leg.game.id,
+                playerId: leg.playerProp.playerId,
+              });
+            }
+            
+            // Game props in parlay
+            if (leg.betType === 'game_prop' && leg.gameProp?.periodID) {
+              periodScoreRequests.push({
+                gameId: leg.game.id,
+                periodID: leg.gameProp.periodID,
+              });
+            }
+          }
+        });
+      }
+    });
+    
+    // Fetch all player stats in one batch
+    const playerStatsMap = playerStatsRequests.length > 0
+      ? await batchFetchPlayerStats(playerStatsRequests)
+      : new Map<string, PlayerGameStats>();
+    
+    logger.info(`Fetched player stats for ${playerStatsMap.size} player-game combinations`);
+    
+    // Fetch all period scores
+    const periodScoresMap = new Map<string, { home: number; away: number }>();
+    
+    if (periodScoreRequests.length > 0) {
+      // Fetch period scores in parallel
+      await Promise.all(
+        periodScoreRequests.map(async ({ gameId, periodID }) => {
+          const periodScore = await getPeriodScore(gameId, periodID);
+          if (periodScore) {
+            periodScoresMap.set(`${gameId}:${periodID}`, periodScore);
+          }
+        })
+      );
+      
+      logger.info(`Fetched period scores for ${periodScoresMap.size} game-period combinations`);
+    }
+    
     const serialized = normalized.map((b: any) => {
       const gameForCard = transformGameForBetCard(b.game);
       
@@ -339,6 +551,28 @@ export async function GET() {
         } catch {
           // Ignore parse errors
         }
+      }
+      
+      // Compute actual result
+      const actualResult = computeActualResult({ ...b, playerProp, gameProp }, b.game, playerStatsMap, periodScoresMap);
+      
+      // Debug logging for specific bet
+      if (b.id === 'cmhwon9de018nv88okn10sfjh') {
+        logger.info('[DEBUG] Computing result for player prop bet:', {
+          betId: b.id,
+          betType: b.betType,
+          status: b.status,
+          gameId: b.game?.id,
+          playerProp: playerProp ? {
+            playerId: playerProp.playerId,
+            statType: playerProp.statType,
+            playerName: playerProp.playerName,
+          } : null,
+          statsMapSize: playerStatsMap.size,
+          statsKey: playerProp?.playerId ? `${b.game?.id}:${playerProp.playerId}` : null,
+          hasStats: playerProp?.playerId ? playerStatsMap.has(`${b.game?.id}:${playerProp.playerId}`) : false,
+          actualResult,
+        });
       }
       
       return {
@@ -357,6 +591,8 @@ export async function GET() {
         displaySelection: b.betType !== 'parlay'
           ? computeSelectionLabel(b.betType, b.selection, (b as any).line, gameForCard)
           : undefined,
+        // Add actual result for settled bets
+        actualResult,
         // Transform parlay legs game data
         legs: Array.isArray(b.legs)
           ? b.legs.map((leg: any) => ({
@@ -365,6 +601,8 @@ export async function GET() {
               // Ensure player prop and game prop metadata is preserved
               playerProp: leg.playerProp,
               gameProp: leg.gameProp,
+              // Add actual result for each leg (pass parent bet status)
+              actualResult: computeActualResult(leg, leg.game, playerStatsMap, periodScoresMap, b.status),
             }))
           : b.betType === 'parlay' ? b.legs : null, // Keep parlay legs, null out single bet metadata
       };

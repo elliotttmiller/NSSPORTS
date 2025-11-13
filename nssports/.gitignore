@@ -41,4 +41,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# PM2 logs and process files
+/logs
+*.log
+.pm2
+
 /src/generated/prisma

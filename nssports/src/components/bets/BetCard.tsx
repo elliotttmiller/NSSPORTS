@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 import { formatCurrencyNoCents, formatOdds } from "@/lib/formatters";
 import { formatStatType } from "@/lib/formatStatType";
 
-export type BetStatus = "pending" | "won" | "lost";
+export type BetStatus = "pending" | "won" | "lost" | "push";
 
 export type BetLeg = {
   game?: {
@@ -19,6 +19,7 @@ export type BetLeg = {
   betType?: string; // optional: 'spread' | 'moneyline' | 'total' | 'player_prop' | 'game_prop'
   playerProp?: { playerName?: string; statType?: string; category?: string };
   gameProp?: { propType?: string; description?: string; marketCategory?: string };
+  actualResult?: string; // Display the actual outcome for this leg
 };
 
 export type BetCardBaseProps = {
@@ -26,10 +27,11 @@ export type BetCardBaseProps = {
   betType: string;
   placedAt?: string | Date | null;
   status: BetStatus;
+  actualResult?: string; // Display the actual outcome
 };
 
 function BetSummary({ stake, payout, status }: { stake: number; payout: number; status: BetStatus }) {
-  const profit = status === 'lost' ? -stake : (payout - stake);
+  const profit = status === 'lost' ? -stake : status === 'push' ? 0 : (payout - stake);
   const sign = profit > 0 ? '+' : '';
   
   return (
@@ -146,6 +148,7 @@ export function BetCardSingle({
   game,
   playerProp,
   gameProp,
+  actualResult,
   children,
   showTotals = true,
   headerActions,
@@ -179,7 +182,7 @@ export function BetCardSingle({
               variant={isWon ? "default" : status === "lost" ? "destructive" : "outline"} 
               className={cn(
                 "text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 uppercase tracking-[0.06em]",
-                isWon ? "bg-green-600 text-white" : status === "lost" ? "bg-red-600 text-white" : "bg-yellow-50 text-yellow-700 border-yellow-200"
+                isWon ? "bg-green-600 text-white" : status === "lost" ? "bg-red-600 text-white" : status === "push" ? "bg-blue-500 text-white" : "bg-yellow-50 text-yellow-700 border-yellow-200"
               )}
             >
               {status.toUpperCase()}
@@ -234,6 +237,12 @@ export function BetCardSingle({
                       {playerProp.statType ? formatStatType(playerProp.statType) : ''}
                     </span>
                   </div>
+                  {/* Actual Result - Show for settled bets */}
+                  {actualResult && status !== 'pending' && (
+                    <div className="mt-2 text-[10px] sm:text-xs text-muted-foreground/70 font-medium">
+                      Result: <span className="text-muted-foreground font-semibold">{actualResult}</span>
+                    </div>
+                  )}
                 </div>
               ) : betType === 'game_prop' && gameProp && game?.awayTeam?.shortName && game?.homeTeam?.shortName ? (
                 /* Game Prop Enhanced Display */
@@ -265,6 +274,12 @@ export function BetCardSingle({
                       </span>
                     )}
                   </div>
+                  {/* Actual Result - Show for settled bets */}
+                  {actualResult && status !== 'pending' && (
+                    <div className="mt-2 text-[10px] sm:text-xs text-muted-foreground/70 font-medium">
+                      Result: <span className="text-muted-foreground font-semibold">{actualResult}</span>
+                    </div>
+                  )}
                 </div>
               ) : game?.awayTeam?.shortName && game?.homeTeam?.shortName ? (
                 /* Regular Bet Display */
@@ -277,6 +292,12 @@ export function BetCardSingle({
                   <div className="font-bold text-[15px] sm:text-base leading-tight text-white">
                     {formatSelectionLabel(betType, selection, line, game, playerProp)}
                   </div>
+                  {/* Actual Result - Show for settled bets */}
+                  {actualResult && status !== 'pending' && (
+                    <div className="mt-1.5 text-[10px] sm:text-xs text-muted-foreground/70 font-medium">
+                      Result: <span className="text-muted-foreground font-semibold">{actualResult}</span>
+                    </div>
+                  )}
                 </div>
               ) : null}
             </div>
@@ -344,7 +365,7 @@ export function BetCardParlay({
               variant={isWon ? "default" : status === "lost" ? "destructive" : "outline"} 
               className={cn(
                 "text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 uppercase tracking-[0.06em]",
-                isWon ? "bg-green-600 text-white" : status === "lost" ? "bg-red-600 text-white" : "bg-yellow-50 text-yellow-700 border-yellow-200"
+                isWon ? "bg-green-600 text-white" : status === "lost" ? "bg-red-600 text-white" : status === "push" ? "bg-blue-500 text-white" : "bg-yellow-50 text-yellow-700 border-yellow-200"
               )}
             >
               {status.toUpperCase()}
@@ -426,6 +447,12 @@ export function BetCardParlay({
                     /* Regular Bet Display */
                     <div className="text-[13px] sm:text-sm font-bold leading-tight text-white">
                       {formatSelectionLabel(leg.betType, leg.selection, leg.line, leg.game, leg.playerProp, leg.gameProp)}
+                    </div>
+                  )}
+                  {/* Actual Result - Show for settled parlay legs */}
+                  {leg.actualResult && status !== 'pending' && (
+                    <div className="mt-1 text-[9px] sm:text-[10px] text-muted-foreground/60 font-medium">
+                      Result: <span className="text-muted-foreground/80 font-semibold">{leg.actualResult}</span>
                     </div>
                   )}
                 </div>
@@ -513,7 +540,7 @@ export function BetCardTeaser({
               variant={isWon ? "default" : status === "lost" ? "destructive" : "outline"} 
               className={cn(
                 "text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 uppercase tracking-[0.06em]",
-                isWon ? "bg-green-600 text-white" : status === "lost" ? "bg-red-600 text-white" : "bg-yellow-50 text-yellow-700 border-yellow-200"
+                isWon ? "bg-green-600 text-white" : status === "lost" ? "bg-red-600 text-white" : status === "push" ? "bg-blue-500 text-white" : "bg-yellow-50 text-yellow-700 border-yellow-200"
               )}
             >
               {status.toUpperCase()}
@@ -621,6 +648,13 @@ export function BetCardTeaser({
                 <div className="text-xs text-muted-foreground/60">
                   {leg.game.awayTeam.shortName} @ {leg.game.homeTeam.shortName}
                 </div>
+                
+                {/* Actual Result - Show for settled teasers */}
+                {leg.actualResult && status !== 'pending' && (
+                  <div className="mt-1.5 text-[10px] sm:text-xs text-muted-foreground/60 font-medium">
+                    Result: <span className="text-muted-foreground/80 font-semibold">{leg.actualResult}</span>
+                  </div>
+                )}
               </div>
             );
           })}
