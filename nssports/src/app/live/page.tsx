@@ -44,8 +44,9 @@ export default function LivePage() {
         headers: {
           'Cache-Control': 'no-cache',
         },
-        // Mobile: Add timeout - increased to 15s to prevent abort errors with 5s polling
-        signal: AbortSignal.timeout(15000),
+        // Mobile: Add timeout - increased to 30s to handle multiple league queries
+        // Background updates: 5 leagues × ~2s each + cache operations can take 10-15s
+        signal: AbortSignal.timeout(30000),
       });
       if (!response.ok) {
         throw new Error(`Failed to fetch: ${response.status}`);
@@ -58,10 +59,16 @@ export default function LivePage() {
       setLiveGamesData(games);
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to fetch live games';
-      // Only log errors, not every background update
-      if (!isBackgroundUpdate || errorMsg.includes('abort')) {
+      
+      // Suppress timeout errors on background updates to avoid log spam
+      // Timeouts are expected during slow SDK responses and don't affect UX
+      const isTimeoutError = errorMsg.includes('timeout') || errorMsg.includes('abort');
+      
+      // Only log errors that aren't timeouts on background updates
+      if (!isBackgroundUpdate || !isTimeoutError) {
         console.error('[LivePage] Error:', errorMsg);
       }
+      
       // Mobile: Only set error on initial load to avoid disrupting user experience
       if (!isBackgroundUpdate) {
         setError(errorMsg);
@@ -216,29 +223,31 @@ export default function LivePage() {
   }
 
   return (
-    <div className="bg-background min-h-screen pb-20">
-      <div className="container mx-auto px-6 md:px-8 xl:px-12 pb-6 max-w-screen-2xl pt-16">
+    <div className="bg-background h-full min-h-screen pb-20">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-12 pb-6 max-w-[1920px] pt-16">
         {/* Page Header */}
-        <div className="mb-6 flex items-center justify-between">
-          <div>
-            <div className="flex items-center space-x-2">
-              {/* Animated Pulsing Live Indicator */}
-              <div className="relative flex items-center justify-center">
-                {/* Outer pulsing ring */}
-                <div className="absolute w-5 h-5 bg-green-500/30 rounded-full animate-ping" 
-                     style={{ animationDuration: '2s' }}></div>
-                {/* Middle glow */}
-                <div className="absolute w-4 h-4 bg-green-500/50 rounded-full blur-sm"></div>
-                {/* Core dot */}
-                <div className="relative w-2.5 h-2.5 bg-green-500 rounded-full shadow-lg shadow-green-500/50"></div>
+        <div className="mb-6 lg:mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <div className="flex items-center gap-2 lg:gap-3 mb-2">
+                {/* Animated Pulsing Live Indicator */}
+                <div className="relative flex items-center justify-center">
+                  {/* Outer pulsing ring */}
+                  <div className="absolute w-5 h-5 bg-green-500/30 rounded-full animate-ping" 
+                       style={{ animationDuration: '2s' }}></div>
+                  {/* Middle glow */}
+                  <div className="absolute w-4 h-4 bg-green-500/50 rounded-full blur-sm"></div>
+                  {/* Core dot */}
+                  <div className="relative w-2.5 h-2.5 bg-green-500 rounded-full shadow-lg shadow-green-500/50"></div>
+                </div>
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground">Live Games</h1>
               </div>
-              <h1 className="text-3xl font-bold text-foreground">Live Games</h1>
+              <p className="text-muted-foreground mt-1 text-sm sm:text-base lg:text-lg">
+                {filteredDisplayGames.length} game{filteredDisplayGames.length !== 1 ? "s" : ""} in progress
+              </p>
             </div>
-            <p className="text-muted-foreground mt-1">
-              {filteredDisplayGames.length} game{filteredDisplayGames.length !== 1 ? "s" : ""} in progress
-            </p>
+            <RefreshButton onRefresh={handleRefresh} isLoading={loading} />
           </div>
-          <RefreshButton onRefresh={handleRefresh} isLoading={loading} />
         </div>
 
         {/* Sport/League Filter - Always Visible */}

@@ -10,14 +10,22 @@ export interface UsePaginatedGamesParams {
   bypassCache?: boolean; // Force fresh data from SDK
 }
 
+const isDevelopment = process.env.NODE_ENV === 'development';
+
 export function usePaginatedGames({ leagueId, status, page = 1, limit = 10, bypassCache = false }: UsePaginatedGamesParams) {
   return useQuery<PaginatedResponse<Game>>({
     queryKey: ['games', leagueId, status, page, limit, bypassCache ? Date.now() : 'cached'],
     queryFn: () => getGamesPaginated(leagueId, page, limit, bypassCache),
-    staleTime: bypassCache ? 0 : 30 * 1000, // 30 seconds - Pro plan sub-minute updates
-    refetchInterval: bypassCache ? false : 30 * 1000, // Active polling every 30s for Pro plan
-    refetchIntervalInBackground: !bypassCache, // Continue polling in background
-    refetchOnWindowFocus: true, // Refetch when user returns to tab
+    
+    // Environment-aware caching strategy
+    staleTime: bypassCache ? 0 : (isDevelopment ? 60 * 1000 : 30 * 1000),
+    
+    // Only enable polling in production or when explicitly bypassing cache
+    refetchInterval: bypassCache ? false : (isDevelopment ? false : 60 * 1000),
+    refetchIntervalInBackground: false, // Never poll in background
+    refetchOnWindowFocus: !isDevelopment, // Only refetch on focus in production
+    
+    // Keep previous data while loading to prevent UI flickering
     placeholderData: (previousData) => previousData,
   });
 }

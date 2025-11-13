@@ -2,14 +2,24 @@
  * Professional Rate Limiter for SportsGameOdds SDK
  * 
  * Implements token bucket algorithm with:
- * - Configurable rate limits per environment
- * - Request queuing with priority
+ * - Environment-aware rate limits (aggressive dev throttling)
+ * - Request queuing with priority levels
  * - Exponential backoff on 429 errors
- * - Request deduplication
- * - Comprehensive logging
+ * - Intelligent request deduplication
+ * - Request coalescing for identical concurrent requests
+ * - Comprehensive metrics and monitoring
  * 
- * Based on SportsGameOdds API rate limits:
- * https://sportsgameodds.com/docs/setup/rate-limiting
+ * Development Strategy:
+ * - Conservative limits to preserve API quota during testing
+ * - Longer deduplication windows to catch rapid re-renders
+ * - Request coalescing to batch identical requests
+ * 
+ * Production Strategy:
+ * - Higher throughput for real-time user experience
+ * - Shorter deduplication windows for responsiveness
+ * - Based on SportsGameOdds Pro Plan: 300 req/min
+ * 
+ * @see https://sportsgameodds.com/docs/setup/rate-limiting
  */
 
 import { logger } from './logger';
@@ -18,6 +28,7 @@ interface RateLimitConfig {
   requestsPerMinute: number;
   requestsPerHour: number;
   burstSize: number;
+  deduplicationWindow: number; // milliseconds
 }
 
 interface QueuedRequest {
@@ -32,6 +43,13 @@ interface QueuedRequest {
   reject: (error: any) => void;
 }
 
+// Request coalescing - multiple identical requests share same promise
+interface CoalescedRequest {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  promise: Promise<any>;
+  timestamp: number;
+}
+
 class RateLimiter {
   private config: RateLimitConfig;
   private tokens: number;
@@ -42,18 +60,33 @@ class RateLimiter {
   private hourlyCount = 0;
   private hourlyResetTime: number;
   private inFlightRequests = new Set<string>();
+  private coalescedRequests: Map<string, CoalescedRequest> = new Map();
+  
+  // Metrics
+  private metrics = {
+    totalRequests: 0,
+    deduplicated: 0,
+    coalesced: 0,
+    rateLimited: 0,
+    errors: 0,
+  };
 
   constructor() {
-    // Pro Plan rate limits: 300 requests/minute
-    // https://sportsgameodds.com/docs/setup/rate-limiting
     const isDevelopment = process.env.NODE_ENV === 'development';
     
-    this.config = {
-      // Pro Plan: 300 req/min (we use conservative 250 for safety)
-      // Development: Lower limits to avoid hitting production quotas during testing
-      requestsPerMinute: isDevelopment ? 30 : 250,
-      requestsPerHour: isDevelopment ? 500 : 15000, // Pro plan = ~18k/hour theoretical max
-      burstSize: isDevelopment ? 5 : 20, // Allow bursts for multiple concurrent requests
+    // Environment-specific configuration
+    this.config = isDevelopment ? {
+      // DEVELOPMENT: Very conservative to preserve API quota
+      requestsPerMinute: 30,           // 2s between requests minimum
+      requestsPerHour: 800,             // ~13 req/min sustained
+      burstSize: 5,                     // Small burst allowance
+      deduplicationWindow: 2000,        // 2s dedup window (catches rapid rerenders)
+    } : {
+      // PRODUCTION: Pro Plan limits with safety margin
+      requestsPerMinute: 250,           // Pro: 300/min, we use 250 for safety
+      requestsPerHour: 15000,           // Pro: ~18k/hour theoretical
+      burstSize: 20,                    // Allow burst traffic
+      deduplicationWindow: 500,         // 500ms dedup window
     };
 
     this.tokens = this.config.burstSize;
@@ -67,6 +100,9 @@ class RateLimiter {
 
     // Refill tokens every second
     setInterval(() => this.refillTokens(), 1000);
+    
+    // Clean up old coalesced requests every 10 seconds
+    setInterval(() => this.cleanupCoalescedRequests(), 10000);
   }
 
   /**
@@ -91,7 +127,26 @@ class RateLimiter {
     if (now > this.hourlyResetTime) {
       this.hourlyCount = 0;
       this.hourlyResetTime = now + 60 * 60 * 1000;
-      logger.info('[RateLimiter] Hourly counter reset');
+      logger.info('[RateLimiter] Hourly counter reset', {
+        totalRequests: this.metrics.totalRequests,
+        deduplicated: this.metrics.deduplicated,
+        coalesced: this.metrics.coalesced,
+        rateLimited: this.metrics.rateLimited,
+      });
+    }
+  }
+
+  /**
+   * Clean up old coalesced requests to prevent memory leaks
+   */
+  private cleanupCoalescedRequests() {
+    const now = Date.now();
+    const maxAge = 30000; // 30 seconds
+    
+    for (const [key, request] of this.coalescedRequests.entries()) {
+      if (now - request.timestamp > maxAge) {
+        this.coalescedRequests.delete(key);
+      }
     }
   }
 
@@ -102,8 +157,8 @@ class RateLimiter {
     const lastRequestTime = this.requestHistory.get(requestId);
     const now = Date.now();
 
-    // Deduplicate requests within 1 second
-    if (lastRequestTime && now - lastRequestTime < 1000) {
+    if (lastRequestTime && now - lastRequestTime < this.config.deduplicationWindow) {
+      this.metrics.deduplicated++;
       return true;
     }
 
@@ -111,22 +166,50 @@ class RateLimiter {
   }
 
   /**
-   * Execute a rate-limited request
+   * Get or create coalesced request
+   * Multiple identical concurrent requests share the same promise
+   */
+  private getCoalescedRequest<T>(
+    requestId: string,
+    _fn: () => Promise<T>
+  ): Promise<T> | null {
+    const existing = this.coalescedRequests.get(requestId);
+    
+    if (existing) {
+      this.metrics.coalesced++;
+      logger.debug('[RateLimiter] Coalescing duplicate request', { requestId });
+      return existing.promise as Promise<T>;
+    }
+
+    return null;
+  }
+
+  /**
+   * Execute a rate-limited request with intelligent coalescing
    */
   async execute<T>(
     requestId: string,
     fn: () => Promise<T>,
     priority = 0
   ): Promise<T> {
+    this.metrics.totalRequests++;
+
+    // Check for coalesced request (identical request already in-flight)
+    const coalescedPromise = this.getCoalescedRequest(requestId, fn);
+    if (coalescedPromise) {
+      return coalescedPromise;
+    }
+
     // Check for duplicate in-flight requests
     if (this.inFlightRequests.has(requestId)) {
       logger.debug('[RateLimiter] Skipping duplicate in-flight request', { requestId });
+      this.metrics.deduplicated++;
       throw new Error('DUPLICATE_REQUEST');
     }
 
     // Check request deduplication
     if (this.shouldDeduplicate(requestId)) {
-      logger.debug('[RateLimiter] Skipping duplicate request (within 1s)', { requestId });
+      logger.debug('[RateLimiter] Skipping duplicate request (within dedup window)', { requestId });
       throw new Error('DUPLICATE_REQUEST');
     }
 
@@ -136,6 +219,7 @@ class RateLimiter {
         count: this.hourlyCount,
         limit: this.config.requestsPerHour,
       });
+      this.metrics.rateLimited++;
       throw new Error('HOURLY_LIMIT_EXCEEDED');
     }
 
@@ -156,6 +240,7 @@ class RateLimiter {
         requestId,
         queueLength: this.queue.length,
         tokensAvailable: this.tokens,
+        priority,
       });
 
       this.processQueue();
@@ -163,7 +248,7 @@ class RateLimiter {
   }
 
   /**
-   * Process queued requests
+   * Process queued requests with token bucket control
    */
   private async processQueue() {
     if (this.processing || this.queue.length === 0) {
@@ -190,15 +275,25 @@ class RateLimiter {
           queueLength: this.queue.length,
         });
 
-        const result = await request.execute();
+        // Create promise and track for coalescing
+        const promise = request.execute();
+        this.coalescedRequests.set(request.id, {
+          promise,
+          timestamp: Date.now(),
+        });
+
+        const result = await promise;
         
         this.inFlightRequests.delete(request.id);
+        this.coalescedRequests.delete(request.id);
         request.resolve(result);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (error: any) {
         this.inFlightRequests.delete(request.id);
+        this.coalescedRequests.delete(request.id);
+        this.metrics.errors++;
 
-        // Handle 429 Too Many Requests
+        // Handle 429 Too Many Requests with exponential backoff
         if (error?.response?.status === 429) {
           const retryAfter = parseInt(error.response.headers['retry-after'] || '60');
           logger.warn('[RateLimiter] Rate limit hit (429), backing off', {
@@ -206,10 +301,13 @@ class RateLimiter {
             retryAfter,
           });
 
+          this.metrics.rateLimited++;
+
           // Exponential backoff
           await this.sleep(retryAfter * 1000);
           
-          // Re-queue the request
+          // Re-queue the request with lower priority
+          request.priority = Math.max(request.priority - 1, 0);
           this.queue.unshift(request);
           continue;
         }
@@ -220,9 +318,10 @@ class RateLimiter {
 
     this.processing = false;
 
-    // Continue processing if queue still has items
+    // Continue processing if queue still has items and we have tokens
     if (this.queue.length > 0) {
-      setTimeout(() => this.processQueue(), 100);
+      const delay = this.tokens > 0 ? 100 : 1000; // Wait longer if no tokens
+      setTimeout(() => this.processQueue(), delay);
     }
   }
 
@@ -234,7 +333,7 @@ class RateLimiter {
   }
 
   /**
-   * Get current status
+   * Get current status and metrics
    */
   getStatus() {
     return {
@@ -243,6 +342,13 @@ class RateLimiter {
       hourlyCount: this.hourlyCount,
       hourlyLimit: this.config.requestsPerHour,
       inFlightRequests: this.inFlightRequests.size,
+      config: this.config,
+      metrics: {
+        ...this.metrics,
+        efficiency: this.metrics.totalRequests > 0
+          ? Math.round(((this.metrics.deduplicated + this.metrics.coalesced) / this.metrics.totalRequests) * 100)
+          : 0,
+      },
     };
   }
 }

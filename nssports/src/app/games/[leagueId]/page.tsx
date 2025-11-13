@@ -107,24 +107,24 @@ export default function LeaguePage() {
 
   return (
     <div className="bg-background min-h-screen pb-20">
-      <div className="container mx-auto px-6 md:px-8 xl:px-12 pb-6 max-w-screen-2xl pt-16">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-12 pb-6 max-w-[1920px] pt-16">
         {/* Page Header */}
-        <div className="mb-8 flex items-center justify-between">
-          <div className="flex items-center gap-5">
+        <div className="mb-6 lg:mb-8 flex items-center justify-between">
+          <div className="flex items-center gap-4 lg:gap-5">
             {league && league.logo && (
               <Image
                 src={league.logo}
                 alt={(league.name ?? "League") + ' logo'}
-                width={48}
-                height={48}
-                className="w-12 h-12 md:w-14 md:h-14 object-contain"
-                style={{ minWidth: 48, minHeight: 48 }}
+                width={56}
+                height={56}
+                className="w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 object-contain"
+                style={{ minWidth: 40, minHeight: 40 }}
                 priority
               />
             )}
             <div className="flex flex-col justify-center items-start">
-              <h1 className="text-3xl md:text-4xl font-bold text-foreground leading-tight mb-1">{leagueName} Games</h1>
-              <p className="text-muted-foreground text-base md:text-lg font-medium leading-tight" style={{marginTop: '-2px'}}>
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground leading-tight mb-1">{leagueName} Games</h1>
+              <p className="text-muted-foreground text-sm sm:text-base lg:text-lg font-medium leading-tight" style={{marginTop: '-2px'}}>
                 {upcomingOnlyGames.length} upcoming game{upcomingOnlyGames.length !== 1 ? "s" : ""} available
               </p>
             </div>

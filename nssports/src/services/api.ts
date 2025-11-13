@@ -45,6 +45,17 @@ async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> 
       } catch {
         // ignore body parse errors
       }
+      
+      // Enhanced error logging for 422 validation errors
+      if (response.status === 422) {
+        console.error(`422 Validation Error on ${endpoint}:`, {
+          status: response.status,
+          statusText: response.statusText,
+          body,
+          url: response.url
+        });
+      }
+      
       throw new ApiHttpError(`API Error: ${response.status} ${response.statusText}`, response.status, body);
     }
 
@@ -175,9 +186,14 @@ export const getGamesPaginated = async (
   limit: number = 10,
   bypassCache: boolean = false,
 ): Promise<PaginatedResponse<Game>> => {
+  // Validate and sanitize pagination parameters to prevent 422 errors
+  // Ensure page and limit are valid positive integers
+  const safePage = Number.isFinite(page) && page > 0 ? Math.floor(page) : 1;
+  const safeLimit = Number.isFinite(limit) && limit > 0 && limit <= 100 ? Math.floor(limit) : 10;
+  
   const params = new URLSearchParams({
-    page: page.toString(),
-    limit: limit.toString(),
+    page: safePage.toString(),
+    limit: safeLimit.toString(),
   });
 
   if (leagueId) {

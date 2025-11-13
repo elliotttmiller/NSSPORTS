@@ -220,50 +220,50 @@ export function LiveGameRow({
             isFirstInGroup && "border-t border-border",
           )}
         >
-          {/* Responsive Grid - Adapts to container width */}
-          <div className="grid grid-cols-[60px_1fr_auto_auto_auto] xl:grid-cols-[80px_1fr_120px_120px_120px] gap-2 xl:gap-4 items-center py-2 px-2 xl:px-4 min-h-[60px]">
+          {/* Responsive Grid - Fluid layout adapts to all screen sizes */}
+          <div className="grid grid-cols-[minmax(60px,80px)_minmax(200px,1fr)_minmax(100px,140px)_minmax(100px,140px)_minmax(100px,140px)] gap-2 lg:gap-3 xl:gap-4 2xl:gap-6 items-center py-2 lg:py-3 px-2 lg:px-3 xl:px-4 2xl:px-6 min-h-[60px]">
             {/* League/Time Column */}
             <div className="text-xs space-y-0.5">
-              <div className="text-muted-foreground font-medium uppercase text-[10px] xl:text-xs">
+              <div className="text-muted-foreground font-medium uppercase text-[10px] lg:text-xs">
                 {game.leagueId}
               </div>
               {showTime && (
-                <div className="text-muted-foreground text-[10px] xl:text-xs">{timeString}</div>
+                <div className="text-muted-foreground text-[10px] lg:text-xs">{timeString}</div>
               )}
             </div>
 
             {/* Teams Column */}
             <div className="space-y-1 min-w-0">
               {/* Away Team */}
-              <div className="flex items-center gap-1 xl:gap-3 min-w-0">
+              <div className="flex items-center gap-1 lg:gap-2 xl:gap-3 min-w-0">
                 <TeamLogo
                   src={game.awayTeam.logo}
                   alt={game.awayTeam.name}
                   size={20}
-                  className="xl:w-6 xl:h-6 shrink-0"
+                  className="lg:w-5 lg:h-5 xl:w-6 xl:h-6 shrink-0"
                 />
-                <span className="font-medium text-foreground text-sm xl:text-base truncate">
+                <span className="font-medium text-foreground text-sm lg:text-base truncate">
                   {game.awayTeam.name}
                 </span>
                 {game.awayTeam.record && (
-                  <span className="text-xs text-muted-foreground ml-auto">
+                  <span className="text-xs text-muted-foreground ml-auto shrink-0">
                     {game.awayTeam.record}
                   </span>
                 )}
               </div>
               {/* Home Team */}
-              <div className="flex items-center gap-1 xl:gap-3 min-w-0">
+              <div className="flex items-center gap-1 lg:gap-2 xl:gap-3 min-w-0">
                 <TeamLogo
                   src={game.homeTeam.logo}
                   alt={game.homeTeam.name}
                   size={20}
-                  className="xl:w-6 xl:h-6 shrink-0"
+                  className="lg:w-5 lg:h-5 xl:w-6 xl:h-6 shrink-0"
                 />
-                <span className="font-medium text-foreground text-sm xl:text-base truncate">
+                <span className="font-medium text-foreground text-sm lg:text-base truncate">
                   {game.homeTeam.name}
                 </span>
                 {game.homeTeam.record && (
-                  <span className="text-xs text-muted-foreground ml-auto">
+                  <span className="text-xs text-muted-foreground ml-auto shrink-0">
                     {game.homeTeam.record}
                   </span>
                 )}
@@ -271,14 +271,14 @@ export function LiveGameRow({
             </div>
 
             {/* Spread Column */}
-            <div className="space-y-1 min-w-20 xl:min-w-[120px]">
+            <div className="space-y-1 w-full">
               <Button
                 variant={isBetInSlip("spread", "away") ? "default" : "outline"}
                 size="sm"
                 onClick={(e) => handleBetClick("spread", "away", e)}
                 disabled={wouldBetConflict("spread", "away") && !isBetInSlip("spread", "away")}
                 className={cn(
-                  "w-full h-9 px-2 transition-all duration-200 font-medium flex flex-col justify-center items-center gap-1 text-center",
+                  "w-full h-9 px-2 lg:px-3 transition-all duration-200 font-medium flex flex-col justify-center items-center gap-1 text-center",
                   isBetInSlip("spread", "away")
                     ? "bg-accent text-accent-foreground shadow-md ring-2 ring-accent/20"
                     : wouldBetConflict("spread", "away")
@@ -287,10 +287,10 @@ export function LiveGameRow({
                 )}
                 title={wouldBetConflict("spread", "away") && !isBetInSlip("spread", "away") ? "Conflicts with existing bet in parlay" : undefined}
               >
-                <span className="text-xs xl:text-sm font-medium leading-none tracking-wide">
+                <span className="text-xs lg:text-sm font-medium leading-none tracking-wide">
                   {formatSpreadLine(oddsSource.spread.away.line || 0)}
                 </span>
-                <span className="text-[10px] xl:text-[11px] text-foreground/90 font-semibold leading-none">
+                <span className="text-[10px] lg:text-[11px] text-foreground/90 font-semibold leading-none">
                   {formatOdds(oddsSource.spread.away.odds)}
                 </span>
               </Button>
@@ -300,7 +300,7 @@ export function LiveGameRow({
                 onClick={(e) => handleBetClick("spread", "home", e)}
                 disabled={wouldBetConflict("spread", "home") && !isBetInSlip("spread", "home")}
                 className={cn(
-                  "w-full h-9 px-2 transition-all duration-200 font-medium flex flex-col justify-center items-center gap-1 text-center",
+                  "w-full h-9 px-2 lg:px-3 transition-all duration-200 font-medium flex flex-col justify-center items-center gap-1 text-center",
                   isBetInSlip("spread", "home")
                     ? "bg-accent text-accent-foreground shadow-md ring-2 ring-accent/20"
                     : wouldBetConflict("spread", "home")
@@ -309,24 +309,24 @@ export function LiveGameRow({
                 )}
                 title={wouldBetConflict("spread", "home") && !isBetInSlip("spread", "home") ? "Conflicts with existing bet in parlay" : undefined}
               >
-                <span className="text-xs xl:text-sm font-medium leading-none tracking-wide">
+                <span className="text-xs lg:text-sm font-medium leading-none tracking-wide">
                   {formatSpreadLine(oddsSource.spread.home.line || 0)}
                 </span>
-                <span className="text-[10px] xl:text-[11px] text-foreground/90 font-semibold leading-none">
+                <span className="text-[10px] lg:text-[11px] text-foreground/90 font-semibold leading-none">
                   {formatOdds(oddsSource.spread.home.odds)}
                 </span>
               </Button>
             </div>
 
           {/* Total Column */}
-          <div className="space-y-1 min-w-20 xl:min-w-[120px]">
+          <div className="space-y-1 w-full">
             <Button
               variant={isBetInSlip("total", "over") ? "default" : "outline"}
               size="sm"
               onClick={(e) => handleBetClick("total", "over", e)}
               disabled={wouldBetConflict("total", "over") && !isBetInSlip("total", "over")}
               className={cn(
-                "w-full h-9 px-2 transition-all duration-200 font-medium flex flex-col justify-center items-center gap-1 text-center",
+                "w-full h-9 px-2 lg:px-3 transition-all duration-200 font-medium flex flex-col justify-center items-center gap-1 text-center",
                 isBetInSlip("total", "over")
                   ? "bg-accent text-accent-foreground shadow-md ring-2 ring-accent/20"
                   : wouldBetConflict("total", "over")
@@ -335,10 +335,10 @@ export function LiveGameRow({
               )}
               title={wouldBetConflict("total", "over") && !isBetInSlip("total", "over") ? "Conflicts with existing bet in parlay" : undefined}
             >
-              <span className="text-xs xl:text-sm font-medium leading-none tracking-wide">
+              <span className="text-xs lg:text-sm font-medium leading-none tracking-wide">
                 O<span className="mx-1">{oddsSource.total.over?.line}</span>
               </span>
-              <span className="text-[10px] xl:text-[11px] text-foreground/90 font-semibold leading-none">
+              <span className="text-[10px] lg:text-[11px] text-foreground/90 font-semibold leading-none">
                 {formatOdds(oddsSource.total.over?.odds || 0)}
               </span>
             </Button>
@@ -348,7 +348,7 @@ export function LiveGameRow({
               onClick={(e) => handleBetClick("total", "under", e)}
               disabled={wouldBetConflict("total", "under") && !isBetInSlip("total", "under")}
               className={cn(
-                "w-full h-9 px-2 transition-all duration-200 font-medium flex flex-col justify-center items-center gap-1 text-center",
+                "w-full h-9 px-2 lg:px-3 transition-all duration-200 font-medium flex flex-col justify-center items-center gap-1 text-center",
                 isBetInSlip("total", "under")
                   ? "bg-accent text-accent-foreground shadow-md ring-2 ring-accent/20"
                   : wouldBetConflict("total", "under")
@@ -357,24 +357,24 @@ export function LiveGameRow({
               )}
               title={wouldBetConflict("total", "under") && !isBetInSlip("total", "under") ? "Conflicts with existing bet in parlay" : undefined}
             >
-              <span className="text-xs xl:text-sm font-medium leading-none tracking-wide">
+              <span className="text-xs lg:text-sm font-medium leading-none tracking-wide">
                 U<span className="mx-1">{oddsSource.total.under?.line}</span>
               </span>
-              <span className="text-[10px] xl:text-[11px] text-foreground/90 font-semibold leading-none">
+              <span className="text-[10px] lg:text-[11px] text-foreground/90 font-semibold leading-none">
                 {formatOdds(oddsSource.total.under?.odds || 0)}
               </span>
             </Button>
           </div>
 
           {/* Moneyline Column */}
-          <div className="space-y-1 min-w-20 xl:min-w-[120px]">
+          <div className="space-y-1 w-full">
             <Button
               variant={isBetInSlip("moneyline", "away") ? "default" : "outline"}
               size="sm"
               onClick={(e) => handleBetClick("moneyline", "away", e)}
               disabled={wouldBetConflict("moneyline", "away") && !isBetInSlip("moneyline", "away")}
               className={cn(
-                "w-full h-8 px-1 xl:px-2 transition-all duration-200 font-medium flex items-center justify-center text-center",
+                "w-full h-8 lg:h-9 px-2 lg:px-3 transition-all duration-200 font-medium flex items-center justify-center text-center",
                 isBetInSlip("moneyline", "away")
                   ? "bg-accent text-accent-foreground shadow-md ring-2 ring-accent/20"
                   : wouldBetConflict("moneyline", "away")
@@ -383,7 +383,7 @@ export function LiveGameRow({
               )}
               title={wouldBetConflict("moneyline", "away") && !isBetInSlip("moneyline", "away") ? "Conflicts with existing bet in parlay" : undefined}
             >
-              <span className="text-xs xl:text-sm font-medium leading-none tracking-wide">
+              <span className="text-xs lg:text-sm font-medium leading-none tracking-wide">
                 {formatOdds(oddsSource.moneyline.away.odds)}
               </span>
             </Button>
@@ -393,7 +393,7 @@ export function LiveGameRow({
               onClick={(e) => handleBetClick("moneyline", "home", e)}
               disabled={wouldBetConflict("moneyline", "home") && !isBetInSlip("moneyline", "home")}
               className={cn(
-                "w-full h-8 px-1 xl:px-2 transition-all duration-200 font-medium flex items-center justify-center text-center",
+                "w-full h-8 lg:h-9 px-2 lg:px-3 transition-all duration-200 font-medium flex items-center justify-center text-center",
                 isBetInSlip("moneyline", "home")
                   ? "bg-accent text-accent-foreground shadow-md ring-2 ring-accent/20"
                   : wouldBetConflict("moneyline", "home")
@@ -402,7 +402,7 @@ export function LiveGameRow({
               )}
               title={wouldBetConflict("moneyline", "home") && !isBetInSlip("moneyline", "home") ? "Conflicts with existing bet in parlay" : undefined}
             >
-              <span className="text-xs xl:text-sm font-medium leading-none tracking-wide">
+              <span className="text-xs lg:text-sm font-medium leading-none tracking-wide">
                 {formatOdds(oddsSource.moneyline.home.odds)}
               </span>
             </Button>

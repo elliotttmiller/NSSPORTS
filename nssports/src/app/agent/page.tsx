@@ -208,28 +208,31 @@ export default function AgentDashboard() {
   }
 
   return (
-    <div className="bg-background min-h-full">
-      {/* Header - Seamless (not sticky) */}
+    <div className="bg-background h-full min-h-screen pb-20">
+      {/* Header */}
       <motion.div 
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-card border-b border-border p-3 sm:p-4"
+        className="bg-card border-b border-border px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-12 py-4 lg:py-6"
       >
-        <h1 className="text-xl sm:text-2xl font-bold text-foreground">Agent Dashboard</h1>
-        <p className="text-xs text-muted-foreground mt-1">Manage your players and balances</p>
+        <div className="container mx-auto max-w-[1920px]">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground">Agent Dashboard</h1>
+          <p className="text-sm sm:text-base text-muted-foreground mt-1">Manage your players and balances</p>
+        </div>
       </motion.div>
 
       {/* Main Content - Responsive Container */}
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 space-y-4">
-        {/* Quick Actions - Mobile Optimized */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="bg-card border border-border rounded-xl p-3 sm:p-4"
-        >
-          <h2 className="text-base sm:text-lg font-semibold text-foreground mb-3 sm:mb-4">Quick Actions</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-12 py-6 lg:py-8 max-w-[1920px]">
+        <div className="space-y-6 lg:space-y-8">
+          {/* Quick Actions - Mobile Optimized */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="bg-card border border-border rounded-xl p-4 lg:p-6"
+          >
+            <h2 className="text-lg lg:text-xl font-semibold text-foreground mb-4 lg:mb-6">Quick Actions</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
             <Button 
               className="h-auto py-3 flex items-center justify-center gap-2 bg-accent hover:bg-accent/90 text-accent-foreground touch-action-manipulation active:scale-95 transition-transform"
               onClick={() => router.push("/agent/register-player")}
@@ -482,6 +485,7 @@ export default function AgentDashboard() {
             </>
           )}
         </motion.div>
+        </div>
       </div>
     </div>
   );

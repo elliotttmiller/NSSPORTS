@@ -61,14 +61,14 @@ export default function AccountPage() {
   }
 
   return (
-    <div className="bg-background">
-      <div className="container mx-auto px-4 py-6 max-w-screen-2xl">
-        <div className="space-y-6">
+    <div className="bg-background min-h-screen pb-20">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-12 py-6 max-w-[1920px] pt-16">
+        <div className="space-y-6 lg:space-y-8">
         {/* Page Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold">Account Settings</h1>
-            <p className="text-muted-foreground mt-1">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold">Account Settings</h1>
+            <p className="text-muted-foreground mt-1 text-sm sm:text-base">
               Manage your profile and preferences
             </p>
           </div>
@@ -76,14 +76,14 @@ export default function AccountPage() {
             onClick={() => refetchAccount()} 
             variant="outline" 
             size="sm"
-            className="transition-all duration-150"
+            className="transition-all duration-150 w-full sm:w-auto"
           >
             Refresh Balance
           </Button>
         </div>
 
         {/* Summary Stats Grid - Desktop & Mobile */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2 mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mt-2 mb-8">
           {[ 
             { label: "Balance", value: formatCurrency(balance), color: "text-foreground" },
             { label: "Available", value: formatCurrency(available), color: "text-foreground" },

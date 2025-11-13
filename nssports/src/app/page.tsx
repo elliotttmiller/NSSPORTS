@@ -289,14 +289,14 @@ function AuthenticatedHomePage({ session }: { session: Session }) {
 
   return (
     <div className="bg-background text-foreground min-h-screen pb-20">
-      <div className="container mx-auto px-4 sm:px-6 md:px-8 xl:px-12 py-6 max-w-screen-2xl pt-16">
-        <div className="space-y-6">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-12 py-6 max-w-[1920px] pt-16">
+        <div className="space-y-6 lg:space-y-8">
           {/* ...existing code... */}
-          <div className="text-center py-8 md:py-12">
-            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-foreground tracking-tight mb-4">
+          <div className="text-center py-8 lg:py-12">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold text-foreground tracking-tight mb-4">
               {`Welcome, ${displayName}`}
             </h1>
-            <div className="w-32 md:w-48 h-1 bg-accent mx-auto rounded-full"></div>
+            <div className="w-32 sm:w-40 lg:w-48 h-1 bg-accent mx-auto rounded-full"></div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8 md:mt-12">
             {[ 

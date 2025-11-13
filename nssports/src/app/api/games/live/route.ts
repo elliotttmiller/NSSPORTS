@@ -23,15 +23,11 @@ export async function GET() {
       const isDevelopment = process.env.NODE_ENV === 'development';
       const fetchLimit = isDevelopment ? 50 : 100;
       
-      // Fetch recent games and let SDK status fields determine which are live
-      // No artificial time windows - just get games and filter by official status fields
-      // ⭐ OFFICIAL SDK METHOD: Use `live: true` and `finalized: false` query parameters
-      // Per official docs: https://sportsgameodds.com/docs/sdk#filtering-and-query-parameters
-      // - live: true → Only return games that are currently in progress
-      // - finalized: false → Exclude games that have finished
-      // - oddIDs: Official market IDs (reduces payload 50-90%)
-      // - includeOpposingOddIDs: true → Get both sides automatically
-      const [nbaResult, ncaabResult, nflResult, ncaafResult, nhlResult] = await Promise.allSettled([
+      // ⭐ Add timeout protection for the entire operation
+      // If SDK calls take too long, we'll return cached data or partial results
+      const OPERATION_TIMEOUT = 25000; // 25 seconds (less than frontend's 30s timeout)
+      
+      const operationPromise = Promise.allSettled([
         getEventsWithCache({ 
           leagueID: 'NBA',
           live: true,                      // ✅ OFFICIAL: Only live/in-progress games
@@ -73,6 +69,30 @@ export async function GET() {
           limit: fetchLimit,
         }),
       ]);
+      
+      // Race between operation and timeout
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Operation timeout')), OPERATION_TIMEOUT)
+      );
+      
+      let results;
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        results = await Promise.race([operationPromise, timeoutPromise]) as PromiseSettledResult<any>[];
+      } catch (timeoutError) {
+        // If we hit timeout, log it but try to return whatever we have
+        logger.warn('[/api/games/live] Operation timeout, may return partial results');
+        // Return empty results if we timeout before any complete
+        results = [
+          { status: 'rejected' as const, reason: timeoutError },
+          { status: 'rejected' as const, reason: timeoutError },
+          { status: 'rejected' as const, reason: timeoutError },
+          { status: 'rejected' as const, reason: timeoutError },
+          { status: 'rejected' as const, reason: timeoutError },
+        ];
+      }
+      
+      const [nbaResult, ncaabResult, nflResult, ncaafResult, nhlResult] = results;
       
       const liveEvents = [
         ...(nbaResult.status === 'fulfilled' ? nbaResult.value.data : []),

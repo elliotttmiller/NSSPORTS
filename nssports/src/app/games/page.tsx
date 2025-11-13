@@ -55,13 +55,13 @@ export default function GamesPage() {
   
   return (
     <div className="bg-background h-full min-h-screen pb-20">
-      <div className="container mx-auto px-6 md:px-8 xl:px-12 pb-6 max-w-screen-2xl pt-16">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-12 pb-6 max-w-[1920px] pt-16">
         {/* Page Header */}
-        <div className="mb-6">
+        <div className="mb-6 lg:mb-8">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-3xl font-bold text-foreground">All Sports & Games</h1>
-              <p className="text-muted-foreground mt-1 text-base">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground">All Sports & Games</h1>
+              <p className="text-muted-foreground mt-1 text-sm sm:text-base lg:text-lg">
                 {totalGames !== null ? `${totalGames} Available Games` : "Loading games..."}
               </p>
             </div>
