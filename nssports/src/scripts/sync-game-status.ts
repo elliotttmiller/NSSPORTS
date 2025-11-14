@@ -84,14 +84,17 @@ export async function syncFinishedGames(): Promise<SyncResult> {
           continue;
         }
 
-        // Extract final scores
-        const homeScore = event.teams?.home?.score;
-        const awayScore = event.teams?.away?.score;
+        // Extract final scores - use results.game (same structure as transformer)
+        const homeScore = event.results?.game?.home?.points;
+        const awayScore = event.results?.game?.away?.points;
 
-        if (homeScore === undefined || awayScore === undefined) {
+        // Note: Allow 0 scores, but skip if scores are null/undefined
+        if (homeScore == null || awayScore == null) {
           logger.warn(`[syncFinishedGames] Game ${event.eventID} missing final scores`, {
             homeScore,
-            awayScore
+            awayScore,
+            hasResults: !!event.results,
+            hasGame: !!event.results?.game
           });
           result.errors.push(`Game ${event.eventID}: Missing scores`);
           continue;
