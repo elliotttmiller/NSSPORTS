@@ -73,9 +73,9 @@ export default function LivePage() {
         headers: {
           'Cache-Control': 'no-cache',
         },
-        // Mobile: Add timeout - increased to 30s to handle multiple league queries
+        // Timeout must be longer than API's 25s timeout - 35s to allow for network overhead
         // Background updates: 5 leagues × ~2s each + cache operations can take 10-15s
-        signal: AbortSignal.timeout(30000),
+        signal: AbortSignal.timeout(35000),
       });
       if (!response.ok) {
         throw new Error(`Failed to fetch: ${response.status}`);

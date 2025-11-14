@@ -79,8 +79,9 @@ export async function syncFinishedGames(): Promise<SyncResult> {
           continue;
         }
 
-        // If game is already marked as finished in DB, skip it
-        if (dbGame.status === 'finished') {
+        // If game is already marked as finished with scores, skip it
+        // But if scores are missing (null), we need to update them
+        if (dbGame.status === 'finished' && dbGame.homeScore != null && dbGame.awayScore != null) {
           continue;
         }
 

@@ -227,8 +227,24 @@ export function LiveGameRow({
               <div className="text-muted-foreground font-medium uppercase text-[10px] lg:text-xs">
                 {game.leagueId}
               </div>
-              {showTime && (
-                <div className="text-muted-foreground text-[10px] lg:text-xs">{timeString}</div>
+              {/* Show live status if game is live, otherwise show start time */}
+              {game.status === 'live' && (game.period || game.timeRemaining) ? (
+                <div className="flex flex-col gap-0.5">
+                  {game.period && (
+                    <div className="text-accent font-semibold text-[10px] lg:text-xs uppercase">
+                      {game.period}
+                    </div>
+                  )}
+                  {game.timeRemaining && (
+                    <div className="text-accent font-semibold text-[10px] lg:text-xs">
+                      {game.timeRemaining}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                showTime && (
+                  <div className="text-muted-foreground text-[10px] lg:text-xs">{timeString}</div>
+                )
               )}
             </div>
 
@@ -245,17 +261,18 @@ export function LiveGameRow({
                 <span className="font-medium text-foreground text-sm lg:text-base truncate">
                   {game.awayTeam.name}
                 </span>
-                {/* Live Score */}
-                {game.awayScore !== undefined && game.awayScore !== null && (
-                  <span className="text-sm lg:text-base font-bold text-foreground ml-auto shrink-0">
+                {/* Live Score - show if game is live and score is a number (including 0) */}
+                {game.status === 'live' && typeof game.awayScore === 'number' ? (
+                  <span className="text-sm lg:text-base font-bold text-foreground ml-2 shrink-0">
                     {game.awayScore}
                   </span>
-                )}
-                {/* Record (only show if no live score) */}
-                {(game.awayScore === undefined || game.awayScore === null) && game.awayTeam.record && (
-                  <span className="text-xs text-muted-foreground ml-auto shrink-0">
-                    {game.awayTeam.record}
-                  </span>
+                ) : (
+                  /* Record (only show if no live score) */
+                  game.awayTeam.record && (
+                    <span className="text-xs text-muted-foreground ml-2 shrink-0">
+                      {game.awayTeam.record}
+                    </span>
+                  )
                 )}
               </div>
               {/* Home Team */}
@@ -269,31 +286,20 @@ export function LiveGameRow({
                 <span className="font-medium text-foreground text-sm lg:text-base truncate">
                   {game.homeTeam.name}
                 </span>
-                {/* Live Score */}
-                {game.homeScore !== undefined && game.homeScore !== null && (
-                  <span className="text-sm lg:text-base font-bold text-foreground ml-auto shrink-0">
+                {/* Live Score - show if game is live and score is a number (including 0) */}
+                {game.status === 'live' && typeof game.homeScore === 'number' ? (
+                  <span className="text-sm lg:text-base font-bold text-foreground ml-2 shrink-0">
                     {game.homeScore}
                   </span>
-                )}
-                {/* Record (only show if no live score) */}
-                {(game.homeScore === undefined || game.homeScore === null) && game.homeTeam.record && (
-                  <span className="text-xs text-muted-foreground ml-auto shrink-0">
-                    {game.homeTeam.record}
-                  </span>
+                ) : (
+                  /* Record (only show if no live score) */
+                  game.homeTeam.record && (
+                    <span className="text-xs text-muted-foreground ml-2 shrink-0">
+                      {game.homeTeam.record}
+                    </span>
+                  )
                 )}
               </div>
-              {/* Live Game Status - Period and Time Remaining */}
-              {(game.period || game.timeRemaining) && (
-                <div className="flex items-center gap-2 text-[10px] lg:text-xs text-accent font-semibold">
-                  {game.period && <span className="uppercase">{game.period}</span>}
-                  {game.timeRemaining && (
-                    <>
-                      {game.period && <span>•</span>}
-                      <span>{game.timeRemaining}</span>
-                    </>
-                  )}
-                </div>
-              )}
             </div>
 
             {/* Spread Column */}

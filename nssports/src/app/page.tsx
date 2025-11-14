@@ -60,8 +60,8 @@ function AuthenticatedHomePage({ session }: { session: Session }) {
         headers: {
           'Cache-Control': 'no-cache',
         },
-        // Increased timeout to prevent abort errors - 15s for background, 20s for initial
-        signal: AbortSignal.timeout(isBackgroundUpdate ? 15000 : 20000),
+        // Timeout must be longer than API's 25s timeout - 30s for background, 35s for initial
+        signal: AbortSignal.timeout(isBackgroundUpdate ? 30000 : 35000),
       });
       if (!response.ok) {
         throw new Error(`Failed to fetch: ${response.status}`);
