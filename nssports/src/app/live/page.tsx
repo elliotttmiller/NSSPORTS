@@ -14,6 +14,35 @@ import { RefreshButton } from "@/components/ui";
 import { useRefresh } from "@/context";
 import { LoadingScreen } from "@/components/LoadingScreen";
 
+/**
+ * Helper function to check if games array has actually changed
+ * Prevents unnecessary re-renders from API refetches that return identical data
+ */
+function gamesHaveChanged(oldGames: Game[], newGames: Game[]): boolean {
+  if (oldGames.length !== newGames.length) return true;
+  
+  // Check if any game has different scores, odds, or status
+  for (let i = 0; i < newGames.length; i++) {
+    const oldGame = oldGames.find(g => g.id === newGames[i].id);
+    if (!oldGame) return true;
+    
+    // Check fields that change frequently during live games
+    if (
+      oldGame.homeScore !== newGames[i].homeScore ||
+      oldGame.awayScore !== newGames[i].awayScore ||
+      oldGame.period !== newGames[i].period ||
+      oldGame.timeRemaining !== newGames[i].timeRemaining ||
+      oldGame.status !== newGames[i].status ||
+      oldGame.odds?.spread?.home?.odds !== newGames[i].odds?.spread?.home?.odds ||
+      oldGame.odds?.spread?.away?.odds !== newGames[i].odds?.spread?.away?.odds
+    ) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
 export default function LivePage() {
   const [liveGamesData, setLiveGamesData] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,7 +85,14 @@ export default function LivePage() {
       if (!isBackgroundUpdate) {
         console.log(`[LivePage] ✅ Games loaded - ${games.length} live games`);
       }
-      setLiveGamesData(games);
+      
+      // Only update state if games have actually changed (prevents flickering)
+      setLiveGamesData(prevGames => {
+        if (gamesHaveChanged(prevGames, games)) {
+          return games;
+        }
+        return prevGames; // Keep same reference if data hasn't changed
+      });
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to fetch live games';
       
@@ -111,20 +147,22 @@ export default function LivePage() {
     fetchLiveGames(false); // Initial load
   }, [fetchLiveGames]);
   
-  // ⭐ Mobile-Optimized Auto-refresh: Updates odds every 5s for real-time accuracy
-  // ✅ Preserves user's bet selections and UI state
-  // ✅ Only refreshes when page is visible (saves mobile battery)
-  // ✅ Silent updates - no loading spinners or interruptions
-  // ✅ Matches backend cache TTL (5s) for maximum freshness
+  // ⭐ Smart Background Updates for Live Scores/Clock ONLY
+  // Updates live game data (scores, period, time) in background
+  // ✅ Silent updates - no loading spinners
+  // ✅ Only updates state if data actually changed (deep equality check)
+  // ✅ Prevents re-renders when scores haven't changed
+  // ✅ Only runs when page is visible (saves battery)
+  // Interval: 15 seconds (optimal for live betting)
   useEffect(() => {
-    // Only run interval when page is visible
+    // Only run when page is visible
     if (!_isPageVisible) {
       return;
     }
     
     const interval = setInterval(() => {
-      fetchLiveGames(true); // Silent background update
-    }, 5000); // 5 seconds - aggressive real-time updates for live betting accuracy
+      fetchLiveGames(true); // Silent background update (deep equality prevents unnecessary re-renders)
+    }, 15000); // 15 seconds
     
     return () => clearInterval(interval);
   }, [fetchLiveGames, _isPageVisible]);

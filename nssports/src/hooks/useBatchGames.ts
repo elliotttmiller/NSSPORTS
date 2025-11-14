@@ -76,9 +76,9 @@ export function useBatchGames(
       return json.data;
     },
     enabled: enabled && !!eventIds && eventIds.length > 0,
-    staleTime: 30 * 1000, // 30 seconds - Pro plan sub-minute updates
-    refetchInterval: 30 * 1000, // Active polling every 30s for batch games
-    refetchIntervalInBackground: true, // Continue polling in background
+    staleTime: 30 * 1000, // 30 seconds
+    refetchInterval: (enabled && eventIds && eventIds.length > 0) ? 30 * 1000 : false,
+    refetchIntervalInBackground: true, // Continue in background
     gcTime: 5 * 60 * 1000, // 5 minutes cache
   });
 }
@@ -140,9 +140,9 @@ export function useBatchGamesWithSplitting(
       return allGames;
     },
     enabled: enabled && !!eventIds && eventIds.length > 0,
-    staleTime: 30 * 1000, // 30 seconds - Pro plan sub-minute updates
-    refetchInterval: 30 * 1000, // Active polling every 30s for batch games
-    refetchIntervalInBackground: true, // Continue polling in background
+    staleTime: 30 * 1000, // 30 seconds
+    refetchInterval: (enabled && eventIds && eventIds.length > 0) ? 30 * 1000 : false,
+    refetchIntervalInBackground: true, // Continue in background
     gcTime: 5 * 60 * 1000, // 5 minutes cache
   });
 }

@@ -83,10 +83,10 @@ export function useGameProps(
     },
     enabled,
     staleTime,                    // Dynamic: 15s for live, 60s for upcoming (Pro plan)
-    refetchInterval: staleTime,   // Active polling matches staleTime (Pro plan REST polling)
-    refetchIntervalInBackground: true, // Continue polling in background
+    refetchInterval: enabled ? staleTime : false, // Smart polling when enabled
+    refetchIntervalInBackground: true, // Continue in background
     gcTime: 10 * 60 * 1000,       // 10 minutes (keep in memory longer)
     refetchOnWindowFocus: false,  // Prevent spam on tab switching
-    refetchOnReconnect: false,    // REST polling handles updates
+    refetchOnReconnect: false,    // Polling handles updates
   });
 }

@@ -18,10 +18,10 @@ export function useLiveOdds(gameId: string | undefined) {
     queryKey: ['live-odds', gameId],
     enabled: Boolean(gameId),
     queryFn: async () => ({ game: await getGame(gameId as string) }),
-    staleTime: 5_000,            // 5 seconds - aggressive real-time updates for live betting
-    refetchInterval: 5_000,      // Active polling every 5s (matches backend cache TTL)
-    refetchIntervalInBackground: true, // Continue polling in background
-    refetchOnWindowFocus: true,   // Refetch when user returns to tab (if stale)
-    refetchOnReconnect: true,     // Refetch on network recovery
+    staleTime: 15_000,           // 15 seconds for live games
+    refetchInterval: Boolean(gameId) ? 15_000 : false, // Poll every 15s when enabled
+    refetchIntervalInBackground: true, // Continue in background
+    refetchOnWindowFocus: false, // Prevent spam on tab switching
+    refetchOnReconnect: false,   // Polling handles updates
   });
 }

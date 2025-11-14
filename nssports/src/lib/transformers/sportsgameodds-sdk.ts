@@ -328,8 +328,13 @@ function getTeamLogo(team: SDKTeam, leagueId: string): string {
   const logoPath = leagueLogoPaths[leagueId];
   if (!logoPath) return '';
   
-  // Use the exact SDK team ID (e.g., SACRAMENTO_KINGS_NBA.svg)
-  return `${logoPath}/${team.teamID}.svg`;
+  // Normalize team ID to handle accented characters (e.g., MONTRÉAL → MONTREAL)
+  const normalizedTeamID = team.teamID
+    .normalize('NFD') // Decompose accented characters
+    .replace(/[\u0300-\u036f]/g, ''); // Remove diacritics
+  
+  // Use the normalized SDK team ID (e.g., MONTREAL_CANADIENS_NHL.svg)
+  return `${logoPath}/${normalizedTeamID}.svg`;
 }
 
 // ⭐ Extend Official SDK Event Type with Additional Properties
@@ -818,8 +823,8 @@ export async function transformSDKEvent(event: ExtendedSDKEvent): Promise<GamePa
       status,
       odds,
       venue: event.venue || undefined,
-      homeScore: event.results?.game?.home?.points || undefined,
-      awayScore: event.results?.game?.away?.points || undefined,
+      homeScore: event.results?.game?.home?.points ?? undefined,
+      awayScore: event.results?.game?.away?.points ?? undefined,
       period: (event.status as ExtendedStatus)?.currentPeriodID || undefined,
       timeRemaining: (event.status as ExtendedStatus)?.clock || undefined,
     };

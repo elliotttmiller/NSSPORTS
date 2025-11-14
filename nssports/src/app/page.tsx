@@ -71,7 +71,31 @@ function AuthenticatedHomePage({ session }: { session: Session }) {
       if (!isBackgroundUpdate) {
         console.log(`[HomePage] ✅ Games loaded - ${games.length} live games`);
       }
-      setLiveGamesData(games);
+      
+      // Only update state if games have actually changed (prevents flickering)
+      setLiveGamesData(prevGames => {
+        // Quick check: if lengths differ, data changed
+        if (prevGames.length !== games.length) return games;
+        
+        // Deep check: compare key fields that change during live games
+        let hasChanges = false;
+        for (const newGame of games) {
+          const oldGame = prevGames.find(g => g.id === newGame.id);
+          if (!oldGame ||
+              oldGame.homeScore !== newGame.homeScore ||
+              oldGame.awayScore !== newGame.awayScore ||
+              oldGame.period !== newGame.period ||
+              oldGame.timeRemaining !== newGame.timeRemaining ||
+              oldGame.status !== newGame.status ||
+              oldGame.odds?.spread?.home?.odds !== newGame.odds?.spread?.home?.odds
+          ) {
+            hasChanges = true;
+            break;
+          }
+        }
+        
+        return hasChanges ? games : prevGames;
+      });
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to fetch live games';
       // Only log errors, not every background update
@@ -107,20 +131,19 @@ function AuthenticatedHomePage({ session }: { session: Session }) {
     fetchLiveGames(false); // Initial load
   }, [fetchLiveGames]);
   
-  // ⭐ Auto-refresh: Updates odds every 30s WITHOUT page refresh
-  // ✅ Preserves user's bet selections and UI state
-  // ✅ Only refreshes when page is visible (saves battery)
-  // ✅ Silent updates - no loading spinners or interruptions
+  // ⭐ Smart Background Updates for Live Scores/Clock
+  // Updates live game data in background without disrupting UI
+  // ✅ Silent updates - no loading spinners
+  // ✅ Only updates state if data actually changed (deep equality check)
+  // ✅ Preserves user's bet slip and UI state
+  // ✅ Only runs when page is visible (saves battery)
   useEffect(() => {
-    // Only run interval when page is visible
     if (!_isPageVisible) {
-      console.log('[HomePage] Page hidden - pausing auto-refresh');
       return;
     }
     
     const interval = setInterval(() => {
-      console.log('[HomePage] 🔄 Auto-refreshing odds...');
-      fetchLiveGames(true); // Background update
+      fetchLiveGames(true); // Background update with deep equality check
     }, 30000); // 30 seconds
     
     return () => clearInterval(interval);
