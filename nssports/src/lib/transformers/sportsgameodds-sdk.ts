@@ -31,6 +31,20 @@ import type { SDKEvent } from "../sportsgameodds-sdk";
 import { oddsJuiceService } from "../odds-juice-service";
 
 /**
+ * Extended Status type with live game properties
+ * The SDK's Status type doesn't include clock and currentPeriodID in its types,
+ * but these properties are present in the actual API responses.
+ */
+interface ExtendedStatus {
+  live?: boolean;
+  started?: boolean;
+  completed?: boolean;
+  cancelled?: boolean;
+  clock?: string;
+  currentPeriodID?: string;
+}
+
+/**
  * Official League ID Mapping
  * Source: https://sportsgameodds.com/docs/leagues
  * 
@@ -642,7 +656,14 @@ async function applyJuiceToOdds(
  * Per SDK documentation: https://sportsgameodds.com/docs/explorer
  */
 function mapStatus(
-  sdkStatus: { live?: boolean; started?: boolean; completed?: boolean; cancelled?: boolean } | undefined,
+  sdkStatus: { 
+    live?: boolean; 
+    started?: boolean; 
+    completed?: boolean; 
+    cancelled?: boolean;
+    clock?: string;
+    currentPeriodID?: string;
+  } | undefined,
   startTime: Date
 ): "upcoming" | "live" | "finished" {
   const now = new Date();
@@ -797,10 +818,10 @@ export async function transformSDKEvent(event: ExtendedSDKEvent): Promise<GamePa
       status,
       odds,
       venue: event.venue || undefined,
-      homeScore: event.scores?.home || undefined,
-      awayScore: event.scores?.away || undefined,
-      period: event.period || undefined,
-      timeRemaining: event.clock || undefined,
+      homeScore: event.results?.game?.home?.points || undefined,
+      awayScore: event.results?.game?.away?.points || undefined,
+      period: (event.status as ExtendedStatus)?.currentPeriodID || undefined,
+      timeRemaining: (event.status as ExtendedStatus)?.clock || undefined,
     };
   } catch (error) {
     logger.error("Error transforming SDK event", error, { eventId: event?.eventID });

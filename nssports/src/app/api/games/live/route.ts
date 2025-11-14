@@ -23,6 +23,13 @@ export async function GET() {
       const isDevelopment = process.env.NODE_ENV === 'development';
       const fetchLimit = isDevelopment ? 50 : 100;
       
+      // ⭐ Force fetch only TODAY's games to avoid stale cache
+      const now = new Date();
+      const startOfToday = new Date(now);
+      startOfToday.setHours(0, 0, 0, 0);
+      const endOfToday = new Date(now);
+      endOfToday.setHours(23, 59, 59, 999);
+      
       // ⭐ Add timeout protection for the entire operation
       // If SDK calls take too long, we'll return cached data or partial results
       const OPERATION_TIMEOUT = 25000; // 25 seconds (less than frontend's 30s timeout)
@@ -32,6 +39,8 @@ export async function GET() {
           leagueID: 'NBA',
           live: true,                      // ✅ OFFICIAL: Only live/in-progress games
           finalized: false,                // ✅ OFFICIAL: Exclude finished games
+          startsAfter: startOfToday.toISOString(), // ✅ Force today's games only
+          startsBefore: endOfToday.toISOString(),  // ✅ Force today's games only
           oddIDs: MAIN_LINE_ODDIDS,        // ✅ OFFICIAL: Main lines only (ML, spread, total)
           includeOpposingOddIDs: true,     // ✅ OFFICIAL: Auto-include opposing sides
           limit: fetchLimit,
@@ -40,6 +49,8 @@ export async function GET() {
           leagueID: 'NCAAB',
           live: true,                      // ✅ OFFICIAL: Only live/in-progress games
           finalized: false,                // ✅ OFFICIAL: Exclude finished games
+          startsAfter: startOfToday.toISOString(), // ✅ Force today's games only
+          startsBefore: endOfToday.toISOString(),  // ✅ Force today's games only
           oddIDs: MAIN_LINE_ODDIDS,        // ✅ OFFICIAL: Main lines only (ML, spread, total)
           includeOpposingOddIDs: true,     // ✅ OFFICIAL: Auto-include opposing sides
           limit: fetchLimit,
@@ -48,6 +59,8 @@ export async function GET() {
           leagueID: 'NFL',
           live: true,                      // ✅ OFFICIAL: Only live/in-progress games
           finalized: false,                // ✅ OFFICIAL: Exclude finished games
+          startsAfter: startOfToday.toISOString(), // ✅ Force today's games only
+          startsBefore: endOfToday.toISOString(),  // ✅ Force today's games only
           oddIDs: MAIN_LINE_ODDIDS,        // ✅ OFFICIAL: Main lines only
           includeOpposingOddIDs: true,     // ✅ OFFICIAL: Auto-include opposing sides
           limit: fetchLimit,
@@ -56,6 +69,8 @@ export async function GET() {
           leagueID: 'NCAAF',
           live: true,                      // ✅ OFFICIAL: Only live/in-progress games
           finalized: false,                // ✅ OFFICIAL: Exclude finished games
+          startsAfter: startOfToday.toISOString(), // ✅ Force today's games only
+          startsBefore: endOfToday.toISOString(),  // ✅ Force today's games only
           oddIDs: MAIN_LINE_ODDIDS,        // ✅ OFFICIAL: Main lines only
           includeOpposingOddIDs: true,     // ✅ OFFICIAL: Auto-include opposing sides
           limit: fetchLimit,
@@ -64,6 +79,8 @@ export async function GET() {
           leagueID: 'NHL',
           live: true,                      // ✅ OFFICIAL: Only live/in-progress games
           finalized: false,                // ✅ OFFICIAL: Exclude finished games
+          startsAfter: startOfToday.toISOString(), // ✅ Force today's games only
+          startsBefore: endOfToday.toISOString(),  // ✅ Force today's games only
           oddIDs: MAIN_LINE_ODDIDS,        // ✅ OFFICIAL: Main lines only
           includeOpposingOddIDs: true,     // ✅ OFFICIAL: Auto-include opposing sides
           limit: fetchLimit,
@@ -113,13 +130,13 @@ export async function GET() {
       // Live games MUST have started within the last 4 hours
       // This catches any SDK errors or historical data leakage
       const fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000);
-      const now = new Date();
+      const nowForFilter = new Date();
       
       games = games.filter(game => {
         const gameTime = new Date(game.startTime);
         
         // Game must have started (not upcoming)
-        if (gameTime > now) {
+        if (gameTime > nowForFilter) {
           return false;
         }
         

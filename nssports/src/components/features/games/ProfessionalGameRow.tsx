@@ -249,7 +249,7 @@ export function ProfessionalGameRow({
               )}
             </div>
 
-            {/* Teams Column */}
+            {/* Teams Column with Live Scores */}
             <div className="space-y-1 min-w-0">
               {/* Away Team */}
               <div className="flex items-center gap-1 lg:gap-2 xl:gap-3 min-w-0">
@@ -262,7 +262,14 @@ export function ProfessionalGameRow({
                 <span className="font-medium text-foreground text-sm lg:text-base truncate">
                   {game.awayTeam.name}
                 </span>
-                {game.awayTeam.record && (
+                {/* Live Score */}
+                {game.awayScore !== undefined && game.awayScore !== null && (
+                  <span className="text-sm lg:text-base font-bold text-foreground ml-auto shrink-0">
+                    {game.awayScore}
+                  </span>
+                )}
+                {/* Record (only show if no live score) */}
+                {(game.awayScore === undefined || game.awayScore === null) && game.awayTeam.record && (
                   <span className="text-xs text-muted-foreground ml-auto shrink-0">
                     {game.awayTeam.record}
                   </span>
@@ -279,12 +286,31 @@ export function ProfessionalGameRow({
                 <span className="font-medium text-foreground text-sm lg:text-base truncate">
                   {game.homeTeam.name}
                 </span>
-                {game.homeTeam.record && (
+                {/* Live Score */}
+                {game.homeScore !== undefined && game.homeScore !== null && (
+                  <span className="text-sm lg:text-base font-bold text-foreground ml-auto shrink-0">
+                    {game.homeScore}
+                  </span>
+                )}
+                {/* Record (only show if no live score) */}
+                {(game.homeScore === undefined || game.homeScore === null) && game.homeTeam.record && (
                   <span className="text-xs text-muted-foreground ml-auto shrink-0">
                     {game.homeTeam.record}
                   </span>
                 )}
               </div>
+              {/* Live Game Status - Period and Time Remaining */}
+              {(game.period || game.timeRemaining) && (
+                <div className="flex items-center gap-2 text-[10px] lg:text-xs text-accent font-semibold">
+                  {game.period && <span className="uppercase">{game.period}</span>}
+                  {game.timeRemaining && (
+                    <>
+                      {game.period && <span>•</span>}
+                      <span>{game.timeRemaining}</span>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Spread Column */}

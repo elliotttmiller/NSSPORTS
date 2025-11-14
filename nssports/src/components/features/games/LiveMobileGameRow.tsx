@@ -239,8 +239,34 @@ export const LiveMobileGameRow = memo(({ game }: Props) => {
         {/* Time Header */}
         <div className="flex justify-between items-center mb-2">
           <div className="text-xs text-muted-foreground">{game.leagueId.toUpperCase()}</div>
-          <div className="text-xs text-muted-foreground font-medium">
-            {timeString}
+          
+          {/* Live Score and Clock (or game time if not live) */}
+          <div className="flex items-center gap-2">
+            {/* Show live score and clock if game has live data */}
+            {(game.period || game.timeRemaining || 
+              (typeof game.awayScore === 'number' && typeof game.homeScore === 'number')) ? (
+              <div className="flex items-center gap-2">
+                {/* Live Score - show if both scores are numbers (including 0) */}
+                {typeof game.awayScore === 'number' && typeof game.homeScore === 'number' && (
+                  <span className="text-xs font-bold text-foreground">
+                    {game.awayScore} - {game.homeScore}
+                  </span>
+                )}
+                {/* Period and Clock */}
+                {(game.period || game.timeRemaining) && (
+                  <div className="flex items-center gap-1 text-[10px] text-accent font-semibold">
+                    {game.period && <span className="uppercase">{game.period}</span>}
+                    {game.period && game.timeRemaining && <span>•</span>}
+                    {game.timeRemaining && <span>{game.timeRemaining}</span>}
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* Show game time if not live */
+              <div className="text-xs text-muted-foreground font-medium">
+                {timeString}
+              </div>
+            )}
           </div>
         </div>
 
