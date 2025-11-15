@@ -1,0 +1,59 @@
+# NSSPORTS Settlement System - Systemd Service
+# ────────────────────────────────────────────────────────────────
+# Production systemd service for automated bet settlement
+# 
+# Installation:
+#   1. Copy this file to /etc/systemd/system/nssports-settlement.service
+#   2. Update User, Group, WorkingDirectory, and Environment paths
+#   3. Run: sudo systemctl daemon-reload
+#   4. Run: sudo systemctl enable nssports-settlement
+#   5. Run: sudo systemctl start nssports-settlement
+# 
+# Management:
+#   sudo systemctl status nssports-settlement
+#   sudo systemctl restart nssports-settlement
+#   sudo systemctl stop nssports-settlement
+#   sudo journalctl -u nssports-settlement -f  # View logs
+
+[Unit]
+Description=NSSPORTS Automated Bet Settlement System
+After=network.target redis.service postgresql.service
+Wants=redis.service postgresql.service
+
+[Service]
+Type=simple
+User=nssports
+Group=nssports
+WorkingDirectory=/var/www/nssports/nssports
+
+# Environment variables (or use EnvironmentFile)
+Environment=NODE_ENV=production
+Environment=SETTLEMENT_WORKER_CONCURRENCY=1
+# EnvironmentFile=/etc/nssports/.env
+
+# Start the settlement system
+ExecStart=/usr/bin/npm run settlement:system
+
+# Restart configuration
+Restart=always
+RestartSec=10
+StartLimitInterval=0
+
+# Resource limits
+MemoryLimit=512M
+CPUQuota=50%
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=nssports-settlement
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/www/nssports/nssports/logs
+
+[Install]
+WantedBy=multi-user.target

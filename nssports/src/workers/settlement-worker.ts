@@ -52,10 +52,10 @@ async function processSettlementJob(job: Job<SettlementJobData>) {
       case SettlementJobType.SYNC_GAMES: {
         logger.info(`[Worker ${WORKER_ID}] Syncing finished games...`);
         
-        const syncedCount = await syncFinishedGames();
+        const syncResult = await syncFinishedGames();
         
-        logger.info(`[Worker ${WORKER_ID}] ✅ Synced ${syncedCount} games`);
-        return { syncedCount };
+        logger.info(`[Worker ${WORKER_ID}] ✅ Synced ${syncResult.gamesUpdated} games`);
+        return syncResult;
       }
 
       case SettlementJobType.SETTLE_BETS: {
@@ -64,14 +64,14 @@ async function processSettlementJob(job: Job<SettlementJobData>) {
         
         // First sync games to ensure we have latest scores
         // (only syncs games that aren't already marked as finished)
-        const syncedCount = await syncFinishedGames();
-        logger.info(`[Worker ${WORKER_ID}] Synced ${syncedCount} games`);
+        const syncResult = await syncFinishedGames();
+        logger.info(`[Worker ${WORKER_ID}] Synced ${syncResult.gamesUpdated} games`);
         
         // Then settle all finished bets
         const result = await settleAllFinishedGames();
         
         logger.info(`[Worker ${WORKER_ID}] ✅ Settled ${result.betsSettled} bets`);
-        return { syncedCount, settledCount: result.betsSettled };
+        return { syncResult, settledCount: result.betsSettled };
       }
 
       case SettlementJobType.SETTLE_SINGLE_BET: {

@@ -43,6 +43,7 @@
     "cache:clear": "tsx scripts/clear-cache.ts",
     "settle-bets": "tsx scripts/settlement/settle-bets.ts",
     "settle-bets:dry-run": "tsx scripts/settlement/settle-bets.ts --dry-run",
+    "settlement:system": "tsx scripts/start-settlement-system.ts",
     "settlement:start": "tsx scripts/start-settlement.ts",
     "settlement:init": "tsx src/scripts/init-settlement-scheduler.ts",
     "settlement:worker": "tsx src/workers/settlement-worker.ts",
