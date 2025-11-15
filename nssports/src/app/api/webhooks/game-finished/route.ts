@@ -16,7 +16,6 @@
  */
 
 import { NextResponse } from 'next/server';
-import { addSettleBetsJob } from '@/lib/queues/settlement';
 import { logger } from '@/lib/logger';
 import { prisma } from '@/lib/prisma';
 
@@ -99,14 +98,10 @@ export async function POST(req: Request) {
       awayScore,
     });
     
-    // Trigger IMMEDIATE high-priority settlement
-    await addSettleBetsJob(
-      {},
-      {
-        priority: 1, // Highest priority (process immediately)
-        jobId: `webhook-settlement-${data.eventID}-${Date.now()}`,
-      }
-    );
+    // Trigger IMMEDIATE high-priority settlement for this specific game
+    const { getSettlementQueue } = await import('@/services/settlement-queue.service');
+    const queue = getSettlementQueue();
+    await queue.addSettleGameJob(data.eventID, 1); // Highest priority
     
     logger.info('[Webhook] ✅ Triggered immediate settlement for game', {
       eventId: data.eventID,

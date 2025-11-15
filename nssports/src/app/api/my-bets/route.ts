@@ -553,8 +553,9 @@ export async function GET() {
         }
       }
       
-      // Compute actual result
-      const actualResult = computeActualResult({ ...b, playerProp, gameProp }, b.game, playerStatsMap, periodScoresMap);
+      // Use stored actualResult if available, otherwise compute it dynamically
+      // This ensures we show the result even if game data changes later
+      const actualResult = b.actualResult || computeActualResult({ ...b, playerProp, gameProp }, b.game, playerStatsMap, periodScoresMap);
       
       // Debug logging for specific bet
       if (b.id === 'cmhwon9de018nv88okn10sfjh') {
@@ -601,8 +602,8 @@ export async function GET() {
               // Ensure player prop and game prop metadata is preserved
               playerProp: leg.playerProp,
               gameProp: leg.gameProp,
-              // Add actual result for each leg (pass parent bet status)
-              actualResult: computeActualResult(leg, leg.game, playerStatsMap, periodScoresMap, b.status),
+              // Use stored actualResult if available, otherwise compute dynamically
+              actualResult: leg.actualResult || computeActualResult(leg, leg.game, playerStatsMap, periodScoresMap, b.status),
             }))
           : b.betType === 'parlay' ? b.legs : null, // Keep parlay legs, null out single bet metadata
       };

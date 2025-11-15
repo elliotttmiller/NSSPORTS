@@ -3,13 +3,13 @@
  * Initialize Settlement Scheduler
  * ────────────────────────────────────────────────────────────────
  * Sets up recurring settlement jobs in Redis Queue
- * Run this once to schedule automated settlement
+ * Run this once to schedule automated settlement (every 5 minutes)
  * 
  * Usage:
- *   npm run settlement:init
+ *   tsx src/scripts/init-settlement-scheduler.ts
  */
 
-import { initializeSettlementQueue, getSettlementQueue } from '../services/settlement-queue.service';
+import { scheduleSettlementJobs, getQueueStats, closeQueue } from '../lib/queues/settlement';
 import { logger } from '../lib/logger';
 
 async function main() {
@@ -19,35 +19,21 @@ async function main() {
     logger.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     logger.info('');
 
-    // Initialize queue
-    logger.info('⏰ Initializing settlement queue...');
-    await initializeSettlementQueue();
+    // Schedule recurring jobs
+    logger.info('⏰ Scheduling recurring settlement jobs...');
+    await scheduleSettlementJobs();
     
     // Get queue statistics
     logger.info('');
     logger.info('📊 Queue Statistics:');
-    const queue = getSettlementQueue();
-    const stats = await queue.getStats();
-    const repeatableJobs = await queue.getRepeatableJobs();
-    
-    logger.info(`  • Waiting: ${stats.waiting}`);
-    logger.info(`  • Active: ${stats.active}`);
-    logger.info(`  • Completed: ${stats.completed}`);
-    logger.info(`  • Failed: ${stats.failed}`);
-    logger.info(`  • Delayed: ${stats.delayed}`);
-    logger.info(`  • Total: ${stats.total}`);
-    logger.info('');
-    logger.info(`  • Recurring Jobs: ${repeatableJobs.length}`);
-    
-    if (repeatableJobs.length > 0) {
-      logger.info('');
-      logger.info('⏰ Scheduled Jobs:');
-      repeatableJobs.forEach(job => {
-        logger.info(`  • ${job.name}: ${job.pattern}`);
-        if (job.next) {
-          logger.info(`    Next run: ${new Date(job.next).toISOString()}`);
-        }
-      });
+    const stats = await getQueueStats();
+    if (stats) {
+      logger.info(`  • Waiting: ${stats.waiting}`);
+      logger.info(`  • Active: ${stats.active}`);
+      logger.info(`  • Completed: ${stats.completed}`);
+      logger.info(`  • Failed: ${stats.failed}`);
+      logger.info(`  • Delayed: ${stats.delayed}`);
+      logger.info(`  • Total: ${stats.total}`);
     }
     
     logger.info('');
@@ -55,11 +41,11 @@ async function main() {
     logger.info('✅ Settlement scheduler initialized successfully!');
     logger.info('');
     logger.info('Next steps:');
-    logger.info('  1. Start worker: npm run settlement:worker');
-    logger.info('  2. Or use all-in-one: npm run settlement:start');
+    logger.info('  1. Start worker: tsx src/workers/settlement-worker.ts');
+    logger.info('  2. Or use start.py which starts worker automatically');
     logger.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     
-    await queue.close();
+    await closeQueue();
     process.exit(0);
   } catch (error) {
     logger.error('Failed to initialize settlement scheduler:', error);

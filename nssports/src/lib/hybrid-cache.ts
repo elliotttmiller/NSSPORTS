@@ -338,10 +338,11 @@ async function updateEventsCache(events: any[]) {
         logger.info(`[updateEventsCache] 🔥 Game just finished! Triggering immediate settlement: ${event.eventID}`);
         
         // Import settlement queue dynamically to avoid circular dependencies
-        const { addSettleBetsJob } = await import('./queues/settlement');
+        const { getSettlementQueue } = await import('../services/settlement-queue.service');
         
-        // Queue immediate settlement job (worker processes within seconds)
-        addSettleBetsJob({ dryRun: false })
+        // Queue immediate settlement job for this game (worker processes within seconds)
+        const queue = getSettlementQueue();
+        queue.addSettleGameJob(event.eventID, 1) // Priority 1 (highest)
           .then((job) => {
             logger.info(`[updateEventsCache] ✅ Real-time settlement job queued`, { 
               jobId: job.id,
