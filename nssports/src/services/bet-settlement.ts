@@ -163,16 +163,16 @@ export function gradePlayerPropBet(params: {
   const { selection, line, statType } = params;
 
   // TODO: Integrate with actual player stats API
-  // For now, return push - in production this would be fetched from stats service
+  // If stats unavailable, we cannot grade the bet - throw error to prevent settlement
   if (!playerStats || playerStats[statType] === undefined) {
-    console.warn(`[gradePlayerPropBet] No stats available for ${statType}, marking as push`);
-    return { status: "push", reason: "Stats unavailable" };
+    console.error(`[gradePlayerPropBet] No stats available for ${statType}, cannot grade bet`);
+    throw new Error(`Player stats unavailable for ${statType}`);
   }
 
   const actualValue = playerStats[statType];
 
   // Only push if line is a whole number and stat matches exactly
-  // Decimal lines (9.5, 24.5) cannot push since stats are integers
+  // Decimal lines (9.5, 24.5) CANNOT push since stats are integers
   const isWholeNumberLine = Number.isInteger(line);
   if (isWholeNumberLine && actualValue === line) {
     return { status: "push", reason: `Exactly ${line} ${statType}` };
@@ -520,15 +520,21 @@ export async function settleBet(betId: string): Promise<SettlementResult | null>
         const playerStats = await fetchPlayerStats(bet.gameId, playerPropMetadata.playerId);
         
         if (!playerStats) {
-          console.warn(`[settleBet] Player stats unavailable for player ${playerPropMetadata.playerId} - marking as push`);
+          console.warn(`[settleBet] Player stats unavailable for player ${playerPropMetadata.playerId} - cannot settle yet`);
+          return null; // Don't settle until stats are available
         }
         
-        result = gradePlayerPropBet({
-          selection: bet.selection,
-          line: bet.line || 0,
-          playerId: playerPropMetadata.playerId,
-          statType: playerPropMetadata.statType
-        }, playerStats || undefined);
+        try {
+          result = gradePlayerPropBet({
+            selection: bet.selection,
+            line: bet.line || 0,
+            playerId: playerPropMetadata.playerId,
+            statType: playerPropMetadata.statType
+          }, playerStats);
+        } catch (error) {
+          console.error(`[settleBet] Failed to grade player prop bet ${betId}:`, error);
+          return null; // Can't settle without stats
+        }
         break;
 
       case "game_prop":
@@ -570,24 +576,36 @@ export async function settleBet(betId: string): Promise<SettlementResult | null>
 
       case "parlay":
         // Grade each leg, then determine parlay outcome
-        legResults = await gradeParlayLegs(bet);
-        result = gradeParlayBet(legResults);
+        try {
+          legResults = await gradeParlayLegs(bet);
+          result = gradeParlayBet(legResults);
+        } catch (error) {
+          // If any leg cannot be graded (missing stats), skip settlement for now
+          console.warn(`[settleBet] Cannot settle parlay yet - missing data:`, error);
+          return null;
+        }
         break;
 
       case "teaser":
         // Grade each leg with adjusted lines
-        legResults = await gradeTeaserLegs(bet);
-        const pushRule = (bet.teaserMetadata as { pushRule?: string } | null)?.pushRule || "push";
-        const teaserResult = gradeTeaserBet(
-          legResults,
-          pushRule as "push" | "lose" | "revert",
-          bet.stake,
-          bet.teaserType || ""
-        );
-        result = {
-          status: teaserResult.status,
-          reason: teaserResult.reason
-        };
+        try {
+          legResults = await gradeTeaserLegs(bet);
+          const pushRule = (bet.teaserMetadata as { pushRule?: string } | null)?.pushRule || "push";
+          const teaserResult = gradeTeaserBet(
+            legResults,
+            pushRule as "push" | "lose" | "revert",
+            bet.stake,
+            bet.teaserType || ""
+          );
+          result = {
+            status: teaserResult.status,
+            reason: teaserResult.reason
+          };
+        } catch (error) {
+          // If any leg cannot be graded (missing stats), skip settlement for now
+          console.warn(`[settleBet] Cannot settle teaser yet - missing data:`, error);
+          return null;
+        }
         break;
 
       case "if_bet":
@@ -752,7 +770,8 @@ async function gradeParlayLegs(bet: { legs: unknown }): Promise<LegGradingResult
           const playerStats = await fetchPlayerStats(leg.gameId, leg.playerProp.playerId);
           
           if (!playerStats) {
-            console.warn(`[gradeParlayLegs] Player stats unavailable - marking leg as push`);
+            console.warn(`[gradeParlayLegs] Player stats unavailable - cannot grade this leg yet`);
+            throw new Error(`Player stats unavailable for parlay leg - cannot settle yet`);
           }
           
           legResult = gradePlayerPropBet({
@@ -760,7 +779,7 @@ async function gradeParlayLegs(bet: { legs: unknown }): Promise<LegGradingResult
             line: leg.line ?? 0,
             playerId: leg.playerProp.playerId,
             statType: leg.playerProp.statType
-          }, playerStats || undefined);
+          }, playerStats);
         }
         break;
 
@@ -777,7 +796,8 @@ async function gradeParlayLegs(bet: { legs: unknown }): Promise<LegGradingResult
             periodScoresForLeg = await getPeriodScore(leg.gameId, leg.gameProp.periodID);
             
             if (!periodScoresForLeg) {
-              console.warn(`[gradeParlayLegs] Period ${leg.gameProp.periodID} scores unavailable - marking leg as push`);
+              console.warn(`[gradeParlayLegs] Period ${leg.gameProp.periodID} scores unavailable - cannot grade this leg yet`);
+              throw new Error(`Period scores unavailable for parlay leg - cannot settle yet`);
             }
           }
 

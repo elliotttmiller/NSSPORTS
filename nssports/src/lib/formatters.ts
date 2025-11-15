@@ -18,12 +18,16 @@ export function formatTotalLine(line: number | undefined, type?: "over" | "under
   return `${line}`;
 }
 
-// Calculate potential payout
+// Calculate potential payout (stake + profit)
 export function calculatePayout(stake: number, odds: number): number {
   if (odds > 0) {
-    return stake * (odds / 100);
+    // Positive odds: stake * (1 + odds/100)
+    // e.g., $10 at +130 = $10 * (1 + 1.30) = $23
+    return stake * (1 + odds / 100);
   } else {
-    return stake * (100 / Math.abs(odds));
+    // Negative odds: stake * (1 + 100/|odds|)
+    // e.g., $10 at -150 = $10 * (1 + 100/150) = $16.67
+    return stake * (1 + 100 / Math.abs(odds));
   }
 }
 

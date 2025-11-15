@@ -125,6 +125,7 @@ def run() -> None:
     npm_executable = 'npm.cmd' if os.name == 'nt' else 'npm'
     dev_server: Optional[subprocess.Popen] = None
     ngrok: Optional[subprocess.Popen] = None
+    settlement_worker: Optional[subprocess.Popen] = None
     
     try:
         # Start Next.js development server
@@ -151,33 +152,40 @@ def run() -> None:
         
         time.sleep(2)
         
-        # Start bet settlement scheduler with PM2
-        print_status("Starting bet settlement scheduler with PM2", "info")
+        # Start bet settlement worker with Redis Queue
+        print_status("Starting bet settlement worker (Redis Queue)", "info")
         
-        # Stop any existing PM2 settlement process
-        subprocess.run(
-            ['pm2', 'delete', 'nssports-settlement'],
-            cwd=PROJECT_PATH,
-            shell=True,
-            capture_output=True
-        )
-        
-        # Start settlement scheduler via PM2
-        result = subprocess.run(
-            ['pm2', 'start', 'ecosystem.config.cjs', '--only', 'nssports-settlement'],
+        # First, initialize the scheduler (schedule recurring jobs)
+        init_result = subprocess.run(
+            ['npx', 'tsx', 'src/scripts/init-settlement-scheduler.ts'],
             cwd=PROJECT_PATH,
             shell=True,
             capture_output=True,
             text=True
         )
         
-        if result.returncode == 0:
+        if init_result.returncode == 0:
+            print_status("Settlement scheduler initialized", "success")
+            
+            # Start the worker process
+            settlement_worker = subprocess.Popen(
+                ['npx', 'tsx', 'src/workers/settlement-worker.ts'],
+                cwd=PROJECT_PATH,
+                shell=True,
+                env=os.environ.copy()
+            )
+            
             time.sleep(2)
-            print_status("Settlement scheduler active via PM2 (5min intervals)", "success")
-            print_status("View scheduler logs: pm2 logs nssports-settlement", "info")
+            print_status("Settlement worker active (5min intervals)", "success")
+            print_status("Worker logs: Check terminal output", "info")
         else:
-            print_status("Failed to start PM2 settlement scheduler", "error")
-            print_status("Run manually: pm2 start ecosystem.config.js --only nssports-settlement", "info")
+            print_status("Failed to initialize settlement scheduler", "error")
+            if init_result.stdout:
+                print(f"{Style.DIM}{init_result.stdout}{Style.RESET}")
+            if init_result.stderr:
+                print(f"{Style.RED}{init_result.stderr}{Style.RESET}")
+            print_status("Check Redis connection and try manually:", "info")
+            print_status("tsx src/scripts/init-settlement-scheduler.ts", "info")
         
         # Display connection information
         print()
@@ -185,9 +193,8 @@ def run() -> None:
         print(f"\n{Style.BOLD}{Style.GREEN}  ENVIRONMENT READY{Style.RESET}\n")
         print(f"  {Style.BOLD}Local:{Style.RESET}      {Style.CYAN}http://localhost:{DEV_SERVER_PORT}{Style.RESET}")
         print(f"  {Style.BOLD}Tunnel:{Style.RESET}     {Style.CYAN}https://{NGROK_STATIC_DOMAIN}{Style.RESET}")
-        print(f"  {Style.BOLD}Settlement:{Style.RESET} {Style.GREEN}Active via PM2 (every 5 minutes){Style.RESET}")
-        print(f"  {Style.BOLD}PM2 Status:{Style.RESET} {Style.CYAN}pm2 list{Style.RESET}")
-        print(f"  {Style.BOLD}PM2 Logs:{Style.RESET}   {Style.CYAN}pm2 logs nssports-settlement{Style.RESET}\n")
+        print(f"  {Style.BOLD}Settlement:{Style.RESET} {Style.GREEN}Active via Redis Queue (every 5 minutes){Style.RESET}")
+        print(f"  {Style.BOLD}Redis:{Style.RESET}      {Style.CYAN}Connected{Style.RESET}\n")
         print_separator()
         print(f"\n{Style.DIM}Press Ctrl+C to stop all services{Style.RESET}\n")
         
@@ -199,27 +206,27 @@ def run() -> None:
         print(f"\n\n{Style.YELLOW}Shutdown initiated{Style.RESET}")
         print_separator()
     finally:
-        # Stop PM2 settlement scheduler
-        print_status("Stopping PM2 settlement scheduler", "shutdown")
-        subprocess.run(
-            ['pm2', 'stop', 'nssports-settlement'],
-            cwd=PROJECT_PATH,
-            shell=True,
-            capture_output=True
-        )
-        subprocess.run(
-            ['pm2', 'delete', 'nssports-settlement'],
-            cwd=PROJECT_PATH,
-            shell=True,
-            capture_output=True
-        )
+        # Stop settlement worker
+        if settlement_worker:
+            print_status("Stopping settlement worker", "shutdown")
+            settlement_worker.terminate()
+            try:
+                settlement_worker.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                settlement_worker.kill()
+            print_status("Settlement worker stopped", "success")
         
         if ngrok:
             print_status("Terminating ngrok tunnel", "shutdown")
             ngrok.terminate()
+            time.sleep(1)
+            ngrok.kill()  # Force kill if terminate didn't work
+        
         if dev_server:
             print_status("Stopping development server", "shutdown")
             dev_server.terminate()
+            time.sleep(1)
+            dev_server.kill()  # Force kill if terminate didn't work
         
         print_status("Shutdown complete", "success")
         print()

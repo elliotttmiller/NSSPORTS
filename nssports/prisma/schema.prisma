@@ -102,6 +102,7 @@ model Game {
   awayScore     Int?
   period        String?
   timeRemaining String?
+  finishedAt    DateTime?    // NEW: Track when game finished for settlement analytics
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
   bets          Bet[]
@@ -118,6 +119,7 @@ model Game {
   @@index([leagueId, status, startTime])
   @@index([homeTeamId])
   @@index([awayTeamId])
+  @@index([status, updatedAt]) // NEW: Fast lookup for recently finished games
   @@map("games")
 }
 
@@ -164,6 +166,8 @@ model Bet {
   @@index([status])
   @@index([betType])
   @@index([userId, status, placedAt])
+  @@index([status, gameId]) // NEW: Fast lookup for pending bets on finished games
+  @@index([status, settledAt]) // NEW: Fast lookup for settlement analytics
   @@map("bets")
 }
 

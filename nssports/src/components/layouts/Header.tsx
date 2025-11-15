@@ -224,6 +224,7 @@ export function Header() {
             alt="NorthStar Sports"
             width={32}
             height={32}
+            style={{ width: 'auto', height: 'auto' }}
             className="filter drop-shadow-sm hover:drop-shadow-md transition-transform hover:scale-105 duration-200"
             priority
           />
@@ -242,6 +243,7 @@ export function Header() {
             alt="NorthStar Sports"
             width={32}
             height={32}
+            style={{ width: 'auto', height: 'auto' }}
             className="filter drop-shadow-sm hover:drop-shadow-md transition-transform hover:scale-105 duration-200"
             priority
           />

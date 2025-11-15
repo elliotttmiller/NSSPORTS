@@ -48,6 +48,10 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'nssportsclub.ngrok.app',
       },
+      {
+        protocol: 'https',
+        hostname: 'example.com',
+      },
     ],
     formats: ['image/avif', 'image/webp'],
   },

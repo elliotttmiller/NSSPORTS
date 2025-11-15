@@ -43,6 +43,7 @@ import {
   getPlayerProps as sdkGetPlayerProps,
   getGameProps as sdkGetGameProps,
 } from './sportsgameodds-sdk';
+import { cacheGet, cacheSet, CachePrefix, CacheTTL } from './cache';
 
 // Cache TTL in seconds - optimized for development/testing
 /**
@@ -149,15 +150,31 @@ export async function getEventsWithCache(options: {
   startsAfter?: string;
   startsBefore?: string;
 }) {
-  // 1. Check cache first for performance (with smart TTL)
+  // 0. Try Redis cache first (fastest - sub-millisecond)
+  const redisKey = `${CachePrefix.LIVE_GAMES}${options.leagueID || 'all'}:${options.live ? 'live' : 'upcoming'}`;
+  
+  try {
+    const redisData = await cacheGet<any[]>(redisKey);
+    if (redisData && redisData.length > 0) {
+      logger.debug('[Cache] ✅ Redis hit:', { key: redisKey, count: redisData.length });
+      return { data: redisData, source: 'redis' as const };
+    }
+  } catch (redisError) {
+    logger.warn('[Cache] Redis check failed, falling back to Prisma', { error: redisError });
+  }
+  
+  // 1. Check Prisma cache (slower than Redis, but still fast)
   try {
     const cachedEvents = await getEventsFromCache(options);
     if (cachedEvents.length > 0) {
-      // Silent cache hits - only log on cache miss for debugging
-      return { data: cachedEvents, source: 'cache' as const };
+      // Cache hit in Prisma - also store in Redis for next request
+      const ttl = options.live ? CacheTTL.LIVE_GAMES : CacheTTL.UPCOMING_GAMES;
+      await cacheSet(redisKey, cachedEvents, ttl);
+      
+      return { data: cachedEvents, source: 'prisma-cache' as const };
     }
   } catch (cacheError) {
-    logger.warn('Cache check failed, will fetch from SDK', { error: cacheError });
+    logger.warn('Prisma cache check failed, will fetch from SDK', { error: cacheError });
     // Continue to SDK fetch - cache errors shouldn't break the flow
   }
   
@@ -168,9 +185,13 @@ export async function getEventsWithCache(options: {
     includeConsensus: options.includeConsensus !== false, // Default to true
   });
   
-  // 3. Update Prisma cache for next request (async, non-blocking)
-  updateEventsCache(events).catch(error => {
-    logger.error('Failed to update events cache', error);
+  // 3. Update both Redis and Prisma cache for next request (async, non-blocking)
+  const ttl = options.live ? CacheTTL.LIVE_GAMES : CacheTTL.UPCOMING_GAMES;
+  Promise.all([
+    cacheSet(redisKey, events, ttl),
+    updateEventsCache(events),
+  ]).catch(error => {
+    logger.error('Failed to update caches', error);
     // Don't throw - cache update failure shouldn't break the response
   });
   
@@ -279,6 +300,16 @@ async function updateEventsCache(events: any[]) {
         logger.info(`[updateEventsCache] Storing final scores for ${event.eventID}: ${awayTeam.names.short} ${awayScore} @ ${homeTeam.names.short} ${homeScore}`);
       }
       
+      // Check if game just finished (was not finished before, now is finished)
+      const existingGame = await prisma.game.findUnique({
+        where: { id: event.eventID },
+        select: { status: true, homeScore: true, awayScore: true }
+      });
+      
+      const gameJustFinished = existingGame && 
+                               existingGame.status !== 'finished' && 
+                               gameStatus === 'finished';
+      
       // Upsert game
       await prisma.game.upsert({
         where: { id: event.eventID },
@@ -300,6 +331,31 @@ async function updateEventsCache(events: any[]) {
           awayScore,
         },
       });
+      
+      // 🔥 REAL-TIME SETTLEMENT TRIGGER
+      // If game just finished, immediately queue settlement job
+      if (gameJustFinished && homeScore !== null && awayScore !== null) {
+        logger.info(`[updateEventsCache] 🔥 Game just finished! Triggering immediate settlement: ${event.eventID}`);
+        
+        // Import settlement queue dynamically to avoid circular dependencies
+        const { addSettleBetsJob } = await import('./queues/settlement');
+        
+        // Queue immediate settlement job (worker processes within seconds)
+        addSettleBetsJob({ dryRun: false })
+          .then((job) => {
+            logger.info(`[updateEventsCache] ✅ Real-time settlement job queued`, { 
+              jobId: job.id,
+              gameId: event.eventID,
+              score: `${awayScore}-${homeScore}`
+            });
+          })
+          .catch((error) => {
+            logger.error(`[updateEventsCache] ❌ Failed to queue settlement`, { 
+              error,
+              gameId: event.eventID 
+            });
+          });
+      }
       
       // Update odds if available
       if (event.odds) {

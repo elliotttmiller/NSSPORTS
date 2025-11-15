@@ -60,8 +60,8 @@ function AuthenticatedHomePage({ session }: { session: Session }) {
         headers: {
           'Cache-Control': 'no-cache',
         },
-        // Timeout must be longer than API's 25s timeout - 30s for background, 35s for initial
-        signal: AbortSignal.timeout(isBackgroundUpdate ? 30000 : 35000),
+        // Timeout: 45s for initial load (hybrid cache can be slow), 30s for background updates
+        signal: AbortSignal.timeout(isBackgroundUpdate ? 30000 : 45000),
       });
       if (!response.ok) {
         throw new Error(`Failed to fetch: ${response.status}`);
