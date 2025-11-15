@@ -12,9 +12,12 @@
  * 5. Moves bets to history
  */
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { prisma } from "@/lib/prisma";
 import { fetchPlayerStats } from "@/lib/player-stats";
 import { getPeriodScore } from "@/lib/period-scores";
+import type { Prisma } from "@prisma/client";
 
 // ============================================================================
 // TYPES & INTERFACES
@@ -410,18 +413,24 @@ export function gradeTeaserBet(
  */
 export async function settleBet(betId: string): Promise<SettlementResult | null> {
   try {
-    // Fetch bet with all related data
+    // Fetch bet with all related data (including teams for readable actualResult)
     const bet = await prisma.bet.findUnique({
-      where: { id: betId },
-      include: {
-        game: true,
-        user: {
-          include: {
-            account: true
+        where: { id: betId },
+        include: {
+          // include teams so we can create a readable actualResult string
+          game: {
+            include: {
+              homeTeam: true,
+              awayTeam: true,
+            }
+          },
+          user: {
+            include: {
+              account: true
+            }
           }
         }
-      }
-    });
+      });
 
     if (!bet) {
       console.error(`[settleBet] Bet ${betId} not found`);
@@ -663,14 +672,149 @@ export async function settleBet(betId: string): Promise<SettlementResult | null>
       // lost = 0 payout (already initialized to 0)
     }
 
-    // Update bet and account in transaction
+    // Build a human-friendly actualResult string for persistence
+    let actualResultString: string | undefined = undefined;
+    try {
+      const game = bet.game!;
+      const homeScore = game.homeScore!;
+      const awayScore = game.awayScore!;
+      const homeName = game.homeTeam?.shortName || game.homeTeam?.name || 'Home';
+      const awayName = game.awayTeam?.shortName || game.awayTeam?.name || 'Away';
+
+      switch (bet.betType) {
+        case 'spread': {
+          const spreadDiff = bet.selection === 'home' ? homeScore - awayScore : awayScore - homeScore;
+          const team = bet.selection === 'home' ? homeName : awayName;
+          if (spreadDiff === 0) actualResultString = `${team} push (${homeScore}-${awayScore})`;
+          else actualResultString = `${team} ${spreadDiff > 0 ? 'won' : 'lost'} by ${Math.abs(spreadDiff)} (${homeScore}-${awayScore})`;
+          break;
+        }
+        case 'moneyline': {
+          const winner = homeScore > awayScore ? 'home' : awayScore > homeScore ? 'away' : 'tie';
+          const pickTeam = bet.selection === 'home' ? homeName : awayName;
+          if (winner === 'tie') actualResultString = `Tie ${homeScore}-${awayScore}`;
+          else actualResultString = `${pickTeam} ${winner === bet.selection ? 'won' : 'lost'} (${homeScore}-${awayScore})`;
+          break;
+        }
+        case 'total': {
+          const total = homeScore + awayScore;
+          if (typeof bet.line === 'number') {
+            const verdict = total > bet.line ? 'Over' : total < bet.line ? 'Under' : 'Push';
+            actualResultString = `Total: ${total} (${verdict})`;
+          } else {
+            actualResultString = `Total: ${total}`;
+          }
+          break;
+        }
+        case 'player_prop': {
+          try {
+            const metadata = bet.legs ? (typeof bet.legs === 'string' ? JSON.parse(bet.legs) : bet.legs) : null;
+            const playerProp = metadata?.playerProp;
+            if (playerProp?.playerId && playerProp?.statType) {
+              const stats = await fetchPlayerStats(bet.gameId!, playerProp.playerId);
+              if (stats && stats[playerProp.statType] !== undefined) {
+                actualResultString = `${stats[playerProp.statType]} ${playerProp.statType.replace(/_/g, ' ')}`;
+              }
+            }
+          } catch {
+            // ignore - leave undefined
+          }
+          break;
+        }
+        case 'game_prop': {
+          try {
+            const metadata = bet.legs ? (typeof bet.legs === 'string' ? JSON.parse(bet.legs) : bet.legs) : null;
+            const gameProp = metadata?.gameProp;
+            if (gameProp?.periodID) {
+              const periodScore = await getPeriodScore(bet.gameId!, gameProp.periodID);
+              if (periodScore) {
+                actualResultString = `${gameProp.periodID.toUpperCase()}: ${awayName} ${periodScore.away} - ${periodScore.home} ${homeName}`;
+              }
+            } else if (gameProp?.description) {
+              const desc = String(gameProp.description).toLowerCase();
+              if (desc.includes('total')) actualResultString = `Final Total: ${homeScore + awayScore} points`;
+              else if (desc.includes('home')) actualResultString = `${homeName} scored ${homeScore} points`;
+              else if (desc.includes('away')) actualResultString = `${awayName} scored ${awayScore} points`;
+            }
+          } catch {
+            // ignore
+          }
+          break;
+        }
+        case 'parlay': {
+          if (legResults && Array.isArray(legResults)) {
+            const won = legResults.filter(l => l.status === 'won').length;
+            actualResultString = `Parlay ${result.status} - ${won}/${legResults.length} legs won`;
+          } else {
+            actualResultString = `Parlay ${result.status}`;
+          }
+          break;
+        }
+        case 'teaser': {
+          if (legResults && Array.isArray(legResults)) {
+            const won = legResults.filter(l => l.status === 'won').length;
+            actualResultString = `Teaser ${result.status} - ${won}/${legResults.length} legs won`;
+          } else {
+            actualResultString = `Teaser ${result.status}`;
+          }
+          break;
+        }
+        case 'if_bet':
+        case 'reverse':
+        case 'bet_it_all':
+        case 'round_robin': {
+          // Best-effort short summary
+          actualResultString = `${bet.betType} ${result.status}`;
+          break;
+        }
+        default: {
+          actualResultString = result.reason || `${result.status}`;
+        }
+      }
+    } catch {
+      // swallow - we'll persist undefined if we can't compute
+      actualResultString = undefined;
+    }
+
+    // For parlay/teaser, persist per-leg actual results into legs JSON if available
+    let updatedLegs: unknown | undefined = undefined;
+    if (Array.isArray(legResults) && bet.legs) {
+      try {
+        const legsObj = typeof bet.legs === 'string' ? JSON.parse(bet.legs) : JSON.parse(JSON.stringify(bet.legs));
+        if (Array.isArray(legsObj)) {
+          const byId = new Map<string, LegGradingResult>();
+          for (const lr of legResults) byId.set(lr.legId, lr);
+          const mapped = legsObj.map((lg: any) => {
+            const res = byId.get(lg.id || lg.legId || lg._id || '');
+            return {
+              ...lg,
+              actualResult: res ? `${res.status}${res.reason ? ` - ${res.reason}` : ''}` : undefined,
+            };
+          });
+          updatedLegs = mapped;
+        }
+      } catch {
+        // ignore
+        updatedLegs = undefined;
+      }
+    }
+    
+    // Build update payload as `any` to avoid transient Prisma client type mismatches
+    // (schema migration / prisma generate may be required to make `actualResult` appear in types)
+    const betUpdateData: any = {
+      status: result.status,
+      settledAt: new Date(),
+      ...(updatedLegs ? { legs: updatedLegs as Prisma.JsonValue } : {}),
+    };
+    if (actualResultString !== undefined) betUpdateData.actualResult = actualResultString;
+
+    // Update bet and account in transaction (persist actualResult)
     await prisma.$transaction([
-      // Update bet status
+      // Update bet status and persist the actualResult
       prisma.bet.update({
         where: { id: betId },
         data: {
-          status: result.status,
-          settledAt: new Date()
+          ...(betUpdateData as any),
         }
       }),
       // Update account balance

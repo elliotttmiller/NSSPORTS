@@ -154,6 +154,7 @@ model Bet {
   status          String    @default("pending")
   placedAt        DateTime  @default(now())
   settledAt       DateTime?
+  actualResult    String?   // Persist human-friendly actual result at settlement time
   game            Game?     @relation(fields: [gameId], references: [id], onDelete: Cascade)
   user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   legs            Json?

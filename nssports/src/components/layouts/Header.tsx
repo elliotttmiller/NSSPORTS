@@ -224,8 +224,7 @@ export function Header() {
             alt="NorthStar Sports"
             width={32}
             height={32}
-            style={{ width: 'auto', height: 'auto' }}
-            className="filter drop-shadow-sm hover:drop-shadow-md transition-transform hover:scale-105 duration-200"
+            className="w-8 h-8 filter drop-shadow-sm hover:drop-shadow-md transition-transform hover:scale-105 duration-200"
             priority
           />
           <h1 className="text-xl font-bold text-foreground">NSSPORTSCLUB</h1>
@@ -243,8 +242,7 @@ export function Header() {
             alt="NorthStar Sports"
             width={32}
             height={32}
-            style={{ width: 'auto', height: 'auto' }}
-            className="filter drop-shadow-sm hover:drop-shadow-md transition-transform hover:scale-105 duration-200"
+            className="w-8 h-8 filter drop-shadow-sm hover:drop-shadow-md transition-transform hover:scale-105 duration-200"
             priority
           />
           <h1 className="text-lg font-bold text-foreground tracking-tight">

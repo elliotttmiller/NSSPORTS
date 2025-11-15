@@ -4,7 +4,7 @@
  * ═══════════════════════════════════════════════════════════════
  * 
  * Tests bet settlement on 4 active bets for user 'slime':
- * 1. Player Prop - De'Andre Hunter OVER 2.5 assists
+ * 1. Player Prop - Kentavious Caldwell-Pope OVER 2.5 assists
  * 2. Moneyline - CLE WIN
  * 3. Total - UNDER 238
  * 4. Spread - CLE -10.5
@@ -22,12 +22,12 @@ import type { PlayerGameStats } from '../../src/lib/player-stats';
 
 const prisma = new PrismaClient();
 
-// Mock player stats for De'Andre Hunter
+// Mock player stats for Kentavious Caldwell-Pope
 const MOCK_PLAYER_STATS: Record<string, PlayerGameStats> = {
-  'DEANDRE_HUNTER_1_NBA': {
-    points: 18,
-    rebounds: 4,
-    assists: 3,  // Over 2.5 - BET WINS
+  'KENTAVIOUS_CALDWELLPOPE_1_NBA': {
+    points: 15,
+    rebounds: 3,
+    assists: 4,  // Over 2.5 - BET WINS
     steals: 1,
     blocks: 0,
     turnovers: 2,
@@ -119,7 +119,7 @@ async function main() {
     // - CLE wins (moneyline)
     // - CLE covers -10.5 spread
     // - Total goes UNDER 238
-    // - De'Andre Hunter gets OVER 2.5 assists (3 assists)
+    // - Kentavious Caldwell-Pope gets OVER 2.5 assists (4 assists)
     
     const finalAwayScore = 105; // Memphis
     const finalHomeScore = 118; // Cleveland (wins by 13, covers -10.5)
@@ -186,20 +186,20 @@ async function main() {
           }
         }
       } else if (bet.betType === 'player_prop') {
-        // Simulate De'Andre Hunter with 3 assists (over 2.5)
-        const hunterAssists = 3;
+        // Simulate Kentavious Caldwell-Pope with 4 assists (over 2.5)
+        const kcpAssists = 4;
         const line = bet.line || 0;
         if (bet.selection === 'over') {
-          if (hunterAssists > line) {
-            expectedOutcome = `✅ WIN (Hunter ${hunterAssists} assists over ${line})`;
+          if (kcpAssists > line) {
+            expectedOutcome = `✅ WIN (KCP ${kcpAssists} assists over ${line})`;
           } else {
-            expectedOutcome = `❌ LOSS (Hunter ${hunterAssists} assists under ${line})`;
+            expectedOutcome = `❌ LOSS (KCP ${kcpAssists} assists under ${line})`;
           }
-        } else {
-          if (hunterAssists < line) {
-            expectedOutcome = `✅ WIN (Hunter ${hunterAssists} assists under ${line})`;
+        } else if (bet.selection === 'under') {
+          if (kcpAssists < line) {
+            expectedOutcome = `✅ WIN (KCP ${kcpAssists} assists under ${line})`;
           } else {
-            expectedOutcome = `❌ LOSS (Hunter ${hunterAssists} assists over ${line})`;
+            expectedOutcome = `❌ LOSS (KCP ${kcpAssists} assists over ${line})`;
           }
         }
       }
