@@ -11,7 +11,6 @@ import { BetsResponseSchema, BetRequestSchema, ParlayBetRequestSchema, SingleBet
 import { getAuthUser } from "@/lib/authHelpers";
 import { batchFetchPlayerStats, type PlayerGameStats } from "@/lib/player-stats";
 import { getPeriodScore } from "@/lib/period-scores";
-import { writeFileSync } from 'fs';
 
 // Minimal leg shape stored in Bet.legs JSON
 type ParlayLeg = {
@@ -75,61 +74,22 @@ function toLegArray(input: unknown): ParlayLeg[] | null {
           periodID: typeof (obj.gameProp as any).periodID === 'string' ? (obj.gameProp as any).periodID : undefined,
         } : undefined,
       }));
-    console.log('[toLegArray] Input:', input);
-    console.log('[toLegArray] Parsed:', parsed);
+    // Parsing succeeded; return parsed legs
     return parsed;
   } catch (e) {
-    console.error('[toLegArray] Parse error:', e);
+    // Parsing failed - return null to indicate no legs
     return null;
   }
 }
 
 export async function GET() {
-  // ...existing code...
-  const userId = await getAuthUser();
-  const bets = await prisma.bet.findMany({
-    where: { userId },
-    orderBy: { placedAt: "desc" },
-    select: {
-      id: true,
-      betType: true,
-      selection: true,
-      odds: true,
-      line: true,
-      stake: true,
-      potentialPayout: true,
-      status: true,
-      placedAt: true,
-      settledAt: true,
-      actualResult: true, // Explicitly select actualResult
-      legs: true,
-      teaserType: true,
-      teaserMetadata: true,
-      game: {
-        include: {
-          homeTeam: true,
-          awayTeam: true,
-          league: true,
-        },
-      },
-    },
-  });
-  // Write bet IDs and actualResult to a log file for easier access
-  const prismaDebugLines = bets.map((bet: any, idx: number) =>
-    `[ACTUAL_RESULT_PRISMA] Bet ${idx}: id=${bet.id}, actualResult=${bet.actualResult}`
-  ).join('\n');
-  try {
-    writeFileSync('actualResultPrisma.log', prismaDebugLines, { flag: 'w' });
-  } catch (err) {
-    logger.error('Failed to write actualResultPrisma log:', err);
-  }
   return withErrorHandling(async () => {
     logger.info('Fetching bet history');
-    
+
     const userId = await getAuthUser();
-    
+
     // Fetch bets for the authenticated user
-  const bets = await prisma.bet.findMany({
+    const bets = await prisma.bet.findMany({
     where: { userId },
     orderBy: { placedAt: "desc" },
     select: {
@@ -156,15 +116,6 @@ export async function GET() {
       },
     },
   });
-  // Write bet IDs and actualResult to a log file for easier access
-  const prismaDebugLines = bets.map((bet: any, idx: number) =>
-    `[ACTUAL_RESULT_PRISMA] Bet ${idx}: id=${bet.id}, actualResult=${bet.actualResult}`
-  ).join('\n');
-  try {
-    writeFileSync('actualResultPrisma.log', prismaDebugLines, { flag: 'w' });
-  } catch (err) {
-    logger.error('Failed to write actualResultPrisma log:', err);
-  }
     
     logger.debug('Bets fetched', { count: bets.length });
     
@@ -620,24 +571,7 @@ export async function GET() {
       // This ensures we show the result even if game data changes later
       const actualResult = b.actualResult || computeActualResult({ ...b, playerProp, gameProp }, b.game, playerStatsMap, periodScoresMap);
       
-      // Debug logging for specific bet
-      if (b.id === 'cmhwon9de018nv88okn10sfjh') {
-        logger.info('[DEBUG] Computing result for player prop bet:', {
-          betId: b.id,
-          betType: b.betType,
-          status: b.status,
-          gameId: b.game?.id,
-          playerProp: playerProp ? {
-            playerId: playerProp.playerId,
-            statType: playerProp.statType,
-            playerName: playerProp.playerName,
-          } : null,
-          statsMapSize: playerStatsMap.size,
-          statsKey: playerProp?.playerId ? `${b.game?.id}:${playerProp.playerId}` : null,
-          hasStats: playerProp?.playerId ? playerStatsMap.has(`${b.game?.id}:${playerProp.playerId}`) : false,
-          actualResult,
-        });
-      }
+      // end of per-bet processing
       
       return {
         ...(b as Record<string, unknown>),
@@ -673,16 +607,7 @@ export async function GET() {
     });
     
     logger.info('Bet history fetched successfully', { count: serialized.length });
-    // Debug: Write actualResult for each bet to a separate file
-    const debugLines = serialized.map((bet: any, idx: number) =>
-      `[ACTUAL_RESULT_DEBUG] Bet ${idx}: id=${bet.id}, status=${bet.status}, actualResult=${bet.actualResult}`
-    ).join('\n');
-    try {
-      writeFileSync('actualResultDebug.log', debugLines, { flag: 'w' });
-    } catch (err) {
-      logger.error('Failed to write actualResult debug log:', err);
-    }
-    
+    // finished serializing bets
     // Validate response shape; on failure, try to recover gracefully
     try {
       const safe = BetsResponseSchema.parse(serialized);

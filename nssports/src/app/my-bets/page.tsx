@@ -10,10 +10,7 @@ import { useIsMobile } from "@/hooks";
 
 export default function MyBetsPage() {
   const { placedBets, loading, refreshBetHistory } = useBetHistory();
-  // TEMP DEBUG: Log placedBets to inspect actualResult presence
-  if (typeof window !== 'undefined') {
-    console.log('[DEBUG] placedBets:', placedBets);
-  }
+  // production: no temporary debug logging here
     const [showDebug, setShowDebug] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const isMobile = useIsMobile();
@@ -25,7 +22,6 @@ export default function MyBetsPage() {
   }, [placedBets]);
 
   const doRefresh = useCallback(async () => {
-    console.log('[MyBetsPage] 🔄 Manual refresh triggered');
     await refreshBetHistory();
     setLastUpdated(new Date());
   }, [refreshBetHistory]);
@@ -75,20 +71,7 @@ export default function MyBetsPage() {
 
   return (
     <div className="bg-background min-h-screen pb-20">
-        {/* TEMP DEBUG UI: Collapsible placedBets JSON */}
-        <div style={{ background: '#222', color: '#fff', padding: '1rem', marginBottom: '1rem', borderRadius: '8px' }}>
-          <button
-            style={{ marginBottom: '0.5rem', padding: '0.5rem 1rem', background: '#444', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-            onClick={() => setShowDebug((v) => !v)}
-          >
-            {showDebug ? 'Hide' : 'Show'} Bet Data (Debug)
-          </button>
-          {showDebug && (
-            <pre style={{ maxHeight: '400px', overflow: 'auto', background: '#111', color: '#0f0', padding: '1rem', borderRadius: '4px' }}>
-              {JSON.stringify(placedBets, null, 2)}
-            </pre>
-          )}
-        </div>
+            {/* debug UI removed */}
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-12 pb-6 max-w-[1920px] pt-16">
         <div className="space-y-6 lg:space-y-8">
           {/* Active Bets Section */}
