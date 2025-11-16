@@ -39,6 +39,8 @@ interface ExtendedStatus {
   live?: boolean;
   started?: boolean;
   completed?: boolean;
+  finalized?: boolean;
+  ended?: boolean;
   cancelled?: boolean;
   clock?: string;
   currentPeriodID?: string;
@@ -664,7 +666,9 @@ function mapStatus(
   sdkStatus: { 
     live?: boolean; 
     started?: boolean; 
-    completed?: boolean; 
+    completed?: boolean;
+    finalized?: boolean;
+    ended?: boolean;
     cancelled?: boolean;
     clock?: string;
     currentPeriodID?: string;
@@ -716,12 +720,14 @@ function mapStatus(
     }
     
     // SDK says game is completed or cancelled
-    if (sdkStatus.completed === true || sdkStatus.cancelled === true) {
+    if (sdkStatus.completed === true || sdkStatus.finalized === true || sdkStatus.ended === true || sdkStatus.cancelled === true) {
       // Sanity check: Can't be completed if it hasn't started
       if (timeBasedStatus === "upcoming") {
         logger.warn(`SDK reports completed/cancelled but game hasn't started yet. Using time-based status.`, {
           startTime: gameTime.toISOString(),
           sdkCompleted: sdkStatus.completed,
+          sdkFinalized: sdkStatus.finalized,
+          sdkEnded: sdkStatus.ended,
           sdkCancelled: sdkStatus.cancelled,
           timeBasedStatus
         });
