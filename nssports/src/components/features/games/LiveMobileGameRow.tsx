@@ -277,7 +277,7 @@ export const LiveMobileGameRow = memo(({ game }: Props) => {
           <div className="text-xs text-muted-foreground">{game.leagueId.toUpperCase()}</div>
           
           {/* Live Clock/Period (or game time if not live) */}
-          <div className="flex items-center gap-2 -mr-4">
+          <div className="flex items-center gap-2 mr-2">
             {/* Show live clock if game status is live */}
             {game.status === 'live' && (game.period || game.timeRemaining) ? (
               <motion.div 
