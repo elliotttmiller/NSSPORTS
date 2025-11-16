@@ -54,7 +54,7 @@ export default function LivePage() {
   const [_isPageVisible, setIsPageVisible] = useState(true);
   
   // ⭐ Fetch live games directly from /api/games/live endpoint
-  const fetchLiveGames = useCallback(async (isBackgroundUpdate = false) => {
+  const fetchLiveGames = useCallback(async (isBackgroundUpdate = false, forceUpdate = false) => {
     // Use separate loading state for background updates to preserve mobile bet slip state
     if (isBackgroundUpdate) {
       setIsBackgroundRefreshing(true);
@@ -68,11 +68,14 @@ export default function LivePage() {
       if (!isBackgroundUpdate) {
         console.log('[LivePage] Initial fetch from /api/games/live...');
       }
-      const response = await fetch('/api/games/live', {
+  const url = forceUpdate ? `/api/games/live?t=${Date.now()}` : '/api/games/live';
+      const response = await fetch(url, {
         // Mobile: Add cache control to get fresh data without page reload
         headers: {
           'Cache-Control': 'no-cache',
         },
+        // When forcing an update, bypass service worker/CDN caches
+        cache: forceUpdate ? 'no-store' : 'default',
         // Timeout must be longer than API's 25s timeout - 35s to allow for network overhead
         // Background updates: 5 leagues × ~2s each + cache operations can take 10-15s
         signal: AbortSignal.timeout(35000),
@@ -81,13 +84,14 @@ export default function LivePage() {
         throw new Error(`Failed to fetch: ${response.status}`);
       }
       const json = await response.json();
-      const games = Array.isArray(json.data) ? json.data : [];
+  const games = Array.isArray(json.data) ? json.data : [];
       if (!isBackgroundUpdate) {
         console.log(`[LivePage] ✅ Games loaded - ${games.length} live games`);
       }
       
-      // Only update state if games have actually changed (prevents flickering)
+      // Update state. For pull-to-refresh we may force update to bypass deep-equality
       setLiveGamesData(prevGames => {
+        if (forceUpdate) return games;
         if (gamesHaveChanged(prevGames, games)) {
           return games;
         }
@@ -119,9 +123,26 @@ export default function LivePage() {
   }, []);
 
   // Manual refresh handler for pull-to-refresh
+  const fetchAllMatches = useLiveDataStore((state) => state.fetchAllMatches);
   const handleRefresh = useCallback(async () => {
-    await fetchLiveGames(true);
-  }, [fetchLiveGames]);
+    // Use background update flag to avoid full-screen loading but force the data to replace
+    // Also refresh centralized live data store so any selectors subscribing to it (scores/clock) update
+    try {
+      await Promise.all([
+        fetchLiveGames(true, true),
+        fetchAllMatches(true),
+      ]);
+      // Notify other listeners that a manual refresh completed (useful for components that
+      // subscribe to DOM events rather than store selectors)
+      try {
+        window.dispatchEvent(new CustomEvent('app:refreshed', { detail: { source: 'pull-to-refresh' } }));
+      } catch (e) {
+        // ignore in non-browser environments
+      }
+    } catch (err) {
+      console.error('[LivePage] handleRefresh error', err);
+    }
+  }, [fetchLiveGames, fetchAllMatches]);
 
   // Register refresh handler for pull-to-refresh
   useEffect(() => {

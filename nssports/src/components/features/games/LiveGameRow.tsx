@@ -106,6 +106,22 @@ export function LiveGameRow({
     return () => clearTimeout(t);
   }, []);
 
+  // Listen for global manual refresh so components can force a light re-render
+  const [, setRefreshTick] = useState(0);
+  useEffect(() => {
+    const onRefreshed = () => setRefreshTick((v) => v + 1);
+    try {
+      window.addEventListener('app:refreshed', onRefreshed as EventListener);
+    } catch (e) {
+      // ignore on server
+    }
+    return () => {
+      try {
+        window.removeEventListener('app:refreshed', onRefreshed as EventListener);
+      } catch (e) {}
+    };
+  }, []);
+
   // framer-motion variants for mount animation (centralized)
   const mountVariants = {
     initial: { opacity: 0, y: 6 },

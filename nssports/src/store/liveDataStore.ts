@@ -58,7 +58,8 @@ interface LiveDataState {
   streamingStatus: 'disconnected' | 'connecting' | 'connected' | 'error';
   
   // Actions
-  fetchAllMatches: () => Promise<void>;
+  // If `force` is true the fetch will bypass caches (used for manual pull-to-refresh)
+  fetchAllMatches: (force?: boolean) => Promise<void>;
   enableStreaming: () => Promise<void>;
   disableStreaming: () => void;
   clearError: () => void;
@@ -89,7 +90,7 @@ const createLiveDataStore = () => create<LiveDataState>()(
    * Fetch matches from ALL leagues (NBA, NFL, NHL) in parallel
    * Used for home/live/games pages to show all available games
    */
-  fetchAllMatches: async () => {
+  fetchAllMatches: async (force = false) => {
     // Prevent duplicate fetches if already loading
     if (get().status === 'loading') {
       console.log('[LiveDataStore] Already loading, skipping duplicate fetch');
@@ -104,13 +105,16 @@ const createLiveDataStore = () => create<LiveDataState>()(
       // This is more efficient than making separate /api/matches calls
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
-      
-      const response = await fetch('/api/games?page=1&limit=100', {
+
+      const url = force ? `/api/games?page=1&limit=100&t=${Date.now()}` : '/api/games?page=1&limit=100';
+      const response = await fetch(url, {
         headers: {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
         signal: controller.signal,
+        // Ensure we bypass service worker/CDN caches when forcing
+        cache: force ? 'no-store' : 'default',
       });
       
       clearTimeout(timeoutId);
