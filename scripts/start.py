@@ -118,9 +118,34 @@ def run() -> None:
     print_header()
     
     # Cleanup existing processes
+    print_status("Cleaning up existing processes", "info")
     kill_process_on_port(DEV_SERVER_PORT)
     subprocess.run('taskkill /IM ngrok.exe /F', shell=True, capture_output=True)
+    
+    # Kill any existing settlement worker processes (tsx/node processes)
+    # This ensures clean restart of settlement system
+    subprocess.run('taskkill /F /FI "WINDOWTITLE eq start-professional-settlement*" 2>nul', shell=True, capture_output=True)
+    subprocess.run('taskkill /F /FI "IMAGENAME eq node.exe" /FI "WINDOWTITLE eq *settlement*" 2>nul', shell=True, capture_output=True)
+    
+    # Also kill any orphaned settlement-related node processes
+    try:
+        # Get list of node processes and filter for settlement-related ones
+        result = subprocess.run(
+            'wmic process where "name=\'node.exe\' and commandline like \'%settlement%\'" get processid',
+            shell=True,
+            capture_output=True,
+            text=True
+        )
+        if result.stdout:
+            pids = [line.strip() for line in result.stdout.split('\n') if line.strip().isdigit()]
+            for pid in pids:
+                subprocess.run(f'taskkill /F /PID {pid}', shell=True, capture_output=True)
+                print_status(f"Killed orphaned settlement process (PID: {pid})", "info")
+    except Exception:
+        pass  # Silently ignore if no processes found
+    
     time.sleep(1)
+    print_status("Cleanup complete", "success")
     
     npm_executable = 'npm.cmd' if os.name == 'nt' else 'npm'
     dev_server: Optional[subprocess.Popen] = None
@@ -152,40 +177,31 @@ def run() -> None:
         
         time.sleep(2)
         
-        # Start bet settlement worker with Redis Queue
-        print_status("Starting bet settlement worker (Redis Queue)", "info")
+        # Start professional BullMQ settlement system
+        print_status("Starting professional settlement system (BullMQ + Redis)", "info")
         
-        # First, initialize the scheduler (schedule recurring jobs)
-        init_result = subprocess.run(
-            ['npx', 'tsx', 'src/scripts/init-settlement-scheduler.ts'],
+        # Start the professional settlement system (handles both init and worker)
+        settlement_worker = subprocess.Popen(
+            ['npx', 'tsx', 'scripts/start-professional-settlement.ts'],
             cwd=PROJECT_PATH,
             shell=True,
-            capture_output=True,
-            text=True
+            env=os.environ.copy(),
+            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == 'nt' else 0
         )
         
-        if init_result.returncode == 0:
-            print_status("Settlement scheduler initialized", "success")
-            
-            # Start the worker process
-            settlement_worker = subprocess.Popen(
-                ['npx', 'tsx', 'src/workers/settlement-worker.ts'],
-                cwd=PROJECT_PATH,
-                shell=True,
-                env=os.environ.copy()
-            )
-            
-            time.sleep(2)
-            print_status("Settlement worker active (5min intervals)", "success")
-            print_status("Worker logs: Check terminal output", "info")
+        # Give it a moment to initialize and check for errors
+        time.sleep(4)
+        
+        # Check if process is still running
+        if settlement_worker.poll() is None:
+            print_status("Settlement system initialized successfully", "success")
+            print_status("Queue scheduled (every 5 minutes)", "success")
+            print_status("Worker active and processing jobs", "success")
         else:
-            print_status("Failed to initialize settlement scheduler", "error")
-            if init_result.stdout:
-                print(f"{Style.DIM}{init_result.stdout}{Style.RESET}")
-            if init_result.stderr:
-                print(f"{Style.RED}{init_result.stderr}{Style.RESET}")
-            print_status("Check Redis connection and try manually:", "info")
-            print_status("tsx src/scripts/init-settlement-scheduler.ts", "info")
+            print_status("Failed to start settlement system", "error")
+            print_status("Check Redis connection and environment variables", "error")
+            print_status("Try manually: npx tsx scripts/start-professional-settlement.ts", "info")
+            settlement_worker = None  # Mark as failed so cleanup doesn't try to kill it
         
         # Display connection information
         print()
@@ -193,7 +209,7 @@ def run() -> None:
         print(f"\n{Style.BOLD}{Style.GREEN}  ENVIRONMENT READY{Style.RESET}\n")
         print(f"  {Style.BOLD}Local:{Style.RESET}      {Style.CYAN}http://localhost:{DEV_SERVER_PORT}{Style.RESET}")
         print(f"  {Style.BOLD}Tunnel:{Style.RESET}     {Style.CYAN}https://{NGROK_STATIC_DOMAIN}{Style.RESET}")
-        print(f"  {Style.BOLD}Settlement:{Style.RESET} {Style.GREEN}Active via Redis Queue (every 5 minutes){Style.RESET}")
+        print(f"  {Style.BOLD}Settlement:{Style.RESET} {Style.GREEN}Professional BullMQ System (every 5 minutes){Style.RESET}")
         print(f"  {Style.BOLD}Redis:{Style.RESET}      {Style.CYAN}Connected{Style.RESET}\n")
         print_separator()
         print(f"\n{Style.DIM}Press Ctrl+C to stop all services{Style.RESET}\n")
@@ -206,27 +222,46 @@ def run() -> None:
         print(f"\n\n{Style.YELLOW}Shutdown initiated{Style.RESET}")
         print_separator()
     finally:
-        # Stop settlement worker
-        if settlement_worker:
-            print_status("Stopping settlement worker", "shutdown")
-            settlement_worker.terminate()
-            try:
-                settlement_worker.wait(timeout=5)
-            except subprocess.TimeoutExpired:
-                settlement_worker.kill()
-            print_status("Settlement worker stopped", "success")
+        # Shutdown in reverse order: settlement -> ngrok -> dev server
         
+        # Stop settlement worker first (graceful shutdown with SIGTERM)
+        if settlement_worker:
+            print_status("Stopping settlement system gracefully", "shutdown")
+            try:
+                # Send SIGTERM for graceful shutdown
+                settlement_worker.terminate()
+                # Wait up to 10 seconds for graceful shutdown
+                settlement_worker.wait(timeout=10)
+                print_status("Settlement system stopped gracefully", "success")
+            except subprocess.TimeoutExpired:
+                print_status("Settlement system did not stop gracefully, forcing shutdown", "shutdown")
+                settlement_worker.kill()
+                settlement_worker.wait()
+                print_status("Settlement system stopped (forced)", "success")
+            except Exception as e:
+                print_status(f"Error stopping settlement system: {e}", "error")
+        
+        # Stop ngrok
         if ngrok:
             print_status("Terminating ngrok tunnel", "shutdown")
             ngrok.terminate()
             time.sleep(1)
-            ngrok.kill()  # Force kill if terminate didn't work
+            try:
+                ngrok.kill()
+            except Exception:
+                pass
+            print_status("Ngrok tunnel closed", "success")
         
+        # Stop dev server
         if dev_server:
             print_status("Stopping development server", "shutdown")
             dev_server.terminate()
-            time.sleep(1)
-            dev_server.kill()  # Force kill if terminate didn't work
+            time.sleep(2)
+            try:
+                dev_server.kill()
+            except Exception:
+                pass
+            print_status("Development server stopped", "success")
         
         print_status("Shutdown complete", "success")
         print()

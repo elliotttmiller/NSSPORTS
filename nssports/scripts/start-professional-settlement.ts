@@ -19,6 +19,22 @@
  *   REDIS_HOST, REDIS_PORT, REDIS_PASSWORD - Redis connection
  */
 
+// Load environment variables from .env.local (takes precedence) and .env
+import { config } from 'dotenv';
+import { resolve } from 'path';
+
+// Load .env first
+config({ path: resolve(process.cwd(), '.env') });
+// Then load .env.local (overrides .env)
+config({ path: resolve(process.cwd(), '.env.local') });
+
+// Log loaded Redis config to verify
+console.log('[ENV] Redis Configuration Loaded:');
+console.log(`  REDIS_HOST: ${process.env.REDIS_HOST || 'NOT SET'}`);
+console.log(`  REDIS_PORT: ${process.env.REDIS_PORT || 'NOT SET'}`);
+console.log(`  REDIS_TLS: ${process.env.REDIS_TLS || 'NOT SET'}`);
+console.log('');
+
 import { getSettlementQueue, initializeSettlementQueue, startSettlementWorker } from '../src/services/settlement-queue.service';
 import { logger } from '../src/lib/logger';
 

@@ -17,7 +17,6 @@
 import { prisma } from "@/lib/prisma";
 import { fetchPlayerStats } from "@/lib/player-stats";
 import { getPeriodScore } from "@/lib/period-scores";
-import type { Prisma } from "@prisma/client";
 
 // ============================================================================
 // TYPES & INTERFACES
@@ -804,35 +803,49 @@ export async function settleBet(betId: string): Promise<SettlementResult | null>
     const betUpdateData: any = {
       status: result.status,
       settledAt: new Date(),
-      ...(updatedLegs ? { legs: updatedLegs as Prisma.JsonValue } : {}),
+      ...(updatedLegs ? { legs: updatedLegs as any } : {}),
     };
     if (actualResultString !== undefined) betUpdateData.actualResult = actualResultString;
 
-    // Update bet and account in transaction (persist actualResult)
-    await prisma.$transaction([
-      // Update bet status and persist the actualResult
-      prisma.bet.update({
-        where: { id: betId },
+    // Update bet and account in a single transaction while atomically
+    // asserting the bet is still pending to prevent double settlements.
+    // Use updateMany to perform a conditional update (id + status) and
+    // check the affected row count. If 0 rows were updated, the bet was
+    // already settled by another process and we skip applying any balance
+    // changes.
+    const transactionResult = await prisma.$transaction(async (tx: any) => {
+      // Attempt to claim and update the bet only if it's still pending
+      const updated = await tx.bet.updateMany({
+        where: { id: betId, status: 'pending' },
         data: {
           ...(betUpdateData as any),
         }
-      }),
-      // Update account balance
-      // Note: Stake was already deducted when bet was placed
-      // - For wins: add the full payout amount
-      // - For pushes: refund the stake
-      // - For losses: do nothing (stake already gone)
-      ...(result.status !== "lost" ? [
-        prisma.account.update({
+      });
+
+      if (updated.count === 0) {
+        // Nothing to do: bet already settled
+        return { applied: false } as const;
+      }
+
+      // Only apply payout/account update if bet update succeeded
+      if (result.status !== 'lost') {
+        await tx.account.update({
           where: { userId: bet.userId },
           data: {
             balance: {
-              increment: payout
+              increment: payout,
             }
           }
-        })
-      ] : [])
-    ]);
+        });
+      }
+
+      return { applied: true } as const;
+    });
+
+    if (!transactionResult.applied) {
+      console.log(`[settleBet] Bet ${betId} was already settled by another process; skipping payout`);
+      return null;
+    }
 
     console.log(`[settleBet] Bet ${betId} settled as ${result.status}, payout: $${payout.toFixed(2)}`);
 

@@ -15,31 +15,44 @@
 import Redis from 'ioredis';
 import { logger } from './logger';
 
-// Redis configuration from environment
-const REDIS_CONFIG = {
-  host: process.env.REDIS_HOST || 'redis-15342.c10.us-east-1-3.ec2.cloud.redislabs.com',
-  port: parseInt(process.env.REDIS_PORT || '15342'),
-  username: process.env.REDIS_USERNAME || 'default',
-  password: process.env.REDIS_PASSWORD || 'Rv2x26xUeBzCpZiPKzLW4kz9oVLkqruY',
-  
-  // Connection options
-  maxRetriesPerRequest: null, // Required for BullMQ
-  enableReadyCheck: true,
-  enableOfflineQueue: true,
-  
-  // Reconnection strategy
-  retryStrategy(times: number) {
-    const delay = Math.min(times * 50, 2000);
-    return delay;
-  },
-  
-  // Timeouts
-  connectTimeout: 10000,
-  commandTimeout: 5000,
-  
-  // TLS for Redis Cloud
-  tls: process.env.REDIS_TLS === 'true' ? {} : undefined,
-};
+/**
+ * Get Redis configuration from environment variables
+ * This is a function to ensure env vars are read at runtime, not module load time
+ */
+function getRedisConfig() {
+  return {
+    host: process.env.REDIS_HOST,
+    port: parseInt(process.env.REDIS_PORT || '6379'),
+    username: process.env.REDIS_USERNAME,
+    password: process.env.REDIS_PASSWORD,
+    
+    // Connection options
+    maxRetriesPerRequest: null, // Required for BullMQ
+    enableReadyCheck: false, // Disable ready check for faster connection
+    enableOfflineQueue: true,
+    lazyConnect: false, // Connect immediately
+    
+    // Reconnection strategy - exponential backoff with a higher cap
+    retryStrategy(times: number) {
+      if (times > 20) {
+        logger.error('[Redis] Max reconnection attempts reached');
+        return null; // Stop retrying after many attempts
+      }
+      const delay = Math.min(Math.pow(2, times) * 50, 30000); // up to 30s
+      logger.info(`[Redis] Reconnecting attempt ${times}, delay: ${delay}ms`);
+      return delay;
+    },
+
+  // Timeouts (increase to account for cloud latency)
+  connectTimeout: 20000,
+  // commandTimeout limits how long a single command may wait — increase to avoid spurious timeouts
+  // Setting to null would disable per-command timeouts; choose 60s as a safer global default for networked Redis cloud instances
+  commandTimeout: 60000,
+    
+    // TLS for Redis Cloud
+    tls: process.env.REDIS_TLS === 'true' ? {} : undefined,
+  };
+}
 
 // Singleton Redis client
 let redisClient: Redis | null = null;
@@ -49,12 +62,13 @@ let redisClient: Redis | null = null;
  */
 export function getRedisClient(): Redis {
   if (!redisClient) {
+    const config = getRedisConfig();
     logger.info('[Redis] Creating new Redis client...', {
-      host: REDIS_CONFIG.host,
-      port: REDIS_CONFIG.port,
+      host: config.host,
+      port: config.port,
     });
 
-    redisClient = new Redis(REDIS_CONFIG);
+    redisClient = new Redis(config);
 
     // Event handlers
     redisClient.on('connect', () => {
@@ -99,8 +113,9 @@ export function getRedisClient(): Redis {
  * BullMQ workers need their own dedicated connections
  */
 export function createRedisConnection(): Redis {
+  const config = getRedisConfig();
   logger.info('[Redis] Creating dedicated worker connection...');
-  return new Redis(REDIS_CONFIG);
+  return new Redis(config);
 }
 
 /**

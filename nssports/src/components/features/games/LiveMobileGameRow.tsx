@@ -240,25 +240,14 @@ export const LiveMobileGameRow = memo(({ game }: Props) => {
         <div className="flex justify-between items-center mb-2">
           <div className="text-xs text-muted-foreground">{game.leagueId.toUpperCase()}</div>
           
-          {/* Live Score and Clock (or game time if not live) */}
+          {/* Live Clock/Period (or game time if not live) */}
           <div className="flex items-center gap-2">
-            {/* Show live score and clock if game status is live */}
-            {game.status === 'live' && (typeof game.awayScore === 'number' || typeof game.homeScore === 'number') ? (
-              <div className="flex items-center gap-2">
-                {/* Live Score - show if at least one score is a number (including 0) */}
-                {(typeof game.awayScore === 'number' && typeof game.homeScore === 'number') && (
-                  <span className="text-xs font-bold text-foreground">
-                    {game.awayScore} - {game.homeScore}
-                  </span>
-                )}
-                {/* Period and Clock */}
-                {(game.period || game.timeRemaining) && (
-                  <div className="flex items-center gap-1 text-[10px] text-accent font-semibold">
-                    {game.period && <span className="uppercase">{game.period}</span>}
-                    {game.period && game.timeRemaining && <span>•</span>}
-                    {game.timeRemaining && <span>{game.timeRemaining}</span>}
-                  </div>
-                )}
+            {/* Show live clock if game status is live */}
+            {game.status === 'live' && (game.period || game.timeRemaining) ? (
+              <div className="flex items-center gap-1 text-[10px] text-accent font-semibold">
+                {game.period && <span className="uppercase">{game.period}</span>}
+                {game.period && game.timeRemaining && <span>•</span>}
+                {game.timeRemaining && <span>{game.timeRemaining}</span>}
               </div>
             ) : (
               /* Show game time if not live */
@@ -270,13 +259,13 @@ export const LiveMobileGameRow = memo(({ game }: Props) => {
         </div>
 
         {/* Teams and Odds Grid - 4 columns to match header */}
-  <div className="grid grid-cols-4 gap-2">
+  <div className="grid grid-cols-4 gap-1.5">
           {/* Teams Column */}
           <div className="flex flex-col justify-between h-[72px] gap-2">
             {/* Away Team */}
             <div className="flex items-center h-7">
               <motion.div
-                className="flex items-center gap-1.5"
+                className="flex items-center gap-1 min-w-0 flex-1"
                 whileHover={{ x: 2 }}
                 transition={{ duration: 0.2 }}
               >
@@ -288,10 +277,18 @@ export const LiveMobileGameRow = memo(({ game }: Props) => {
                 <span className="text-xs font-medium text-foreground truncate leading-tight">
                   {game.awayTeam.shortName}
                 </span>
-                {game.awayTeam.record && (
-                  <span className="text-[10px] text-muted-foreground ml-auto">
-                    {game.awayTeam.record}
+                {/* Live Score - show if game is live and score is a number (including 0) */}
+                {game.status === 'live' && typeof game.awayScore === 'number' ? (
+                  <span className="text-xs font-bold text-foreground ml-auto shrink-0">
+                    {game.awayScore}
                   </span>
+                ) : (
+                  /* Record (only show if no live score) */
+                  game.awayTeam.record && (
+                    <span className="text-[10px] text-muted-foreground ml-auto shrink-0">
+                      {game.awayTeam.record}
+                    </span>
+                  )
                 )}
               </motion.div>
             </div>
@@ -299,7 +296,7 @@ export const LiveMobileGameRow = memo(({ game }: Props) => {
             {/* Home Team */}
             <div className="flex items-center h-7">
               <motion.div
-                className="flex items-center gap-1.5"
+                className="flex items-center gap-1 min-w-0 flex-1"
                 whileHover={{ x: 2 }}
                 transition={{ duration: 0.2 }}
               >
@@ -311,10 +308,18 @@ export const LiveMobileGameRow = memo(({ game }: Props) => {
                 <span className="text-xs font-medium text-foreground truncate leading-tight">
                   {game.homeTeam.shortName}
                 </span>
-                {game.homeTeam.record && (
-                  <span className="text-[10px] text-muted-foreground ml-auto">
-                    {game.homeTeam.record}
+                {/* Live Score - show if game is live and score is a number (including 0) */}
+                {game.status === 'live' && typeof game.homeScore === 'number' ? (
+                  <span className="text-xs font-bold text-foreground ml-auto shrink-0">
+                    {game.homeScore}
                   </span>
+                ) : (
+                  /* Record (only show if no live score) */
+                  game.homeTeam.record && (
+                    <span className="text-[10px] text-muted-foreground ml-auto shrink-0">
+                      {game.homeTeam.record}
+                    </span>
+                  )
                 )}
               </motion.div>
             </div>
@@ -330,7 +335,7 @@ export const LiveMobileGameRow = memo(({ game }: Props) => {
                 onClick={(e) => handleBetClick("spread", "away", e)}
                 disabled={wouldBetConflict("spread", "away") && !isBetInSlip("spread", "away")}
                 className={cn(
-                  "w-full h-8 px-2 transition-all duration-200 font-medium flex flex-col justify-center items-center gap-0.5 text-center rounded-md border border-border",
+                  "w-full h-8 px-1.5 transition-all duration-200 font-medium flex flex-col justify-center items-center gap-0.5 text-center rounded-md border border-border",
                   isBetInSlip("spread", "away")
                     ? "bg-accent text-accent-foreground shadow-sm ring-1 ring-accent/20"
                     : wouldBetConflict("spread", "away")
@@ -355,7 +360,7 @@ export const LiveMobileGameRow = memo(({ game }: Props) => {
                 onClick={(e) => handleBetClick("spread", "home", e)}
                 disabled={wouldBetConflict("spread", "home") && !isBetInSlip("spread", "home")}
                 className={cn(
-                  "w-full h-8 px-2 transition-all duration-200 font-medium flex flex-col justify-center items-center gap-0.5 text-center rounded-md border border-border",
+                  "w-full h-8 px-1.5 transition-all duration-200 font-medium flex flex-col justify-center items-center gap-0.5 text-center rounded-md border border-border",
                   isBetInSlip("spread", "home")
                     ? "bg-accent text-accent-foreground shadow-sm ring-1 ring-accent/20"
                     : wouldBetConflict("spread", "home")
@@ -384,7 +389,7 @@ export const LiveMobileGameRow = memo(({ game }: Props) => {
                 onClick={(e) => handleBetClick("total", "over", e)}
                 disabled={wouldBetConflict("total", "over") && !isBetInSlip("total", "over")}
                 className={cn(
-                  "w-full h-8 px-2 transition-all duration-200 font-medium flex flex-col justify-center items-center gap-0.5 text-center rounded-md border border-border",
+                  "w-full h-8 px-1.5 transition-all duration-200 font-medium flex flex-col justify-center items-center gap-0.5 text-center rounded-md border border-border",
                   isBetInSlip("total", "over")
                     ? "bg-accent text-accent-foreground shadow-sm ring-1 ring-accent/20"
                     : wouldBetConflict("total", "over")
@@ -409,7 +414,7 @@ export const LiveMobileGameRow = memo(({ game }: Props) => {
                 onClick={(e) => handleBetClick("total", "under", e)}
                 disabled={wouldBetConflict("total", "under") && !isBetInSlip("total", "under")}
                 className={cn(
-                  "w-full h-8 px-2 transition-all duration-200 font-medium flex flex-col justify-center items-center gap-0.5 text-center rounded-md border border-border",
+                  "w-full h-8 px-1.5 transition-all duration-200 font-medium flex flex-col justify-center items-center gap-0.5 text-center rounded-md border border-border",
                   isBetInSlip("total", "under")
                     ? "bg-accent text-accent-foreground shadow-sm ring-1 ring-accent/20"
                     : wouldBetConflict("total", "under")
@@ -438,7 +443,7 @@ export const LiveMobileGameRow = memo(({ game }: Props) => {
                 onClick={(e) => handleBetClick("moneyline", "away", e)}
                 disabled={wouldBetConflict("moneyline", "away") && !isBetInSlip("moneyline", "away")}
                 className={cn(
-                  "w-full h-8 px-2 transition-all duration-200 font-medium flex items-center justify-center text-center rounded-md border border-border",
+                  "w-full h-8 px-1.5 transition-all duration-200 font-medium flex items-center justify-center text-center rounded-md border border-border",
                   isBetInSlip("moneyline", "away")
                     ? "bg-accent text-accent-foreground shadow-sm ring-1 ring-accent/20"
                     : wouldBetConflict("moneyline", "away")
@@ -460,7 +465,7 @@ export const LiveMobileGameRow = memo(({ game }: Props) => {
                 onClick={(e) => handleBetClick("moneyline", "home", e)}
                 disabled={wouldBetConflict("moneyline", "home") && !isBetInSlip("moneyline", "home")}
                 className={cn(
-                  "w-full h-8 px-2 transition-all duration-200 font-medium flex items-center justify-center text-center rounded-md border border-border",
+                  "w-full h-8 px-1.5 transition-all duration-200 font-medium flex items-center justify-center text-center rounded-md border border-border",
                   isBetInSlip("moneyline", "home")
                     ? "bg-accent text-accent-foreground shadow-sm ring-1 ring-accent/20"
                     : wouldBetConflict("moneyline", "home")
