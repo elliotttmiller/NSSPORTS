@@ -586,13 +586,14 @@ export function isPeriodCompleted(periodID: string, gameState: GameState): boole
     
     // Half props
     if (propPeriod === '1h') {
-      // 1H prop is completed at halftime (entering Q3/Q4)
-      return currentPeriod.includes('3') || currentPeriod.includes('4') || 
-             currentPeriod.includes('ot') || currentPeriod.includes('overtime');
+      // 1H prop bets close once game starts (any live period means 1H has begun/started)
+      // Users should not be able to bet on 1H once the game is live
+      return gameState.status === 'live';
     }
     if (propPeriod === '2h') {
-      // 2H prop is only completed when game ends
-      return false; // Don't filter 2H props during live game
+      // 2H prop bets close once 2nd half starts (Q3/Q4 or OT)
+      return currentPeriod.includes('3') || currentPeriod.includes('4') || 
+             currentPeriod.includes('ot') || currentPeriod.includes('overtime');
     }
   }
   
@@ -616,11 +617,14 @@ export function isPeriodCompleted(periodID: string, gameState: GameState): boole
       return currentPeriod.includes('ot') || currentPeriod.includes('overtime');
     }
     if (propPeriod === '1h') {
-      return currentPeriod.includes('3') || currentPeriod.includes('4') || 
-             currentPeriod.includes('ot') || currentPeriod.includes('overtime');
+      // 1H prop bets close once game starts (any live period means 1H has begun/started)
+      // Users should not be able to bet on 1H once the game is live
+      return gameState.status === 'live';
     }
     if (propPeriod === '2h') {
-      return false;
+      // 2H prop bets close once 2nd half starts (Q3/Q4 or OT)
+      return currentPeriod.includes('3') || currentPeriod.includes('4') || 
+             currentPeriod.includes('ot') || currentPeriod.includes('overtime');
     }
   }
   
@@ -672,14 +676,15 @@ export function isPeriodCompleted(periodID: string, gameState: GameState): boole
   if (leagueId === 'MLS' || leagueId === 'EPL' || leagueId === 'LA_LIGA' || 
       leagueId === 'BUNDESLIGA' || leagueId === 'IT_SERIE_A' || leagueId === 'FR_LIGUE_1') {
     if (propPeriod === '1h') {
-      // 1H prop is completed at halftime (entering 2H)
+      // 1H prop bets close once game starts (any live period means 1H has begun/started)
+      // Users should not be able to bet on 1H once the game is live
+      return gameState.status === 'live';
+    }
+    if (propPeriod === '2h') {
+      // 2H prop bets close once 2nd half starts
       return currentPeriod.includes('2') || currentPeriod.includes('second') ||
              currentPeriod.includes('stoppage') || currentPeriod.includes('injury') ||
              currentPeriod.includes('added');
-    }
-    if (propPeriod === '2h') {
-      // 2H prop is only completed when game ends
-      return false;
     }
   }
   

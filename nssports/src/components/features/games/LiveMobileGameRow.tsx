@@ -134,41 +134,9 @@ export const LiveMobileGameRow = memo(({ game, justUpdated = false }: Props) => 
     hour12: true,
   });
 
-  // Client-side ticking clock for live games: decrement displayed time locally
-  const [localTimeRemaining, setLocalTimeRemaining] = useState<string | null>(null);
-  useEffect(() => {
-    if (game.status !== 'live' || !game.timeRemaining) {
-      setLocalTimeRemaining(null);
-      return;
-    }
-
-    const match = String(game.timeRemaining).match(/(\d+):(\d{2})/);
-    if (!match) {
-      setLocalTimeRemaining(game.timeRemaining);
-      return;
-    }
-
-    let minutes = parseInt(match[1], 10);
-    let seconds = parseInt(match[2], 10);
-    setLocalTimeRemaining(`${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`);
-
-    const interval = setInterval(() => {
-      if (seconds === 0) {
-        if (minutes === 0) {
-          clearInterval(interval);
-          setLocalTimeRemaining('00:00');
-          return;
-        }
-        minutes -= 1;
-        seconds = 59;
-      } else {
-        seconds -= 1;
-      }
-      setLocalTimeRemaining(`${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`);
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [game.status, game.timeRemaining]);
+  // Display server-provided time without client-side ticking
+  // Clock only updates when new data arrives from server (via live game updates)
+  const displayTimeRemaining = game.timeRemaining;
 
   // Helper to check if a bet is in the bet slip
   const getBetId = useCallback(
@@ -339,8 +307,8 @@ export const LiveMobileGameRow = memo(({ game, justUpdated = false }: Props) => 
                 }}
               >
                 {game.period && <span className="uppercase">{game.period}</span>}
-                {game.period && (localTimeRemaining ?? game.timeRemaining) && <span>•</span>}
-                {(localTimeRemaining ?? game.timeRemaining) && <span>{localTimeRemaining ?? game.timeRemaining}</span>}
+                {game.period && displayTimeRemaining && <span>•</span>}
+                {displayTimeRemaining && <span>{displayTimeRemaining}</span>}
               </motion.div>
             ) : (
               /* Show game time if not live */

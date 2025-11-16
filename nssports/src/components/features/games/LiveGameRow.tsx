@@ -116,44 +116,9 @@ export function LiveGameRow({
     };
   }, [justUpdated]);
 
-  // Client-side ticking clock for live games: decrement displayed time locally
-  const [localTimeRemaining, setLocalTimeRemaining] = useState<string | null>(null);
-  useEffect(() => {
-    if (game.status !== 'live' || !game.timeRemaining) {
-      setLocalTimeRemaining(null);
-      return;
-    }
-
-    // Parse MM:SS or M:SS formats
-    const match = String(game.timeRemaining).match(/(\d+):(\d{2})/);
-    if (!match) {
-      setLocalTimeRemaining(game.timeRemaining);
-      return;
-    }
-
-    let minutes = parseInt(match[1], 10);
-    let seconds = parseInt(match[2], 10);
-
-    setLocalTimeRemaining(`${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`);
-
-    const interval = setInterval(() => {
-      if (seconds === 0) {
-        if (minutes === 0) {
-          // stop at 00:00
-          clearInterval(interval);
-          setLocalTimeRemaining('00:00');
-          return;
-        }
-        minutes -= 1;
-        seconds = 59;
-      } else {
-        seconds -= 1;
-      }
-      setLocalTimeRemaining(`${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`);
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [game.status, game.timeRemaining]);
+  // Display server-provided time without client-side ticking
+  // Clock only updates when new data arrives from server (via live game updates)
+  const displayTimeRemaining = game.timeRemaining;
   useEffect(() => {
     const t = setTimeout(() => setMounted(true), 20);
     return () => clearTimeout(t);
@@ -333,9 +298,9 @@ export function LiveGameRow({
                       {game.period}
                     </div>
                   )}
-                  {(localTimeRemaining ?? game.timeRemaining) && (
+                  {displayTimeRemaining && (
                     <div className="text-accent font-semibold text-[10px] lg:text-xs">
-                      {localTimeRemaining ?? game.timeRemaining}
+                      {displayTimeRemaining}
                     </div>
                   )}
                 </motion.div>
