@@ -30,7 +30,7 @@ export async function GET() {
       // - finalized: false → Exclude games that have finished
       // - oddsAvailable: true → Only games with betting odds
       // - startsAfter/startsBefore → Time window for upcoming games
-      const [nbaResult, ncaabResult, nflResult, ncaafResult, nhlResult] = await Promise.allSettled([
+      const [nbaResult, ncaabResult, nflResult, ncaafResult, nhlResult, mlbResult, atpResult, wtaResult, itfResult] = await Promise.allSettled([
         getEventsWithCache({ 
           leagueID: 'NBA',
           live: false,                     // ✅ OFFICIAL: Only non-live (upcoming) games
@@ -86,6 +86,50 @@ export async function GET() {
           includeOpposingOddIDs: true,
           limit: fetchLimit,
         }),
+        getEventsWithCache({ 
+          leagueID: 'MLB',
+          live: false,                     // ✅ OFFICIAL: Only non-live (upcoming) games
+          finalized: false,                // ✅ OFFICIAL: Exclude finished games
+          oddsAvailable: true,             // ✅ OFFICIAL: Only games with odds
+          startsAfter: now.toISOString(),
+          startsBefore: sevenDaysFromNow.toISOString(),
+          oddIDs: 'game-ml,game-ats,game-ou', // Main lines: moneyline, spread, total
+          includeOpposingOddIDs: true,
+          limit: fetchLimit,
+        }),
+        getEventsWithCache({ 
+          leagueID: 'ATP',
+          live: false,                     // ✅ OFFICIAL: Only non-live (upcoming) games
+          finalized: false,                // ✅ OFFICIAL: Exclude finished games
+          oddsAvailable: true,             // ✅ OFFICIAL: Only games with odds
+          startsAfter: now.toISOString(),
+          startsBefore: sevenDaysFromNow.toISOString(),
+          oddIDs: 'game-ml,game-ats,game-ou', // Main lines: moneyline for tennis
+          includeOpposingOddIDs: true,
+          limit: fetchLimit,
+        }),
+        getEventsWithCache({ 
+          leagueID: 'WTA',
+          live: false,                     // ✅ OFFICIAL: Only non-live (upcoming) games
+          finalized: false,                // ✅ OFFICIAL: Exclude finished games
+          oddsAvailable: true,             // ✅ OFFICIAL: Only games with odds
+          startsAfter: now.toISOString(),
+          startsBefore: sevenDaysFromNow.toISOString(),
+          oddIDs: 'game-ml,game-ats,game-ou', // Main lines: moneyline for tennis
+          includeOpposingOddIDs: true,
+          limit: fetchLimit,
+        }),
+        getEventsWithCache({ 
+          leagueID: 'ITF',
+          live: false,                     // ✅ OFFICIAL: Only non-live (upcoming) games
+          finalized: false,                // ✅ OFFICIAL: Exclude finished games
+          oddsAvailable: true,             // ✅ OFFICIAL: Only games with odds
+          startsAfter: now.toISOString(),
+          startsBefore: sevenDaysFromNow.toISOString(),
+          oddIDs: 'game-ml,game-ats,game-ou', // Main lines: moneyline for tennis
+          includeOpposingOddIDs: true,
+          limit: fetchLimit,
+        }),
       ]);
       
       const upcomingEvents = [
@@ -94,6 +138,10 @@ export async function GET() {
         ...(nflResult.status === 'fulfilled' ? nflResult.value.data : []),
         ...(ncaafResult.status === 'fulfilled' ? ncaafResult.value.data : []),
         ...(nhlResult.status === 'fulfilled' ? nhlResult.value.data : []),
+        ...(mlbResult.status === 'fulfilled' ? mlbResult.value.data : []),
+        ...(atpResult.status === 'fulfilled' ? atpResult.value.data : []),
+        ...(wtaResult.status === 'fulfilled' ? wtaResult.value.data : []),
+        ...(itfResult.status === 'fulfilled' ? itfResult.value.data : []),
       ];
       
       logger.info(`[/api/games/upcoming] ✅ SDK returned ${upcomingEvents.length} UPCOMING events using official filters`, {

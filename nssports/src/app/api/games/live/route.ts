@@ -85,6 +85,46 @@ export async function GET() {
           includeOpposingOddIDs: true,     // ✅ OFFICIAL: Auto-include opposing sides
           limit: fetchLimit,
         }),
+        getEventsWithCache({ 
+          leagueID: 'MLB',
+          live: true,                      // ✅ OFFICIAL: Only live/in-progress games
+          finalized: false,                // ✅ OFFICIAL: Exclude finished games
+          startsAfter: startOfToday.toISOString(), // ✅ Force today's games only
+          startsBefore: endOfToday.toISOString(),  // ✅ Force today's games only
+          oddIDs: MAIN_LINE_ODDIDS,        // ✅ OFFICIAL: Main lines only
+          includeOpposingOddIDs: true,     // ✅ OFFICIAL: Auto-include opposing sides
+          limit: fetchLimit,
+        }),
+        getEventsWithCache({ 
+          leagueID: 'ATP',
+          live: true,                      // ✅ OFFICIAL: Only live/in-progress games
+          finalized: false,                // ✅ OFFICIAL: Exclude finished games
+          startsAfter: startOfToday.toISOString(), // ✅ Force today's games only
+          startsBefore: endOfToday.toISOString(),  // ✅ Force today's games only
+          oddIDs: MAIN_LINE_ODDIDS,        // ✅ OFFICIAL: Main lines only (moneyline for tennis)
+          includeOpposingOddIDs: true,     // ✅ OFFICIAL: Auto-include opposing sides
+          limit: fetchLimit,
+        }),
+        getEventsWithCache({ 
+          leagueID: 'WTA',
+          live: true,                      // ✅ OFFICIAL: Only live/in-progress games
+          finalized: false,                // ✅ OFFICIAL: Exclude finished games
+          startsAfter: startOfToday.toISOString(), // ✅ Force today's games only
+          startsBefore: endOfToday.toISOString(),  // ✅ Force today's games only
+          oddIDs: MAIN_LINE_ODDIDS,        // ✅ OFFICIAL: Main lines only (moneyline for tennis)
+          includeOpposingOddIDs: true,     // ✅ OFFICIAL: Auto-include opposing sides
+          limit: fetchLimit,
+        }),
+        getEventsWithCache({ 
+          leagueID: 'ITF',
+          live: true,                      // ✅ OFFICIAL: Only live/in-progress games
+          finalized: false,                // ✅ OFFICIAL: Exclude finished games
+          startsAfter: startOfToday.toISOString(), // ✅ Force today's games only
+          startsBefore: endOfToday.toISOString(),  // ✅ Force today's games only
+          oddIDs: MAIN_LINE_ODDIDS,        // ✅ OFFICIAL: Main lines only (moneyline for tennis)
+          includeOpposingOddIDs: true,     // ✅ OFFICIAL: Auto-include opposing sides
+          limit: fetchLimit,
+        }),
       ]);
       
       // Race between operation and timeout
@@ -106,10 +146,14 @@ export async function GET() {
           { status: 'rejected' as const, reason: timeoutError },
           { status: 'rejected' as const, reason: timeoutError },
           { status: 'rejected' as const, reason: timeoutError },
+          { status: 'rejected' as const, reason: timeoutError },
+          { status: 'rejected' as const, reason: timeoutError },
+          { status: 'rejected' as const, reason: timeoutError },
+          { status: 'rejected' as const, reason: timeoutError },
         ];
       }
       
-      const [nbaResult, ncaabResult, nflResult, ncaafResult, nhlResult] = results;
+      const [nbaResult, ncaabResult, nflResult, ncaafResult, nhlResult, mlbResult, atpResult, wtaResult, itfResult] = results;
       
       const liveEvents = [
         ...(nbaResult.status === 'fulfilled' ? nbaResult.value.data : []),
@@ -117,6 +161,10 @@ export async function GET() {
         ...(nflResult.status === 'fulfilled' ? nflResult.value.data : []),
         ...(ncaafResult.status === 'fulfilled' ? ncaafResult.value.data : []),
         ...(nhlResult.status === 'fulfilled' ? nhlResult.value.data : []),
+        ...(mlbResult.status === 'fulfilled' ? mlbResult.value.data : []),
+        ...(atpResult.status === 'fulfilled' ? atpResult.value.data : []),
+        ...(wtaResult.status === 'fulfilled' ? wtaResult.value.data : []),
+        ...(itfResult.status === 'fulfilled' ? itfResult.value.data : []),
       ];
       
       // Silent operation - only log errors, not every successful fetch

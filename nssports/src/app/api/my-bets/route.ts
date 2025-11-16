@@ -816,10 +816,21 @@ export async function POST(req: Request) {
       throw new Error("Missing required single bet fields");
     }
 
-    // Verify game exists
+    // Verify game exists and fetch game state for market closure check
     const game = await tx.game.findUnique({
       where: { id: data.gameId },
-      select: { id: true, status: true, startTime: true },
+      select: { 
+        id: true, 
+        status: true, 
+        startTime: true,
+        homeScore: true,
+        awayScore: true,
+        period: true,
+        timeRemaining: true,
+        league: {
+          select: { id: true }
+        }
+      },
     });
 
     if (!game) {
@@ -828,6 +839,29 @@ export async function POST(req: Request) {
 
     if (game.status === "finished") {
       throw new Error("Cannot place bet on finished game");
+    }
+
+    // === INDUSTRY STANDARD: LIVE BETTING MARKET CLOSURE ENFORCEMENT ===
+    // Check if market should be closed based on game state and sport-specific rules
+    if (game.status === "live") {
+      const { validateBetPlacement } = await import("@/lib/market-closure-rules");
+      
+      const gameState = {
+        leagueId: game.league?.id as any,
+        status: game.status,
+        startTime: game.startTime,
+        homeScore: game.homeScore ?? undefined,
+        awayScore: game.awayScore ?? undefined,
+        period: game.period ?? undefined,
+        timeRemaining: game.timeRemaining ?? undefined,
+        // Note: Additional game state (possession, outs, etc.) would need to be
+        // added to the Game model and populated from SDK data for full enforcement
+      };
+      
+      const validationError = validateBetPlacement(gameState);
+      if (validationError) {
+        throw new Error(validationError);
+      }
     }
 
     // === INDUSTRY STANDARD: PERIOD/QUARTER/HALF BET CUTOFF ENFORCEMENT ===
