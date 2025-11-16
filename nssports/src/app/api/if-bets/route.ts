@@ -109,7 +109,7 @@ export async function POST(req: NextRequest) {
     
     // === INDUSTRY STANDARD: VALIDATE MARKET CLOSURE FOR ALL LEGS ===
     {
-      const { validateBetPlacement } = await import("@/lib/market-closure-rules");
+      const { validateBetPlacement, isPeriodCompleted } = await import("@/lib/market-closure-rules");
       
       // Collect all unique game IDs from legs
       const gameIds = Array.from(new Set(legs.map((leg: any) => leg.gameId).filter(Boolean)));
@@ -125,6 +125,7 @@ export async function POST(req: NextRequest) {
           awayScore: true,
           period: true,
           timeRemaining: true,
+          inning: true,
           league: {
             select: { id: true }
           }
@@ -157,11 +158,19 @@ export async function POST(req: NextRequest) {
             awayScore: game.awayScore ?? undefined,
             period: game.period ?? undefined,
             timeRemaining: game.timeRemaining ?? undefined,
+            inning: game.inning ?? undefined,
           };
           
           const validationError = validateBetPlacement(gameState);
           if (validationError) {
             return ApiErrors.badRequest(`Leg for game ${leg.gameId}: ${validationError}`);
+          }
+          
+          // Check if this is a game prop with a completed period
+          if (leg.betType === "game_prop" && leg.gameProp?.periodID) {
+            if (isPeriodCompleted(leg.gameProp.periodID, gameState)) {
+              return ApiErrors.badRequest(`Leg for game ${leg.gameId}: Cannot bet on ${leg.gameProp.periodID.toUpperCase()} - period has already completed`);
+            }
           }
         }
       }

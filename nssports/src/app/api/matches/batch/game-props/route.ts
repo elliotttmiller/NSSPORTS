@@ -116,6 +116,41 @@ export async function GET(request: NextRequest) {
         oddsAvailable: true,
       });
 
+      // Fetch game states for period filtering
+      const { filterCompletedPeriodProps } = await import('@/lib/market-closure-rules');
+      const prisma = (await import('@/lib/prisma')).default;
+      
+      const games = await prisma.game.findMany({
+        where: { id: { in: gameIds } },
+        select: {
+          id: true,
+          status: true,
+          period: true,
+          startTime: true,
+          homeScore: true,
+          awayScore: true,
+          timeRemaining: true,
+          inning: true,
+          league: { select: { id: true } }
+        }
+      });
+      
+      const gameStateMap = new Map(
+        games.map(g => [
+          g.id,
+          {
+            leagueId: g.league?.id as any,
+            status: g.status as any,
+            startTime: g.startTime,
+            homeScore: g.homeScore ?? undefined,
+            awayScore: g.awayScore ?? undefined,
+            period: g.period ?? undefined,
+            timeRemaining: g.timeRemaining ?? undefined,
+            inning: g.inning ?? undefined,
+          }
+        ])
+      );
+
       const dataMap: Record<string, Record<string, unknown[]>> = {};
       
       response.data.forEach((event) => {
@@ -127,6 +162,18 @@ export async function GET(request: NextRequest) {
           Object.entries(event.odds).forEach(([oddID, oddData]) => {
             const parts = oddID.split('-');
             if (parts.length < 3) return;
+            
+            // Extract periodID from oddID (format: statType-entity-periodID-betTypeID-sideID)
+            const periodID = parts.length >= 3 ? parts[2] : undefined;
+            
+            // Apply period filtering if we have game state
+            const gameState = gameStateMap.get(event.eventID);
+            if (gameState && periodID) {
+              const { isPeriodCompleted } = require('@/lib/market-closure-rules');
+              if (isPeriodCompleted(periodID, gameState)) {
+                return; // Skip this prop - period has completed
+              }
+            }
             
             const propType = parts[0];
             const category = propType.replace(/_/g, ' ');
@@ -143,6 +190,7 @@ export async function GET(request: NextRequest) {
               selection: data.selection || null,
               odds: data.odds || 0,
               line: data.line || null,
+              periodID, // Include periodID for debugging
             });
           });
         }
@@ -159,7 +207,7 @@ export async function GET(request: NextRequest) {
           requestedGames: gameIds.length,
           returnedGames: Object.keys(dataMap).length,
           source: response.source,
-          optimization: 'Batch request (50% fewer API calls)',
+          optimization: 'Batch request (50% fewer API calls) with period filtering',
         }
       );
     } catch (error) {
