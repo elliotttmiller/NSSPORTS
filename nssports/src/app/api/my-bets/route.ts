@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -10,6 +11,7 @@ import { BetsResponseSchema, BetRequestSchema, ParlayBetRequestSchema, SingleBet
 import { getAuthUser } from "@/lib/authHelpers";
 import { batchFetchPlayerStats, type PlayerGameStats } from "@/lib/player-stats";
 import { getPeriodScore } from "@/lib/period-scores";
+import { writeFileSync } from 'fs';
 
 // Minimal leg shape stored in Bet.legs JSON
 type ParlayLeg = {
@@ -83,6 +85,44 @@ function toLegArray(input: unknown): ParlayLeg[] | null {
 }
 
 export async function GET() {
+  // ...existing code...
+  const userId = await getAuthUser();
+  const bets = await prisma.bet.findMany({
+    where: { userId },
+    orderBy: { placedAt: "desc" },
+    select: {
+      id: true,
+      betType: true,
+      selection: true,
+      odds: true,
+      line: true,
+      stake: true,
+      potentialPayout: true,
+      status: true,
+      placedAt: true,
+      settledAt: true,
+      actualResult: true, // Explicitly select actualResult
+      legs: true,
+      teaserType: true,
+      teaserMetadata: true,
+      game: {
+        include: {
+          homeTeam: true,
+          awayTeam: true,
+          league: true,
+        },
+      },
+    },
+  });
+  // Write bet IDs and actualResult to a log file for easier access
+  const prismaDebugLines = bets.map((bet: any, idx: number) =>
+    `[ACTUAL_RESULT_PRISMA] Bet ${idx}: id=${bet.id}, actualResult=${bet.actualResult}`
+  ).join('\n');
+  try {
+    writeFileSync('actualResultPrisma.log', prismaDebugLines, { flag: 'w' });
+  } catch (err) {
+    logger.error('Failed to write actualResultPrisma log:', err);
+  }
   return withErrorHandling(async () => {
     logger.info('Fetching bet history');
     
@@ -90,18 +130,41 @@ export async function GET() {
     
     // Fetch bets for the authenticated user
   const bets = await prisma.bet.findMany({
-      where: { userId },
-      orderBy: { placedAt: "desc" },
-      include: {
-        game: {
-          include: {
-            homeTeam: true,
-            awayTeam: true,
-            league: true,
-          },
+    where: { userId },
+    orderBy: { placedAt: "desc" },
+    select: {
+      id: true,
+      betType: true,
+      selection: true,
+      odds: true,
+      line: true,
+      stake: true,
+      potentialPayout: true,
+      status: true,
+      placedAt: true,
+      settledAt: true,
+      actualResult: true, // Explicitly select actualResult
+      legs: true,
+      teaserType: true,
+      teaserMetadata: true,
+      game: {
+        include: {
+          homeTeam: true,
+          awayTeam: true,
+          league: true,
         },
       },
-    });
+    },
+  });
+  // Write bet IDs and actualResult to a log file for easier access
+  const prismaDebugLines = bets.map((bet: any, idx: number) =>
+    `[ACTUAL_RESULT_PRISMA] Bet ${idx}: id=${bet.id}, actualResult=${bet.actualResult}`
+  ).join('\n');
+  try {
+    writeFileSync('actualResultPrisma.log', prismaDebugLines, { flag: 'w' });
+  } catch (err) {
+    logger.error('Failed to write actualResultPrisma log:', err);
+  }
     
     logger.debug('Bets fetched', { count: bets.length });
     
@@ -156,7 +219,7 @@ export async function GET() {
           league: true,
         },
       });
-      logger.debug('[my-bets] Games fetched:', { count: games.length, gameIds: games.map(g => g.id) });
+  logger.debug('[my-bets] Games fetched:', { count: games.length, gameIds: games.map((g: any) => g.id) });
       legGamesById = Object.fromEntries(
         games.map((g: any) => [g.id, JSON.parse(JSON.stringify(g))])
       );
@@ -610,6 +673,15 @@ export async function GET() {
     });
     
     logger.info('Bet history fetched successfully', { count: serialized.length });
+    // Debug: Write actualResult for each bet to a separate file
+    const debugLines = serialized.map((bet: any, idx: number) =>
+      `[ACTUAL_RESULT_DEBUG] Bet ${idx}: id=${bet.id}, status=${bet.status}, actualResult=${bet.actualResult}`
+    ).join('\n');
+    try {
+      writeFileSync('actualResultDebug.log', debugLines, { flag: 'w' });
+    } catch (err) {
+      logger.error('Failed to write actualResult debug log:', err);
+    }
     
     // Validate response shape; on failure, try to recover gracefully
     try {
@@ -631,6 +703,7 @@ export async function GET() {
         status: b.status,
         placedAt: b.placedAt,
         settledAt: b.settledAt ?? null,
+        actualResult: b.actualResult || computeActualResult(b, b.game, new Map(), new Map()),
         game: b.game ?? undefined,
         legs: Array.isArray(b.legs)
           ? b.legs
@@ -640,6 +713,7 @@ export async function GET() {
                 odds: leg.odds,
                 line: typeof leg.line === 'number' ? leg.line : undefined,
                 game: leg.game ?? undefined,
+                actualResult: leg.actualResult || computeActualResult(leg, leg.game, new Map(), new Map(), b.status),
               }))
           : null,
       }));
@@ -729,7 +803,7 @@ export async function POST(req: Request) {
     }
 
     // Use transaction to ensure data consistency
-    const result = await prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx: any) => {
       // Check if user has sufficient balance (create account if doesn't exist)
       let account = await tx.account.findUnique({
         where: { userId },
@@ -757,7 +831,7 @@ export async function POST(req: Request) {
         where: { userId, status: 'pending' },
         select: { stake: true },
       });
-      const currentRisk = pendingBets.reduce((sum, bet) => sum + Number(bet.stake), 0);
+  const currentRisk = pendingBets.reduce((sum: number, bet: any) => sum + Number(bet.stake), 0);
       const availableBalance = currentBalance - currentRisk;
 
       if (availableBalance < stakeAmount) {

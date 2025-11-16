@@ -55,6 +55,8 @@ export const SingleBetResponseSchema = z.object({
   settledAt: z.string().or(z.date()).nullable().optional(),
   game: z.any().optional(),
   displaySelection: z.string().optional(),
+  // Optional actual result string for settled bets (server may include precomputed result)
+  actualResult: z.string().optional(),
   // Player prop metadata
   playerProp: z.object({
     playerId: z.string().optional(),
@@ -77,6 +79,8 @@ export const ParlayLegSchema = z.object({
   odds: z.number(),
   line: z.number().optional(),
   displaySelection: z.string().optional(),
+  // Optional actual result for this leg when settled
+  actualResult: z.string().optional(),
   // Player prop metadata for parlay legs
   playerProp: z.object({
     playerId: z.string().optional(),
@@ -99,6 +103,8 @@ export const ParlayBetResponseSchema = z.object({
   potentialPayout: z.number(),
   status: z.enum(["pending", "won", "lost", "push"]),
   placedAt: z.string().or(z.date()).optional(),
+  // Optional aggregated actual result for parlay bets
+  actualResult: z.string().optional(),
   legs: z.array(ParlayLegSchema).nullable(),
 });
 
@@ -109,6 +115,8 @@ export const TeaserBetResponseSchema = z.object({
   potentialPayout: z.number(),
   status: z.enum(["pending", "won", "lost", "push"]),
   placedAt: z.string().or(z.date()).optional(),
+  // Optional aggregated actual result for teaser bets
+  actualResult: z.string().optional(),
   legs: z.array(ParlayLegSchema).nullable(),
   teaserType: z.string().optional(),
   teaserMetadata: z.object({
