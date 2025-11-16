@@ -685,68 +685,42 @@ function mapStatus(
 ): "upcoming" | "live" | "finished" {
   const now = new Date();
   const gameTime = new Date(startTime);
-  const fourHoursAgo = new Date(now.getTime() - 4 * 60 * 60 * 1000);
   
-  // Calculate time-based status (used for validation and fallback)
-  let timeBasedStatus: "upcoming" | "live" | "finished";
-  if (gameTime > now) {
-    timeBasedStatus = "upcoming";
-  } else if (gameTime > fourHoursAgo) {
-    timeBasedStatus = "live";
-  } else {
-    timeBasedStatus = "finished";
-  }
-  
-  // If SDK status exists, use it BUT validate with time
+  // If SDK status exists, use it - it's the source of truth
   if (sdkStatus) {
-    // SDK says game is live
+    // ⭐ PRIORITY 1: SDK says game is live - TRUST IT
+    // The SDK's live flag is authoritative and updated in real-time
     if (sdkStatus.live === true) {
-      // Sanity check: Game can't be live if it hasn't started yet
-      if (timeBasedStatus === "upcoming") {
-        logger.warn(`SDK reports live but game hasn't started yet. Using time-based status.`, {
-          startTime: gameTime.toISOString(),
-          sdkLive: true,
-          timeBasedStatus
-        });
-        return timeBasedStatus;
-      }
       return "live";
     }
     
-    // SDK says game started (but not explicitly live)
-    if (sdkStatus.started === true && !sdkStatus.completed && !sdkStatus.cancelled) {
-      // Sanity check: Started game can't be upcoming
-      if (timeBasedStatus === "upcoming") {
-        logger.warn(`SDK reports started but game hasn't started yet. Using time-based status.`, {
-          startTime: gameTime.toISOString(),
-          sdkStarted: true,
-          timeBasedStatus
-        });
-        return timeBasedStatus;
-      }
-      return "live";
-    }
-    
-    // SDK says game is completed or cancelled
+    // ⭐ PRIORITY 2: SDK says game is completed/cancelled
     if (sdkStatus.completed === true || sdkStatus.finalized === true || sdkStatus.ended === true || sdkStatus.cancelled === true) {
-      // Sanity check: Can't be completed if it hasn't started
-      if (timeBasedStatus === "upcoming") {
-        logger.warn(`SDK reports completed/cancelled but game hasn't started yet. Using time-based status.`, {
-          startTime: gameTime.toISOString(),
-          sdkCompleted: sdkStatus.completed,
-          sdkFinalized: sdkStatus.finalized,
-          sdkEnded: sdkStatus.ended,
-          sdkCancelled: sdkStatus.cancelled,
-          timeBasedStatus
-        });
-        return timeBasedStatus;
-      }
       return "finished";
     }
+    
+    // ⭐ PRIORITY 3: SDK says game started but not live and not completed
+    // This is an edge case - game has started but may be in intermission/delay
+    if (sdkStatus.started === true) {
+      // Check if game is very old (>12 hours) - likely a data issue
+      const twelveHoursAgo = new Date(now.getTime() - 12 * 60 * 60 * 1000);
+      if (gameTime < twelveHoursAgo) {
+        return "finished"; // Assume finished if very old
+      }
+      return "live"; // Treat as live (might be in delay/intermission)
+    }
   }
   
-  // Fallback: No SDK status or SDK status unclear, use pure time-based logic
-  return timeBasedStatus;
+  // ⭐ FALLBACK: No SDK status available - use time-based logic
+  // Only used when SDK data is completely missing
+  const fourHoursAgo = new Date(now.getTime() - 4 * 60 * 60 * 1000);
+  if (gameTime > now) {
+    return "upcoming";
+  } else if (gameTime > fourHoursAgo) {
+    return "live";
+  } else {
+    return "finished";
+  }
 }
 
 /**

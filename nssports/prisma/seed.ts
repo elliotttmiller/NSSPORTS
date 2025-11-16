@@ -37,10 +37,15 @@ async function main() {
     await prisma.account.deleteMany();
     await prisma.user.deleteMany();
     console.log('  ✓ Cleared accounts and users tables');
+    
+    // Import bcrypt for password hashing
+    const bcrypt = await import('bcryptjs');
+    const hashedPassword = await bcrypt.hash('admin123', 10);
+    
     const adminUser = await prisma.user.create({
       data: {
         username: 'admin',
-        password: 'admin123',
+        password: hashedPassword,
         userType: 'platform_admin',
         isActive: true,
         name: 'Admin',

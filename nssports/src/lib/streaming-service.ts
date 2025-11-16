@@ -136,10 +136,17 @@ export class StreamingService {
    */
   async connect(feed: StreamFeed, options: StreamOptions & { enablePropsStreaming?: boolean } = {}): Promise<void> {
     // ⚠️ PRO PLAN EARLY EXIT - WebSocket streaming requires All-Star plan
-    if (!process.env.SPORTSGAMEODDS_STREAMING_ENABLED || process.env.SPORTSGAMEODDS_STREAMING_ENABLED === 'false') {
+    // Support both server-side and client-side env flags (NEXT_PUBLIC_...) so
+    // that client bundle can detect streaming availability in browser builds.
+    const streamingEnabled = (process.env.SPORTSGAMEODDS_STREAMING_ENABLED === 'true')
+      || (process.env.NEXT_PUBLIC_STREAMING_ENABLED === 'true')
+      || (process.env.NEXT_PUBLIC_STREAMING_ENABLED === '1')
+      || (process.env.NEXT_PUBLIC_STREAMING_ENABLED === 'true');
+
+    if (!streamingEnabled) {
       logger.info('[Streaming] Streaming disabled - Using Pro plan REST API polling only');
       logger.info('[Streaming] Pro plan provides sub-minute updates via smart cache (15s TTL for live games)');
-      logger.info('[Streaming] To enable WebSocket streaming, upgrade to All-Star plan');
+      logger.info('[Streaming] To enable WebSocket streaming, set NEXT_PUBLIC_STREAMING_ENABLED=true and provide streaming credentials');
       return; // Exit without error - REST polling handles everything
     }
 

@@ -9,31 +9,29 @@ datasource db {
 }
 
 model User {
-  id               String    @id @default(cuid())
-  username         String    @unique
-  password         String
-  name             String?
-  image            String?
-  // Admin/Agent Role System
-  userType         String    @default("player") // 'player', 'agent', 'client_admin', 'platform_admin'
-  tenantId         String?   // For multi-tenant support (client association)
-  parentAgentId    String?   // For agent hierarchy
-  createdBy        String?   // Which admin/agent created this user
-  isActive         Boolean   @default(true)
-  lastLogin        DateTime?
-  loginAttempts    Int       @default(0)
-  accountLockedUntil DateTime?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-  account          Account?
-  bets             Bet[]
-  // Agent relationships
-  registeredPlayers User[]  @relation("AgentPlayers")
-  agent            User?    @relation("AgentPlayers", fields: [parentAgentId], references: [id])
-  agentBalanceAdjustments BalanceAdjustment[] @relation("AgentAdjustments")
+  id                       String              @id @default(cuid())
+  username                 String              @unique
+  password                 String
+  name                     String?
+  image                    String?
+  createdAt                DateTime            @default(now())
+  updatedAt                DateTime            @updatedAt
+  accountLockedUntil       DateTime?
+  createdBy                String?
+  isActive                 Boolean             @default(true)
+  lastLogin                DateTime?
+  loginAttempts            Int                 @default(0)
+  parentAgentId            String?
+  tenantId                 String?
+  userType                 String              @default("player")
+  account                  Account?
+  targetAuditLogs          AuditLog[]          @relation("TargetUser")
+  auditLogs                AuditLog[]          @relation("UserActions")
+  agentBalanceAdjustments  BalanceAdjustment[] @relation("AgentAdjustments")
   playerBalanceAdjustments BalanceAdjustment[] @relation("PlayerAdjustments")
-  auditLogs        AuditLog[] @relation("UserActions")
-  targetAuditLogs  AuditLog[] @relation("TargetUser")
+  bets                     Bet[]
+  agent                    User?               @relation("AgentPlayers", fields: [parentAgentId], references: [id])
+  registeredPlayers        User[]              @relation("AgentPlayers")
 
   @@index([username])
   @@index([userType])
@@ -44,12 +42,12 @@ model User {
 }
 
 model Account {
-  userId    String  @id
+  userId    String   @id
   balance   Float
-  freePlay  Float   @default(0)  // Free play balance (promotional credits)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  freePlay  Float    @default(0)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("accounts")
 }
@@ -102,16 +100,16 @@ model Game {
   awayScore     Int?
   period        String?
   timeRemaining String?
-  finishedAt    DateTime?    // NEW: Track when game finished for settlement analytics
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
+  finishedAt    DateTime?
   bets          Bet[]
+  gameProps     GameProp[]
   awayTeam      Team         @relation("AwayTeam", fields: [awayTeamId], references: [id], onDelete: Cascade)
   homeTeam      Team         @relation("HomeTeam", fields: [homeTeamId], references: [id], onDelete: Cascade)
   league        League       @relation(fields: [leagueId], references: [id], onDelete: Cascade)
   odds          Odds[]
   playerProps   PlayerProp[]
-  gameProps     GameProp[]
 
   @@index([leagueId])
   @@index([status])
@@ -119,7 +117,7 @@ model Game {
   @@index([leagueId, status, startTime])
   @@index([homeTeamId])
   @@index([awayTeamId])
-  @@index([status, updatedAt]) // NEW: Fast lookup for recently finished games
+  @@index([status, updatedAt])
   @@map("games")
 }
 
@@ -128,11 +126,11 @@ model Odds {
   gameId      String
   betType     String
   selection   String?
-  odds        Int      // Legacy field (kept for backwards compatibility)
-  bookOdds    Int?     // Real market consensus (asymmetric)
-  fairOdds    Int?     // No-vig mathematical odds (symmetric)
+  odds        Int
   line        Float?
   lastUpdated DateTime @default(now())
+  bookOdds    Int?
+  fairOdds    Int?
   game        Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
 
   @@index([gameId])
@@ -154,32 +152,32 @@ model Bet {
   status          String    @default("pending")
   placedAt        DateTime  @default(now())
   settledAt       DateTime?
-  actualResult    String?   // Persist human-friendly actual result at settlement time
+  legs            Json?
+  idempotencyKey  String?   @unique
+  teaserMetadata  Json?
+  teaserType      String?
+  actualResult    String?
   game            Game?     @relation(fields: [gameId], references: [id], onDelete: Cascade)
   user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  legs            Json?
-  teaserType      String?
-  teaserMetadata  Json?
-  idempotencyKey  String?   @unique
 
   @@index([userId])
   @@index([gameId])
   @@index([status])
   @@index([betType])
   @@index([userId, status, placedAt])
-  @@index([status, gameId]) // NEW: Fast lookup for pending bets on finished games
-  @@index([status, settledAt]) // NEW: Fast lookup for settlement analytics
+  @@index([status, gameId])
+  @@index([status, settledAt])
   @@map("bets")
 }
 
 model Player {
-  id          String       @id
-  name        String
-  teamId      String
-  position    String
+  id           String       @id
+  name         String
+  teamId       String
+  position     String
   jerseyNumber String?
-  team        Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  playerProps PlayerProp[]
+  playerProps  PlayerProp[]
+  team         Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
 
   @@index([teamId])
   @@map("players")
@@ -220,22 +218,20 @@ model GameProp {
   @@map("game_props")
 }
 
-// Agent/Admin System Models
-
 model BalanceAdjustment {
   id              String   @id @default(cuid())
   tenantId        String?
-  playerId        String   // User being adjusted
-  agentId         String   // Agent/Admin performing adjustment
-  adjustmentType  String   // 'deposit', 'withdrawal', 'correction', 'freeplay'
+  playerId        String
+  agentId         String
+  adjustmentType  String
   amount          Float
   previousBalance Float
   newBalance      Float
-  reason          String?  // Optional reason for adjustment
+  reason          String?
   ipAddress       String?
   createdAt       DateTime @default(now())
-  player          User     @relation("PlayerAdjustments", fields: [playerId], references: [id], onDelete: Cascade)
   agent           User     @relation("AgentAdjustments", fields: [agentId], references: [id], onDelete: Cascade)
+  player          User     @relation("PlayerAdjustments", fields: [playerId], references: [id], onDelete: Cascade)
 
   @@index([playerId])
   @@index([agentId])
@@ -245,19 +241,19 @@ model BalanceAdjustment {
 }
 
 model AuditLog {
-  id            String   @id @default(cuid())
-  tenantId      String?
-  userId        String   // Who performed the action
-  actionType    String   // 'player_registered', 'balance_adjusted', 'agent_created', etc.
-  targetUserId  String?  // Affected user (if applicable)
-  oldValue      String?
-  newValue      String?
-  ipAddress     String?
-  userAgent     String?
-  metadata      Json?    // Additional context
-  createdAt     DateTime @default(now())
-  user          User     @relation("UserActions", fields: [userId], references: [id], onDelete: Cascade)
-  targetUser    User?    @relation("TargetUser", fields: [targetUserId], references: [id], onDelete: SetNull)
+  id           String   @id @default(cuid())
+  tenantId     String?
+  userId       String
+  actionType   String
+  targetUserId String?
+  oldValue     String?
+  newValue     String?
+  ipAddress    String?
+  userAgent    String?
+  metadata     Json?
+  createdAt    DateTime @default(now())
+  targetUser   User?    @relation("TargetUser", fields: [targetUserId], references: [id])
+  user         User     @relation("UserActions", fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([targetUserId])
@@ -267,22 +263,20 @@ model AuditLog {
   @@map("audit_logs")
 }
 
-// Separate Admin Dashboard System
-
 model AdminUser {
-  id            String   @id @default(cuid())
-  username      String   @unique
-  password      String
-  role          String   @default("admin") // 'superadmin', 'admin'
-  status        String   @default("active") // 'active', 'suspended', 'inactive'
-  lastLogin     DateTime?
-  loginAttempts Int      @default(0)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  activityLogs  AdminActivityLog[]
-  agentsCreated Agent[]
-  oddsConfigs        OddsConfiguration[]
-  oddsConfigHistory  OddsConfigHistory[]
+  id                String              @id @default(cuid())
+  username          String              @unique
+  password          String
+  role              String              @default("admin")
+  status            String              @default("active")
+  lastLogin         DateTime?
+  loginAttempts     Int                 @default(0)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  activityLogs      AdminActivityLog[]
+  agentsCreated     Agent[]
+  oddsConfigHistory OddsConfigHistory[]
+  oddsConfigs       OddsConfiguration[]
 
   @@index([username])
   @@index([status])
@@ -291,28 +285,28 @@ model AdminUser {
 }
 
 model Agent {
-  id                    String   @id @default(cuid())
-  username              String   @unique
+  id                    String            @id @default(cuid())
+  username              String            @unique
   displayName           String?
   password              String
-  maxSingleAdjustment   Float    @default(1000)
-  dailyAdjustmentLimit  Float    @default(5000)
-  currentDailyTotal     Float    @default(0) // Track daily usage
-  lastDailyReset        DateTime @default(now())
-  canSuspendPlayers     Boolean  @default(true)
+  maxSingleAdjustment   Float             @default(1000)
+  dailyAdjustmentLimit  Float             @default(5000)
+  currentDailyTotal     Float             @default(0)
+  lastDailyReset        DateTime          @default(now())
+  canSuspendPlayers     Boolean           @default(true)
   commissionRate        Float?
   ipRestriction         String?
   regionAssignment      String?
   notes                 String?
-  permissions           Json?    // Flexible permissions
-  status                String   @default("active") // 'active', 'idle', 'suspended'
+  permissions           Json?
+  status                String            @default("active")
   lastLogin             DateTime?
   createdBy             String
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
-  creator               AdminUser @relation(fields: [createdBy], references: [id], onDelete: Restrict)
-  players               DashboardPlayer[]
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
   balanceAdjustmentsLog AgentBalanceLog[]
+  creator               AdminUser         @relation(fields: [createdBy], references: [id])
+  players               DashboardPlayer[]
 
   @@index([username])
   @@index([status])
@@ -322,24 +316,24 @@ model Agent {
 }
 
 model DashboardPlayer {
-  id              String   @id @default(cuid())
-  username        String   @unique
-  displayName     String?
-  password        String
-  agentId         String?
-  balance         Float    @default(0)
-  bettingLimits   Json?    // { maxBetAmount: 10000, maxDailyBets: 50, minBetAmount: 5 }
-  status          String   @default("active") // 'active', 'suspended', 'idle'
-  totalBets       Int      @default(0)
-  totalWagered    Float    @default(0)
-  totalWinnings   Float    @default(0)
-  lastBetAt       DateTime?
-  lastLogin       DateTime?
-  registeredAt    DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  agent           Agent?   @relation(fields: [agentId], references: [id], onDelete: SetNull)
-  playerBets      PlayerBet[]
-  transactions    PlayerTransaction[]
+  id            String              @id @default(cuid())
+  username      String              @unique
+  displayName   String?
+  password      String
+  agentId       String?
+  balance       Float               @default(0)
+  bettingLimits Json?
+  status        String              @default("active")
+  totalBets     Int                 @default(0)
+  totalWagered  Float               @default(0)
+  totalWinnings Float               @default(0)
+  lastBetAt     DateTime?
+  lastLogin     DateTime?
+  registeredAt  DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  agent         Agent?              @relation(fields: [agentId], references: [id])
+  playerBets    PlayerBet[]
+  transactions  PlayerTransaction[]
 
   @@index([username])
   @@index([agentId])
@@ -350,16 +344,16 @@ model DashboardPlayer {
 }
 
 model PlayerBet {
-  id          String   @id @default(cuid())
-  playerId    String
-  betType     String
-  amount      Float
-  odds        Float
+  id           String          @id @default(cuid())
+  playerId     String
+  betType      String
+  amount       Float
+  odds         Float
   potentialWin Float
-  status      String   @default("pending") // 'pending', 'won', 'lost', 'void'
-  placedAt    DateTime @default(now())
-  settledAt   DateTime?
-  player      DashboardPlayer @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  status       String          @default("pending")
+  placedAt     DateTime        @default(now())
+  settledAt    DateTime?
+  player       DashboardPlayer @relation(fields: [playerId], references: [id], onDelete: Cascade)
 
   @@index([playerId])
   @@index([status])
@@ -368,15 +362,15 @@ model PlayerBet {
 }
 
 model PlayerTransaction {
-  id          String   @id @default(cuid())
-  playerId    String
-  type        String   // 'deposit', 'withdrawal', 'bet_placed', 'bet_won', 'adjustment'
-  amount      Float
+  id            String          @id @default(cuid())
+  playerId      String
+  type          String
+  amount        Float
   balanceBefore Float
-  balanceAfter Float
-  reason      String?
-  createdAt   DateTime @default(now())
-  player      DashboardPlayer @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  balanceAfter  Float
+  reason        String?
+  createdAt     DateTime        @default(now())
+  player        DashboardPlayer @relation(fields: [playerId], references: [id], onDelete: Cascade)
 
   @@index([playerId])
   @@index([type])
@@ -385,15 +379,15 @@ model PlayerTransaction {
 }
 
 model AgentBalanceLog {
-  id          String   @id @default(cuid())
-  agentId     String
-  playerId    String
+  id             String   @id @default(cuid())
+  agentId        String
+  playerId       String
   playerUsername String
-  type        String   // 'deposit', 'withdrawal', 'correction'
-  amount      Float
-  reason      String?
-  createdAt   DateTime @default(now())
-  agent       Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  type           String
+  amount         Float
+  reason         String?
+  createdAt      DateTime @default(now())
+  agent          Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
 
   @@index([agentId])
   @@index([playerId])
@@ -402,17 +396,17 @@ model AgentBalanceLog {
 }
 
 model AdminActivityLog {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   adminUserId String
-  action      String   // 'LOGIN', 'LOGOUT', 'CREATE_AGENT', 'SUSPEND_PLAYER', etc.
-  targetId    String?  // ID of affected entity
-  targetType  String?  // 'agent', 'player', 'system'
+  action      String
+  targetId    String?
+  targetType  String?
   details     Json?
   ipAddress   String?
-  createdAt   DateTime @default(now())
-  admin       AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
   resource    String?
   resourceId  String?
+  admin       AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
 
   @@index([adminUserId])
   @@index([action])
@@ -420,62 +414,44 @@ model AdminActivityLog {
   @@map("admin_activity_logs")
 }
 
-// Odds Configuration - Admin Juice/Margin Settings
 model OddsConfiguration {
-  id                String   @id @default(cuid())
-  
-  // Global settings
-  isActive          Boolean  @default(true)
-  lastModified      DateTime @default(now())
-  modifiedBy        String   // AdminUser ID
-  
-  // Margin percentages (in decimal form, e.g., 0.05 = 5%)
-  spreadMargin      Float    @default(0.045)    // 4.5% typical
-  moneylineMargin   Float    @default(0.05)     // 5% typical
-  totalMargin       Float    @default(0.045)    // 4.5% typical
-  
-  // Props margins (typically higher)
-  playerPropsMargin Float    @default(0.08)     // 8% typical
-  gamePropsMargin   Float    @default(0.08)     // 8% typical
-  
-  // Advanced settings
-  roundingMethod    String   @default("nearest10") // 'nearest5', 'nearest10', 'ceiling'
-  minOdds           Int      @default(-10000)   // Minimum odds allowed
-  maxOdds           Int      @default(10000)    // Maximum odds allowed
-  
-  // League-specific overrides (JSON)
-  leagueOverrides   Json?    // { "NBA": { "spreadMargin": 0.05 }, "NFL": { ... } }
-  
-  // Time-based adjustments (optional)
-  liveGameMultiplier Float   @default(1.0)     // Increase margins for live games
-  
-  // Audit trail
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  
-  modifiedByAdmin   AdminUser @relation(fields: [modifiedBy], references: [id])
-  changeHistory     OddsConfigHistory[]
-  
+  id                 String              @id @default(cuid())
+  isActive           Boolean             @default(true)
+  lastModified       DateTime            @default(now())
+  modifiedBy         String
+  spreadMargin       Float               @default(0.045)
+  moneylineMargin    Float               @default(0.05)
+  totalMargin        Float               @default(0.045)
+  playerPropsMargin  Float               @default(0.08)
+  gamePropsMargin    Float               @default(0.08)
+  roundingMethod     String              @default("nearest10")
+  minOdds            Int                 @default(-10000)
+  maxOdds            Int                 @default(10000)
+  leagueOverrides    Json?
+  liveGameMultiplier Float               @default(1.0)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  changeHistory      OddsConfigHistory[]
+  modifiedByAdmin    AdminUser           @relation(fields: [modifiedBy], references: [id])
+
   @@index([isActive])
   @@index([lastModified])
   @@map("odds_configuration")
 }
 
-// Track all configuration changes for audit
 model OddsConfigHistory {
-  id              String           @id @default(cuid())
-  configId        String
-  adminUserId     String
-  changedFields   Json             // What changed
-  previousValues  Json             // Old values
-  newValues       Json             // New values
-  reason          String?          // Optional reason for change
-  ipAddress       String?
-  createdAt       DateTime         @default(now())
-  
-  config          OddsConfiguration @relation(fields: [configId], references: [id], onDelete: Cascade)
-  admin           AdminUser         @relation(fields: [adminUserId], references: [id])
-  
+  id             String            @id @default(cuid())
+  configId       String
+  adminUserId    String
+  changedFields  Json
+  previousValues Json
+  newValues      Json
+  reason         String?
+  ipAddress      String?
+  createdAt      DateTime          @default(now())
+  admin          AdminUser         @relation(fields: [adminUserId], references: [id])
+  config         OddsConfiguration @relation(fields: [configId], references: [id], onDelete: Cascade)
+
   @@index([configId])
   @@index([adminUserId])
   @@index([createdAt])

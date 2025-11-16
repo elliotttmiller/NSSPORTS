@@ -1,5 +1,5 @@
 import prisma from '../../src/lib/prisma';
-import * as readline from 'readline';
+import readline from 'readline';
 
 const rl = readline.createInterface({
   input: process.stdin,

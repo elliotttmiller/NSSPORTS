@@ -82,6 +82,7 @@ interface LiveGameRowProps {
   isFirstInGroup?: boolean;
   isLastInGroup?: boolean;
   showTime?: boolean;
+  justUpdated?: boolean;
 }
 
 export function LiveGameRow({
@@ -89,6 +90,7 @@ export function LiveGameRow({
   isFirstInGroup,
   isLastInGroup,
   showTime = true,
+  justUpdated = false,
 }: LiveGameRowProps) {
   const timeString = formatGameTime(game.startTime);
   const { addBet, removeBet, betSlip } = useBetSlip();
@@ -101,6 +103,57 @@ export function LiveGameRow({
   const [expanded, setExpanded] = useState(false);
   // local mount flag used to run a single fade/translate on initial mount
   const [mounted, setMounted] = useState(false);
+  // transient highlight when game data updates (scores/time/status)
+  const [highlight, setHighlight] = useState(false);
+  useEffect(() => {
+    let t: ReturnType<typeof setTimeout> | undefined;
+    if (justUpdated) {
+      setHighlight(true);
+      t = setTimeout(() => setHighlight(false), 1200);
+    }
+    return () => {
+      if (t) clearTimeout(t);
+    };
+  }, [justUpdated]);
+
+  // Client-side ticking clock for live games: decrement displayed time locally
+  const [localTimeRemaining, setLocalTimeRemaining] = useState<string | null>(null);
+  useEffect(() => {
+    if (game.status !== 'live' || !game.timeRemaining) {
+      setLocalTimeRemaining(null);
+      return;
+    }
+
+    // Parse MM:SS or M:SS formats
+    const match = String(game.timeRemaining).match(/(\d+):(\d{2})/);
+    if (!match) {
+      setLocalTimeRemaining(game.timeRemaining);
+      return;
+    }
+
+    let minutes = parseInt(match[1], 10);
+    let seconds = parseInt(match[2], 10);
+
+    setLocalTimeRemaining(`${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`);
+
+    const interval = setInterval(() => {
+      if (seconds === 0) {
+        if (minutes === 0) {
+          // stop at 00:00
+          clearInterval(interval);
+          setLocalTimeRemaining('00:00');
+          return;
+        }
+        minutes -= 1;
+        seconds = 59;
+      } else {
+        seconds -= 1;
+      }
+      setLocalTimeRemaining(`${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [game.status, game.timeRemaining]);
   useEffect(() => {
     const t = setTimeout(() => setMounted(true), 20);
     return () => clearTimeout(t);
@@ -237,6 +290,7 @@ export function LiveGameRow({
           boxShadow: expanded
             ? "0 8px 32px rgba(0,0,0,0.10)"
             : "0 2px 8px rgba(0,0,0,0.04)",
+          scale: highlight ? 1.01 : 1,
         }}
       >
       {/* Main Card Content - Clickable */}
@@ -279,9 +333,9 @@ export function LiveGameRow({
                       {game.period}
                     </div>
                   )}
-                  {game.timeRemaining && (
+                  {(localTimeRemaining ?? game.timeRemaining) && (
                     <div className="text-accent font-semibold text-[10px] lg:text-xs">
-                      {game.timeRemaining}
+                      {localTimeRemaining ?? game.timeRemaining}
                     </div>
                   )}
                 </motion.div>
@@ -418,6 +472,7 @@ export function LiveGameRow({
                 {formatOdds(oddsSource.total.over?.odds || 0)}
               </span>
             </Button>
+
             <Button
               variant={isBetInSlip("total", "under") ? "default" : "outline"}
               size="sm"

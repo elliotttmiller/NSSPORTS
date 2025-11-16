@@ -102,14 +102,25 @@ function PropsDisplay({ game, expanded }: { game: Game; expanded: boolean }) {
 
 interface Props {
   game: Game;
+  justUpdated?: boolean;
 }
-
-export const LiveMobileGameRow = memo(({ game }: Props) => {
+export const LiveMobileGameRow = memo(({ game, justUpdated = false }: Props) => {
   const { betSlip, addBet, removeBet } = useBetSlip();
   const [expanded, setExpanded] = useState(false);
   // local mount flag used to run a single fade/translate on initial mount
   const [mounted, setMounted] = useState(false);
   const [shouldRenderDropdown, setShouldRenderDropdown] = useState(false);
+  const [highlight, setHighlight] = useState(false);
+  useEffect(() => {
+    let t: ReturnType<typeof setTimeout> | undefined;
+    if (justUpdated) {
+      setHighlight(true);
+      t = setTimeout(() => setHighlight(false), 1200);
+    }
+    return () => {
+      if (t) clearTimeout(t);
+    };
+  }, [justUpdated]);
   
   // ⭐ PHASE 4 OPTIMIZATION: Real-time updates via WebSocket streaming
   // No more polling - odds are updated in real-time via the store's WebSocket connection
@@ -122,6 +133,42 @@ export const LiveMobileGameRow = memo(({ game }: Props) => {
     minute: "2-digit",
     hour12: true,
   });
+
+  // Client-side ticking clock for live games: decrement displayed time locally
+  const [localTimeRemaining, setLocalTimeRemaining] = useState<string | null>(null);
+  useEffect(() => {
+    if (game.status !== 'live' || !game.timeRemaining) {
+      setLocalTimeRemaining(null);
+      return;
+    }
+
+    const match = String(game.timeRemaining).match(/(\d+):(\d{2})/);
+    if (!match) {
+      setLocalTimeRemaining(game.timeRemaining);
+      return;
+    }
+
+    let minutes = parseInt(match[1], 10);
+    let seconds = parseInt(match[2], 10);
+    setLocalTimeRemaining(`${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`);
+
+    const interval = setInterval(() => {
+      if (seconds === 0) {
+        if (minutes === 0) {
+          clearInterval(interval);
+          setLocalTimeRemaining('00:00');
+          return;
+        }
+        minutes -= 1;
+        seconds = 59;
+      } else {
+        seconds -= 1;
+      }
+      setLocalTimeRemaining(`${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [game.status, game.timeRemaining]);
 
   // Helper to check if a bet is in the bet slip
   const getBetId = useCallback(
@@ -255,7 +302,7 @@ export const LiveMobileGameRow = memo(({ game }: Props) => {
       <motion.div
         className="bg-card/40 border border-accent/20 ring-1 ring-accent/10 rounded-lg mb-2 hover:bg-card/60 hover:shadow-md transition-all duration-200 overflow-hidden render-hint contain-96"
         initial={false}
-        animate={{ boxShadow: expanded ? "0 8px 32px rgba(0,0,0,0.10)" : "0 2px 8px rgba(0,0,0,0.04)" }}
+        animate={{ boxShadow: expanded ? "0 8px 32px rgba(0,0,0,0.10)" : "0 2px 8px rgba(0,0,0,0.04)", scale: highlight ? 1.01 : 1 }}
       >
       {/* Main Card Content - Clickable */}
       <div
@@ -292,8 +339,8 @@ export const LiveMobileGameRow = memo(({ game }: Props) => {
                 }}
               >
                 {game.period && <span className="uppercase">{game.period}</span>}
-                {game.period && game.timeRemaining && <span>•</span>}
-                {game.timeRemaining && <span>{game.timeRemaining}</span>}
+                {game.period && (localTimeRemaining ?? game.timeRemaining) && <span>•</span>}
+                {(localTimeRemaining ?? game.timeRemaining) && <span>{localTimeRemaining ?? game.timeRemaining}</span>}
               </motion.div>
             ) : (
               /* Show game time if not live */

@@ -45,6 +45,23 @@ import {
   getGameProps as sdkGetGameProps,
 } from './sportsgameodds-sdk';
 import { cacheGet, cacheSet, CachePrefix, CacheTTL } from './cache';
+import { createHash } from 'crypto';
+
+// In-memory map to deduplicate concurrent SDK fetches for identical queries.
+// Keyed by a stable JSON representation of the fetch options.
+const inflightFetches = new Map<string, Promise<{ data: any[]; source: string }>>();
+
+function stableKeyForOptions(options: Record<string, any>) {
+  // Create a shallow stable key - options are simple and not deeply nested in current usage
+  const keys = Object.keys(options).sort();
+  const obj: Record<string, any> = {};
+  for (const k of keys) {
+    const v = (options as any)[k];
+    // Normalize undefined -> null to keep key stable
+    obj[k] = v === undefined ? null : v;
+  }
+  return JSON.stringify(obj);
+}
 
 // Cache TTL in seconds - optimized for development/testing
 /**
@@ -151,52 +168,247 @@ export async function getEventsWithCache(options: {
   startsAfter?: string;
   startsBefore?: string;
 }) {
-  // 0. Try Redis cache first (fastest - sub-millisecond)
-  const redisKey = `${CachePrefix.LIVE_GAMES}${options.leagueID || 'all'}:${options.live ? 'live' : 'upcoming'}`;
+  const key = stableKeyForOptions(options as any);
+
+  // If a full SDK fetch for this same options is already in-flight, reuse it
+  const existing = inflightFetches.get(key);
+  if (existing) {
+    // Return the in-flight promise so we don't duplicate SDK calls
+    return existing;
+  }
+  // Redis cache: use a stable key that includes all query params to avoid stale
+  // collisions across different time window queries. We hash the serialized
+  // options to keep keys short and deterministic.
+  function redisKeyForOptions(opts: Record<string, any>) {
+    const prefix = `${CachePrefix.LIVE_GAMES}${opts.leagueID || 'all'}`;
+    const stable = stableKeyForOptions(opts);
+    const hash = createHash('sha1').update(stable).digest('hex');
+    return `${prefix}:${hash}`;
+  }
+
+
+  const skipRedisCache = false;
   
-  try {
-    const redisData = await cacheGet<any[]>(redisKey);
-    if (redisData && redisData.length > 0) {
-      logger.debug('[Cache] ✅ Redis hit:', { key: redisKey, count: redisData.length });
-      return { data: redisData, source: 'redis' as const };
+  if (!skipRedisCache) {
+    const redisKey = redisKeyForOptions(options as any);
+
+    try {
+      const redisData = await cacheGet<any[]>(redisKey);
+      if (redisData && redisData.length > 0) {
+        logger.debug('[Cache] ✅ Redis hit:', { key: redisKey, count: redisData.length });
+        return { data: redisData, source: 'redis' as const };
+      }
+    } catch (redisError) {
+      logger.warn('[Cache] Redis check failed, falling back to Prisma', { error: redisError });
     }
-  } catch (redisError) {
-    logger.warn('[Cache] Redis check failed, falling back to Prisma', { error: redisError });
   }
   
   // 1. Check Prisma cache (slower than Redis, but still fast)
   try {
     const cachedEvents = await getEventsFromCache(options);
     if (cachedEvents.length > 0) {
-      // Cache hit in Prisma - also store in Redis for next request
-      const ttl = options.live ? CacheTTL.LIVE_GAMES : CacheTTL.UPCOMING_GAMES;
-      await cacheSet(redisKey, cachedEvents, ttl);
-      
-      return { data: cachedEvents, source: 'prisma-cache' as const };
+      logger.info(`[Cache] ✅ Prisma cache hit for ${options.leagueID || 'all'} (live=${options.live}): ${cachedEvents.length} games`);
+      // If this is a live query, ensure the cached set contains at least one live game
+      // Returning a cached set with no live games causes the live endpoint to show "no live games"
+      if (options.live === true) {
+        const liveCached = cachedEvents.filter((e: any) => e.status?.live === true);
+        if (liveCached.length > 0) {
+          if (!skipRedisCache) {
+            const redisKey = redisKeyForOptions(options as any);
+            const ttl = CacheTTL.LIVE_GAMES;
+            await cacheSet(redisKey, liveCached, ttl);
+          }
+          return { data: liveCached, source: 'prisma-cache' as const };
+        }
+
+        // No live games in cached set - continue to SDK fetch / stale path
+        logger.debug('[Cache] Prisma cache contains games but none are live; continuing to SDK for live query');
+      } else {
+        // Non-live queries can safely return the cached set
+        if (!skipRedisCache) {
+          const redisKey = redisKeyForOptions(options as any);
+          const ttl = CacheTTL.UPCOMING_GAMES;
+          await cacheSet(redisKey, cachedEvents, ttl);
+        }
+
+        return { data: cachedEvents, source: 'prisma-cache' as const };
+      }
+    } else {
+      logger.info(`[Cache] ⚠️ Prisma cache miss for ${options.leagueID || 'all'} (live=${options.live}) - fetching from SDK`);
     }
   } catch (cacheError) {
     logger.warn('Prisma cache check failed, will fetch from SDK', { error: cacheError });
     // Continue to SDK fetch - cache errors shouldn't break the flow
   }
+
+  // At this point, Prisma did not return a valid (non-expired) set.
+  // Implement stale-while-revalidate: return stale Prisma data immediately if present
+  // then revalidate in background. This improves perceived latency on cache misses.
+  try {
+    // Build the same 'where' filter used in getEventsFromCache to fetch raw entries
+    const rawWhere: any = {};
+    if (options.leagueID) rawWhere.leagueId = options.leagueID;
+    if (options.startsAfter || options.startsBefore) {
+      rawWhere.startTime = {};
+      if (options.startsAfter) rawWhere.startTime.gte = new Date(options.startsAfter);
+      if (options.startsBefore) rawWhere.startTime.lte = new Date(options.startsBefore);
+    }
+
+    const rawGames = await prisma.game.findMany({
+      where: rawWhere,
+      include: { homeTeam: true, awayTeam: true, odds: true },
+      orderBy: { startTime: 'asc' },
+    });
+
+    if (rawGames.length > 0) {
+      // Transform raw games to SDK format (no TTL filtering)
+      const staleData = rawGames.map((game: any) => ({
+        eventID: game.id,
+        leagueID: game.leagueId.toUpperCase(),
+        commence: game.startTime.toISOString(),
+        startTime: game.startTime.toISOString(),
+        activity: game.status === 'live' ? 'in_progress' : game.status === 'finished' ? 'final' : 'scheduled',
+        status: {
+          startsAt: game.startTime.toISOString(),
+          live: game.status === 'live',
+          completed: game.status === 'finished',
+          ended: game.status === 'finished',
+        },
+        teams: {
+          home: {
+            teamID: game.homeTeamId,
+            name: game.homeTeam.name,
+            names: { long: game.homeTeam.name, short: game.homeTeam.shortName || game.homeTeam.name },
+            logo: game.homeTeam.logo || '',
+            standings: game.homeTeam.record ? { record: game.homeTeam.record } : undefined,
+          },
+          away: {
+            teamID: game.awayTeamId,
+            name: game.awayTeam.name,
+            names: { long: game.awayTeam.name, short: game.awayTeam.shortName || game.awayTeam.name },
+            logo: game.awayTeam.logo || '',
+            standings: game.awayTeam.record ? { record: game.awayTeam.record } : undefined,
+          },
+        },
+        scores: game.homeScore !== null ? { home: game.homeScore, away: game.awayScore } : undefined,
+        period: game.period,
+        clock: game.timeRemaining,
+        odds: transformOddsFromCache(game.odds),
+      }));
+
+      // Revalidate in background - dedupe inflight SDK fetches
+      const bgFetch = (async () => {
+        const sdkPromise = (async () => {
+          try {
+            logger.info(`[SWR] Revalidating SDK for ${options.leagueID || 'all'} (live=${options.live})`);
+            const { data: sdkEvents } = await sdkGetEvents({ ...options, includeConsensus: options.includeConsensus !== false });
+            await Promise.all([updateEventsCache(sdkEvents)]);
+            logger.info(`[SWR] Revalidation completed for ${options.leagueID || 'all'} (fetched=${sdkEvents.length})`);
+            return { data: sdkEvents, source: 'sdk' as const };
+          } catch (e) {
+            logger.warn('[SWR] Background revalidation failed', { error: e });
+            throw e;
+          }
+        })();
+
+        // Track the revalidation so other callers don't start duplicate SDK requests
+        inflightFetches.set(key, sdkPromise as any);
+        try {
+          return await sdkPromise;
+        } finally {
+          inflightFetches.delete(key);
+        }
+      })();
+
+      // Fire-and-forget background revalidation
+      bgFetch.catch(() => null);
+      // If this is a live query, only return stale data if the stale set contains
+      // at least one game that is still marked live in the DB. Returning stale
+      // non-live games for a live endpoint causes the client to show "no live games".
+      if (options.live === true) {
+        const staleLive = staleData.filter((e: any) => e.status?.live === true);
+        if (staleLive.length === 0) {
+          // No live games in stale cache - skip returning stale and continue to SDK
+          logger.debug('[Cache] Stale Prisma cache contains no live games, skipping stale return for live query');
+        } else {
+          logger.info(`[Cache] Returning stale Prisma live data for ${options.leagueID || 'all'} while revalidating (count=${staleLive.length})`);
+          return { data: staleLive, source: 'stale-prisma-cache' as const };
+        }
+      } else {
+        logger.info(`[Cache] Returning stale Prisma data for ${options.leagueID || 'all'} while revalidating (count=${staleData.length})`);
+        return { data: staleData, source: 'stale-prisma-cache' as const };
+      }
+    }
+  } catch (e) {
+    logger.warn('Failed to fetch stale Prisma cache, continuing to SDK', { error: e });
+  }
   
   // 2. Fetch from SDK (source of truth)
   // CRITICAL: Always request consensus odds (bookOdds) for real market data
-  const { data: events } = await sdkGetEvents({
-    ...options,
-    includeConsensus: options.includeConsensus !== false, // Default to true
-  });
-  
-  // 3. Update both Redis and Prisma cache for next request (async, non-blocking)
-  const ttl = options.live ? CacheTTL.LIVE_GAMES : CacheTTL.UPCOMING_GAMES;
-  Promise.all([
-    cacheSet(redisKey, events, ttl),
-    updateEventsCache(events),
-  ]).catch(error => {
-    logger.error('Failed to update caches', error);
-    // Don't throw - cache update failure shouldn't break the response
-  });
-  
-  return { data: events, source: 'sdk' as const };
+  logger.info(`[SDK] 📡 Fetching from SDK for ${options.leagueID || 'all'} (live=${options.live})`);
+  // Deduplicate concurrent SDK fetches for identical queries
+  const sdkFetchPromise = (async () => {
+    try {
+      const { data: events } = await sdkGetEvents({ ...options, includeConsensus: options.includeConsensus !== false });
+      logger.info(`[SDK] ✅ SDK returned ${events.length} events for ${options.leagueID || 'all'} (live=${options.live})`);
+      return { data: events, source: 'sdk' as const };
+    } catch (e) {
+      logger.error('[SDK] SDK fetch failed', e);
+      throw e;
+    }
+  })();
+
+  // Track inflight SDK fetch so other identical callers reuse it
+  inflightFetches.set(key, sdkFetchPromise as any);
+
+  try {
+    const sdkResult = await sdkFetchPromise;
+    const events = sdkResult.data;
+
+    // 3. Update Prisma cache for next request (async, non-blocking)
+    const promises: Promise<unknown>[] = [updateEventsCache(events)];
+
+    if (!skipRedisCache) {
+      const ttl = options.live ? CacheTTL.LIVE_GAMES : CacheTTL.UPCOMING_GAMES;
+
+      // If caller requested a specific league, write single key. If this was
+      // a single all-leagues fetch (no options.leagueID), partition results
+      // by league and write per-league keys so one league's cache write
+      // doesn't evict or overwrite other leagues in Redis.
+      if (options.leagueID) {
+        const redisKey = `${CachePrefix.LIVE_GAMES}${options.leagueID}:${options.live ? 'live' : 'upcoming'}`;
+        promises.push(cacheSet(redisKey, events, ttl) as any);
+      } else {
+        try {
+          const byLeague: Record<string, any[]> = {};
+          for (const ev of events) {
+            const league = (ev.leagueID || 'all').toString().toUpperCase();
+            if (!byLeague[league]) byLeague[league] = [];
+            byLeague[league].push(ev);
+          }
+
+          for (const [league, arr] of Object.entries(byLeague)) {
+            const redisKey = `${CachePrefix.LIVE_GAMES}${league}:${options.live ? 'live' : 'upcoming'}`;
+            promises.push(cacheSet(redisKey, arr, ttl) as any);
+          }
+        } catch {
+          // In case partitioning fails for unexpected data, fall back to writing
+          // a global key to avoid losing cache entirely.
+          const fallbackKey = `${CachePrefix.LIVE_GAMES}all:${options.live ? 'live' : 'upcoming'}`;
+          promises.push(cacheSet(fallbackKey, events, ttl) as any);
+        }
+      }
+    }
+
+    Promise.all(promises).catch(error => {
+      logger.error('Failed to update caches', error);
+      // Don't throw - cache update failure shouldn't break the response
+    });
+
+    return { data: events, source: 'sdk' as const };
+  } finally {
+    inflightFetches.delete(key);
+  }
 }
 
 /**
@@ -204,6 +416,12 @@ export async function getEventsWithCache(options: {
  */
 async function updateEventsCache(events: any[]) {
   try {
+    // Only allow caching for leagues we support in the DB seed.
+    // Prevents foreign key violations when the SDK returns leagues we haven't added (e.g. AHL)
+    const SUPPORTED_LEAGUES = new Set<string>([
+      'NBA', 'NCAAB', 'NFL', 'NCAAF', 'NHL', 'ATP', 'WTA', 'ITF'
+    ]);
+
     for (const event of events) {
       // SDK v2 structure: start time in status.startsAt
       const startTimeValue = event.status?.startsAt;
@@ -231,6 +449,12 @@ async function updateEventsCache(events: any[]) {
       const homeTeam = event.teams.home;
       const awayTeam = event.teams.away;
       const leagueId = event.leagueID; // Keep uppercase to match SDK (NBA, NFL, NHL)
+
+      // Skip leagues we haven't implemented/seeded in the DB to avoid FK errors
+      if (!leagueId || !SUPPORTED_LEAGUES.has(String(leagueId).toUpperCase())) {
+        logger.info(`[updateEventsCache] Skipping event ${event.eventID} - unsupported league: ${leagueId}`);
+        continue;
+      }
       
       // Helper function to generate local logo path using exact SDK team ID
       const getTeamLogoPath = (teamID: string, leagueId: string): string => {
@@ -569,9 +793,11 @@ async function getEventsFromCache(options: {
     where.leagueId = options.leagueID;
   }
   
-  if (options.live) {
-    where.status = 'live';
-  }
+  // ⭐ CRITICAL FIX: Don't filter by status in Prisma cache for live games
+  // Problem: Games might be cached with status='upcoming' but are now live
+  // The SDK will provide the correct live status when we refetch
+  // Only use time-based filtering for the cache query
+  // The transformer will handle the actual status mapping
   
   if (options.startsAfter || options.startsBefore) {
     where.startTime = {};
@@ -595,25 +821,48 @@ async function getEventsFromCache(options: {
   });
   
   // Apply smart TTL filtering - each game gets its own cache duration
-  // CRITICAL: Live games get 10s TTL, upcoming games get 30s-120s based on start time
+  // Use the smart TTL directly. Doubling TTL caused delayed score propagation
+  // for live games; keep the aggressive TTL for live games to ensure timely updates.
   const now = new Date();
+  // Aggregate expired-game diagnostics to avoid log flooding. By default we
+  // emit a compact summary. Set NODE_ENV=development or LOG_CACHE_EXPIRES=true
+  // to get detailed per-game samples.
+  let expiredCount = 0;
+  const expiredSamples: string[] = [];
+  const verboseExpiry = process.env.NODE_ENV === 'development' || process.env.LOG_CACHE_EXPIRES === 'true';
+
   const validGames = games.filter((game: any) => {
-    const isLive = game.status === 'live';
-    const smartTTL = getSmartCacheTTL(game.startTime, isLive);
-    const ttlDate = new Date(now.getTime() - smartTTL * 1000);
-    
+  const isLive = game.status === 'live';
+  const smartTTL = getSmartCacheTTL(game.startTime, isLive);
+  const effectiveTTL = smartTTL; // honor smart TTL directly
+  const ttlDate = new Date(now.getTime() - effectiveTTL * 1000);
+
     // Game is valid if it was updated within its smart TTL window
     const isValid = game.updatedAt >= ttlDate;
-    
+
     if (!isValid) {
-      const hoursUntilStart = (game.startTime.getTime() - now.getTime()) / (1000 * 60 * 60);
-      logger.debug(
-        `Game ${game.id} cache expired (status: ${game.status}, TTL: ${smartTTL}s, hours until start: ${hoursUntilStart.toFixed(1)}h)`
-      );
+      expiredCount += 1;
+      // collect a few samples for richer diagnostics without spamming logs
+      if (verboseExpiry && expiredSamples.length < 5) {
+        const hoursUntilStart = (game.startTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+        expiredSamples.push(
+          `Game ${game.id} cache expired (status: ${game.status}, effective TTL: ${effectiveTTL}s, hours until start: ${hoursUntilStart.toFixed(1)}h)`
+        );
+      }
     }
-    
+
     return isValid;
   });
+
+  // Emit a single diagnostic line instead of per-game messages. This keeps
+  // production logs clean while still surfacing cache expiration activity.
+  if (expiredCount > 0) {
+    if (verboseExpiry) {
+      logger.debug(`[hybrid-cache] ${expiredCount} cached games expired for league=${options.leagueID || 'ALL'}; samples:\n${expiredSamples.join('\n')}`);
+    } else {
+      logger.debug(`[hybrid-cache] ${expiredCount} cached games expired for league=${options.leagueID || 'ALL'}`);
+    }
+  }
   
   // Transform valid games to SDK format
   return validGames.map((game: any) => ({
