@@ -99,7 +99,13 @@ export function formatSelectionLabel(
   if (betType === 'game_prop' && gameProp) {
     const sel = selection.toUpperCase();
     const lineStr = typeof line === 'number' ? ` ${Math.abs(line)}` : '';
-    return `${gameProp.description || gameProp.propType} ${sel}${lineStr}`.trim();
+    // Add period/quarter/half info if present
+    let periodInfo = '';
+    if (gameProp.marketCategory) {
+      // Example: '1P', '2P', '1Q', '2H', etc.
+      periodInfo = ` ${gameProp.marketCategory.toUpperCase()}`;
+    }
+    return `${gameProp.description || gameProp.propType} ${sel}${lineStr}${periodInfo}`.trim();
   }
 
   // Handle total/over-under bets explicitly
@@ -215,7 +221,7 @@ export function BetCardSingle({
 
         {/* Main Bet Content */}
         <div className="mb-2.5">
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex items-center gap-4">
             <div className="flex-1 min-w-0 flex items-center gap-4">
               {/* Selection and Result side-by-side, vertically centered */}
               <div className="flex flex-col min-w-0 justify-center h-full" style={{ minHeight: '90px' }}>
@@ -256,10 +262,10 @@ export function BetCardSingle({
                     <Badge
                       variant="outline"
                       className={cn(
-                        "text-sm sm:text-base font-bold px-2 py-1 rounded-md border shadow transition-colors",
-                        status === 'won' ? "bg-green-500/10 border-green-500 text-green-700" :
-                        status === 'lost' ? "bg-red-500/10 border-red-500 text-red-700" :
-                        "bg-muted/10 border-muted text-muted-foreground"
+                        "text-xs sm:text-sm font-medium px-1.5 py-0.5 rounded border shadow-none transition-colors",
+                        status === 'won' ? "bg-green-500/5 border-green-300 text-green-700" :
+                        status === 'lost' ? "bg-red-500/5 border-red-300 text-red-700" :
+                        "bg-muted/5 border-muted text-muted-foreground"
                       )}
                     >
                       {actualResult}
@@ -268,13 +274,15 @@ export function BetCardSingle({
                 </div>
               )}
             </div>
-            {/* Odds Badge */}
-            <Badge
-              variant="outline"
-              className="text-base sm:text-lg font-bold px-2.5 py-1 shrink-0 tabular-nums border-2"
-            >
-              {formatOdds(odds)}
-            </Badge>
+            {/* Odds Badge - aligned with selection/result */}
+            <div className="flex flex-col items-center justify-center h-full">
+              <Badge
+                variant="outline"
+                className="text-base sm:text-lg font-bold px-2.5 py-1 shrink-0 tabular-nums border-2"
+              >
+                {formatOdds(odds)}
+              </Badge>
+            </div>
           </div>
         </div>
         {children}

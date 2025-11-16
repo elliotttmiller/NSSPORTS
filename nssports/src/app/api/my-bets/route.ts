@@ -557,11 +557,20 @@ export async function GET() {
       // Parse player/game prop metadata from legs JSON field for single bets
       let playerProp;
       let gameProp;
+      let marketCategory;
+      let periodID;
       if (b.betType !== 'parlay' && b.legs) {
         try {
           const metadata = typeof b.legs === 'string' ? JSON.parse(b.legs) : b.legs;
           playerProp = metadata.playerProp;
           gameProp = metadata.gameProp;
+          // Patch: ensure marketCategory and periodID are included for game props
+          if (gameProp) {
+            marketCategory = gameProp.marketCategory ?? metadata.marketCategory;
+            periodID = gameProp.periodID ?? metadata.periodID;
+            // Attach to gameProp for frontend consumption
+            gameProp = { ...gameProp, marketCategory, periodID };
+          }
         } catch {
           // Ignore parse errors
         }
@@ -582,6 +591,9 @@ export async function GET() {
         // Include player/game prop metadata for display
         playerProp,
         gameProp,
+        // Patch: include marketCategory and periodID at top level for frontend/mobile UI
+        marketCategory: marketCategory ?? b.marketCategory,
+        periodID: periodID ?? b.periodID,
         // Include teaser metadata for teaser bets
         teaserType: b.teaserType || undefined,
         teaserMetadata: b.teaserMetadata ? (typeof b.teaserMetadata === 'string' ? JSON.parse(b.teaserMetadata) : b.teaserMetadata) : undefined,
@@ -593,15 +605,22 @@ export async function GET() {
         actualResult,
         // Transform parlay legs game data
         legs: Array.isArray(b.legs)
-          ? b.legs.map((leg: any) => ({
-              ...leg,
-              game: transformGameForBetCard(leg.game),
-              // Ensure player prop and game prop metadata is preserved
-              playerProp: leg.playerProp,
-              gameProp: leg.gameProp,
-              // Use stored actualResult if available, otherwise compute dynamically
-              actualResult: leg.actualResult || computeActualResult(leg, leg.game, playerStatsMap, periodScoresMap, b.status),
-            }))
+          ? b.legs.map((leg: any) => {
+              let legMarketCategory = leg.gameProp?.marketCategory ?? leg.marketCategory;
+              let legPeriodID = leg.gameProp?.periodID ?? leg.periodID;
+              return {
+                ...leg,
+                game: transformGameForBetCard(leg.game),
+                // Ensure player prop and game prop metadata is preserved
+                playerProp: leg.playerProp,
+                gameProp: leg.gameProp ? { ...leg.gameProp, marketCategory: legMarketCategory, periodID: legPeriodID } : undefined,
+                // Patch: include marketCategory and periodID at leg level for frontend/mobile UI
+                marketCategory: legMarketCategory,
+                periodID: legPeriodID,
+                // Use stored actualResult if available, otherwise compute dynamically
+                actualResult: leg.actualResult || computeActualResult(leg, leg.game, playerStatsMap, periodScoresMap, b.status),
+              };
+            })
           : b.betType === 'parlay' ? b.legs : null, // Keep parlay legs, null out single bet metadata
       };
     });
@@ -770,7 +789,8 @@ export async function POST(req: Request) {
 
     // For parlay bets
     if (data.betType === "parlay") {
-      logger.info('Creating parlay bet', { legs: data.legs.length });
+      const parlayLegs = (data as any).legs;
+      logger.info('Creating parlay bet', { legs: Array.isArray(parlayLegs) ? parlayLegs.length : 0 });
       const parlayBet = await tx.bet.create({
         data: {
           betType: "parlay",
@@ -783,7 +803,7 @@ export async function POST(req: Request) {
           odds: data.odds ?? 0,
           line: null,
           gameId: null,
-          legs: data.legs ?? null,
+          legs: parlayLegs ?? null,
           idempotencyKey,
         },
       });
@@ -799,7 +819,7 @@ export async function POST(req: Request) {
     // Verify game exists
     const game = await tx.game.findUnique({
       where: { id: data.gameId },
-      select: { id: true, status: true },
+      select: { id: true, status: true, startTime: true },
     });
 
     if (!game) {
@@ -808,6 +828,40 @@ export async function POST(req: Request) {
 
     if (game.status === "finished") {
       throw new Error("Cannot place bet on finished game");
+    }
+
+    // === INDUSTRY STANDARD: PERIOD/QUARTER/HALF BET CUTOFF ENFORCEMENT ===
+    // If this is a game prop bet with a period/quarter/half, enforce cutoff
+    if (data.betType === "game_prop" && (data as any).legs) {
+      try {
+        const dataLegs = (data as any).legs;
+        const metadata = typeof dataLegs === "string" ? JSON.parse(dataLegs) : dataLegs;
+        const gameProp = metadata.gameProp;
+        if (gameProp?.periodID) {
+          // Determine segment start time (requires mapping periodID to actual time)
+          // For now, use game.startTime as base and add offset for segment
+          // TODO: Replace with actual segment start time if available from SDK
+          const segmentStart = new Date(game.startTime);
+          let offsetMinutes = 0;
+          // Example: NBA quarters (12 min each), NHL periods (20 min each)
+          if (gameProp.periodID === "1q" || gameProp.periodID === "1p") offsetMinutes = 0;
+          if (gameProp.periodID === "2q" || gameProp.periodID === "2p") offsetMinutes = 12;
+          if (gameProp.periodID === "3q" || gameProp.periodID === "3p") offsetMinutes = 24;
+          if (gameProp.periodID === "4q") offsetMinutes = 36;
+          if (gameProp.periodID === "1h") offsetMinutes = 0;
+          if (gameProp.periodID === "2h") offsetMinutes = 24;
+          // Add offset to segment start
+          segmentStart.setMinutes(segmentStart.getMinutes() + offsetMinutes);
+          // Industry standard: lock bets 1 minute before segment starts
+          const cutoff = new Date(segmentStart.getTime() - 1 * 60 * 1000);
+          const now = new Date();
+          if (now >= cutoff) {
+            throw new Error(`Betting for ${gameProp.periodID} is closed (cutoff: ${cutoff.toISOString()})`);
+          }
+        }
+      } catch (e) {
+        // If metadata parse fails, fallback to normal bet placement
+      }
     }
 
     logger.info('Creating single bet', { gameId: data.gameId, betType: data.betType });

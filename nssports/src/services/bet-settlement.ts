@@ -61,23 +61,24 @@ export function gradeSpreadBet(params: {
   const { selection, line, homeScore, awayScore } = params;
 
   if (selection === "home") {
-    const adjustedHomeScore = homeScore + line;
-    if (adjustedHomeScore > awayScore) {
-      return { status: "won", reason: `Home covered ${line > 0 ? '+' : ''}${line}` };
-    } else if (adjustedHomeScore < awayScore) {
-      return { status: "lost", reason: `Home failed to cover ${line > 0 ? '+' : ''}${line}` };
+    // Favorite: must win by more than the spread
+    const margin = homeScore - awayScore;
+    if (margin > line) {
+      return { status: "won", reason: `Home won by ${margin} (spread ${line > 0 ? '+' : ''}${line})` };
+    } else if (margin === line) {
+      return { status: "push", reason: `Home won by exactly the spread (${line})` };
     } else {
-      return { status: "push", reason: "Exact push" };
+      return { status: "lost", reason: `Home won by ${margin} (spread ${line})` };
     }
   } else {
-    // Away team - line is reversed
-    const adjustedAwayScore = awayScore - line;
-    if (adjustedAwayScore > homeScore) {
-      return { status: "won", reason: `Away covered ${line < 0 ? '' : '+'}${-line}` };
-    } else if (adjustedAwayScore < homeScore) {
-      return { status: "lost", reason: `Away failed to cover ${line < 0 ? '' : '+'}${-line}` };
+    // Underdog: must lose by less than the spread or win outright
+    const margin = awayScore - homeScore;
+    if (margin > line) {
+      return { status: "won", reason: `Away won by ${margin} (spread ${line > 0 ? '+' : ''}${line})` };
+    } else if (margin === line) {
+      return { status: "push", reason: `Away won by exactly the spread (${line})` };
     } else {
-      return { status: "push", reason: "Exact push" };
+      return { status: "lost", reason: `Away won by ${margin} (spread ${line})` };
     }
   }
 }

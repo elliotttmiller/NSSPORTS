@@ -593,7 +593,7 @@ async function getEventsFromCache(options: {
   // Apply smart TTL filtering - each game gets its own cache duration
   // CRITICAL: Live games get 10s TTL, upcoming games get 30s-120s based on start time
   const now = new Date();
-  const validGames = games.filter(game => {
+  const validGames = games.filter((game: any) => {
     const isLive = game.status === 'live';
     const smartTTL = getSmartCacheTTL(game.startTime, isLive);
     const ttlDate = new Date(now.getTime() - smartTTL * 1000);
@@ -612,7 +612,7 @@ async function getEventsFromCache(options: {
   });
   
   // Transform valid games to SDK format
-  return validGames.map(game => ({
+  return validGames.map((game: any) => ({
     eventID: game.id,
     leagueID: game.leagueId.toUpperCase(),
     commence: game.startTime.toISOString(),
@@ -885,7 +885,7 @@ async function getPlayerPropsFromCache(gameId: string) {
   });
   
   // Transform to SDK format
-  return props.map(prop => ({
+  return props.map((prop: any) => ({
     propID: prop.id,
     eventID: gameId,
     marketType: `player_${prop.statType}`,
@@ -927,7 +927,40 @@ export async function getGamePropsWithCache(eventID: string) {
   
   // 2. Fetch from SDK (source of truth)
   const props = await sdkGetGameProps(eventID);
-  
+
+  // Safety: If the game is live, filter out props that target past periods
+  try {
+    const dbGame = await prisma.game.findUnique({
+      where: { id: eventID },
+      select: { status: true, period: true },
+    });
+
+    if (dbGame && dbGame.status === 'live' && dbGame.period) {
+      const currentPeriodIndex = parsePeriodIndex(dbGame.period);
+      if (currentPeriodIndex !== null) {
+        // Filter out any market whose periodID is numerically <= currentPeriodIndex
+        const filtered = props.filter((market: any) => {
+          const periodID: string | undefined = market.periodID || market.period || undefined;
+          if (!periodID) return true; // keep markets without explicit period (full-game props)
+          const marketIndex = parsePeriodIndex(periodID);
+          if (marketIndex === null) return true; // keep if can't parse
+          // If the market's period is less than or equal to current period, it's past or current -> remove
+          return marketIndex > currentPeriodIndex;
+        });
+
+        // Replace props with filtered set for returning to caller
+        // (do not mutate SDK cache update path; we still update DB cache with original props)
+        const filteredProps = filtered;
+        updateGamePropsCache(eventID, props).catch(error => {
+          logger.error('Failed to update game props cache', error);
+        });
+        return { data: filteredProps, source: 'sdk' as const };
+      }
+    }
+  } catch (e) {
+    logger.warn('Could not apply live-period filtering for game props', { gameId: eventID, error: e });
+  }
+
   // 3. Update Prisma cache for next request (async, non-blocking)
   updateGamePropsCache(eventID, props).catch(error => {
     logger.error('Failed to update game props cache', error);
@@ -935,6 +968,34 @@ export async function getGamePropsWithCache(eventID: string) {
   });
   
   return { data: props, source: 'sdk' as const };
+}
+
+/**
+ * Parse a period identifier or game.period string into a numeric index.
+ * Returns null if it cannot be parsed.
+ * Examples:
+ *  - '1q' -> 1
+ *  - '2p' -> 2
+ *  - '1h' -> 1
+ *  - '2' or '2nd' or '2nd Period' -> 2
+ */
+function parsePeriodIndex(period: string): number | null {
+  if (!period || typeof period !== 'string') return null;
+  const lower = period.toLowerCase();
+
+  // Common SDK period IDs like '1q','2q','1p','2p','1h','2h'
+  const m = lower.match(/^(\d+)(q|p|h|i)?$/);
+  if (m) return Number(m[1]);
+
+  // Strings like '1st', '2nd', '3rd', '4th', '1', '2'
+  const digit = lower.match(/(\d+)/);
+  if (digit) return Number(digit[1]);
+
+  // Overtime/extra periods - treat as high index so they're not filtered out erroneously
+  if (lower.includes('ot') || lower.includes('ot1') || lower.includes('overtime')) return 99;
+  if (lower.includes('so') || lower.includes('shootout')) return 100;
+
+  return null;
 }
 
 /**
@@ -1035,7 +1096,7 @@ async function getGamePropsFromCache(gameId: string) {
   // Transform to SDK format
   const grouped: Record<string, any> = {};
   
-  props.forEach(prop => {
+  props.forEach((prop: any) => {
     if (!grouped[prop.propType]) {
       grouped[prop.propType] = {
         marketID: `${gameId}_${prop.propType}`,
