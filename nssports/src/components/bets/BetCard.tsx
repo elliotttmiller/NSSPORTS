@@ -156,11 +156,9 @@ export function BetCardSingle({
   const placed = placedAt ? new Date(placedAt) : null;
   const isWon = status === "won";
   return (
-    <Card 
+    <Card
       className={cn(
-        "w-full max-w-full mx-auto",
-        // Mobile: Completely non-interactive for smooth scrolling
-        "touch-pan-y select-none",
+        "w-full max-w-full mx-auto touch-pan-y select-none",
         isWon
           ? "border-border/30 ring-1 ring-white/10"
           : status === "lost"
@@ -168,9 +166,9 @@ export function BetCardSingle({
           : "border-accent/20 ring-1 ring-accent/10"
       )}
       style={{
-        touchAction: 'pan-y', // Only vertical scrolling
-        WebkitTouchCallout: 'none', // Disable iOS callout
-        WebkitUserSelect: 'none', // Disable text selection on touch
+        touchAction: 'pan-y',
+        WebkitTouchCallout: 'none',
+        WebkitUserSelect: 'none',
         userSelect: 'none',
       }}
     >
@@ -178,23 +176,33 @@ export function BetCardSingle({
         {/* Header: Badges and Date */}
         <div className="flex items-center justify-between mb-2.5">
           <div className="flex items-center gap-1.5 flex-wrap">
-            <Badge 
-              variant={isWon ? "default" : status === "lost" ? "destructive" : "outline"} 
+            <Badge
+              variant={isWon ? "default" : status === "lost" ? "destructive" : "outline"}
               className={cn(
                 "text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 uppercase tracking-[0.06em]",
-                isWon ? "bg-green-600 text-white" : status === "lost" ? "bg-red-600 text-white" : status === "push" ? "bg-blue-500 text-white" : "bg-yellow-50 text-yellow-700 border-yellow-200"
+                isWon
+                  ? "bg-green-600 text-white"
+                  : status === "lost"
+                  ? "bg-red-600 text-white"
+                  : status === "push"
+                  ? "bg-blue-500 text-white"
+                  : "bg-yellow-50 text-yellow-700 border-yellow-200"
               )}
             >
               {status.toUpperCase()}
             </Badge>
-            <Badge 
-              variant={isWon ? "default" : "outline"} 
+            <Badge
+              variant={isWon ? "default" : "outline"}
               className={cn(
                 "text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 uppercase tracking-[0.06em]",
                 isWon ? "bg-accent/10 text-accent border-accent/30" : ""
               )}
             >
-              {betType === 'player_prop' ? 'PLAYER PROP' : betType === 'game_prop' ? 'GAME PROP' : betType.toUpperCase()}
+              {betType === 'player_prop'
+                ? 'PLAYER PROP'
+                : betType === 'game_prop'
+                ? 'GAME PROP'
+                : betType.toUpperCase()}
             </Badge>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
@@ -204,106 +212,65 @@ export function BetCardSingle({
             </span>
           </div>
         </div>
-        
+
         {/* Main Bet Content */}
         <div className="mb-2.5">
-          <div className="flex items-start justify-between gap-2.5">
-            <div className="flex-1 min-w-0">
-              {/* Player Prop Enhanced Display */}
-              {betType === 'player_prop' && playerProp && game?.awayTeam?.shortName && game?.homeTeam?.shortName ? (
-                <div>
-                  {/* Game Matchup - Top */}
-                  <div className="text-[9px] sm:text-[10px] text-muted-foreground/50 uppercase tracking-[0.06em] font-semibold leading-tight mb-2">
-                    {game.awayTeam.shortName} @ {game.homeTeam.shortName}
-                  </div>
-                  {/* Player Name - Middle */}
-                  <div className="font-bold text-[15px] sm:text-base leading-tight text-white mb-2">
-                    {playerProp.playerName}
-                  </div>
-                  {/* Selection, Line, Stat Type - Bottom */}
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <Badge 
-                      variant="secondary" 
-                      className="text-[10px] sm:text-xs font-bold px-1.5 py-0.5 bg-accent/20 text-accent border-accent/30 uppercase tracking-[0.05em]"
-                    >
-                      {selection}
-                    </Badge>
-                    {typeof line === 'number' && (
-                      <span className="text-base sm:text-lg font-extrabold text-white tabular-nums">
-                        {Math.abs(line)}
-                      </span>
-                    )}
-                    <span className="text-[10px] sm:text-xs text-muted-foreground/60 font-semibold uppercase tracking-[0.05em]">
-                      {playerProp.statType ? formatStatType(playerProp.statType) : ''}
-                    </span>
-                  </div>
-                  {/* Actual Result - Show for settled bets */}
-                  {actualResult && status !== 'pending' && (
-                    <div className="mt-2 text-[10px] sm:text-xs text-muted-foreground/70 font-medium">
-                      Result: <span className="text-muted-foreground font-semibold">{actualResult}</span>
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1 min-w-0 flex items-center gap-4">
+              {/* Selection and Result side-by-side, vertically centered */}
+              <div className="flex flex-col min-w-0 justify-center h-full" style={{ minHeight: '90px' }}>
+                <div className="flex flex-col items-center justify-center h-full mt-6">
+                  {/* Game Matchup - Centered, spaced down */}
+                  {game?.awayTeam?.shortName && game?.homeTeam?.shortName && (
+                    <div className="text-[9px] sm:text-[10px] text-muted-foreground/50 uppercase tracking-[0.06em] font-semibold leading-tight mb-2">
+                      {game.awayTeam.shortName} @ {game.homeTeam.shortName}
                     </div>
                   )}
-                </div>
-              ) : betType === 'game_prop' && gameProp && game?.awayTeam?.shortName && game?.homeTeam?.shortName ? (
-                /* Game Prop Enhanced Display */
-                <div className="space-y-1.5">
-                  {/* Game Matchup - Top */}
-                  <div className="text-[9px] sm:text-[10px] text-muted-foreground/50 uppercase tracking-[0.06em] font-semibold leading-tight">
-                    {game.awayTeam.shortName} @ {game.homeTeam.shortName}
+                  {/* Bet Selection - Centered, spaced down */}
+                  <div className="font-bold text-[15px] sm:text-base leading-tight text-white mb-2">
+                    {betType === 'player_prop' && playerProp
+                      ? playerProp.playerName
+                      : betType === 'game_prop' && gameProp
+                      ? gameProp.description || gameProp.propType
+                      : formatSelectionLabel(betType, selection, line, game, playerProp)}
                   </div>
-                  {/* Prop Description - Middle */}
-                  <div className="font-bold text-[15px] sm:text-base leading-tight text-white">
-                    {gameProp.description || gameProp.propType}
-                  </div>
-                  {/* Selection, Line, Category - Bottom */}
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <Badge 
-                      variant="secondary" 
-                      className="text-[10px] sm:text-xs font-bold px-1.5 py-0.5 bg-accent/20 text-accent border-accent/30 uppercase tracking-[0.05em]"
-                    >
-                      {selection}
-                    </Badge>
-                    {typeof line === 'number' && (
-                      <span className="text-base sm:text-lg font-extrabold text-white tabular-nums">
-                        {Math.abs(line)}
+                  {/* Selection details cleaned: only statType and marketCategory if present */}
+                  <div className="flex items-center gap-2 justify-center min-h-8">
+                    {playerProp?.statType && (
+                      <span className="text-[10px] sm:text-xs text-muted-foreground/60 font-semibold uppercase tracking-[0.05em]">
+                        {formatStatType(playerProp.statType)}
                       </span>
                     )}
-                    {gameProp.marketCategory && (
+                    {gameProp?.marketCategory && (
                       <span className="text-[10px] sm:text-xs text-muted-foreground/60 font-semibold uppercase tracking-[0.05em]">
                         {gameProp.marketCategory}
                       </span>
                     )}
                   </div>
-                  {/* Actual Result - Show for settled bets */}
-                  {actualResult && status !== 'pending' && (
-                    <div className="mt-2 text-[10px] sm:text-xs text-muted-foreground/70 font-medium">
-                      Result: <span className="text-muted-foreground font-semibold">{actualResult}</span>
-                    </div>
-                  )}
                 </div>
-              ) : game?.awayTeam?.shortName && game?.homeTeam?.shortName ? (
-                /* Regular Bet Display */
-                <div className="space-y-1.5">
-                  {/* Game Matchup - Top */}
-                  <div className="text-[9px] sm:text-[10px] text-muted-foreground/50 uppercase tracking-[0.06em] font-semibold leading-tight">
-                    {game.awayTeam.shortName} @ {game.homeTeam.shortName}
+              </div>
+              {/* Sleek, modern, color-coded result badge for settled bets, perfectly centered with selection */}
+              {actualResult && status !== 'pending' && (
+                <div className="flex items-center justify-center min-h-8">
+                  <div className="ml-8 flex">
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        "text-sm sm:text-base font-bold px-2 py-1 rounded-md border shadow transition-colors",
+                        status === 'won' ? "bg-green-500/10 border-green-500 text-green-700" :
+                        status === 'lost' ? "bg-red-500/10 border-red-500 text-red-700" :
+                        "bg-muted/10 border-muted text-muted-foreground"
+                      )}
+                    >
+                      {actualResult}
+                    </Badge>
                   </div>
-                  {/* Bet Selection - Bottom */}
-                  <div className="font-bold text-[15px] sm:text-base leading-tight text-white">
-                    {formatSelectionLabel(betType, selection, line, game, playerProp)}
-                  </div>
-                  {/* Actual Result - Show for settled bets */}
-                  {actualResult && status !== 'pending' && (
-                    <div className="mt-1.5 text-[10px] sm:text-xs text-muted-foreground/70 font-medium">
-                      Result: <span className="text-muted-foreground font-semibold">{actualResult}</span>
-                    </div>
-                  )}
                 </div>
-              ) : null}
+              )}
             </div>
             {/* Odds Badge */}
-            <Badge 
-              variant="outline" 
+            <Badge
+              variant="outline"
               className="text-base sm:text-lg font-bold px-2.5 py-1 shrink-0 tabular-nums border-2"
             >
               {formatOdds(odds)}
