@@ -23,8 +23,88 @@ import { logger } from '@/lib/logger';
 export interface SyncResult {
   gamesChecked: number;
   gamesUpdated: number;
+  stuckGamesFixed: number;
   betsSettled: number;
   errors: string[];
+}
+
+/**
+ * Cleanup "stuck" live games that should be marked as finished
+ * 
+ * This handles games that:
+ * - Are marked as "live" in database
+ * - Started more than 4 hours ago
+ * - Should be finished but weren't caught by SDK sync
+ * 
+ * This is a fallback mechanism to prevent games from staying "live" indefinitely
+ */
+async function cleanupStuckLiveGames(): Promise<{ updated: number; errors: string[] }> {
+  const result = { updated: 0, errors: [] as string[] };
+  
+  try {
+    const fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000);
+    
+    // Find games that are still "live" but started more than 4 hours ago
+    const stuckGames = await prisma.game.findMany({
+      where: {
+        status: 'live',
+        startTime: {
+          lt: fourHoursAgo
+        }
+      }
+    });
+    
+    logger.info(`[cleanupStuckLiveGames] Found ${stuckGames.length} stuck live games`);
+    
+    for (const game of stuckGames) {
+      try {
+        // Only mark as finished if we have scores
+        // If no scores, we'll try to get them from SDK next time
+        if (game.homeScore !== null && game.awayScore !== null) {
+          logger.info(`[cleanupStuckLiveGames] Marking stuck game ${game.id} as finished`, {
+            gameId: game.id,
+            startTime: game.startTime,
+            homeScore: game.homeScore,
+            awayScore: game.awayScore
+          });
+          
+          await prisma.game.update({
+            where: { id: game.id },
+            data: {
+              status: 'finished',
+              finishedAt: new Date()
+            }
+          });
+          
+          result.updated++;
+          
+          // Settle bets for this game
+          const settlementResults = await settleGameBets(game.id);
+          logger.info(`[cleanupStuckLiveGames] Settled ${settlementResults.length} bets for game ${game.id}`);
+        } else {
+          logger.warn(`[cleanupStuckLiveGames] Stuck game ${game.id} has no scores, skipping`, {
+            gameId: game.id,
+            startTime: game.startTime
+          });
+        }
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        logger.error(`[cleanupStuckLiveGames] Error processing game ${game.id}:`, error);
+        result.errors.push(`Game ${game.id}: ${errorMsg}`);
+      }
+    }
+    
+    logger.info(`[cleanupStuckLiveGames] Cleanup complete`, {
+      updated: result.updated,
+      errors: result.errors.length
+    });
+    
+  } catch (error) {
+    logger.error('[cleanupStuckLiveGames] Fatal error:', error);
+    result.errors.push(`Fatal error: ${error instanceof Error ? error.message : String(error)}`);
+  }
+  
+  return result;
 }
 
 /**
@@ -34,6 +114,7 @@ export async function syncFinishedGames(): Promise<SyncResult> {
   const result: SyncResult = {
     gamesChecked: 0,
     gamesUpdated: 0,
+    stuckGamesFixed: 0,
     betsSettled: 0,
     errors: []
   };
@@ -63,7 +144,13 @@ export async function syncFinishedGames(): Promise<SyncResult> {
     for (const event of response.data) {
       try {
         // Check if game is finished in SDK
-        if (!event.status?.completed) {
+        // The SDK has multiple completion flags: completed, finalized, ended
+        // We check for any of these to ensure we catch finished games
+        const isFinished = event.status?.completed === true || 
+                          event.status?.finalized === true ||
+                          event.status?.ended === true;
+        
+        if (!isFinished) {
           continue; // Skip games that aren't finished yet
         }
 
@@ -141,6 +228,20 @@ export async function syncFinishedGames(): Promise<SyncResult> {
       updated: result.gamesUpdated,
       betsSettled: result.betsSettled,
       errors: result.errors.length
+    });
+
+    // STEP 2: Cleanup "stuck" live games (fallback mechanism)
+    logger.info('[syncFinishedGames] Checking for stuck live games...');
+    const cleanupResult = await cleanupStuckLiveGames();
+    result.stuckGamesFixed = cleanupResult.updated;
+    result.errors.push(...cleanupResult.errors);
+    
+    logger.info('[syncFinishedGames] All sync operations complete', {
+      sdkGamesChecked: result.gamesChecked,
+      sdkGamesUpdated: result.gamesUpdated,
+      stuckGamesFixed: result.stuckGamesFixed,
+      totalBetsSettled: result.betsSettled,
+      totalErrors: result.errors.length
     });
 
     return result;
