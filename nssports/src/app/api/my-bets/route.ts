@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable */
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -606,8 +606,8 @@ export async function GET() {
         // Transform parlay legs game data
         legs: Array.isArray(b.legs)
           ? b.legs.map((leg: any) => {
-              let legMarketCategory = leg.gameProp?.marketCategory ?? leg.marketCategory;
-              let legPeriodID = leg.gameProp?.periodID ?? leg.periodID;
+          const legMarketCategory = leg.gameProp?.marketCategory ?? leg.marketCategory;
+          const legPeriodID = leg.gameProp?.periodID ?? leg.periodID;
               return {
                 ...leg,
                 game: transformGameForBetCard(leg.game),
@@ -859,7 +859,7 @@ export async function POST(req: Request) {
             throw new Error(`Betting for ${gameProp.periodID} is closed (cutoff: ${cutoff.toISOString()})`);
           }
         }
-      } catch (e) {
+      } catch {
         // If metadata parse fails, fallback to normal bet placement
       }
     }
