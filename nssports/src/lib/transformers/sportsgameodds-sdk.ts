@@ -319,22 +319,30 @@ function getTeamShortName(team: SDKTeam): string {
  */
 function getTeamLogo(team: SDKTeam, leagueId: string): string {
   if (!team.teamID) return '';
-  
+
   // Map league IDs to logo paths
   const leagueLogoPaths: Record<string, string> = {
     'NBA': '/logos/nba',
     'NFL': '/logos/nfl',
     'NHL': '/logos/nhl',
   };
-  
+
   const logoPath = leagueLogoPaths[leagueId];
   if (!logoPath) return '';
-  
+
   // Normalize team ID to handle accented characters (e.g., MONTRÉAL → MONTREAL)
-  const normalizedTeamID = team.teamID
+  let normalizedTeamID = team.teamID
     .normalize('NFD') // Decompose accented characters
-    .replace(/[\u0300-\u036f]/g, ''); // Remove diacritics
-  
+    .replace(/[ -6f]/g, ''); // Remove diacritics
+
+  // Special case: LA Clippers logo asset uses LOS_ANGELES_CLIPPERS_NBA.svg
+  if (
+    leagueId === 'NBA' &&
+    (normalizedTeamID === 'LA_CLIPPERS_NBA' || normalizedTeamID === 'LA_CLIPPERS')
+  ) {
+    normalizedTeamID = 'LOS_ANGELES_CLIPPERS_NBA';
+  }
+
   // Use the normalized SDK team ID (e.g., MONTREAL_CANADIENS_NHL.svg)
   return `${logoPath}/${normalizedTeamID}.svg`;
 }
