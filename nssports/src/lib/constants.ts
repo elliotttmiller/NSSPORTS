@@ -27,6 +27,9 @@ export const SPORTS = {
   NCAAF: "ncaaf",
   NHL: "nhl",
   MLB: "mlb",
+  ATP: "atp",
+  WTA: "wta",
+  ITF: "itf",
 } as const;
 
 export const BET_TYPES = {

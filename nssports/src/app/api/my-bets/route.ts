@@ -791,6 +791,76 @@ export async function POST(req: Request) {
     if (data.betType === "parlay") {
       const parlayLegs = (data as any).legs;
       logger.info('Creating parlay bet', { legs: Array.isArray(parlayLegs) ? parlayLegs.length : 0 });
+      
+      // === INDUSTRY STANDARD: VALIDATE EACH PARLAY LEG FOR MARKET CLOSURE ===
+      if (Array.isArray(parlayLegs) && parlayLegs.length > 0) {
+        const { validateBetPlacement, isPeriodCompleted } = await import("@/lib/market-closure-rules");
+        
+        // Collect all unique game IDs from parlay legs
+        const gameIds = Array.from(new Set(parlayLegs.map((leg: any) => leg.gameId).filter(Boolean)));
+        
+        // Fetch game states for all legs
+        const games = await tx.game.findMany({
+          where: { id: { in: gameIds } },
+          select: {
+            id: true,
+            status: true,
+            startTime: true,
+            homeScore: true,
+            awayScore: true,
+            period: true,
+            timeRemaining: true,
+            inning: true,
+            league: {
+              select: { id: true }
+            }
+          },
+        });
+        
+        // Create a map for quick lookup
+        const gameMap = new Map(games.map(g => [g.id, g]));
+        
+        // Validate each leg
+        for (const leg of parlayLegs) {
+          if (!leg.gameId) continue;
+          
+          const game = gameMap.get(leg.gameId);
+          if (!game) {
+            throw new Error(`Game not found in parlay leg: ${leg.gameId}`);
+          }
+          
+          if (game.status === "finished") {
+            throw new Error(`Cannot place parlay bet with finished game: ${leg.gameId}`);
+          }
+          
+          // Check market closure for live games
+          if (game.status === "live") {
+            const gameState = {
+              leagueId: game.league?.id as any,
+              status: game.status,
+              startTime: game.startTime,
+              homeScore: game.homeScore ?? undefined,
+              awayScore: game.awayScore ?? undefined,
+              period: game.period ?? undefined,
+              timeRemaining: game.timeRemaining ?? undefined,
+              inning: game.inning ?? undefined,
+            };
+            
+            const validationError = validateBetPlacement(gameState);
+            if (validationError) {
+              throw new Error(`Parlay leg ${leg.gameId}: ${validationError}`);
+            }
+            
+            // Check if this is a game prop with a completed period
+            if (leg.betType === "game_prop" && leg.gameProp?.periodID) {
+              if (isPeriodCompleted(leg.gameProp.periodID, gameState)) {
+                throw new Error(`Parlay leg ${leg.gameId}: Cannot bet on ${leg.gameProp.periodID.toUpperCase()} - period has already completed`);
+              }
+            }
+          }
+        }
+      }
+      
       const parlayBet = await tx.bet.create({
         data: {
           betType: "parlay",
@@ -816,10 +886,21 @@ export async function POST(req: Request) {
       throw new Error("Missing required single bet fields");
     }
 
-    // Verify game exists
+    // Verify game exists and fetch game state for market closure check
     const game = await tx.game.findUnique({
       where: { id: data.gameId },
-      select: { id: true, status: true, startTime: true },
+      select: { 
+        id: true, 
+        status: true, 
+        startTime: true,
+        homeScore: true,
+        awayScore: true,
+        period: true,
+        timeRemaining: true,
+        league: {
+          select: { id: true }
+        }
+      },
     });
 
     if (!game) {
@@ -830,36 +911,60 @@ export async function POST(req: Request) {
       throw new Error("Cannot place bet on finished game");
     }
 
+    // === INDUSTRY STANDARD: LIVE BETTING MARKET CLOSURE ENFORCEMENT ===
+    // Check if market should be closed based on game state and sport-specific rules
+    if (game.status === "live") {
+      const { validateBetPlacement } = await import("@/lib/market-closure-rules");
+      
+      const gameState = {
+        leagueId: game.league?.id as any,
+        status: game.status,
+        startTime: game.startTime,
+        homeScore: game.homeScore ?? undefined,
+        awayScore: game.awayScore ?? undefined,
+        period: game.period ?? undefined,
+        timeRemaining: game.timeRemaining ?? undefined,
+        // Note: Additional game state (possession, outs, etc.) would need to be
+        // added to the Game model and populated from SDK data for full enforcement
+      };
+      
+      const validationError = validateBetPlacement(gameState);
+      if (validationError) {
+        throw new Error(validationError);
+      }
+    }
+
     // === INDUSTRY STANDARD: PERIOD/QUARTER/HALF BET CUTOFF ENFORCEMENT ===
-    // If this is a game prop bet with a period/quarter/half, enforce cutoff
+    // If this is a game prop bet with a period/quarter/half, check if that period has completed
     if (data.betType === "game_prop" && (data as any).legs) {
       try {
         const dataLegs = (data as any).legs;
         const metadata = typeof dataLegs === "string" ? JSON.parse(dataLegs) : dataLegs;
         const gameProp = metadata.gameProp;
         if (gameProp?.periodID) {
-          // Determine segment start time (requires mapping periodID to actual time)
-          // For now, use game.startTime as base and add offset for segment
-          // TODO: Replace with actual segment start time if available from SDK
-          const segmentStart = new Date(game.startTime);
-          let offsetMinutes = 0;
-          // Example: NBA quarters (12 min each), NHL periods (20 min each)
-          if (gameProp.periodID === "1q" || gameProp.periodID === "1p") offsetMinutes = 0;
-          if (gameProp.periodID === "2q" || gameProp.periodID === "2p") offsetMinutes = 12;
-          if (gameProp.periodID === "3q" || gameProp.periodID === "3p") offsetMinutes = 24;
-          if (gameProp.periodID === "4q") offsetMinutes = 36;
-          if (gameProp.periodID === "1h") offsetMinutes = 0;
-          if (gameProp.periodID === "2h") offsetMinutes = 24;
-          // Add offset to segment start
-          segmentStart.setMinutes(segmentStart.getMinutes() + offsetMinutes);
-          // Industry standard: lock bets 1 minute before segment starts
-          const cutoff = new Date(segmentStart.getTime() - 1 * 60 * 1000);
-          const now = new Date();
-          if (now >= cutoff) {
-            throw new Error(`Betting for ${gameProp.periodID} is closed (cutoff: ${cutoff.toISOString()})`);
+          const { isPeriodCompleted } = await import("@/lib/market-closure-rules");
+          
+          const gameState = {
+            leagueId: game.league?.id as any,
+            status: game.status,
+            startTime: game.startTime,
+            homeScore: game.homeScore ?? undefined,
+            awayScore: game.awayScore ?? undefined,
+            period: game.period ?? undefined,
+            timeRemaining: game.timeRemaining ?? undefined,
+            inning: game.inning ?? undefined,
+          };
+          
+          // Check if the period for this prop has already completed
+          if (isPeriodCompleted(gameProp.periodID, gameState)) {
+            throw new Error(`Cannot place bet on ${gameProp.periodID.toUpperCase()} - period has already completed`);
           }
         }
-      } catch {
+      } catch (error) {
+        // If it's our custom error, re-throw it
+        if (error instanceof Error && error.message.includes('period has already completed')) {
+          throw error;
+        }
         // If metadata parse fails, fallback to normal bet placement
       }
     }

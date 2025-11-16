@@ -917,6 +917,38 @@ export async function getGamePropsWithCache(eventID: string) {
   try {
     const cachedProps = await getGamePropsFromCache(eventID);
     if (cachedProps.length > 0) {
+      // Apply industry-standard period filtering before returning cached data
+      const dbGame = await prisma.game.findUnique({
+        where: { id: eventID },
+        select: { 
+          status: true, 
+          period: true, 
+          startTime: true,
+          homeScore: true,
+          awayScore: true,
+          timeRemaining: true,
+          inning: true,
+          league: { select: { id: true } }
+        },
+      });
+      
+      if (dbGame) {
+        const { filterCompletedPeriodProps } = await import('./market-closure-rules');
+        const gameState = {
+          leagueId: dbGame.league?.id as any,
+          status: dbGame.status as any,
+          startTime: dbGame.startTime,
+          homeScore: dbGame.homeScore ?? undefined,
+          awayScore: dbGame.awayScore ?? undefined,
+          period: dbGame.period ?? undefined,
+          timeRemaining: dbGame.timeRemaining ?? undefined,
+          inning: dbGame.inning ?? undefined,
+        };
+        
+        const filteredProps = filterCompletedPeriodProps(cachedProps, gameState);
+        return { data: filteredProps, source: 'cache' as const };
+      }
+      
       // Silent cache hits - reduce logging spam
       return { data: cachedProps, source: 'cache' as const };
     }
@@ -928,40 +960,51 @@ export async function getGamePropsWithCache(eventID: string) {
   // 2. Fetch from SDK (source of truth)
   const props = await sdkGetGameProps(eventID);
 
-  // Safety: If the game is live, filter out props that target past periods
+  // 3. Apply industry-standard period filtering for live/finished games
   try {
     const dbGame = await prisma.game.findUnique({
       where: { id: eventID },
-      select: { status: true, period: true },
+      select: { 
+        status: true, 
+        period: true, 
+        startTime: true,
+        homeScore: true,
+        awayScore: true,
+        timeRemaining: true,
+        inning: true,
+        league: { select: { id: true } }
+      },
     });
 
-    if (dbGame && dbGame.status === 'live' && dbGame.period) {
-      const currentPeriodIndex = parsePeriodIndex(dbGame.period);
-      if (currentPeriodIndex !== null) {
-        // Filter out any market whose periodID is numerically <= currentPeriodIndex
-        const filtered = props.filter((market: any) => {
-          const periodID: string | undefined = market.periodID || market.period || undefined;
-          if (!periodID) return true; // keep markets without explicit period (full-game props)
-          const marketIndex = parsePeriodIndex(periodID);
-          if (marketIndex === null) return true; // keep if can't parse
-          // If the market's period is less than or equal to current period, it's past or current -> remove
-          return marketIndex > currentPeriodIndex;
-        });
-
-        // Replace props with filtered set for returning to caller
-        // (do not mutate SDK cache update path; we still update DB cache with original props)
-        const filteredProps = filtered;
-        updateGamePropsCache(eventID, props).catch(error => {
-          logger.error('Failed to update game props cache', error);
-        });
-        return { data: filteredProps, source: 'sdk' as const };
-      }
+    if (dbGame && (dbGame.status === 'live' || dbGame.status === 'finished')) {
+      const { filterCompletedPeriodProps } = await import('./market-closure-rules');
+      const gameState = {
+        leagueId: dbGame.league?.id as any,
+        status: dbGame.status as any,
+        startTime: dbGame.startTime,
+        homeScore: dbGame.homeScore ?? undefined,
+        awayScore: dbGame.awayScore ?? undefined,
+        period: dbGame.period ?? undefined,
+        timeRemaining: dbGame.timeRemaining ?? undefined,
+        inning: dbGame.inning ?? undefined,
+      };
+      
+      const filteredProps = filterCompletedPeriodProps(props, gameState);
+      
+      // Update cache with original props (before filtering)
+      updateGamePropsCache(eventID, props).catch(error => {
+        logger.error('Failed to update game props cache', error);
+      });
+      
+      logger.info(`Filtered ${props.length - filteredProps.length} completed period props for game ${eventID}`);
+      
+      return { data: filteredProps, source: 'sdk' as const };
     }
   } catch (e) {
-    logger.warn('Could not apply live-period filtering for game props', { gameId: eventID, error: e });
+    logger.warn('Could not apply period filtering for game props', { gameId: eventID, error: e });
   }
 
-  // 3. Update Prisma cache for next request (async, non-blocking)
+  // 4. Update Prisma cache for next request (async, non-blocking)
   updateGamePropsCache(eventID, props).catch(error => {
     logger.error('Failed to update game props cache', error);
     // Don't throw - cache update failure shouldn't break the response
@@ -970,33 +1013,6 @@ export async function getGamePropsWithCache(eventID: string) {
   return { data: props, source: 'sdk' as const };
 }
 
-/**
- * Parse a period identifier or game.period string into a numeric index.
- * Returns null if it cannot be parsed.
- * Examples:
- *  - '1q' -> 1
- *  - '2p' -> 2
- *  - '1h' -> 1
- *  - '2' or '2nd' or '2nd Period' -> 2
- */
-function parsePeriodIndex(period: string): number | null {
-  if (!period || typeof period !== 'string') return null;
-  const lower = period.toLowerCase();
-
-  // Common SDK period IDs like '1q','2q','1p','2p','1h','2h'
-  const m = lower.match(/^(\d+)(q|p|h|i)?$/);
-  if (m) return Number(m[1]);
-
-  // Strings like '1st', '2nd', '3rd', '4th', '1', '2'
-  const digit = lower.match(/(\d+)/);
-  if (digit) return Number(digit[1]);
-
-  // Overtime/extra periods - treat as high index so they're not filtered out erroneously
-  if (lower.includes('ot') || lower.includes('ot1') || lower.includes('overtime')) return 99;
-  if (lower.includes('so') || lower.includes('shootout')) return 100;
-
-  return null;
-}
 
 /**
  * Update game props in Prisma cache

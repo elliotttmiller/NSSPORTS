@@ -40,7 +40,7 @@ async function getCachedAllGames() {
   // - includeOpposingOddIDs: true → Get both sides automatically (home/away, over/under)
   // - includeConsensus: true → CRITICAL: Get bookOdds (real market consensus)
   // Note: NOT using `live` parameter here - we want both live AND upcoming
-  const [nbaResult, ncaabResult, nflResult, ncaafResult, nhlResult] = await Promise.allSettled([
+  const [nbaResult, ncaabResult, nflResult, ncaafResult, nhlResult, mlbResult, atpResult, wtaResult, itfResult] = await Promise.allSettled([
     getEventsWithCache({ 
       leagueID: 'NBA',
       finalized: false,                // ✅ OFFICIAL: Exclude finished (includes live + upcoming)
@@ -91,6 +91,46 @@ async function getCachedAllGames() {
       includeConsensus: true,          // ✅ CRITICAL: Request bookOdds calculations
       limit: fetchLimit,
     }),
+    getEventsWithCache({ 
+      leagueID: 'MLB',
+      finalized: false,                // ✅ OFFICIAL: Exclude finished (includes live + upcoming)
+      startsAfter: startsAfter.toISOString(),
+      startsBefore: startsBefore.toISOString(),
+      oddIDs: MAIN_LINE_ODDIDS,        // ✅ OFFICIAL: Main lines only
+      includeOpposingOddIDs: true,     // ✅ OFFICIAL: Auto-include opposing sides
+      includeConsensus: true,          // ✅ CRITICAL: Request bookOdds calculations
+      limit: fetchLimit,
+    }),
+    getEventsWithCache({ 
+      leagueID: 'ATP',
+      finalized: false,                // ✅ OFFICIAL: Exclude finished (includes live + upcoming)
+      startsAfter: startsAfter.toISOString(),
+      startsBefore: startsBefore.toISOString(),
+      oddIDs: MAIN_LINE_ODDIDS,        // ✅ OFFICIAL: Main lines only (moneyline for tennis)
+      includeOpposingOddIDs: true,     // ✅ OFFICIAL: Auto-include opposing sides
+      includeConsensus: true,          // ✅ CRITICAL: Request bookOdds calculations
+      limit: fetchLimit,
+    }),
+    getEventsWithCache({ 
+      leagueID: 'WTA',
+      finalized: false,                // ✅ OFFICIAL: Exclude finished (includes live + upcoming)
+      startsAfter: startsAfter.toISOString(),
+      startsBefore: startsBefore.toISOString(),
+      oddIDs: MAIN_LINE_ODDIDS,        // ✅ OFFICIAL: Main lines only (moneyline for tennis)
+      includeOpposingOddIDs: true,     // ✅ OFFICIAL: Auto-include opposing sides
+      includeConsensus: true,          // ✅ CRITICAL: Request bookOdds calculations
+      limit: fetchLimit,
+    }),
+    getEventsWithCache({ 
+      leagueID: 'ITF',
+      finalized: false,                // ✅ OFFICIAL: Exclude finished (includes live + upcoming)
+      startsAfter: startsAfter.toISOString(),
+      startsBefore: startsBefore.toISOString(),
+      oddIDs: MAIN_LINE_ODDIDS,        // ✅ OFFICIAL: Main lines only (moneyline for tennis)
+      includeOpposingOddIDs: true,     // ✅ OFFICIAL: Auto-include opposing sides
+      includeConsensus: true,          // ✅ CRITICAL: Request bookOdds calculations
+      limit: fetchLimit,
+    }),
   ]);
   
   const nbaEvents = nbaResult.status === 'fulfilled' ? nbaResult.value.data : [];
@@ -98,11 +138,15 @@ async function getCachedAllGames() {
   const nflEvents = nflResult.status === 'fulfilled' ? nflResult.value.data : [];
   const ncaafEvents = ncaafResult.status === 'fulfilled' ? ncaafResult.value.data : [];
   const nhlEvents = nhlResult.status === 'fulfilled' ? nhlResult.value.data : [];
+  const mlbEvents = mlbResult.status === 'fulfilled' ? mlbResult.value.data : [];
+  const atpEvents = atpResult.status === 'fulfilled' ? atpResult.value.data : [];
+  const wtaEvents = wtaResult.status === 'fulfilled' ? wtaResult.value.data : [];
+  const itfEvents = itfResult.status === 'fulfilled' ? itfResult.value.data : [];
   
-  const allEvents = [...nbaEvents, ...ncaabEvents, ...nflEvents, ...ncaafEvents, ...nhlEvents];
+  const allEvents = [...nbaEvents, ...ncaabEvents, ...nflEvents, ...ncaafEvents, ...nhlEvents, ...mlbEvents, ...atpEvents, ...wtaEvents, ...itfEvents];
   
   logger.info(`Fetched ${allEvents.length} total events from hybrid cache`);
-  logger.info(`Events by league - NBA: ${nbaEvents.length}, NCAAB: ${ncaabEvents.length}, NFL: ${nflEvents.length}, NCAAF: ${ncaafEvents.length}, NHL: ${nhlEvents.length}`);
+  logger.info(`Events by league - NBA: ${nbaEvents.length}, NCAAB: ${ncaabEvents.length}, NFL: ${nflEvents.length}, NCAAF: ${ncaafEvents.length}, NHL: ${nhlEvents.length}, MLB: ${mlbEvents.length}, ATP: ${atpEvents.length}, WTA: ${wtaEvents.length}, ITF: ${itfEvents.length}`);
   return allEvents;
 }
 

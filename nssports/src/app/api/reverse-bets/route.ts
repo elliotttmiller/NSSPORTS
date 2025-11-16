@@ -133,6 +133,75 @@ export async function POST(req: NextRequest) {
       return ApiErrors.badRequest(maxStakeCheck.message);
     }
     
+    // === INDUSTRY STANDARD: VALIDATE MARKET CLOSURE FOR ALL SELECTIONS ===
+    {
+      const { validateBetPlacement, isPeriodCompleted } = await import("@/lib/market-closure-rules");
+      
+      // Collect all unique game IDs from selections
+      const gameIds = Array.from(new Set(selections.map((sel: any) => sel.gameId).filter(Boolean)));
+      
+      // Fetch game states
+      const games = await prisma.game.findMany({
+        where: { id: { in: gameIds } },
+        select: {
+          id: true,
+          status: true,
+          startTime: true,
+          homeScore: true,
+          awayScore: true,
+          period: true,
+          timeRemaining: true,
+          inning: true,
+          league: {
+            select: { id: true }
+          }
+        },
+      });
+      
+      // Create a map for quick lookup
+      const gameMap = new Map(games.map(g => [g.id, g]));
+      
+      // Validate each selection
+      for (const selection of selections) {
+        if (!selection.gameId) continue;
+        
+        const game = gameMap.get(selection.gameId);
+        if (!game) {
+          return ApiErrors.badRequest(`Game not found: ${selection.gameId}`);
+        }
+        
+        if (game.status === "finished") {
+          return ApiErrors.badRequest(`Cannot place reverse bet with finished game: ${selection.gameId}`);
+        }
+        
+        // Check market closure for live games
+        if (game.status === "live") {
+          const gameState = {
+            leagueId: game.league?.id as any,
+            status: game.status,
+            startTime: game.startTime,
+            homeScore: game.homeScore ?? undefined,
+            awayScore: game.awayScore ?? undefined,
+            period: game.period ?? undefined,
+            timeRemaining: game.timeRemaining ?? undefined,
+            inning: game.inning ?? undefined,
+          };
+          
+          const validationError = validateBetPlacement(gameState);
+          if (validationError) {
+            return ApiErrors.badRequest(`Selection for game ${selection.gameId}: ${validationError}`);
+          }
+          
+          // Check if this is a game prop with a completed period
+          if (selection.betType === "game_prop" && selection.gameProp?.periodID) {
+            if (isPeriodCompleted(selection.gameProp.periodID, gameState)) {
+              return ApiErrors.badRequest(`Selection for game ${selection.gameId}: Cannot bet on ${selection.gameProp.periodID.toUpperCase()} - period has already completed`);
+            }
+          }
+        }
+      }
+    }
+    
     // Check user balance
     const account = await prisma.account.findUnique({
       where: { userId },
