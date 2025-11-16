@@ -229,7 +229,17 @@ export function LiveGameRow({
               </div>
               {/* Show live status if game is live, otherwise show start time */}
               {game.status === 'live' && (game.period || game.timeRemaining) ? (
-                <div className="flex flex-col gap-0.5">
+                <motion.div 
+                  className="flex flex-col gap-0.5"
+                  animate={{ 
+                    opacity: [1, 0.7, 1],
+                  }}
+                  transition={{ 
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }}
+                >
                   {game.period && (
                     <div className="text-accent font-semibold text-[10px] lg:text-xs uppercase">
                       {game.period}
@@ -240,7 +250,7 @@ export function LiveGameRow({
                       {game.timeRemaining}
                     </div>
                   )}
-                </div>
+                </motion.div>
               ) : (
                 showTime && (
                   <div className="text-muted-foreground text-[10px] lg:text-xs">{timeString}</div>

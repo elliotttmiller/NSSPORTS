@@ -244,11 +244,21 @@ export const LiveMobileGameRow = memo(({ game }: Props) => {
           <div className="flex items-center gap-2">
             {/* Show live clock if game status is live */}
             {game.status === 'live' && (game.period || game.timeRemaining) ? (
-              <div className="flex items-center gap-1 text-[10px] text-accent font-semibold">
+              <motion.div 
+                className="flex items-center gap-1 text-[10px] text-accent font-semibold"
+                animate={{ 
+                  opacity: [1, 0.7, 1],
+                }}
+                transition={{ 
+                  duration: 2,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+              >
                 {game.period && <span className="uppercase">{game.period}</span>}
                 {game.period && game.timeRemaining && <span>•</span>}
                 {game.timeRemaining && <span>{game.timeRemaining}</span>}
-              </div>
+              </motion.div>
             ) : (
               /* Show game time if not live */
               <div className="text-xs text-muted-foreground font-medium">
