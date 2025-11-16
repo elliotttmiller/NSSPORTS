@@ -784,11 +784,101 @@ export async function transformSDKEvent(event: ExtendedSDKEvent): Promise<GamePa
     // Determine game status using official SDK status fields
     const status = mapStatus(event.status, startDateTime);
 
-    // Extract odds
+  // Extract odds
     const odds = extractOdds(event);
     
     // Apply juice/margins to odds
     await applyJuiceToOdds(odds, officialLeagueId, status === 'live');
+
+  // Helper: tolerant fallback to parse human-readable status/display strings
+    function parseClockAndPeriodFromStatus(statusObj?: unknown) {
+      if (!statusObj) return { period: undefined as string | undefined, clock: undefined as string | undefined };
+      const s = statusObj as Record<string, unknown>;
+      const display = (s.display as string) || (s.displayLong as string) || (s.displayShort as string) || (s.status as string) || (s.label as string);
+
+      // 1) Try the canonical clock field first
+      const clockField = (s.clock as string | undefined);
+      if (clockField) return { period: (s.currentPeriodID as string | undefined) || undefined, clock: clockField };
+
+      // 2) If no clock field, try to parse from a display string like "Q3 12:34", "4th 05:12", "12:34 4th"
+      if (typeof display === 'string') {
+        // Extract time pattern mm:ss or m:ss
+        const timeMatch = display.match(/(\d{1,2}:\d{2})/);
+        const parsedClock = timeMatch ? timeMatch[1] : undefined;
+
+        // Extract period tokens: 1st, 2nd, 3rd, 4th, OT, Q1/Q2/Q3/Q4, 1Q etc.
+        const periodMatch = display.match(/\b(1st|2nd|3rd|4th|OT|OT1|Q[1-4]|[1-4]Q|1H|2H)\b/i);
+        let parsedPeriod: string | undefined = undefined;
+        if (periodMatch) {
+          const tok = String(periodMatch[1]).toUpperCase();
+          if (/^Q[1-4]$/.test(tok) || /^[1-4]Q$/.test(tok)) {
+            parsedPeriod = tok.replace(/[^0-9]/g, '');
+          } else if (/^[1-4](ST|ND|RD|TH)$/.test(tok)) {
+            parsedPeriod = tok.replace(/[^0-9]/g, '');
+          } else if (tok === 'OT' || tok.startsWith('OT')) {
+            parsedPeriod = 'OT';
+          } else if (tok === '1H') {
+            parsedPeriod = '1H';
+          } else if (tok === '2H') {
+            parsedPeriod = '2H';
+          }
+        }
+
+        if (parsedClock || parsedPeriod) {
+          logger.debug('[transformSDKEvent] Parsed fallback clock/period from display', { eventId: event.eventID, display, parsedClock, parsedPeriod });
+          return { period: parsedPeriod, clock: parsedClock };
+        }
+      }
+
+      return { period: (s.currentPeriodID as string | undefined) || undefined, clock: undefined };
+    }
+
+    const fallback = parseClockAndPeriodFromStatus(event.status);
+
+    // Normalize period token into a human-friendly label
+    function normalizePeriodToken(raw?: string | null, displayFromStatus?: string | null, _league?: string) {
+      if (displayFromStatus && typeof displayFromStatus === 'string' && displayFromStatus.trim().length > 0) {
+        return displayFromStatus;
+      }
+      if (!raw) return undefined;
+      const token = String(raw).toLowerCase();
+
+      // Quarter tokens: q or q1..q4 or 1q
+      const qMatch = token.match(/(?:q)?([1-4])q?|q([1-4])|([1-4])q/);
+      if (/^q?[1-4]$/.test(token) || qMatch) {
+        const num = (qMatch && (qMatch[1] || qMatch[2] || qMatch[3])) || token.replace(/[^0-9]/g, '');
+        return `${num}th Quarter`.replace('1th', '1st').replace('2th', '2nd').replace('3th', '3rd');
+      }
+
+      // Half tokens: 1h,2h
+      if (/^[12]h$/.test(token)) {
+        return token.startsWith('1') ? '1st Half' : '2nd Half';
+      }
+
+      // Period tokens (hockey): 1p,2p,3p
+      if (/^[1-4]p$/.test(token)) {
+        const n = token.replace(/[^0-9]/g, '');
+        return `${n}th Period`.replace('1th', '1st').replace('2th', '2nd').replace('3th', '3rd');
+      }
+
+      // Inning tokens like 1i,2i
+      if (/^[0-9]+i$/.test(token)) {
+        const n = token.replace(/[^0-9]/g, '');
+        return `${n}th Inning`.replace('1th', '1st');
+      }
+
+      // Overtime
+      if (/^ot/i.test(token) || token === 'ot') return 'Overtime';
+
+      // Generic mappings
+      if (token === 'game' || token === 'reg') return 'Game';
+      return displayFromStatus || raw;
+    }
+
+  const statusRecord = event.status as Record<string, unknown> | undefined;
+  const displayFromStatus = statusRecord ? (String(statusRecord.displayLong ?? statusRecord.display ?? '') || undefined) : undefined;
+  const periodToken = (event.status as ExtendedStatus)?.currentPeriodID ?? event.period ?? undefined;
+  const periodDisplay = normalizePeriodToken(periodToken, displayFromStatus, officialLeagueId);
 
     return {
       id: eventID,
@@ -813,8 +903,9 @@ export async function transformSDKEvent(event: ExtendedSDKEvent): Promise<GamePa
       venue: event.venue || undefined,
       homeScore: event.results?.game?.home?.points ?? undefined,
       awayScore: event.results?.game?.away?.points ?? undefined,
-      period: (event.status as ExtendedStatus)?.currentPeriodID || undefined,
-      timeRemaining: (event.status as ExtendedStatus)?.clock || undefined,
+      period: (event.status as ExtendedStatus)?.currentPeriodID || fallback.period || undefined,
+      timeRemaining: (event.status as ExtendedStatus)?.clock || fallback.clock || undefined,
+      periodDisplay: periodDisplay ?? undefined,
     };
   } catch (error) {
     logger.error("Error transforming SDK event", error, { eventId: event?.eventID });

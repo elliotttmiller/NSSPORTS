@@ -50,6 +50,8 @@ export const GameSchema = z.object({
   awayScore: z.number().nullable().optional(),
   period: z.string().nullable().optional(),
   timeRemaining: z.string().nullable().optional(),
+  // Human-friendly display for the current period (e.g. "3rd Quarter", "1st Period", "2nd Half")
+  periodDisplay: z.string().nullable().optional(),
 });
 
 export type GamePayload = z.infer<typeof GameSchema>;

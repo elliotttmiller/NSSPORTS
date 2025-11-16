@@ -518,10 +518,51 @@ async function updateEventsCache(events: any[]) {
         gameStatus = 'upcoming';
       }
       
-      // Extract scores from SDK event (for live and finished games)
-      // Per SDK docs: event.scores contains { home: number, away: number } when available
-      const homeScore = event.scores?.home ?? null;
-      const awayScore = event.scores?.away ?? null;
+  // Extract scores, period and clock from SDK event (for live and finished games)
+  // Per SDK docs: event.scores contains { home: number, away: number } when available
+  const homeScore = event.scores?.home ?? null;
+  const awayScore = event.scores?.away ?? null;
+  // Period can be present either as top-level property or in status.currentPeriodID
+  // Tolerant parsing: prefer explicit fields but fall back to parsing a human-readable
+  // display string from the SDK (some providers omit explicit clock/currentPeriodID)
+  function parseClockAndPeriodFromEvent(ev: unknown) {
+    if (!ev) return { period: null as string | null, clock: null as string | null };
+    const e = ev as Record<string, unknown>;
+
+    // Prefer canonical fields
+    const periodField = (e.period as string | undefined) ?? ((e.status as any)?.currentPeriodID as string | undefined) ?? null;
+    const clockField = (e.clock as string | undefined) ?? ((e.status as any)?.clock as string | undefined) ?? null;
+    if (clockField || periodField) return { period: periodField ?? null, clock: clockField ?? null };
+
+    // Try parsing display text
+    const display = (e.status as any)?.display || (e.status as any)?.displayLong || (e as any).display || null;
+    if (typeof display === 'string') {
+      const timeMatch = display.match(/(\d{1,2}:\d{2})/);
+      const parsedClock = timeMatch ? timeMatch[1] : null;
+      const periodMatch = display.match(/\b(1st|2nd|3rd|4th|OT|OT1|Q[1-4]|[1-4]Q|1H|2H)\b/i);
+      let parsedPeriod: string | null = null;
+      if (periodMatch) {
+        const tok = String(periodMatch[1]).toUpperCase();
+        if (/^Q[1-4]$/.test(tok) || /^[1-4]Q$/.test(tok)) parsedPeriod = tok.replace(/[^0-9]/g, '');
+        else if (/^[1-4](ST|ND|RD|TH)$/.test(tok)) parsedPeriod = tok.replace(/[^0-9]/g, '');
+        else if (tok === 'OT' || tok.startsWith('OT')) parsedPeriod = 'OT';
+        else if (tok === '1H') parsedPeriod = '1H';
+        else if (tok === '2H') parsedPeriod = '2H';
+      }
+
+      if (parsedClock || parsedPeriod) {
+        logger.debug('[updateEventsCache] Parsed fallback clock/period from display', { eventId: event.eventID, display, parsedClock, parsedPeriod });
+        return { period: parsedPeriod, clock: parsedClock };
+      }
+    }
+
+    return { period: null, clock: null };
+  }
+
+  const parsed = parseClockAndPeriodFromEvent(event);
+  const period = event.period ?? event.status?.currentPeriodID ?? parsed.period ?? null;
+  // Clock/time remaining might be provided as event.clock or event.status.clock — fall back to parsed
+  const timeRemaining = event.clock ?? event.status?.clock ?? parsed.clock ?? null;
       
       // Log score updates for finished games (critical for settlement verification)
       if (gameStatus === 'finished' && (homeScore !== null || awayScore !== null)) {
@@ -546,6 +587,8 @@ async function updateEventsCache(events: any[]) {
           status: gameStatus,
           homeScore, // ⭐ CRITICAL: Update scores for settlement
           awayScore, // ⭐ CRITICAL: Update scores for settlement
+          period: period ?? undefined,
+          timeRemaining: timeRemaining ?? undefined,
           updatedAt: new Date(),
         },
         create: {
@@ -557,8 +600,15 @@ async function updateEventsCache(events: any[]) {
           status: gameStatus,
           homeScore, // Store initial scores (null for upcoming games)
           awayScore,
+          period: period ?? undefined,
+          timeRemaining: timeRemaining ?? undefined,
         },
       });
+
+      // Log clock updates for live games to aid debugging and observability
+      if (gameStatus === 'live' && timeRemaining) {
+        logger.debug(`[updateEventsCache] Live clock for ${event.eventID}: period=${period} clock=${timeRemaining}`);
+      }
       
       // 🔥 REAL-TIME SETTLEMENT TRIGGER
       // If game just finished, immediately queue settlement job
