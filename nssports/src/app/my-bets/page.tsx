@@ -11,7 +11,6 @@ import { useIsMobile } from "@/hooks";
 export default function MyBetsPage() {
   const { placedBets, loading, refreshBetHistory } = useBetHistory();
   // production: no temporary debug logging here
-    const [showDebug, setShowDebug] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const isMobile = useIsMobile();
   const { registerRefreshHandler, unregisterRefreshHandler } = useRefresh();
