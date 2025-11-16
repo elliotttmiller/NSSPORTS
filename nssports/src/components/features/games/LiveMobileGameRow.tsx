@@ -229,13 +229,13 @@ export const LiveMobileGameRow = memo(({ game }: Props) => {
     const onRefreshed = () => setRefreshTick((v) => v + 1);
     try {
       window.addEventListener('app:refreshed', onRefreshed as EventListener);
-    } catch (e) {
+    } catch {
       // ignore on server
     }
     return () => {
       try {
         window.removeEventListener('app:refreshed', onRefreshed as EventListener);
-      } catch (e) {}
+      } catch {}
     };
   }, []);
 

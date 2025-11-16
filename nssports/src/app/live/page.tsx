@@ -136,7 +136,7 @@ export default function LivePage() {
       // subscribe to DOM events rather than store selectors)
       try {
         window.dispatchEvent(new CustomEvent('app:refreshed', { detail: { source: 'pull-to-refresh' } }));
-      } catch (e) {
+      } catch {
         // ignore in non-browser environments
       }
     } catch (err) {

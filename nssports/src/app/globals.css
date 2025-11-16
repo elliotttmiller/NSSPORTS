@@ -1,19 +1,18 @@
+
 @import "tailwindcss";
 
 @layer base {
   * {
-    /* Tailwind @apply is not recognized by some CSS linters/IDEs.
-       Use the underlying CSS variable so editors without Tailwind support won't warn. */
-    border-color: var(--border);
+    @apply border-border;
   }
 
   html {
-    background-color: #0a0a0a;
+    background-color: #0a0a0a;       
   }
 
   body {
     font-family: "Inter", sans-serif;
-    background-color: #0a0a0a;
+    background-color: #0a0a0a;       
     color: #ffffff;
   }
 
@@ -98,7 +97,7 @@
   }
 
   /* High DPI optimizations */
-  @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {    
     .seamless-scroll {
       /* Enhanced rendering on retina displays */
       -webkit-font-smoothing: antialiased;
@@ -173,9 +172,7 @@
   --radius: 0.5rem;
 }
 
-/* Replace custom @theme at-rule with :root so editors without the plugin won't warn.
-  This duplicates some variable mappings but is safe and keeps editor diagnostics clean. */
-:root {
+@theme {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -224,7 +221,7 @@
   left: 0;
   right: 0;
   height: 20px;
-  background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.08));
+  background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.08)); 
   opacity: var(--scroll-shadow-opacity);
   transition: opacity 0.2s ease;
   pointer-events: none;
@@ -273,7 +270,7 @@
 
 .bet-selected-parlay {
   animation: parlayGlow 2s ease-in-out infinite;
-  background: linear-gradient(135deg, #3b82f6 / 0.05, #3b82f6 / 0.02);
+  background: linear-gradient(135deg, #3b82f6 / 0.05, #3b82f6 / 0.02);      
   border-color: #3b82f6 / 0.4 !important;
   transition: all 0.3s ease;
 }
@@ -288,22 +285,6 @@
   background: var(--color-muted) / 0.3;
 }
 
-/* Rendering hint utilities: let browser skip offscreen card rendering */
-.render-hint {
-  content-visibility: auto;
-  will-change: transform, box-shadow, opacity;
-}
-
-/* Size helpers for contain-intrinsic-size tuned per-row type */
-.contain-96 { contain-intrinsic-size: 96px; }
-.contain-72 { contain-intrinsic-size: 72px; }
-
-/* Mount transition class (fallback/utility) */
-.mount-fade {
-  transition: opacity 180ms ease, transform 180ms ease, box-shadow 200ms ease;
-  will-change: opacity, transform;
-}
-
 /* Mobile: Non-interactive bet cards for smooth scrolling */
 @media (max-width: 768px) {
   [data-slot="card"] {
@@ -316,7 +297,7 @@
     -webkit-user-select: none;
     user-select: none;
   }
-  
+
   /* Ensure buttons and interactive elements still work */
   [data-slot="card"] button,
   [data-slot="card"] a,
