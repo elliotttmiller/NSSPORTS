@@ -6,7 +6,7 @@ import { formatOdds, formatSpreadLine, formatGameTime } from "@/lib/formatters";
 import { Button } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import { useBetSlip } from "@/context";
-import { useCallback, useState, memo } from "react";
+import { useCallback, useState, memo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PlayerPropsView, GamePropsView } from "@/components/features/props";
 import { usePlayerProps, useGameProps } from "@/hooks";
@@ -99,6 +99,12 @@ export function LiveGameRow({
   const oddsSource = game.odds;
   
   const [expanded, setExpanded] = useState(false);
+  // local mount flag used to run a single fade/translate on initial mount
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setMounted(true), 20);
+    return () => clearTimeout(t);
+  }, []);
 
   const getBetId = useCallback(
     (betType: string, selection: string) => {
@@ -203,6 +209,16 @@ export function LiveGameRow({
         boxShadow: expanded
           ? "0 8px 32px rgba(0,0,0,0.10)"
           : "0 2px 8px rgba(0,0,0,0.04)",
+      }}
+      style={{
+        // Allow the browser to skip rendering this card when offscreen — big perf win for long lists
+        contentVisibility: 'auto',
+        containIntrinsicSize: '72px',
+        willChange: 'transform, box-shadow',
+        // Subtle mount transition to avoid flash-loading when items appear
+        opacity: mounted ? 1 : 0,
+        transform: mounted ? 'translateY(0px)' : 'translateY(6px)',
+        transition: 'opacity 180ms ease, transform 180ms ease, box-shadow 200ms ease'
       }}
     >
       {/* Main Card Content - Clickable */}

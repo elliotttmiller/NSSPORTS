@@ -16,7 +16,7 @@
  * DO NOT use this component for upcoming games - use CompactMobileGameRow instead.
  */
 
-import { useState, useCallback, memo } from "react";
+import { useState, useCallback, memo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { TeamLogo } from "./TeamLogo";
 import { Button } from "@/components/ui";
@@ -107,6 +107,8 @@ interface Props {
 export const LiveMobileGameRow = memo(({ game }: Props) => {
   const { betSlip, addBet, removeBet } = useBetSlip();
   const [expanded, setExpanded] = useState(false);
+  // local mount flag used to run a single fade/translate on initial mount
+  const [mounted, setMounted] = useState(false);
   const [shouldRenderDropdown, setShouldRenderDropdown] = useState(false);
   
   // ⭐ PHASE 4 OPTIMIZATION: Real-time updates via WebSocket streaming
@@ -215,11 +217,26 @@ export const LiveMobileGameRow = memo(({ game }: Props) => {
     return line.toString();
   };
 
+  useEffect(() => {
+    const t = setTimeout(() => setMounted(true), 20);
+    return () => clearTimeout(t);
+  }, []);
+
   return (
     <motion.div
       className="bg-card/40 border border-accent/20 ring-1 ring-accent/10 rounded-lg mb-2 hover:bg-card/60 hover:shadow-md transition-all duration-200 overflow-hidden"
       initial={false}
       animate={{ boxShadow: expanded ? "0 8px 32px rgba(0,0,0,0.10)" : "0 2px 8px rgba(0,0,0,0.04)" }}
+      // Improve rendering performance for long lists: let browser skip rendering off-screen cards
+      style={{
+        contentVisibility: 'auto',
+        containIntrinsicSize: '96px',
+        willChange: 'transform, box-shadow',
+        // Subtle mount transition to avoid flash-loading when items appear
+        opacity: mounted ? 1 : 0,
+        transform: mounted ? 'translateY(0px)' : 'translateY(6px)',
+        transition: 'opacity 180ms ease, transform 180ms ease, box-shadow 200ms ease'
+      }}
     >
       {/* Main Card Content - Clickable */}
       <div
@@ -241,7 +258,7 @@ export const LiveMobileGameRow = memo(({ game }: Props) => {
           <div className="text-xs text-muted-foreground">{game.leagueId.toUpperCase()}</div>
           
           {/* Live Clock/Period (or game time if not live) */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 -mr-4">
             {/* Show live clock if game status is live */}
             {game.status === 'live' && (game.period || game.timeRemaining) ? (
               <motion.div 
