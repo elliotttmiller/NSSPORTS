@@ -2,7 +2,9 @@
 
 @layer base {
   * {
-    @apply border-border;
+    /* Tailwind @apply is not recognized by some CSS linters/IDEs.
+       Use the underlying CSS variable so editors without Tailwind support won't warn. */
+    border-color: var(--border);
   }
 
   html {
@@ -171,7 +173,9 @@
   --radius: 0.5rem;
 }
 
-@theme {
+/* Replace custom @theme at-rule with :root so editors without the plugin won't warn.
+  This duplicates some variable mappings but is safe and keeps editor diagnostics clean. */
+:root {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -282,6 +286,22 @@
 .bet-unselected:hover {
   border-color: var(--color-border) / 0.6;
   background: var(--color-muted) / 0.3;
+}
+
+/* Rendering hint utilities: let browser skip offscreen card rendering */
+.render-hint {
+  content-visibility: auto;
+  will-change: transform, box-shadow, opacity;
+}
+
+/* Size helpers for contain-intrinsic-size tuned per-row type */
+.contain-96 { contain-intrinsic-size: 96px; }
+.contain-72 { contain-intrinsic-size: 72px; }
+
+/* Mount transition class (fallback/utility) */
+.mount-fade {
+  transition: opacity 180ms ease, transform 180ms ease, box-shadow 200ms ease;
+  will-change: opacity, transform;
 }
 
 /* Mobile: Non-interactive bet cards for smooth scrolling */

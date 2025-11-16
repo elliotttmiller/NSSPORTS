@@ -106,6 +106,12 @@ export function LiveGameRow({
     return () => clearTimeout(t);
   }, []);
 
+  // framer-motion variants for mount animation (centralized)
+  const mountVariants = {
+    initial: { opacity: 0, y: 6 },
+    animate: { opacity: 1, y: 0, transition: { duration: 0.18 } },
+  };
+
   const getBetId = useCallback(
     (betType: string, selection: string) => {
       return `${game.id}-${betType}-${selection}`;
@@ -203,24 +209,20 @@ export function LiveGameRow({
 
   return (
     <motion.div
-      className={cardClasses}
-      initial={false}
-      animate={{
-        boxShadow: expanded
-          ? "0 8px 32px rgba(0,0,0,0.10)"
-          : "0 2px 8px rgba(0,0,0,0.04)",
-      }}
-      style={{
-        // Allow the browser to skip rendering this card when offscreen — big perf win for long lists
-        contentVisibility: 'auto',
-        containIntrinsicSize: '72px',
-        willChange: 'transform, box-shadow',
-        // Subtle mount transition to avoid flash-loading when items appear
-        opacity: mounted ? 1 : 0,
-        transform: mounted ? 'translateY(0px)' : 'translateY(6px)',
-        transition: 'opacity 180ms ease, transform 180ms ease, box-shadow 200ms ease'
-      }}
+      variants={mountVariants}
+      initial="initial"
+      animate={mounted ? "animate" : "initial"}
+      className="mount-fade"
     >
+      <motion.div
+        className={`${cardClasses} render-hint contain-72`}
+        initial={false}
+        animate={{
+          boxShadow: expanded
+            ? "0 8px 32px rgba(0,0,0,0.10)"
+            : "0 2px 8px rgba(0,0,0,0.04)",
+        }}
+      >
       {/* Main Card Content - Clickable */}
       <div
         className="cursor-pointer"
@@ -483,6 +485,7 @@ export function LiveGameRow({
           </motion.div>
         )}
       </AnimatePresence>
+      </motion.div>
     </motion.div>
   );
 }
