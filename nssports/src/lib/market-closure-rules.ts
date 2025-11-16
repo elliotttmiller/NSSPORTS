@@ -37,7 +37,7 @@ export interface GameState {
   possession?: 'home' | 'away';
   down?: number;
   // Hockey-specific
-  goalieP pulled?: boolean;
+  goaliePulled?: boolean;
 }
 
 export interface MarketClosureResult {
@@ -706,18 +706,16 @@ export function isPeriodCompleted(periodID: string, gameState: GameState): boole
  * @returns Filtered array of game props with active periods only
  */
 export function filterCompletedPeriodProps(
-  gameProps: Array<{ periodID?: string; [key: string]: any }>,
+  gameProps: Array<{ periodID?: string; [key: string]: unknown }>,
   gameState: GameState
-): Array<{ periodID?: string; [key: string]: any }> {
-  return gameProps.filter(prop => {
+): Array<{ periodID?: string; [key: string]: unknown }> {
+  return gameProps.filter((prop: { periodID?: string; [key: string]: unknown }) => {
     // Keep props without periodID (full game props)
     if (!prop.periodID) {
       return true;
     }
-    
     // Filter out props for completed periods
     const isCompleted = isPeriodCompleted(prop.periodID, gameState);
-    
     if (isCompleted) {
       logger.debug('Filtering completed period prop', {
         periodID: prop.periodID,
@@ -725,7 +723,6 @@ export function filterCompletedPeriodProps(
         leagueId: gameState.leagueId,
       });
     }
-    
     return !isCompleted;
   });
 }

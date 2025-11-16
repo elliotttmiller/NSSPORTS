@@ -17,6 +17,7 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 import { NextRequest } from "next/server";
+import type { LeagueID } from '@/types/game';
 import { z } from "zod";
 import prisma from "@/lib/prisma";
 import { getAuthUser } from "@/lib/authHelpers";
@@ -151,7 +152,6 @@ export async function POST(req: NextRequest) {
           awayScore: true,
           period: true,
           timeRemaining: true,
-          inning: true,
           league: {
             select: { id: true }
           }
@@ -176,15 +176,14 @@ export async function POST(req: NextRequest) {
         
         // Check market closure for live games
         if (game.status === "live") {
-          const gameState = {
-            leagueId: game.league?.id as any,
-            status: game.status,
-            startTime: game.startTime,
+            const gameState = {
+            leagueId: game.league?.id as unknown as LeagueID,
+            status: game.status as 'upcoming' | 'live' | 'finished',
+            startTime: game.startTime instanceof Date ? game.startTime.toISOString() : String(game.startTime),
             homeScore: game.homeScore ?? undefined,
             awayScore: game.awayScore ?? undefined,
             period: game.period ?? undefined,
             timeRemaining: game.timeRemaining ?? undefined,
-            inning: game.inning ?? undefined,
           };
           
           const validationError = validateBetPlacement(gameState);
@@ -193,9 +192,10 @@ export async function POST(req: NextRequest) {
           }
           
           // Check if this is a game prop with a completed period
-          if (selection.betType === "game_prop" && selection.gameProp?.periodID) {
-            if (isPeriodCompleted(selection.gameProp.periodID, gameState)) {
-              return ApiErrors.badRequest(`Selection for game ${selection.gameId}: Cannot bet on ${selection.gameProp.periodID.toUpperCase()} - period has already completed`);
+          const selPeriodID = (selection.gameProp as any)?.periodID as string | undefined;
+          if (selection.betType === "game_prop" && selPeriodID) {
+            if (isPeriodCompleted(selPeriodID, gameState)) {
+              return ApiErrors.badRequest(`Selection for game ${selection.gameId}: Cannot bet on ${selPeriodID.toUpperCase()} - period has already completed`);
             }
           }
         }

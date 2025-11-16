@@ -155,10 +155,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if username already exists
-    const existingAgent = await prisma.agent.findUnique({
-      where: { username },
-    });
+    // Check if username already exists (with retry for connection issues)
+    let existingAgent;
+    try {
+      existingAgent = await prisma.agent.findUnique({
+        where: { username },
+      });
+    } catch (dbError) {
+      console.error("Database connection error while checking username:", dbError);
+      // Retry once after brief delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      try {
+        existingAgent = await prisma.agent.findUnique({
+          where: { username },
+        });
+      } catch (retryError) {
+        console.error("Database connection retry failed:", retryError);
+        return NextResponse.json(
+          { error: "Database connection error. Please try again." },
+          { status: 503 }
+        );
+      }
+    }
 
     if (existingAgent) {
       return NextResponse.json(

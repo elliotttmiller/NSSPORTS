@@ -21,6 +21,7 @@ import {
 } from "@/lib/apiResponse";
 import { getEventsWithCache } from "@/lib/hybrid-cache";
 import { logger } from "@/lib/logger";
+import type { LeagueID } from '@/types/game';
 
 const BatchQuerySchema = z.object({
   gameIds: z.string().describe("Comma-separated list of game IDs"),
@@ -116,8 +117,7 @@ export async function GET(request: NextRequest) {
         oddsAvailable: true,
       });
 
-      // Fetch game states for period filtering
-      const { filterCompletedPeriodProps } = await import('@/lib/market-closure-rules');
+  // Fetch game states for period filtering
       const prisma = (await import('@/lib/prisma')).default;
       
       const games = await prisma.game.findMany({
@@ -130,73 +130,73 @@ export async function GET(request: NextRequest) {
           homeScore: true,
           awayScore: true,
           timeRemaining: true,
-          inning: true,
           league: { select: { id: true } }
         }
       });
       
+      type GameRow = {
+        id: string;
+        league?: { id: string } | null;
+        status: string;
+        startTime: Date;
+        homeScore?: number | null;
+        awayScore?: number | null;
+        period?: string | null;
+        timeRemaining?: string | null;
+      };
+
       const gameStateMap = new Map(
-        games.map(g => [
+        games.map((g: GameRow) => [
           g.id,
           {
-            leagueId: g.league?.id as any,
-            status: g.status as any,
-            startTime: g.startTime,
+            leagueId: g.league?.id as unknown as LeagueID,
+            status: g.status as 'upcoming' | 'live' | 'finished',
+            startTime: g.startTime instanceof Date ? g.startTime.toISOString() : String(g.startTime),
             homeScore: g.homeScore ?? undefined,
             awayScore: g.awayScore ?? undefined,
             period: g.period ?? undefined,
             timeRemaining: g.timeRemaining ?? undefined,
-            inning: g.inning ?? undefined,
           }
         ])
       );
 
       const dataMap: Record<string, Record<string, unknown[]>> = {};
-      
-      response.data.forEach((event) => {
-        if (!event.eventID) return;
-        
+      for (const event of response.data as Array<Record<string, unknown>>) {
+        if (!event.eventID) continue;
         const gamePropsMap: Record<string, unknown[]> = {};
-        
         if (event.odds) {
-          Object.entries(event.odds).forEach(([oddID, oddData]) => {
+          for (const [oddID, oddData] of Object.entries(event.odds as Record<string, unknown>)) {
             const parts = oddID.split('-');
-            if (parts.length < 3) return;
-            
-            // Extract periodID from oddID (format: statType-entity-periodID-betTypeID-sideID)
+            if (parts.length < 3) continue;
             const periodID = parts.length >= 3 ? parts[2] : undefined;
-            
-            // Apply period filtering if we have game state
-            const gameState = gameStateMap.get(event.eventID);
+            const gameState = gameStateMap.get(event.eventID as string);
             if (gameState && periodID) {
-              const { isPeriodCompleted } = require('@/lib/market-closure-rules');
+              const { isPeriodCompleted } = await import('@/lib/market-closure-rules');
               if (isPeriodCompleted(periodID, gameState)) {
-                return; // Skip this prop - period has completed
+                continue; // Skip this prop - period has completed
               }
             }
-            
             const propType = parts[0];
             const category = propType.replace(/_/g, ' ');
-            const data = oddData as { description?: string; selection?: string; odds?: number; line?: number };
-            
+            const data = oddData as Record<string, unknown>;
             if (!gamePropsMap[category]) {
               gamePropsMap[category] = [];
             }
-
             gamePropsMap[category].push({
               id: oddID,
               propType: propType,
-              description: data.description || category,
-              selection: data.selection || null,
-              odds: data.odds || 0,
-              line: data.line || null,
-              periodID, // Include periodID for debugging
+              description: typeof data.description === 'string' ? data.description : category,
+              selection: typeof data.selection === 'string' ? data.selection : null,
+              odds: typeof data.odds === 'number' ? data.odds : 0,
+              line: typeof data.line === 'number' ? data.line : null,
+              periodID,
             });
-          });
+          }
         }
-        
-        dataMap[event.eventID] = gamePropsMap;
-      });
+        if (typeof event.eventID === 'string') {
+          dataMap[event.eventID] = gamePropsMap;
+        }
+      }
 
       logger.info(`[API /batch/game-props] Returned props for ${Object.keys(dataMap).length} games`);
 
@@ -216,7 +216,3 @@ export async function GET(request: NextRequest) {
     }
   });
 }
-
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
-export const revalidate = 120;

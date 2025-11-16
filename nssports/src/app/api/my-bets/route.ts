@@ -800,7 +800,7 @@ export async function POST(req: Request) {
         const gameIds = Array.from(new Set(parlayLegs.map((leg: any) => leg.gameId).filter(Boolean)));
         
         // Fetch game states for all legs
-        const games = await tx.game.findMany({
+        const games: any[] = await tx.game.findMany({
           where: { id: { in: gameIds } },
           select: {
             id: true,
@@ -810,21 +810,20 @@ export async function POST(req: Request) {
             awayScore: true,
             period: true,
             timeRemaining: true,
-            inning: true,
             league: {
               select: { id: true }
             }
           },
         });
         
-        // Create a map for quick lookup
-        const gameMap = new Map(games.map(g => [g.id, g]));
+  // Create a map for quick lookup
+  const gameMap = new Map<string, any>(games.map((g: any) => [g.id as string, g as any] as [string, any]));
         
         // Validate each leg
         for (const leg of parlayLegs) {
           if (!leg.gameId) continue;
           
-          const game = gameMap.get(leg.gameId);
+          const game = gameMap.get(leg.gameId) as any;
           if (!game) {
             throw new Error(`Game not found in parlay leg: ${leg.gameId}`);
           }
@@ -837,13 +836,12 @@ export async function POST(req: Request) {
           if (game.status === "live") {
             const gameState = {
               leagueId: game.league?.id as any,
-              status: game.status,
-              startTime: game.startTime,
+              status: game.status as 'upcoming' | 'live' | 'finished',
+              startTime: game.startTime instanceof Date ? game.startTime.toISOString() : String(game.startTime),
               homeScore: game.homeScore ?? undefined,
               awayScore: game.awayScore ?? undefined,
               period: game.period ?? undefined,
               timeRemaining: game.timeRemaining ?? undefined,
-              inning: game.inning ?? undefined,
             };
             
             const validationError = validateBetPlacement(gameState);
@@ -946,13 +944,12 @@ export async function POST(req: Request) {
           
           const gameState = {
             leagueId: game.league?.id as any,
-            status: game.status,
-            startTime: game.startTime,
+            status: game.status as 'upcoming' | 'live' | 'finished',
+            startTime: game.startTime instanceof Date ? game.startTime.toISOString() : String(game.startTime),
             homeScore: game.homeScore ?? undefined,
             awayScore: game.awayScore ?? undefined,
             period: game.period ?? undefined,
             timeRemaining: game.timeRemaining ?? undefined,
-            inning: game.inning ?? undefined,
           };
           
           // Check if the period for this prop has already completed

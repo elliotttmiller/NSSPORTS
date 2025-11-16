@@ -91,13 +91,18 @@ export async function POST(request: NextRequest) {
     // Set HTTP-only cookie directly on response
     response.cookies.set("admin_token", token, {
       httpOnly: true,
-      secure: true, // Required for HTTPS (ngrok)
-      sameSite: "none", // Required for cross-origin (ngrok)
+      secure: process.env.NODE_ENV === 'production', // Only secure in production
+      sameSite: process.env.NODE_ENV === 'production' ? "none" : "lax", // Lax for dev, none for prod
       maxAge: 60 * 60 * 8, // 8 hours
       path: "/",
     });
 
-    console.log('[API /api/admin/auth/login] Cookie set in response headers (secure=true, sameSite=none, path=/)');
+    console.log('[API /api/admin/auth/login] Cookie set in response headers:', {
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? "none" : "lax",
+      path: '/',
+      maxAge: 60 * 60 * 8
+    });
 
     // Log login activity
     console.log('[API /api/admin/auth/login] Logging activity...');

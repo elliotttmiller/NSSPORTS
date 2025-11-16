@@ -31,6 +31,33 @@ async function main() {
   console.log('╚════════════════════════════════════════════════════════════╝\n');
 
   // ============================================================================
+  // STEP 0: Clear existing users/accounts and create admin
+  console.log('📋 Step 0: Clearing users/accounts and creating admin...');
+  try {
+    await prisma.account.deleteMany();
+    await prisma.user.deleteMany();
+    console.log('  ✓ Cleared accounts and users tables');
+    const adminUser = await prisma.user.create({
+      data: {
+        username: 'admin',
+        password: 'admin123',
+        userType: 'platform_admin',
+        isActive: true,
+        name: 'Admin',
+      }
+    });
+    await prisma.account.create({
+      data: {
+        userId: adminUser.id,
+        balance: 0,
+        freePlay: 0,
+      }
+    });
+    console.log('  ✓ Created admin user: admin / admin123');
+  } catch (error) {
+    console.error('  ✗ Error creating admin user/account:', error);
+    throw error;
+  }
   // STEP 1: Clear existing leagues and sports
   // ============================================================================
   console.log('📋 Step 1: Clearing existing leagues and sports...');
@@ -55,6 +82,7 @@ async function main() {
     { id: 'basketball', name: 'Basketball', icon: '🏀' },
     { id: 'football', name: 'Football', icon: '🏈' },
     { id: 'hockey', name: 'Hockey', icon: '🏒' },
+    { id: 'tennis', name: 'Tennis', icon: '🎾' },
   ];
   
   for (const sport of sportsData) {
@@ -75,36 +103,15 @@ async function main() {
   console.log('   📚 Reference: https://sportsgameodds.com/docs/data-types/leagues\n');
   
   const leaguesData = [
-    { 
-      id: 'NBA',  // ← UPPERCASE per official SDK specification
-      name: 'NBA', 
-      sportId: 'basketball', 
-      logo: '/logos/nba/NBA.svg' 
-    },
-    { 
-      id: 'NCAAB',  // ← UPPERCASE per official SDK specification
-      name: 'NCAA Basketball', 
-      sportId: 'basketball', 
-      logo: '/logos/ncaa/NCAA_logo.svg' 
-    },
-    { 
-      id: 'NFL',  // ← UPPERCASE per official SDK specification
-      name: 'NFL', 
-      sportId: 'football', 
-      logo: '/logos/nfl/NFL.svg' 
-    },
-    { 
-      id: 'NCAAF',  // ← UPPERCASE per official SDK specification
-      name: 'NCAA Football', 
-      sportId: 'football', 
-      logo: '/logos/ncaa/NCAA_logo.svg' 
-    },
-    { 
-      id: 'NHL',  // ← UPPERCASE per official SDK specification
-      name: 'NHL', 
-      sportId: 'hockey', 
-      logo: '/logos/nhl/NHL.svg' 
-    },
+    { id: 'NBA', name: 'NBA', sportId: 'basketball', logo: '/logos/nba/NBA.svg' },
+    { id: 'NCAAB', name: 'NCAA Basketball', sportId: 'basketball', logo: '/logos/ncaa/NCAA_logo.svg' },
+    { id: 'NFL', name: 'NFL', sportId: 'football', logo: '/logos/nfl/NFL.svg' },
+    { id: 'NCAAF', name: 'NCAA Football', sportId: 'football', logo: '/logos/ncaa/NCAA_logo.svg' },
+    { id: 'NHL', name: 'NHL', sportId: 'hockey', logo: '/logos/nhl/NHL.svg' },
+    // Tennis leagues
+    { id: 'ATP', name: 'ATP', sportId: 'tennis', logo: '/logos/atp/atp.svg' },
+    { id: 'WTA', name: 'WTA', sportId: 'tennis', logo: '/logos/wta/wta.svg' },
+    { id: 'ITF', name: 'ITF', sportId: 'tennis', logo: '/logos/itf/itf.svg' },
   ];
   
   for (const league of leaguesData) {

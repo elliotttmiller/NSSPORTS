@@ -38,6 +38,7 @@
 
 import prisma from './prisma';
 import { logger } from './logger';
+import type { LeagueID } from '@/types/game';
 import {
   getEvents as sdkGetEvents,
   getPlayerProps as sdkGetPlayerProps,
@@ -237,6 +238,9 @@ async function updateEventsCache(events: any[]) {
           'NBA': '/logos/nba',
           'NFL': '/logos/nfl',
           'NHL': '/logos/nhl',
+          'ATP': '/logos/atp',
+          'WTA': '/logos/wta',
+          'ITF': '/logos/itf',
         };
         const logoPath = leagueLogoPaths[leagueId];
         // Use the exact SDK team ID (e.g., SACRAMENTO_KINGS_NBA.svg)
@@ -854,22 +858,21 @@ async function getPlayerPropsFromCache(gameId: string) {
     logger.warn(`Game ${gameId} not found in cache for player props lookup`);
     return [];
   }
-  
   // Determine if game is live (use official status or time-based fallback)
   const isLive = game.status === 'live';
-  
+
   // Use smart TTL based on game start time AND live status
   // Live games get 10s TTL (streaming should be primary source)
   // Upcoming games get 30s-120s TTL (based on proximity to start)
   const smartTTL = getSmartCacheTTL(game.startTime, isLive);
   const ttlDate = new Date(Date.now() - smartTTL * 1000);
-  
+
   logger.debug(`Player props cache lookup for ${gameId}`, {
     isLive,
     ttlSeconds: smartTTL,
     status: game.status,
   });
-  
+
   const props = await prisma.playerProp.findMany({
     where: {
       gameId,
@@ -883,7 +886,7 @@ async function getPlayerPropsFromCache(gameId: string) {
       },
     },
   });
-  
+
   // Transform to SDK format
   return props.map((prop: any) => ({
     propID: prop.id,
@@ -927,7 +930,6 @@ export async function getGamePropsWithCache(eventID: string) {
           homeScore: true,
           awayScore: true,
           timeRemaining: true,
-          inning: true,
           league: { select: { id: true } }
         },
       });
@@ -935,16 +937,15 @@ export async function getGamePropsWithCache(eventID: string) {
       if (dbGame) {
         const { filterCompletedPeriodProps } = await import('./market-closure-rules');
         const gameState = {
-          leagueId: dbGame.league?.id as any,
-          status: dbGame.status as any,
-          startTime: dbGame.startTime,
+          leagueId: dbGame.league?.id as unknown as LeagueID,
+          status: dbGame.status as 'upcoming' | 'live' | 'finished',
+          startTime: dbGame.startTime instanceof Date ? dbGame.startTime.toISOString() : String(dbGame.startTime),
           homeScore: dbGame.homeScore ?? undefined,
           awayScore: dbGame.awayScore ?? undefined,
           period: dbGame.period ?? undefined,
           timeRemaining: dbGame.timeRemaining ?? undefined,
-          inning: dbGame.inning ?? undefined,
         };
-        
+
         const filteredProps = filterCompletedPeriodProps(cachedProps, gameState);
         return { data: filteredProps, source: 'cache' as const };
       }
@@ -971,7 +972,6 @@ export async function getGamePropsWithCache(eventID: string) {
         homeScore: true,
         awayScore: true,
         timeRemaining: true,
-        inning: true,
         league: { select: { id: true } }
       },
     });
@@ -979,14 +979,13 @@ export async function getGamePropsWithCache(eventID: string) {
     if (dbGame && (dbGame.status === 'live' || dbGame.status === 'finished')) {
       const { filterCompletedPeriodProps } = await import('./market-closure-rules');
       const gameState = {
-        leagueId: dbGame.league?.id as any,
-        status: dbGame.status as any,
-        startTime: dbGame.startTime,
+        leagueId: dbGame.league?.id as unknown as LeagueID,
+        status: dbGame.status as 'upcoming' | 'live' | 'finished',
+        startTime: dbGame.startTime instanceof Date ? dbGame.startTime.toISOString() : String(dbGame.startTime),
         homeScore: dbGame.homeScore ?? undefined,
         awayScore: dbGame.awayScore ?? undefined,
         period: dbGame.period ?? undefined,
         timeRemaining: dbGame.timeRemaining ?? undefined,
-        inning: dbGame.inning ?? undefined,
       };
       
       const filteredProps = filterCompletedPeriodProps(props, gameState);

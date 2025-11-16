@@ -14,6 +14,7 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 import { NextRequest } from "next/server";
+import type { LeagueID } from '@/types/game';
 import { z } from "zod";
 import prisma from "@/lib/prisma";
 import { getAuthUser } from "@/lib/authHelpers";
@@ -125,7 +126,6 @@ export async function POST(req: NextRequest) {
           awayScore: true,
           period: true,
           timeRemaining: true,
-          inning: true,
           league: {
             select: { id: true }
           }
@@ -151,14 +151,13 @@ export async function POST(req: NextRequest) {
         // Check market closure for live games
         if (game.status === "live") {
           const gameState = {
-            leagueId: game.league?.id as any,
-            status: game.status,
-            startTime: game.startTime,
+            leagueId: game.league?.id as unknown as LeagueID,
+            status: game.status as 'upcoming' | 'live' | 'finished',
+            startTime: game.startTime instanceof Date ? game.startTime.toISOString() : String(game.startTime),
             homeScore: game.homeScore ?? undefined,
             awayScore: game.awayScore ?? undefined,
             period: game.period ?? undefined,
             timeRemaining: game.timeRemaining ?? undefined,
-            inning: game.inning ?? undefined,
           };
           
           const validationError = validateBetPlacement(gameState);
@@ -167,9 +166,10 @@ export async function POST(req: NextRequest) {
           }
           
           // Check if this is a game prop with a completed period
-          if (leg.betType === "game_prop" && leg.gameProp?.periodID) {
-            if (isPeriodCompleted(leg.gameProp.periodID, gameState)) {
-              return ApiErrors.badRequest(`Leg for game ${leg.gameId}: Cannot bet on ${leg.gameProp.periodID.toUpperCase()} - period has already completed`);
+          const legPeriodID = (leg.gameProp as any)?.periodID as string | undefined;
+          if (leg.betType === "game_prop" && legPeriodID) {
+            if (isPeriodCompleted(legPeriodID, gameState)) {
+              return ApiErrors.badRequest(`Leg for game ${leg.gameId}: Cannot bet on ${legPeriodID.toUpperCase()} - period has already completed`);
             }
           }
         }

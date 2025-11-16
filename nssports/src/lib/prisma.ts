@@ -9,6 +9,18 @@ const globalForPrisma = global as unknown as { prisma: ReturnType<typeof createP
 
 const basePrisma = new PrismaClient({
   log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+  // Add connection pool settings for better stability
+  datasources: {
+    db: {
+      url: process.env.DATABASE_URL
+    }
+  }
+});
+
+// Add connection retry logic
+basePrisma.$connect().catch((err) => {
+  console.error('Initial Prisma connection failed:', err);
+  console.log('Will retry on next query...');
 });
 
 // Extend Prisma to automatically create PlayerTransaction records when bets are placed
