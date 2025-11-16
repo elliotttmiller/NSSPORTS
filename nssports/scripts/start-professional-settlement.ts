@@ -114,6 +114,16 @@ async function main() {
     await initializeSettlementQueue();
     logger.info('✅ Queue initialized successfully');
 
+      // Step 1b: Immediately run syncFinishedGames for real-time startup sync
+      logger.info('⚡ Running immediate sync of finished games at startup...');
+      try {
+        const { syncFinishedGames } = await import('../src/scripts/sync-game-status');
+        const syncResult = await syncFinishedGames();
+    logger.info('[Startup Sync] Finished games sync result', { syncResult });
+      } catch (err) {
+        logger.error('[Startup Sync] Error running immediate syncFinishedGames:', err);
+      }
+
     // Step 2: Start worker process
     logger.info('');
     logger.info('⚙️  Step 2: Starting settlement worker...');
