@@ -107,6 +107,66 @@ export async function POST(req: NextRequest) {
       return ApiErrors.badRequest(maxStakeCheck.message);
     }
     
+    // === INDUSTRY STANDARD: VALIDATE MARKET CLOSURE FOR ALL LEGS ===
+    {
+      const { validateBetPlacement } = await import("@/lib/market-closure-rules");
+      
+      // Collect all unique game IDs from legs
+      const gameIds = Array.from(new Set(legs.map((leg: any) => leg.gameId).filter(Boolean)));
+      
+      // Fetch game states
+      const games = await prisma.game.findMany({
+        where: { id: { in: gameIds } },
+        select: {
+          id: true,
+          status: true,
+          startTime: true,
+          homeScore: true,
+          awayScore: true,
+          period: true,
+          timeRemaining: true,
+          league: {
+            select: { id: true }
+          }
+        },
+      });
+      
+      // Create a map for quick lookup
+      const gameMap = new Map(games.map(g => [g.id, g]));
+      
+      // Validate each leg
+      for (const leg of legs) {
+        if (!leg.gameId) continue;
+        
+        const game = gameMap.get(leg.gameId);
+        if (!game) {
+          return ApiErrors.badRequest(`Game not found: ${leg.gameId}`);
+        }
+        
+        if (game.status === "finished") {
+          return ApiErrors.badRequest(`Cannot place if bet with finished game: ${leg.gameId}`);
+        }
+        
+        // Check market closure for live games
+        if (game.status === "live") {
+          const gameState = {
+            leagueId: game.league?.id as any,
+            status: game.status,
+            startTime: game.startTime,
+            homeScore: game.homeScore ?? undefined,
+            awayScore: game.awayScore ?? undefined,
+            period: game.period ?? undefined,
+            timeRemaining: game.timeRemaining ?? undefined,
+          };
+          
+          const validationError = validateBetPlacement(gameState);
+          if (validationError) {
+            return ApiErrors.badRequest(`Leg for game ${leg.gameId}: ${validationError}`);
+          }
+        }
+      }
+    }
+    
     // Check user balance
     const account = await prisma.account.findUnique({
       where: { userId },

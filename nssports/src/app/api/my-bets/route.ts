@@ -791,6 +791,67 @@ export async function POST(req: Request) {
     if (data.betType === "parlay") {
       const parlayLegs = (data as any).legs;
       logger.info('Creating parlay bet', { legs: Array.isArray(parlayLegs) ? parlayLegs.length : 0 });
+      
+      // === INDUSTRY STANDARD: VALIDATE EACH PARLAY LEG FOR MARKET CLOSURE ===
+      if (Array.isArray(parlayLegs) && parlayLegs.length > 0) {
+        const { validateBetPlacement } = await import("@/lib/market-closure-rules");
+        
+        // Collect all unique game IDs from parlay legs
+        const gameIds = Array.from(new Set(parlayLegs.map((leg: any) => leg.gameId).filter(Boolean)));
+        
+        // Fetch game states for all legs
+        const games = await tx.game.findMany({
+          where: { id: { in: gameIds } },
+          select: {
+            id: true,
+            status: true,
+            startTime: true,
+            homeScore: true,
+            awayScore: true,
+            period: true,
+            timeRemaining: true,
+            league: {
+              select: { id: true }
+            }
+          },
+        });
+        
+        // Create a map for quick lookup
+        const gameMap = new Map(games.map(g => [g.id, g]));
+        
+        // Validate each leg
+        for (const leg of parlayLegs) {
+          if (!leg.gameId) continue;
+          
+          const game = gameMap.get(leg.gameId);
+          if (!game) {
+            throw new Error(`Game not found in parlay leg: ${leg.gameId}`);
+          }
+          
+          if (game.status === "finished") {
+            throw new Error(`Cannot place parlay bet with finished game: ${leg.gameId}`);
+          }
+          
+          // Check market closure for live games
+          if (game.status === "live") {
+            const gameState = {
+              leagueId: game.league?.id as any,
+              status: game.status,
+              startTime: game.startTime,
+              homeScore: game.homeScore ?? undefined,
+              awayScore: game.awayScore ?? undefined,
+              period: game.period ?? undefined,
+              timeRemaining: game.timeRemaining ?? undefined,
+            };
+            
+            const validationError = validateBetPlacement(gameState);
+            if (validationError) {
+              throw new Error(`Parlay leg ${leg.gameId}: ${validationError}`);
+            }
+          }
+        }
+      }
+      
       const parlayBet = await tx.bet.create({
         data: {
           betType: "parlay",
