@@ -7,14 +7,13 @@ import { logger } from './logger';
 
 const globalForPrisma = global as unknown as { prisma: ReturnType<typeof createPrismaClient> };
 
+// Validate DATABASE_URL exists
+if (!process.env.DATABASE_URL) {
+  throw new Error('DATABASE_URL environment variable is required but not set');
+}
+
 const basePrisma = new PrismaClient({
   log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
-  // Add connection pool settings for better stability
-  datasources: {
-    db: {
-      url: process.env.DATABASE_URL
-    }
-  }
 });
 
 // Add connection retry logic
