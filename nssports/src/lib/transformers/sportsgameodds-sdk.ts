@@ -602,45 +602,6 @@ function extractOdds(event: ExtendedSDKEvent) {
     },
   };
 }
-    
-    // Match moneyline odds: "...-game-ml-home" or "...-game-ml-away"
-    if (oddID.includes('-ml-home')) {
-      moneylineHome = consensusOdds;
-    } else if (oddID.includes('-ml-away')) {
-      moneylineAway = consensusOdds;
-    }
-    // Match spread odds: "...-game-sp-home" or "...-game-sp-away"  
-    else if (oddID.includes('-sp-home')) {
-      spreadHome = consensusOdds;
-    } else if (oddID.includes('-sp-away')) {
-      spreadAway = consensusOdds;
-    }
-    // Match total odds: "...-game-ou-over" or "...-game-ou-under"
-    // CRITICAL: Must contain BOTH "-game-ou-" AND "-over"/"-under" for main game totals
-    else if (oddID.includes('-game-ou-over')) {
-      totalOver = consensusOdds;
-    } else if (oddID.includes('-game-ou-under')) {
-      totalUnder = consensusOdds;
-    }
-  }
-
-  return {
-    spread: {
-      home: spreadHome,
-      away: spreadAway,
-    },
-    moneyline: {
-      home: moneylineHome,
-      away: moneylineAway,
-    },
-    total: {
-      home: totalOver,
-      away: totalUnder,
-      over: totalOver,
-      under: totalUnder,
-    },
-  };
-}
 
 /**
  * Apply juice/margins to extracted odds
