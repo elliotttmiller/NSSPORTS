@@ -7,11 +7,11 @@ import Link from "next/link";
 export default function WelcomePage() {
   return (
     <div className="bg-background text-foreground">
-      <div className="container mx-auto px-6 md:px-8 xl:px-12 py-6 max-w-screen-2xl">
+  <div className="container mx-auto px-6 md:px-8 xl:px-12 pb-6 max-w-screen-2xl">
         <div className="space-y-6">
           
           {/* Hero Section */}
-          <div className="text-center py-8 md:py-12">
+          <div className="text-center pt-2 pb-4 md:pt-6 md:pb-10">
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground tracking-tight mb-4">
               Welcome to NorthStar Sports
             </h1>

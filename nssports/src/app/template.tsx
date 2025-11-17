@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePathname } from 'next/navigation';
+import { useEffect } from 'react';
 
 // Define the animation variants - crossfade for smooth transitions
 const variants = {
@@ -13,10 +14,16 @@ const variants = {
 export default function Template({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
+  // Scroll to top on route change (covers all pages)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+    }
+  }, [pathname]);
+
   return (
     <AnimatePresence mode="popLayout" initial={false}>
       <motion.div
-        // The `key` is crucial for AnimatePresence to detect when a new page is rendered
         key={pathname}
         variants={variants}
         initial="hidden"
