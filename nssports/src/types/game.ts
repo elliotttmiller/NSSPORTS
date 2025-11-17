@@ -129,6 +129,7 @@ export interface Odds {
   moneyline: {
     home: { odds: number };
     away: { odds: number };
+    draw?: { odds: number }; // For soccer 3-way moneyline
   };
   total: {
     over?: { odds: number; line?: number };

@@ -77,6 +77,48 @@ export async function ensureGameExists(game: Game): Promise<string> {
       AHL: 'hockey',
       KHL: 'hockey',
       SHL: 'hockey',
+      MLB: 'baseball',
+      MiLB: 'baseball',
+      KBO: 'baseball',
+      NPB: 'baseball',
+      // Soccer leagues
+      EPL: 'soccer',
+      LA_LIGA: 'soccer',
+      LALIGA: 'soccer',
+      BUNDESLIGA: 'soccer',
+      IT_SERIE_A: 'soccer',
+      SERIEA: 'soccer',
+      FR_LIGUE_1: 'soccer',
+      LIGUE1: 'soccer',
+      MLS: 'soccer',
+      LIGA_MX: 'soccer',
+      UEFA_CHAMPIONS_LEAGUE: 'soccer',
+      UEFA: 'soccer',
+      UEFA_EUROPA_LEAGUE: 'soccer',
+      BR_SERIE_A: 'soccer',
+      INTERNATIONAL_SOCCER: 'soccer',
+      FIFA: 'soccer',
+      // MMA leagues
+      UFC: 'mma',
+      BELLATOR: 'mma',
+      PFL: 'mma',
+      ONE_CHAMPIONSHIP: 'mma',
+      // Boxing
+      BOXING: 'boxing',
+      // Golf leagues
+      PGA_MEN: 'golf',
+      PGA: 'golf',
+      PGA_WOMEN: 'golf',
+      LPGA: 'golf',
+      LIV_TOUR: 'golf',
+      LIV: 'golf',
+      DP_WORLD_TOUR: 'golf',
+      // Horse Racing
+      HORSE_RACING: 'horse_racing',
+      // Tennis
+      ATP: 'tennis',
+      WTA: 'tennis',
+      ITF: 'tennis',
     };
 
     await tx.league.upsert({

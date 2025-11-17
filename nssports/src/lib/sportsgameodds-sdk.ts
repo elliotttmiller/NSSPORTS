@@ -191,6 +191,113 @@ export const GAME_PROP_ODDIDS = [
 ].join(',');
 
 /**
+ * Soccer-specific betting lines (3-way moneyline with draw)
+ * Used for: Soccer matches where draws are possible
+ * 
+ * Per https://sportsgameodds.com/docs/data-types/markets/soccer
+ * 
+ * Soccer uses 3-way moneyline (ml3way) with draw option:
+ * - points-home-game-ml3way-home → Home win
+ * - points-home-game-ml3way-draw → Draw
+ * - points-home-game-ml3way-away → Away win
+ * 
+ * Also includes standard spread and totals
+ */
+export const SOCCER_MAIN_LINE_ODDIDS = [
+  // 3-Way Moneyline (ML3WAY) - Home/Draw/Away
+  'points-home-game-ml3way-home',     // Home team to win (includes draw and away with includeOpposingOddIDs)
+  
+  // Spread (SP) - Goal spread betting (Asian Handicap)
+  'points-home-game-sp-home',         // Home team spread (auto-includes away)
+  
+  // Total Goals (OU) - Over/Under total goals
+  'points-all-game-ou-over',          // Total goals over (auto-includes under)
+  
+  // Both Teams to Score (BTTS)
+  'bothTeamsToScore-all-game-yn-yes', // Both teams to score yes/no
+].join(',');
+
+/**
+ * MMA/Boxing-specific betting lines
+ * Used for: Fight sports with method of victory and round betting
+ * 
+ * Per https://sportsgameodds.com/docs/data-types/markets/mma
+ * 
+ * MMA/Boxing specific markets:
+ * - Moneyline (fighter to win)
+ * - Method of victory (KO/TKO, submission, decision)
+ * - Total rounds over/under
+ * - Fight goes the distance (yes/no)
+ */
+export const COMBAT_SPORTS_MAIN_LINE_ODDIDS = [
+  // Moneyline (ML) - Fighter to win
+  'points-home-game-ml-home',          // Fighter 1 to win (auto-includes fighter 2)
+  
+  // Method of Victory
+  'methodOfVictory-home-game-prop-ko', // KO/TKO
+  'methodOfVictory-home-game-prop-sub', // Submission (MMA only)
+  'methodOfVictory-home-game-prop-dec', // Decision
+  
+  // Total Rounds
+  'totalRounds-all-game-ou-over',      // Total rounds over (auto-includes under)
+  
+  // Fight Goes Distance
+  'fightGoesDistance-all-game-yn-yes', // Yes/No prop
+].join(',');
+
+/**
+ * Golf-specific betting lines
+ * Used for: Tournament winner, top finishes, matchups
+ * 
+ * Per https://sportsgameodds.com/docs/data-types/leagues
+ * 
+ * Golf markets are primarily outright/futures:
+ * - Tournament winner
+ * - Top 5/10/20 finish
+ * - Make the cut
+ * - Head-to-head matchups
+ * - 3-ball matchups
+ */
+export const GOLF_MAIN_LINE_ODDIDS = [
+  // Tournament Winner (outright)
+  'tournamentWinner-PLAYER_ID-game-prop-side1', // Player to win tournament
+  
+  // Top Finish Props
+  'top5-PLAYER_ID-game-yn-yes',        // Top 5 finish yes/no
+  'top10-PLAYER_ID-game-yn-yes',       // Top 10 finish yes/no
+  'top20-PLAYER_ID-game-yn-yes',       // Top 20 finish yes/no
+  'makeCut-PLAYER_ID-game-yn-yes',     // Make the cut yes/no
+  
+  // Matchups
+  'headToHead-PLAYER_ID-game-prop-side1', // Head-to-head matchup
+  'threeBall-PLAYER_ID-game-prop-side1',  // 3-ball matchup
+].join(',');
+
+/**
+ * Horse Racing-specific betting lines
+ * Used for: Win/Place/Show and exotic bets
+ * 
+ * Horse racing markets include:
+ * - Win (1st place)
+ * - Place (1st or 2nd)
+ * - Show (1st, 2nd, or 3rd)
+ * - Exacta (1st and 2nd in order)
+ * - Trifecta (1st, 2nd, and 3rd in order)
+ * - Superfecta (1st, 2nd, 3rd, and 4th in order)
+ */
+export const HORSE_RACING_MAIN_LINE_ODDIDS = [
+  // Win/Place/Show
+  'win-HORSE_ID-game-prop-side1',      // Horse to win
+  'place-HORSE_ID-game-prop-side1',    // Horse to place (1st or 2nd)
+  'show-HORSE_ID-game-prop-side1',     // Horse to show (1st, 2nd, or 3rd)
+  
+  // Exotic bets (typically combined selections)
+  'exacta-all-game-prop-side1',        // Exacta betting
+  'trifecta-all-game-prop-side1',      // Trifecta betting
+  'superfecta-all-game-prop-side1',    // Superfecta betting
+].join(',');
+
+/**
  * Get configured SDK client instance
  * Server-side only - API key is never exposed to client
  * 

@@ -122,6 +122,90 @@ const STAT_TYPE_DISPLAY_NAMES: Record<string, string> = {
   'earned_runs': 'Earned Runs',
   'innings_pitched': 'Innings Pitched',
   'pitches_thrown': 'Pitches Thrown',
+  
+  // ============================================
+  // SOCCER STATS - Per https://sportsgameodds.com/docs/data-types/markets/soccer
+  // ============================================
+  'goals_scored': 'Goals',
+  'assists_soccer': 'Assists',
+  'shots_onTarget': 'Shots on Target',
+  'shots_total': 'Total Shots',
+  'corners': 'Corners',
+  'cards_yellow': 'Yellow Cards',
+  'cards_red': 'Red Cards',
+  'fouls_committed': 'Fouls',
+  'offsides': 'Offsides',
+  'possession': 'Possession %',
+  'passes_completed': 'Passes Completed',
+  'saves_goalie': 'Saves',
+  'tackles': 'Tackles',
+  'cleanSheet': 'Clean Sheet',
+  'bothTeamsToScore': 'Both Teams to Score',
+  'firstGoal': 'First Goal',
+  'lastGoal': 'Last Goal',
+  'exactScore': 'Exact Score',
+  'winToNil': 'Win to Nil',
+  'totalTeamGoals': 'Total Team Goals',
+  
+  // ============================================
+  // MMA STATS - Per https://sportsgameodds.com/docs/data-types/markets/mma
+  // ============================================
+  'methodOfVictory': 'Method of Victory',
+  'ko_tko': 'KO/TKO',
+  'submission': 'Submission',
+  'decision': 'Decision',
+  'roundWinner': 'Round Winner',
+  'totalRounds': 'Total Rounds',
+  'fightGoesDistance': 'Fight Goes Distance',
+  'significantStrikes': 'Significant Strikes',
+  'totalStrikes': 'Total Strikes',
+  'takedowns': 'Takedowns',
+  'knockdowns': 'Knockdowns',
+  
+  // ============================================
+  // BOXING STATS
+  // ============================================
+  'ko': 'Knockout',
+  'tko': 'Technical Knockout',
+  'decision_boxing': 'Decision',
+  'draw': 'Draw',
+  'totalRounds_boxing': 'Total Rounds',
+  'punchesLanded': 'Punches Landed',
+  'punchesThrown': 'Punches Thrown',
+  'roundBetting': 'Round Betting',
+  
+  // ============================================
+  // GOLF STATS - Per https://sportsgameodds.com/docs/data-types/leagues
+  // ============================================
+  'tournamentWinner': 'Tournament Winner',
+  'topFinish': 'Top Finish',
+  'top5': 'Top 5 Finish',
+  'top10': 'Top 10 Finish',
+  'top20': 'Top 20 Finish',
+  'makeCut': 'Make the Cut',
+  'headToHead': 'Head to Head',
+  'threeBall': '3-Ball',
+  'roundScore': 'Round Score',
+  'roundLeader': 'Round Leader',
+  'eagles': 'Eagles',
+  'birdies': 'Birdies',
+  'pars': 'Pars',
+  'bogeys': 'Bogeys',
+  'holeInOne': 'Hole in One',
+  
+  // ============================================
+  // HORSE RACING STATS
+  // ============================================
+  'winRace': 'Win',
+  'placeRace': 'Place',
+  'showRace': 'Show',
+  'exacta': 'Exacta',
+  'trifecta': 'Trifecta',
+  'superfecta': 'Superfecta',
+  'dailyDouble': 'Daily Double',
+  'pick3': 'Pick 3',
+  'pick4': 'Pick 4',
+  'pick6': 'Pick 6',
 };
 
 /**
@@ -187,6 +271,34 @@ export function getStatTypeCategory(statType: string): string {
   if (statType === 'minutesPlayed') return 'Ice Time';
   if (statType === 'firstToScore' || statType === 'lastToScore') return 'Milestones';
   
+  // Soccer categories
+  if (['goals_scored', 'assists_soccer', 'firstGoal', 'lastGoal'].includes(statType)) return 'Scoring';
+  if (statType.includes('shots') || statType === 'shots_onTarget' || statType === 'shots_total') return 'Shooting';
+  if (statType.includes('cards') || statType.includes('fouls') || statType === 'tackles') return 'Discipline';
+  if (statType === 'corners' || statType === 'offsides') return 'Set Pieces';
+  if (statType === 'possession' || statType.includes('passes')) return 'Possession';
+  if (statType === 'saves_goalie' || statType === 'cleanSheet' || statType === 'winToNil') return 'Goalkeeping';
+  if (statType === 'bothTeamsToScore' || statType === 'exactScore' || statType === 'totalTeamGoals') return 'Match Props';
+  
+  // MMA/Boxing categories
+  if (['methodOfVictory', 'ko_tko', 'submission', 'decision', 'ko', 'tko', 'decision_boxing'].includes(statType)) return 'Fight Outcome';
+  if (statType === 'roundWinner' || statType === 'totalRounds' || statType === 'totalRounds_boxing' || statType === 'roundBetting') return 'Round Props';
+  if (statType === 'fightGoesDistance') return 'Distance';
+  if (statType.includes('Strikes') || statType.includes('Punches') || statType === 'knockdowns') return 'Striking';
+  if (statType === 'takedowns') return 'Grappling';
+  
+  // Golf categories
+  if (statType === 'tournamentWinner') return 'Winner';
+  if (statType.includes('top') || statType === 'makeCut') return 'Finish Position';
+  if (statType === 'headToHead' || statType === 'threeBall') return 'Matchups';
+  if (statType.includes('round')) return 'Round Props';
+  if (['eagles', 'birdies', 'pars', 'bogeys', 'holeInOne'].includes(statType)) return 'Scoring';
+  
+  // Horse Racing categories
+  if (['winRace', 'placeRace', 'showRace'].includes(statType)) return 'Win/Place/Show';
+  if (['exacta', 'trifecta', 'superfecta'].includes(statType)) return 'Exotic Bets';
+  if (statType.includes('pick') || statType === 'dailyDouble') return 'Multi-Race';
+  
   // Default
   return 'Other Stats';
 }
@@ -232,6 +344,47 @@ export function sortStatTypesByImportance(statTypes: string[]): string[] {
     'hits': 75,
     'blocks': 74,
     'goalie_goalsAgainst': 73,
+    
+    // Soccer priorities
+    'goals_scored': 72,
+    'assists_soccer': 71,
+    'shots_onTarget': 70,
+    'shots_total': 69,
+    'bothTeamsToScore': 68,
+    'totalTeamGoals': 67,
+    'corners': 66,
+    'cards_yellow': 65,
+    'firstGoal': 64,
+    'cleanSheet': 63,
+    
+    // MMA priorities
+    'methodOfVictory': 62,
+    'totalRounds': 61,
+    'fightGoesDistance': 60,
+    'ko_tko': 59,
+    'submission': 58,
+    'decision': 57,
+    
+    // Boxing priorities
+    'ko': 56,
+    'tko': 55,
+    'decision_boxing': 54,
+    'totalRounds_boxing': 53,
+    
+    // Golf priorities
+    'tournamentWinner': 52,
+    'top5': 51,
+    'top10': 50,
+    'makeCut': 49,
+    'headToHead': 48,
+    'threeBall': 47,
+    
+    // Horse Racing priorities
+    'winRace': 46,
+    'placeRace': 45,
+    'showRace': 44,
+    'exacta': 43,
+    'trifecta': 42,
   };
   
   return [...statTypes].sort((a, b) => {

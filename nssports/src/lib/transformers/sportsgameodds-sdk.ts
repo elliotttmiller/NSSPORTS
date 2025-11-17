@@ -76,29 +76,49 @@ const LEAGUE_ID_MAPPING: Record<string, string> = {
   'KBO': 'KBO',
   'NPB': 'NPB',
   
-  // Soccer
+  // Soccer - Per https://sportsgameodds.com/docs/data-types/leagues
   'EPL': 'EPL',
-  'LALIGA': 'LALIGA',
+  'LA_LIGA': 'LA_LIGA',
+  'LALIGA': 'LA_LIGA',
   'BUNDESLIGA': 'BUNDESLIGA',
-  'SERIEA': 'SERIEA',
-  'LIGUE1': 'LIGUE1',
+  'IT_SERIE_A': 'IT_SERIE_A',
+  'SERIEA': 'IT_SERIE_A',
+  'FR_LIGUE_1': 'FR_LIGUE_1',
+  'LIGUE1': 'FR_LIGUE_1',
   'MLS': 'MLS',
-  'UEFA': 'UEFA',
-  'FIFA': 'FIFA',
+  'LIGA_MX': 'LIGA_MX',
+  'UEFA_CHAMPIONS_LEAGUE': 'UEFA_CHAMPIONS_LEAGUE',
+  'UEFA': 'UEFA_CHAMPIONS_LEAGUE',
+  'UEFA_EUROPA_LEAGUE': 'UEFA_EUROPA_LEAGUE',
+  'BR_SERIE_A': 'BR_SERIE_A',
+  'INTERNATIONAL_SOCCER': 'INTERNATIONAL_SOCCER',
+  'FIFA': 'INTERNATIONAL_SOCCER',
   
-  // MMA
+  // MMA - Per https://sportsgameodds.com/docs/data-types/leagues
   'UFC': 'UFC',
   'BELLATOR': 'BELLATOR',
   'PFL': 'PFL',
+  'ONE_CHAMPIONSHIP': 'ONE_CHAMPIONSHIP',
+  
+  // Boxing
+  'BOXING': 'BOXING',
   
   // Tennis
   'ATP': 'ATP',
   'WTA': 'WTA',
+  'ITF': 'ITF',
   
-  // Golf
-  'PGA': 'PGA',
-  'LPGA': 'LPGA',
-  'LIV': 'LIV',
+  // Golf - Per https://sportsgameodds.com/docs/data-types/leagues
+  'PGA_MEN': 'PGA_MEN',
+  'PGA': 'PGA_MEN',
+  'PGA_WOMEN': 'PGA_WOMEN',
+  'LPGA': 'PGA_WOMEN',
+  'LIV_TOUR': 'LIV_TOUR',
+  'LIV': 'LIV_TOUR',
+  'DP_WORLD_TOUR': 'DP_WORLD_TOUR',
+  
+  // Horse Racing
+  'HORSE_RACING': 'HORSE_RACING',
 } as const;
 
 /**
@@ -131,29 +151,49 @@ const LEAGUE_TO_SPORT_MAPPING: Record<string, string> = {
   'KBO': 'BASEBALL',
   'NPB': 'BASEBALL',
   
-  // SOCCER leagues
+  // SOCCER leagues - Per https://sportsgameodds.com/docs/data-types/markets/soccer
   'EPL': 'SOCCER',
+  'LA_LIGA': 'SOCCER',
   'LALIGA': 'SOCCER',
   'BUNDESLIGA': 'SOCCER',
+  'IT_SERIE_A': 'SOCCER',
   'SERIEA': 'SOCCER',
+  'FR_LIGUE_1': 'SOCCER',
   'LIGUE1': 'SOCCER',
   'MLS': 'SOCCER',
+  'LIGA_MX': 'SOCCER',
+  'UEFA_CHAMPIONS_LEAGUE': 'SOCCER',
   'UEFA': 'SOCCER',
+  'UEFA_EUROPA_LEAGUE': 'SOCCER',
+  'BR_SERIE_A': 'SOCCER',
+  'INTERNATIONAL_SOCCER': 'SOCCER',
   'FIFA': 'SOCCER',
   
-  // MMA leagues
+  // MMA leagues - Per https://sportsgameodds.com/docs/data-types/markets/mma
   'UFC': 'MMA',
   'BELLATOR': 'MMA',
   'PFL': 'MMA',
+  'ONE_CHAMPIONSHIP': 'MMA',
+  
+  // BOXING leagues
+  'BOXING': 'BOXING',
   
   // TENNIS leagues
   'ATP': 'TENNIS',
   'WTA': 'TENNIS',
+  'ITF': 'TENNIS',
   
-  // GOLF leagues
+  // GOLF leagues - Per https://sportsgameodds.com/docs/data-types/leagues
+  'PGA_MEN': 'GOLF',
   'PGA': 'GOLF',
+  'PGA_WOMEN': 'GOLF',
   'LPGA': 'GOLF',
+  'LIV_TOUR': 'GOLF',
   'LIV': 'GOLF',
+  'DP_WORLD_TOUR': 'GOLF',
+  
+  // HORSE RACING leagues
+  'HORSE_RACING': 'HORSE_RACING',
 } as const;
 
 /**
@@ -436,7 +476,7 @@ function extractOdds(event: ExtendedSDKEvent) {
   if (!event.odds || Object.keys(event.odds).length === 0) {
     return {
       spread: { home: defaultOdds, away: defaultOdds },
-      moneyline: { home: defaultOdds, away: defaultOdds },
+      moneyline: { home: defaultOdds, away: defaultOdds, draw: defaultOdds },
       total: { 
         home: defaultOdds, 
         away: defaultOdds,
@@ -449,6 +489,9 @@ function extractOdds(event: ExtendedSDKEvent) {
   // The new SDK returns odds with complex oddID format like:
   // - "points-away-game-ml-away" (moneyline away)
   // - "points-home-game-ml-home" (moneyline home)
+  // - "points-home-game-ml3way-home" (3-way moneyline home - soccer)
+  // - "points-home-game-ml3way-draw" (3-way moneyline draw - soccer)
+  // - "points-home-game-ml3way-away" (3-way moneyline away - soccer)
   // - "points-away-game-sp-away" (spread away)
   // - "points-home-game-sp-home" (spread home)
   // - "points-all-game-ou-over" (total over)
@@ -495,6 +538,7 @@ function extractOdds(event: ExtendedSDKEvent) {
   // Find main game odds by pattern matching
   let moneylineHome = defaultOdds;
   let moneylineAway = defaultOdds;
+  let moneylineDraw = defaultOdds; // For soccer 3-way moneyline
   let spreadHome = defaultOdds;
   let spreadAway = defaultOdds;
   let totalOver = defaultOdds;
@@ -508,6 +552,56 @@ function extractOdds(event: ExtendedSDKEvent) {
     
     const consensusOdds = extractConsensusOdds(oddData);
     if (!consensusOdds) continue;
+    
+    // Match 3-way moneyline odds (soccer): "...-game-ml3way-home/draw/away"
+    // Per https://sportsgameodds.com/docs/data-types/markets/soccer
+    if (oddID.includes('-ml3way-home')) {
+      moneylineHome = consensusOdds;
+    } else if (oddID.includes('-ml3way-draw')) {
+      moneylineDraw = consensusOdds;
+    } else if (oddID.includes('-ml3way-away')) {
+      moneylineAway = consensusOdds;
+    }
+    // Match standard moneyline odds: "...-game-ml-home" or "...-game-ml-away"
+    // Note: ml3way takes precedence over ml for soccer
+    else if (oddID.includes('-ml-home') && moneylineHome.odds === 0) {
+      moneylineHome = consensusOdds;
+    } else if (oddID.includes('-ml-away') && moneylineAway.odds === 0) {
+      moneylineAway = consensusOdds;
+    }
+    // Match spread odds: "...-game-sp-home" or "...-game-sp-away"  
+    else if (oddID.includes('-sp-home')) {
+      spreadHome = consensusOdds;
+    } else if (oddID.includes('-sp-away')) {
+      spreadAway = consensusOdds;
+    }
+    // Match total odds: "...-game-ou-over" or "...-game-ou-under"
+    // CRITICAL: Must contain BOTH "-game-ou-" AND "-over"/"-under" for main game totals
+    else if (oddID.includes('-game-ou-over')) {
+      totalOver = consensusOdds;
+    } else if (oddID.includes('-game-ou-under')) {
+      totalUnder = consensusOdds;
+    }
+  }
+
+  return {
+    spread: {
+      home: spreadHome,
+      away: spreadAway,
+    },
+    moneyline: {
+      home: moneylineHome,
+      away: moneylineAway,
+      draw: moneylineDraw, // Soccer 3-way moneyline
+    },
+    total: {
+      home: totalOver,
+      away: totalUnder,
+      over: totalOver,
+      under: totalUnder,
+    },
+  };
+}
     
     // Match moneyline odds: "...-game-ml-home" or "...-game-ml-away"
     if (oddID.includes('-ml-home')) {
