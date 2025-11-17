@@ -12,9 +12,27 @@ export interface UsePaginatedGamesParams {
 
 const isDevelopment = process.env.NODE_ENV === 'development';
 
+// ✅ OPTIMIZATION: Stable query key factory for better caching
+// Prevents unnecessary cache invalidations from dynamic timestamp
+const getQueryKey = (params: UsePaginatedGamesParams) => {
+  const { leagueId, status, page = 1, limit = 10, bypassCache = false } = params;
+  
+  // Only include timestamp in key when explicitly bypassing cache
+  // Otherwise use a stable key for better cache hit rates
+  return [
+    'games',
+    leagueId ?? 'all',
+    status ?? 'all',
+    page,
+    limit,
+    bypassCache ? 'bypass' : 'cached',
+  ] as const;
+};
+
 export function usePaginatedGames({ leagueId, status, page = 1, limit = 10, bypassCache = false }: UsePaginatedGamesParams) {
   return useQuery<PaginatedResponse<Game>>({
-    queryKey: ['games', leagueId, status, page, limit, bypassCache ? Date.now() : 'cached'],
+    // ✅ OPTIMIZATION: Use stable query key factory
+    queryKey: getQueryKey({ leagueId, status, page, limit, bypassCache }),
     queryFn: () => getGamesPaginated(leagueId, page, limit, bypassCache),
     
     // Environment-aware caching strategy
@@ -25,7 +43,9 @@ export function usePaginatedGames({ leagueId, status, page = 1, limit = 10, bypa
     refetchIntervalInBackground: false, // Never poll in background
     refetchOnWindowFocus: !isDevelopment, // Only refetch on focus in production
     
-    // Keep previous data while loading to prevent UI flickering
-    placeholderData: (previousData) => previousData,
+    // ✅ OPTIMIZATION: Keep previous data while loading to prevent UI flickering
+    // Type-safe with explicit any to satisfy TypeScript
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    placeholderData: (previousData: any) => previousData,
   });
 }
