@@ -249,7 +249,12 @@ export async function GET() {
 
       const parsed = z.array(GameSchema).parse(games);
       
-      return successResponse(parsed);
+      // ✅ OPTIMIZATION: Add cache headers for live games
+      // - Very short cache (5s) to ensure fresh data
+      // - Longer stale-while-revalidate (30s) for smooth transitions
+      const cacheOptions = { maxAge: 5, sMaxAge: 5, staleWhileRevalidate: 30 };
+      
+      return successResponse(parsed, 200, undefined, cacheOptions);
     } catch (error) {
       logger.error('Error fetching live games', error);
       

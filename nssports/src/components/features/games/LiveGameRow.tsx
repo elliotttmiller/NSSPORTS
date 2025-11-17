@@ -527,4 +527,41 @@ export function LiveGameRow({
 }
 
 // Memoize component to prevent unnecessary re-renders
-export const MemoizedLiveGameRow = memo(LiveGameRow);
+// ✅ OPTIMIZATION: Custom comparator to only re-render when critical fields change
+// Prevents re-renders from parent state changes that don't affect this row
+const arePropsEqual = (prev: LiveGameRowProps, next: LiveGameRowProps) => {
+  // Quick reference check first
+  if (prev.game === next.game) {
+    return (
+      prev.isFirstInGroup === next.isFirstInGroup &&
+      prev.isLastInGroup === next.isLastInGroup &&
+      prev.showTime === next.showTime &&
+      prev.justUpdated === next.justUpdated
+    );
+  }
+  
+  // Deep check only critical fields that affect rendering
+  const game1 = prev.game;
+  const game2 = next.game;
+  
+  // Compare fields that trigger visual updates
+  const criticalFieldsEqual = 
+    game1.id === game2.id &&
+    game1.homeScore === game2.homeScore &&
+    game1.awayScore === game2.awayScore &&
+    game1.period === game2.period &&
+    game1.timeRemaining === game2.timeRemaining &&
+    game1.status === game2.status &&
+    // Compare odds shallow (object reference)
+    game1.odds === game2.odds;
+  
+  return (
+    criticalFieldsEqual &&
+    prev.isFirstInGroup === next.isFirstInGroup &&
+    prev.isLastInGroup === next.isLastInGroup &&
+    prev.showTime === next.showTime &&
+    prev.justUpdated === next.justUpdated
+  );
+};
+
+export const MemoizedLiveGameRow = memo(LiveGameRow, arePropsEqual);

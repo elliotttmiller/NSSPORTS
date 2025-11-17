@@ -23,20 +23,35 @@ class ApiHttpError extends Error {
 // Pagination response interface
 // ...removed local PaginatedResponse, now using shared type from src/types/index.ts
 
-// Helper function to make API requests with error handling
-async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> {
+// Helper function to make API requests with error handling and optimizations
+async function fetchAPI<T>(
+  endpoint: string, 
+  options?: RequestInit & { 
+    priority?: 'high' | 'low' | 'auto';  // Request priority hint for browser
+  }
+): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
+  const { priority, ...fetchOptions } = options || {};
   
   try {
-    const response = await fetch(url, {
-      ...options,
+    // Build fetch options with priority if in browser environment
+    const requestOptions: RequestInit = {
+      ...fetchOptions,
       headers: {
         'Content-Type': 'application/json',
-        ...options?.headers,
+        ...fetchOptions?.headers,
       },
       // Always include cookies for auth (supports same-origin and cross-origin with CORS)
       credentials: 'include',
-    });
+    };
+    
+    // ✅ OPTIMIZATION: Add priority hint for browser (Chrome, Edge support)
+    // Only applies in browser context, ignored in Node.js
+    if (typeof window !== 'undefined' && priority) {
+      (requestOptions as Record<string, unknown>).priority = priority;
+    }
+    
+    const response = await fetch(url, requestOptions);
 
     if (!response.ok) {
       let body: unknown = undefined;

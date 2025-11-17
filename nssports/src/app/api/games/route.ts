@@ -284,7 +284,16 @@ export async function GET(request: NextRequest) {
       const parsed = Schema.parse(payload);
       
       logger.info(`Returning page ${page} with ${validatedGames.length} games (total: ${total})`);
-      return successResponse(parsed, 200, undefined);
+      
+      // ✅ OPTIMIZATION: Add intelligent cache headers
+      // - Live games: Short cache (30s) with stale-while-revalidate for smooth updates
+      // - Upcoming games: Longer cache (60s) as they change less frequently
+      const hasLiveGames = validatedGames.some(g => g.status === 'live');
+      const cacheOptions = hasLiveGames 
+        ? { maxAge: 15, sMaxAge: 30, staleWhileRevalidate: 60 }  // Live: 15s browser, 30s CDN, 60s stale
+        : { maxAge: 30, sMaxAge: 60, staleWhileRevalidate: 120 }; // Upcoming: 30s browser, 60s CDN, 120s stale
+      
+      return successResponse(parsed, 200, undefined, cacheOptions);
     } catch (error) {
       logger.error('Error in games route', error);
       

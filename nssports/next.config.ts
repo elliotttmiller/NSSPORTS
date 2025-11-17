@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 /**
- * Next.js Configuration
+ * Next.js Configuration - OPTIMIZED
  * Official Next.js Production Best Practices
  * 
  * Features:
@@ -11,6 +11,11 @@ import type { NextConfig } from "next";
  * - Image optimization
  * - Performance optimizations
  * - Production-ready settings
+ * 
+ * OPTIMIZATIONS:
+ * ✅ Enhanced compiler optimizations
+ * ✅ React optimization flags
+ * ✅ Resource hints for preconnect
  * 
  * References:
  * - https://nextjs.org/docs/app/guides/production-checklist
@@ -25,6 +30,25 @@ const nextConfig: NextConfig = {
   
   // Disable dev indicators for cleaner development experience
   devIndicators: false,
+  
+  // ✅ OPTIMIZATION: Enhanced compiler options
+  compiler: {
+    // Remove console logs in production
+    removeConsole: process.env.NODE_ENV === 'production' ? {
+      exclude: ['error', 'warn'],
+    } : false,
+  },
+  
+  // ✅ OPTIMIZATION: Experimental features for better performance
+  experimental: {
+    // Optimize package imports
+    optimizePackageImports: [
+      '@phosphor-icons/react',
+      'lucide-react',
+      'framer-motion',
+      'date-fns',
+    ],
+  },
   
   // Environment variables validation
   env: {

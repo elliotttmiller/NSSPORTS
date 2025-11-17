@@ -40,24 +40,48 @@ export interface ApiErrorResponse {
 export type ApiResponse<T = unknown> = ApiSuccessResponse<T> | ApiErrorResponse;
 
 /**
- * Create a standardized success response
+ * Create a standardized success response with optimized caching headers
+ * 
+ * OPTIMIZATION: Adds intelligent cache control headers based on data type
  */
 export function successResponse<T>(
   data: T,
   status: number = 200,
-  meta?: Record<string, unknown>
+  meta?: Record<string, unknown>,
+  cacheOptions?: {
+    maxAge?: number;      // Browser cache duration in seconds
+    sMaxAge?: number;     // CDN cache duration in seconds
+    staleWhileRevalidate?: number;  // Allow stale content while revalidating
+  }
 ): NextResponse<ApiSuccessResponse<T>> {
-  return NextResponse.json(
-    {
-      success: true,
-      data,
-      meta: {
-        timestamp: new Date().toISOString(),
-        ...meta,
-      },
+  const responseData: ApiSuccessResponse<T> = {
+    success: true as const,
+    data,
+    meta: {
+      timestamp: new Date().toISOString(),
+      ...meta,
     },
-    { status }
-  );
+  };
+  
+  const response = NextResponse.json(responseData, { status });
+  
+  // ✅ OPTIMIZATION: Add cache control headers for better browser/CDN caching
+  if (cacheOptions) {
+    const { maxAge = 0, sMaxAge = 0, staleWhileRevalidate = 0 } = cacheOptions;
+    const cacheControl = [
+      maxAge > 0 ? `max-age=${maxAge}` : 'no-cache',
+      sMaxAge > 0 ? `s-maxage=${sMaxAge}` : '',
+      staleWhileRevalidate > 0 ? `stale-while-revalidate=${staleWhileRevalidate}` : '',
+    ].filter(Boolean).join(', ');
+    
+    response.headers.set('Cache-Control', cacheControl);
+    
+    // Add ETag for conditional requests (304 Not Modified)
+    const etag = `W/"${Buffer.from(JSON.stringify(data)).toString('base64').slice(0, 27)}"`;
+    response.headers.set('ETag', etag);
+  }
+  
+  return response;
 }
 
 /**
