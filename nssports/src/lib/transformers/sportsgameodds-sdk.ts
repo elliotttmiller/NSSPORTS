@@ -34,6 +34,10 @@ import { oddsJuiceService } from "../odds-juice-service";
  * Extended Status type with live game properties
  * The SDK's Status type doesn't include clock and currentPeriodID in its types,
  * but these properties are present in the actual API responses.
+ * 
+ * MMA/Boxing specific fields per https://sportsgameodds.com/docs/explorer:
+ * - winMethod: Method of victory (e.g., "KO/TKO", "Submission", "Decision")
+ * - winMethodDetail: Detailed description (e.g., "Rear Naked Choke", "Split Decision")
  */
 interface ExtendedStatus {
   live?: boolean;
@@ -44,6 +48,9 @@ interface ExtendedStatus {
   cancelled?: boolean;
   clock?: string;
   currentPeriodID?: string;
+  // MMA/Boxing specific fields
+  winMethod?: string;
+  winMethodDetail?: string;
 }
 
 /**
@@ -961,6 +968,9 @@ export async function transformSDKEvent(event: ExtendedSDKEvent): Promise<GamePa
       period: (event.status as ExtendedStatus)?.currentPeriodID || fallback.period || undefined,
       timeRemaining: (event.status as ExtendedStatus)?.clock || fallback.clock || undefined,
       periodDisplay: periodDisplay ?? undefined,
+      // MMA/Boxing specific fields - Per https://sportsgameodds.com/docs/explorer
+      winMethod: (event.status as ExtendedStatus)?.winMethod || undefined,
+      winMethodDetail: (event.status as ExtendedStatus)?.winMethodDetail || undefined,
     };
   } catch (error) {
     logger.error("Error transforming SDK event", error, { eventId: event?.eventID });

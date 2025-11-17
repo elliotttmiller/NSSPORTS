@@ -163,5 +163,8 @@ export interface Game {
   awayScore?: number;
   period?: string;
   timeRemaining?: string;
+  // MMA/Boxing specific fields - Per https://sportsgameodds.com/docs/explorer
+  winMethod?: string;        // e.g., "KO/TKO", "Submission", "Decision"
+  winMethodDetail?: string;  // e.g., "Rear Naked Choke", "Split Decision"
   // Add more fields as needed
 }

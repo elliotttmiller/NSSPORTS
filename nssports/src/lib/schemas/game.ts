@@ -22,6 +22,7 @@ const SpreadSchema = z.object({
 const MoneylineSchema = z.object({
   home: OddsDataSchema,
   away: OddsDataSchema,
+  draw: OddsDataSchema.optional(), // Soccer 3-way moneyline
 });
 
 const TotalSchema = z.object({
@@ -52,6 +53,9 @@ export const GameSchema = z.object({
   timeRemaining: z.string().nullable().optional(),
   // Human-friendly display for the current period (e.g. "3rd Quarter", "1st Period", "2nd Half")
   periodDisplay: z.string().nullable().optional(),
+  // MMA/Boxing specific fields - Per https://sportsgameodds.com/docs/explorer
+  winMethod: z.string().nullable().optional(),        // e.g., "KO/TKO", "Submission", "Decision"
+  winMethodDetail: z.string().nullable().optional(),  // e.g., "Rear Naked Choke", "Split Decision"
 });
 
 export type GamePayload = z.infer<typeof GameSchema>;
