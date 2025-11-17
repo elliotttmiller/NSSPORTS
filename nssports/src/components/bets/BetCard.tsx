@@ -2,11 +2,194 @@
 
 import { Badge, Card, CardContent } from "@/components/ui";
 import { cn } from "@/lib/utils";
-import type { ReactNode } from "react";
+import type { ReactNode, ReactElement } from "react";
 import { formatCurrencyNoCents, formatOdds } from "@/lib/formatters";
 import { formatStatType } from "@/lib/formatStatType";
 
 export type BetStatus = "pending" | "won" | "lost" | "push";
+
+// Helper function to render color-coded results for ALL bet types
+function renderColorCodedResult(
+  actualResult: string, 
+  betType?: string, 
+  status?: BetStatus,
+  line?: number,
+  selection?: string
+): ReactElement | string {
+  if (!actualResult) return actualResult;
+
+  // Handle score-based results (spread, moneyline, game props with periods)
+  // Formats: "AWAY 103 - HOME 120" or "1Q: AWAY 28 - HOME 32"
+  const scoreMatch = actualResult.match(/^(?:([A-Z0-9]+):\s+)?([A-Z]+)\s+(\d+)\s+-\s+([A-Z]+)\s+(\d+)$/);
+  if (scoreMatch) {
+    const [, period, team1, score1, team2, score2] = scoreMatch;
+    const score1Num = parseInt(score1, 10);
+    const score2Num = parseInt(score2, 10);
+    
+    // Determine winning/losing colors
+    const team1Color = score1Num > score2Num ? "text-green-600" : score1Num < score2Num ? "text-red-600" : "text-foreground/80";
+    const team2Color = score2Num > score1Num ? "text-green-600" : score2Num < score1Num ? "text-red-600" : "text-foreground/80";
+    
+    return (
+      <span className="font-medium tabular-nums">
+        {period && <span className="text-muted-foreground/60 mr-1">{period}:</span>}
+        <span className={team1Color}>
+          {team1} {score1}
+        </span>
+        <span className="text-muted-foreground/60 mx-1">-</span>
+        <span className={team2Color}>
+          {team2} {score2}
+        </span>
+      </span>
+    );
+  }
+
+  // Handle total results: "Final: 223"
+  if (betType === 'total' && actualResult.startsWith('Final: ')) {
+    const total = actualResult.replace('Final: ', '');
+    const totalNum = parseFloat(total);
+    
+    // Color code based on over/under result
+    let color = "text-foreground/80";
+    if (typeof line === 'number' && !isNaN(totalNum)) {
+      if (totalNum > line) {
+        color = selection === 'over' ? "text-green-600" : "text-red-600";
+      } else if (totalNum < line) {
+        color = selection === 'under' ? "text-green-600" : "text-red-600";
+      }
+    }
+    
+    return (
+      <span className={cn("font-semibold tabular-nums", color)}>
+        Final: {total}
+      </span>
+    );
+  }
+
+  // Handle player prop results: "28.5 PTS | Line: 25.5"
+  if (betType === 'player_prop' && actualResult.includes('|')) {
+    const parts = actualResult.split('|');
+    const [statPart, linePart] = parts;
+    const statMatch = statPart.trim().match(/^([\d.]+)\s+(.+)$/);
+    const lineMatch = linePart?.trim().match(/^Line:\s+([\d.]+)$/);
+    
+    if (statMatch) {
+      const [, statValue, statType] = statMatch;
+      const statNum = parseFloat(statValue);
+      const lineNum = lineMatch ? parseFloat(lineMatch[1]) : line;
+      
+      // Color code based on over/under the line
+      let color = "text-foreground/80";
+      if (typeof lineNum === 'number' && !isNaN(statNum)) {
+        if (statNum > lineNum) {
+          color = selection === 'over' ? "text-green-600" : "text-red-600";
+        } else if (statNum < lineNum) {
+          color = selection === 'under' ? "text-green-600" : "text-red-600";
+        } else {
+          color = "text-blue-500"; // Push
+        }
+      }
+      
+      return (
+        <span className="font-medium">
+          <span className={cn("font-bold tabular-nums", color)}>{statValue}</span>
+          <span className="text-muted-foreground/70 text-[9px] ml-0.5">{statType}</span>
+          {lineMatch && (
+            <span className="text-muted-foreground/50 text-[8px] ml-1">
+              (Line: {lineMatch[1]})
+            </span>
+          )}
+        </span>
+      );
+    }
+  }
+
+  // Handle simple player prop results: "28.5 PTS"
+  if (betType === 'player_prop') {
+    const match = actualResult.match(/^([\d.]+)\s+(.+)$/);
+    if (match) {
+      const [, statValue, statType] = match;
+      const statNum = parseFloat(statValue);
+      
+      let color = "text-foreground/80";
+      if (typeof line === 'number' && !isNaN(statNum)) {
+        if (statNum > line) {
+          color = selection === 'over' ? "text-green-600" : "text-red-600";
+        } else if (statNum < line) {
+          color = selection === 'under' ? "text-green-600" : "text-red-600";
+        } else {
+          color = "text-blue-500";
+        }
+      }
+      
+      return (
+        <span className="font-medium">
+          <span className={cn("font-bold tabular-nums", color)}>{statValue}</span>
+          <span className="text-muted-foreground/70 text-[9px] ml-0.5">{statType}</span>
+        </span>
+      );
+    }
+  }
+
+  // Handle game prop single team results: "TEAM: 120"
+  if (betType === 'game_prop' && actualResult.includes(':')) {
+    const match = actualResult.match(/^([A-Z]+):\s+(\d+)$/);
+    if (match) {
+      const [, team, score] = match;
+      const scoreNum = parseInt(score, 10);
+      
+      let color = "text-foreground/80";
+      if (typeof line === 'number' && !isNaN(scoreNum)) {
+        if (scoreNum > line) {
+          color = selection === 'over' ? "text-green-600" : "text-red-600";
+        } else if (scoreNum < line) {
+          color = selection === 'under' ? "text-green-600" : "text-red-600";
+        } else {
+          color = "text-blue-500";
+        }
+      }
+      
+      return (
+        <span className="font-medium">
+          <span className="text-muted-foreground/70 text-[10px]">{team}:</span>
+          <span className={cn("font-bold tabular-nums ml-1", color)}>{score}</span>
+        </span>
+      );
+    }
+  }
+
+  // Handle parlay/teaser results: "3/4 Legs"
+  if ((betType === 'parlay' || betType === 'teaser') && actualResult.includes('Legs')) {
+    const match = actualResult.match(/^(\d+)\/(\d+)\s+Legs$/);
+    if (match) {
+      const [, won, total] = match;
+      const wonNum = parseInt(won, 10);
+      const totalNum = parseInt(total, 10);
+      
+      // Color based on result
+      const color = wonNum === totalNum ? "text-green-600" : wonNum === 0 ? "text-red-600" : "text-yellow-600";
+      
+      return (
+        <span className={cn("font-semibold", color)}>
+          {won}/{total} <span className="text-muted-foreground/70 text-[9px]">Legs</span>
+        </span>
+      );
+    }
+  }
+
+  // Handle status results: "Won", "Lost", "Push"
+  if (['Won', 'Lost', 'Push'].includes(actualResult)) {
+    const color = actualResult === 'Won' ? "text-green-600" : actualResult === 'Lost' ? "text-red-600" : "text-blue-500";
+    return (
+      <span className={cn("font-semibold", color)}>
+        {actualResult}
+      </span>
+    );
+  }
+
+  // Default: return as-is with subtle styling
+  return <span className="text-foreground/80 font-medium">{actualResult}</span>;
+}
 
 export type BetLeg = {
   game?: {
@@ -210,6 +393,12 @@ export function BetCardSingle({
                 ? 'GAME PROP'
                 : betType.toUpperCase()}
             </Badge>
+            {/* Result badge - positioned next to bet type badge */}
+            {actualResult && status !== 'pending' && (
+              <span className="text-[10px] sm:text-[11px] font-medium">
+                {renderColorCodedResult(actualResult, betType, status, line, selection)}
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
             {headerActions}
@@ -222,17 +411,17 @@ export function BetCardSingle({
         {/* Main Bet Content */}
         <div className="mb-2.5">
           <div className="flex items-center gap-4">
-            <div className="flex-1 min-w-0 flex items-center gap-4">
-              {/* Selection and Result side-by-side, vertically centered */}
-              <div className="flex flex-col min-w-0 justify-center h-full" style={{ minHeight: '90px' }}>
-                <div className="flex flex-col items-center justify-center h-full mt-6">
-                  {/* Game Matchup - Centered, spaced down */}
+            <div className="flex-1 min-w-0">
+              {/* Selection content, vertically centered */}
+              <div className="flex flex-col min-w-0 justify-center">
+                <div className="flex flex-col items-center justify-center py-4">
+                  {/* Game Matchup - Centered */}
                   {game?.awayTeam?.shortName && game?.homeTeam?.shortName && (
                     <div className="text-[9px] sm:text-[10px] text-muted-foreground/50 uppercase tracking-[0.06em] font-semibold leading-tight mb-2">
                       {game.awayTeam.shortName} @ {game.homeTeam.shortName}
                     </div>
                   )}
-                  {/* Bet Selection - Centered, spaced down */}
+                  {/* Bet Selection - Centered */}
                   <div className="font-bold text-[15px] sm:text-base leading-tight text-white mb-2">
                     {betType === 'player_prop' && playerProp
                       ? playerProp.playerName
@@ -241,7 +430,7 @@ export function BetCardSingle({
                       : formatSelectionLabel(betType, selection, line, game, playerProp)}
                   </div>
                   {/* Selection details cleaned: only statType and marketCategory if present */}
-                  <div className="flex items-center gap-2 justify-center min-h-8">
+                  <div className="flex items-center gap-2 justify-center min-h-6">
                     {playerProp?.statType && (
                       <span className="text-[10px] sm:text-xs text-muted-foreground/60 font-semibold uppercase tracking-[0.05em]">
                         {formatStatType(playerProp.statType)}
@@ -255,27 +444,9 @@ export function BetCardSingle({
                   </div>
                 </div>
               </div>
-              {/* Sleek, modern, color-coded result badge for settled bets, perfectly centered with selection */}
-              {actualResult && status !== 'pending' && (
-                <div className="flex items-center justify-center min-h-8">
-                  <div className="ml-8 flex">
-                    <Badge
-                      variant="outline"
-                      className={cn(
-                        "text-xs sm:text-sm font-medium px-1.5 py-0.5 rounded border shadow-none transition-colors",
-                        status === 'won' ? "bg-green-500/5 border-green-300 text-green-700" :
-                        status === 'lost' ? "bg-red-500/5 border-red-300 text-red-700" :
-                        "bg-muted/5 border-muted text-muted-foreground"
-                      )}
-                    >
-                      {actualResult}
-                    </Badge>
-                  </div>
-                </div>
-              )}
             </div>
-            {/* Odds Badge - aligned with selection/result */}
-            <div className="flex flex-col items-center justify-center h-full">
+            {/* Odds Badge - aligned with selection */}
+            <div className="flex flex-col items-center justify-center">
               <Badge
                 variant="outline"
                 className="text-base sm:text-lg font-bold px-2.5 py-1 shrink-0 tabular-nums border-2"
@@ -364,7 +535,7 @@ export function BetCardParlay({
         </div>
 
         {/* Parlay Legs */}
-        <div className="space-y-2 mb-2.5 bg-background/30 rounded-md p-2.5">
+        <div className="space-y-1.5 mb-2.5 bg-background/30 rounded-md p-2.5">
           {legs.map((leg, idx) => {
             if (!leg.game?.awayTeam?.shortName || !leg.game?.homeTeam?.shortName) {
               return null;
@@ -426,8 +597,9 @@ export function BetCardParlay({
                   )}
                   {/* Actual Result - Show for settled parlay legs */}
                   {leg.actualResult && status !== 'pending' && (
-                    <div className="mt-1 text-[9px] sm:text-[10px] text-muted-foreground/60 font-medium">
-                      Result: <span className="text-muted-foreground/80 font-semibold">{leg.actualResult}</span>
+                    <div className="mt-0.5 text-[9px] sm:text-[10px] font-medium">
+                      <span className="text-muted-foreground/50">Result: </span>
+                      <span>{renderColorCodedResult(leg.actualResult, leg.betType, status, leg.line, leg.selection)}</span>
                     </div>
                   )}
                 </div>
@@ -626,8 +798,9 @@ export function BetCardTeaser({
                 
                 {/* Actual Result - Show for settled teasers */}
                 {leg.actualResult && status !== 'pending' && (
-                  <div className="mt-1.5 text-[10px] sm:text-xs text-muted-foreground/60 font-medium">
-                    Result: <span className="text-muted-foreground/80 font-semibold">{leg.actualResult}</span>
+                  <div className="mt-0.5 text-[9px] sm:text-[10px] font-medium">
+                    <span className="text-muted-foreground/50">Result: </span>
+                    <span>{renderColorCodedResult(leg.actualResult, leg.betType, status, leg.line, leg.selection)}</span>
                   </div>
                 )}
               </div>

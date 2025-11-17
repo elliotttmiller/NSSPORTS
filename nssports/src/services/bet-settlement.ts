@@ -683,27 +683,24 @@ export async function settleBet(betId: string): Promise<SettlementResult | null>
 
       switch (bet.betType) {
         case 'spread': {
-          const spreadDiff = bet.selection === 'home' ? homeScore - awayScore : awayScore - homeScore;
-          const team = bet.selection === 'home' ? homeName : awayName;
-          if (spreadDiff === 0) actualResultString = `${team} push (${homeScore}-${awayScore})`;
-          else actualResultString = `${team} ${spreadDiff > 0 ? 'won' : 'lost'} by ${Math.abs(spreadDiff)} (${homeScore}-${awayScore})`;
+          // Format: "AWAY 103 - HOME 120" (always show full score)
+          actualResultString = `${awayName} ${awayScore} - ${homeName} ${homeScore}`;
           break;
         }
         case 'moneyline': {
           const winner = homeScore > awayScore ? 'home' : awayScore > homeScore ? 'away' : 'tie';
-          const pickTeam = bet.selection === 'home' ? homeName : awayName;
-          if (winner === 'tie') actualResultString = `Tie ${homeScore}-${awayScore}`;
-          else actualResultString = `${pickTeam} ${winner === bet.selection ? 'won' : 'lost'} (${homeScore}-${awayScore})`;
+          if (winner === 'tie') {
+            actualResultString = `${awayName} ${awayScore} - ${homeName} ${homeScore}`;
+          } else {
+            // Format as "AWAY SCORE - HOME SCORE" for display
+            actualResultString = `${awayName} ${awayScore} - ${homeName} ${homeScore}`;
+          }
           break;
         }
         case 'total': {
           const total = homeScore + awayScore;
-          if (typeof bet.line === 'number') {
-            const verdict = total > bet.line ? 'Over' : total < bet.line ? 'Under' : 'Push';
-            actualResultString = `Total: ${total} (${verdict})`;
-          } else {
-            actualResultString = `Total: ${total}`;
-          }
+          // Format: "Final: 223" (just the total, we'll add context in display)
+          actualResultString = `Final: ${total}`;
           break;
         }
         case 'player_prop': {
@@ -713,7 +710,14 @@ export async function settleBet(betId: string): Promise<SettlementResult | null>
             if (playerProp?.playerId && playerProp?.statType) {
               const stats = await fetchPlayerStats(bet.gameId!, playerProp.playerId);
               if (stats && stats[playerProp.statType] !== undefined) {
-                actualResultString = `${stats[playerProp.statType]} ${playerProp.statType.replace(/_/g, ' ')}`;
+                const statValue = stats[playerProp.statType];
+                const line = bet.line;
+                // Format: "28.5 PTS" with line for context
+                if (typeof line === 'number') {
+                  actualResultString = `${statValue} ${playerProp.statType.replace(/_/g, ' ').toUpperCase()} | Line: ${line}`;
+                } else {
+                  actualResultString = `${statValue} ${playerProp.statType.replace(/_/g, ' ').toUpperCase()}`;
+                }
               }
             }
           } catch {
@@ -728,13 +732,19 @@ export async function settleBet(betId: string): Promise<SettlementResult | null>
             if (gameProp?.periodID) {
               const periodScore = await getPeriodScore(bet.gameId!, gameProp.periodID);
               if (periodScore) {
-                actualResultString = `${gameProp.periodID.toUpperCase()}: ${awayName} ${periodScore.away} - ${periodScore.home} ${homeName}`;
+                // Format: "1Q: AWAY 28 - HOME 32"
+                actualResultString = `${gameProp.periodID.toUpperCase()}: ${awayName} ${periodScore.away} - ${homeName} ${periodScore.home}`;
               }
             } else if (gameProp?.description) {
               const desc = String(gameProp.description).toLowerCase();
-              if (desc.includes('total')) actualResultString = `Final Total: ${homeScore + awayScore} points`;
-              else if (desc.includes('home')) actualResultString = `${homeName} scored ${homeScore} points`;
-              else if (desc.includes('away')) actualResultString = `${awayName} scored ${awayScore} points`;
+              const finalTotal = homeScore + awayScore;
+              if (desc.includes('total')) {
+                actualResultString = `Final: ${finalTotal}`;
+              } else if (desc.includes('home')) {
+                actualResultString = `${homeName}: ${homeScore}`;
+              } else if (desc.includes('away')) {
+                actualResultString = `${awayName}: ${awayScore}`;
+              }
             }
           } catch {
             // ignore
@@ -744,18 +754,22 @@ export async function settleBet(betId: string): Promise<SettlementResult | null>
         case 'parlay': {
           if (legResults && Array.isArray(legResults)) {
             const won = legResults.filter(l => l.status === 'won').length;
-            actualResultString = `Parlay ${result.status} - ${won}/${legResults.length} legs won`;
+            const total = legResults.length;
+            // Format: "3/4 Legs" (cleaner format)
+            actualResultString = `${won}/${total} Legs`;
           } else {
-            actualResultString = `Parlay ${result.status}`;
+            actualResultString = `${result.status.charAt(0).toUpperCase() + result.status.slice(1)}`;
           }
           break;
         }
         case 'teaser': {
           if (legResults && Array.isArray(legResults)) {
             const won = legResults.filter(l => l.status === 'won').length;
-            actualResultString = `Teaser ${result.status} - ${won}/${legResults.length} legs won`;
+            const total = legResults.length;
+            // Format: "3/4 Legs"
+            actualResultString = `${won}/${total} Legs`;
           } else {
-            actualResultString = `Teaser ${result.status}`;
+            actualResultString = `${result.status.charAt(0).toUpperCase() + result.status.slice(1)}`;
           }
           break;
         }
@@ -763,12 +777,12 @@ export async function settleBet(betId: string): Promise<SettlementResult | null>
         case 'reverse':
         case 'bet_it_all':
         case 'round_robin': {
-          // Best-effort short summary
-          actualResultString = `${bet.betType} ${result.status}`;
+          // Format: "Won" / "Lost" / "Push" (capitalized)
+          actualResultString = `${result.status.charAt(0).toUpperCase() + result.status.slice(1)}`;
           break;
         }
         default: {
-          actualResultString = result.reason || `${result.status}`;
+          actualResultString = result.reason || `${result.status.charAt(0).toUpperCase() + result.status.slice(1)}`;
         }
       }
     } catch {

@@ -1,12 +1,160 @@
 "use client";
 
 import { Badge } from "@/components/ui";
+import { cn } from "@/lib/utils";
 import { formatOdds } from "@/lib/formatters";
 import { formatSelectionLabel } from "@/components/bets/BetCard";
 import type { PlacedBet } from "@/context/BetHistoryContext";
+import type { ReactElement } from "react";
 
 interface MobileParlayBetCardProps {
   bet: PlacedBet;
+}
+
+type BetStatus = "pending" | "won" | "lost" | "push";
+
+// Helper function to render color-coded results for ALL bet types
+function renderColorCodedResult(
+  actualResult: string, 
+  betType?: string, 
+  status?: BetStatus,
+  line?: number,
+  selection?: string
+): ReactElement | string {
+  if (!actualResult) return actualResult;
+
+  // Handle score-based results (spread, moneyline, game props with periods)
+  const scoreMatch = actualResult.match(/^(?:([A-Z0-9]+):\s+)?([A-Z]+)\s+(\d+)\s+-\s+([A-Z]+)\s+(\d+)$/);
+  if (scoreMatch) {
+    const [, period, team1, score1, team2, score2] = scoreMatch;
+    const score1Num = parseInt(score1, 10);
+    const score2Num = parseInt(score2, 10);
+    
+    const team1Color = score1Num > score2Num ? "text-green-600" : score1Num < score2Num ? "text-red-600" : "text-foreground/80";
+    const team2Color = score2Num > score1Num ? "text-green-600" : score2Num < score1Num ? "text-red-600" : "text-foreground/80";
+    
+    return (
+      <span className="font-medium tabular-nums text-[9px]">
+        {period && <span className="text-muted-foreground/60 mr-1">{period}:</span>}
+        <span className={team1Color}>
+          {team1} {score1}
+        </span>
+        <span className="text-muted-foreground/60 mx-1">-</span>
+        <span className={team2Color}>
+          {team2} {score2}
+        </span>
+      </span>
+    );
+  }
+
+  // Handle total results
+  if (betType === 'total' && actualResult.startsWith('Final: ')) {
+    const total = actualResult.replace('Final: ', '');
+    const totalNum = parseFloat(total);
+    
+    let color = "text-foreground/80";
+    if (typeof line === 'number' && !isNaN(totalNum)) {
+      if (totalNum > line) {
+        color = selection === 'over' ? "text-green-600" : "text-red-600";
+      } else if (totalNum < line) {
+        color = selection === 'under' ? "text-green-600" : "text-red-600";
+      }
+    }
+    
+    return (
+      <span className={cn("font-semibold tabular-nums text-[9px]", color)}>
+        Final: {total}
+      </span>
+    );
+  }
+
+  // Handle player prop results
+  if (betType === 'player_prop') {
+    if (actualResult.includes('|')) {
+      const parts = actualResult.split('|');
+      const [statPart, linePart] = parts;
+      const statMatch = statPart.trim().match(/^([\d.]+)\s+(.+)$/);
+      const lineMatch = linePart?.trim().match(/^Line:\s+([\d.]+)$/);
+      
+      if (statMatch) {
+        const [, statValue, statType] = statMatch;
+        const statNum = parseFloat(statValue);
+        const lineNum = lineMatch ? parseFloat(lineMatch[1]) : line;
+        
+        let color = "text-foreground/80";
+        if (typeof lineNum === 'number' && !isNaN(statNum)) {
+          if (statNum > lineNum) {
+            color = selection === 'over' ? "text-green-600" : "text-red-600";
+          } else if (statNum < lineNum) {
+            color = selection === 'under' ? "text-green-600" : "text-red-600";
+          } else {
+            color = "text-blue-500";
+          }
+        }
+        
+        return (
+          <span className="font-medium text-[9px]">
+            <span className={cn("font-bold tabular-nums", color)}>{statValue}</span>
+            <span className="text-muted-foreground/70 text-[8px] ml-0.5">{statType}</span>
+          </span>
+        );
+      }
+    }
+    
+    const match = actualResult.match(/^([\d.]+)\s+(.+)$/);
+    if (match) {
+      const [, statValue, statType] = match;
+      const statNum = parseFloat(statValue);
+      
+      let color = "text-foreground/80";
+      if (typeof line === 'number' && !isNaN(statNum)) {
+        if (statNum > line) {
+          color = selection === 'over' ? "text-green-600" : "text-red-600";
+        } else if (statNum < line) {
+          color = selection === 'under' ? "text-green-600" : "text-red-600";
+        } else {
+          color = "text-blue-500";
+        }
+      }
+      
+      return (
+        <span className="font-medium text-[9px]">
+          <span className={cn("font-bold tabular-nums", color)}>{statValue}</span>
+          <span className="text-muted-foreground/70 text-[8px] ml-0.5">{statType}</span>
+        </span>
+      );
+    }
+  }
+
+  // Handle game prop single team results
+  if (betType === 'game_prop' && actualResult.includes(':')) {
+    const match = actualResult.match(/^([A-Z]+):\s+(\d+)$/);
+    if (match) {
+      const [, team, score] = match;
+      const scoreNum = parseInt(score, 10);
+      
+      let color = "text-foreground/80";
+      if (typeof line === 'number' && !isNaN(scoreNum)) {
+        if (scoreNum > line) {
+          color = selection === 'over' ? "text-green-600" : "text-red-600";
+        } else if (scoreNum < line) {
+          color = selection === 'under' ? "text-green-600" : "text-red-600";
+        } else {
+          color = "text-blue-500";
+        }
+      }
+      
+      return (
+        <span className="font-medium text-[9px]">
+          <span className="text-muted-foreground/70">{team}:</span>
+          <span className={cn("font-bold tabular-nums ml-1", color)}>{score}</span>
+        </span>
+      );
+    }
+  }
+
+  // Default
+  return <span className="text-foreground/80 font-medium text-[9px]">{actualResult}</span>;
 }
 
 export function MobileParlayBetCard({ bet }: MobileParlayBetCardProps) {
@@ -89,8 +237,9 @@ export function MobileParlayBetCard({ bet }: MobileParlayBetCardProps) {
                   </div>
                   {/* Actual Result - Show for settled parlays */}
                   {leg.actualResult && bet.status !== 'pending' && (
-                    <div className="text-[10px] text-muted-foreground/60 mt-1 font-medium">
-                      Result: <span className="text-muted-foreground/80 font-semibold">{leg.actualResult}</span>
+                    <div className="text-[9px] mt-1 font-medium">
+                      <span className="text-muted-foreground/50">Result: </span>
+                      <span>{renderColorCodedResult(leg.actualResult, leg.betType, bet.status, leg.line, leg.selection)}</span>
                     </div>
                   )}
                 </div>
