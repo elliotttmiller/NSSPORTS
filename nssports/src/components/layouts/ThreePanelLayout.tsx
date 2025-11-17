@@ -56,16 +56,17 @@ export function ThreePanelLayout({ children }: ThreePanelLayoutProps) {
 
           {/* Left Panel - Side Navigation (Collapsible) - Fixed */}
           <div
-            className={`hidden lg:block border-r border-border bg-background transition-all duration-300 ease-in-out overflow-hidden fixed left-0 z-20 ${
+            className={`hidden lg:block border-r border-border bg-background transition-all duration-300 ease-in-out fixed left-0 z-20 ${
               sideNavOpen ? "w-72" : "w-0"
             }`}
             style={{ 
               top: 'calc(4rem + env(safe-area-inset-top))',
-              height: 'calc(100vh - 4rem - env(safe-area-inset-top))'
+              height: 'calc(100vh - 4rem - env(safe-area-inset-top))',
+              overflow: 'hidden'
             }}
           >
             {sideNavOpen && (
-              <div className="h-full overflow-y-auto seamless-scroll bg-background">
+              <div className="h-full overflow-hidden">
                 <SideNavPanel />
               </div>
             )}
@@ -73,7 +74,7 @@ export function ThreePanelLayout({ children }: ThreePanelLayoutProps) {
 
           {/* Center Panel - Main Content */}
           <div 
-            className={`flex-1 min-w-0 relative transition-all duration-300 ease-in-out ${
+            className={`flex-1 min-w-0 relative transition-all duration-300 ease-in-out overflow-hidden ${
               !isMobile && sideNavOpen ? "lg:ml-72" : ""
             } ${
               !isMobile && betSlipOpen ? "lg:mr-96" : ""

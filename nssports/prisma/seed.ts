@@ -31,57 +31,9 @@ async function main() {
   console.log('╚════════════════════════════════════════════════════════════╝\n');
 
   // ============================================================================
-  // STEP 0: Clear existing users/accounts and create admin
-  console.log('📋 Step 0: Clearing users/accounts and creating admin...');
-  try {
-    await prisma.account.deleteMany();
-    await prisma.user.deleteMany();
-    console.log('  ✓ Cleared accounts and users tables');
-    
-    // Import bcrypt for password hashing
-    const bcrypt = await import('bcryptjs');
-    const hashedPassword = await bcrypt.hash('admin123', 10);
-    
-    const adminUser = await prisma.user.create({
-      data: {
-        username: 'admin',
-        password: hashedPassword,
-        userType: 'platform_admin',
-        isActive: true,
-        name: 'Admin',
-      }
-    });
-    await prisma.account.create({
-      data: {
-        userId: adminUser.id,
-        balance: 0,
-        freePlay: 0,
-      }
-    });
-    console.log('  ✓ Created admin user: admin / admin123');
-  } catch (error) {
-    console.error('  ✗ Error creating admin user/account:', error);
-    throw error;
-  }
-  // STEP 1: Clear existing leagues and sports
+  // STEP 1: Upsert Sports (Add new sports, update existing ones)
   // ============================================================================
-  console.log('📋 Step 1: Clearing existing leagues and sports...');
-  
-  try {
-    await prisma.league.deleteMany();
-    console.log('  ✓ Cleared leagues table');
-    
-    await prisma.sport.deleteMany();
-    console.log('  ✓ Cleared sports table');
-  } catch (error) {
-    console.error('  ✗ Error clearing tables:', error);
-    throw error;
-  }
-
-  // ============================================================================
-  // STEP 2: Create Sports (basketball, football, hockey)
-  // ============================================================================
-  console.log('\n📋 Step 2: Creating sports...');
+  console.log('📋 Step 1: Upserting sports (preserving existing data)...');
   
   const sportsData = [
     { id: 'basketball', name: 'Basketball', icon: '🏀' },
@@ -97,18 +49,22 @@ async function main() {
   
   for (const sport of sportsData) {
     try {
-      await prisma.sport.create({ data: sport });
-      console.log(`  ✓ Created sport: ${sport.icon} ${sport.name}`);
+      await prisma.sport.upsert({
+        where: { id: sport.id },
+        update: { name: sport.name, icon: sport.icon },
+        create: sport,
+      });
+      console.log(`  ✓ Upserted sport: ${sport.icon} ${sport.name}`);
     } catch (error) {
-      console.error(`  ✗ Error creating sport ${sport.name}:`, error);
+      console.error(`  ✗ Error upserting sport ${sport.name}:`, error);
       throw error;
     }
   }
 
   // ============================================================================
-  // STEP 3: Create Leagues with OFFICIAL UPPERCASE IDs
+  // STEP 2: Upsert Leagues with OFFICIAL UPPERCASE IDs
   // ============================================================================
-  console.log('\n📋 Step 3: Creating leagues with official SDK IDs...');
+  console.log('\n📋 Step 2: Upserting leagues with official SDK IDs (preserving existing data)...');
   console.log('   ⚠️  CRITICAL: IDs must match SportsGameOdds SDK (NBA, NFL, NHL)');
   console.log('   📚 Reference: https://sportsgameodds.com/docs/data-types/leagues\n');
   
@@ -152,10 +108,14 @@ async function main() {
   
   for (const league of leaguesData) {
     try {
-      await prisma.league.create({ data: league });
-      console.log(`  ✓ Created league: ${league.name} (ID: ${league.id})`);
+      await prisma.league.upsert({
+        where: { id: league.id },
+        update: { name: league.name, sportId: league.sportId, logo: league.logo },
+        create: league,
+      });
+      console.log(`  ✓ Upserted league: ${league.name} (ID: ${league.id})`);
     } catch (error) {
-      console.error(`  ✗ Error creating league ${league.name}:`, error);
+      console.error(`  ✗ Error upserting league ${league.name}:`, error);
       throw error;
     }
   }
@@ -164,7 +124,7 @@ async function main() {
   // SEED COMPLETE
   // ============================================================================
   console.log('\n╔════════════════════════════════════════════════════════════╗');
-  console.log('║  ✅ SEED COMPLETE - LEAGUES CREATED SUCCESSFULLY          ║');
+  console.log('║  ✅ SEED COMPLETE - SPORTS & LEAGUES UPSERTED             ║');
   console.log('╚════════════════════════════════════════════════════════════╝');
   console.log('\n📡 DATA SOURCES:');
   console.log('   ✓ Teams:  Real-time from SportsGameOdds SDK');

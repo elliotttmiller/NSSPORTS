@@ -465,6 +465,34 @@ async function updateEventsCache(events: any[]) {
           'ATP': '/logos/atp',
           'WTA': '/logos/wta',
           'ITF': '/logos/itf',
+          'NCAAB': '/logos/ncaa',
+          'NCAAF': '/logos/ncaa',
+          // Soccer
+          'EPL': '/logos/soccer',
+          'LA_LIGA': '/logos/soccer',
+          'BUNDESLIGA': '/logos/soccer',
+          'IT_SERIE_A': '/logos/soccer',
+          'FR_LIGUE_1': '/logos/soccer',
+          'MLS': '/logos/soccer',
+          'LIGA_MX': '/logos/soccer',
+          'UEFA_CHAMPIONS_LEAGUE': '/logos/soccer',
+          'UEFA_EUROPA_LEAGUE': '/logos/soccer',
+          'BR_SERIE_A': '/logos/soccer',
+          'INTERNATIONAL_SOCCER': '/logos/soccer',
+          // MMA
+          'UFC': '/logos/mma',
+          'BELLATOR': '/logos/mma',
+          'PFL': '/logos/mma',
+          'ONE_CHAMPIONSHIP': '/logos/mma',
+          // Boxing
+          'BOXING': '/logos/boxing',
+          // Golf
+          'PGA_MEN': '/logos/golf',
+          'PGA_WOMEN': '/logos/golf',
+          'LIV_TOUR': '/logos/golf',
+          'DP_WORLD_TOUR': '/logos/golf',
+          // Horse Racing
+          'HORSE_RACING': '/logos/horse_racing',
         };
         const logoPath = leagueLogoPaths[leagueId];
         // Use the exact SDK team ID (e.g., SACRAMENTO_KINGS_NBA.svg)

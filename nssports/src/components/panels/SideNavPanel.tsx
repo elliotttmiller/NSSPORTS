@@ -127,7 +127,7 @@ export function SideNavPanel() {
 
   return (
     <div className="h-full w-full flex flex-col overflow-hidden">
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-scroll overflow-x-hidden p-4 seamless-scroll" style={{ height: '100%' }}>
         <div className="space-y-2">
           <h2 className="text-lg font-semibold mb-4 px-3">Navigation</h2>
           {navItems.map((item) => {

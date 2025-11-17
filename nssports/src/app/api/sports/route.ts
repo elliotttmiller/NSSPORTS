@@ -37,17 +37,20 @@ export async function GET() {
     });
     
     // Transform to frontend format
-    const transformedSports = sports.map(sport => ({
+    type PrismaSport = typeof sports[number];
+    type PrismaLeague = PrismaSport['leagues'][number];
+    
+    const transformedSports = sports.map((sport: PrismaSport) => ({
       id: sport.id,
       name: sport.name,
       icon: sport.icon,
-      leagues: sport.leagues.map(league => ({
+      leagues: sport.leagues.map((league: PrismaLeague) => ({
         ...league,
         games: [], // Games fetched separately via /api/games
       })),
     }));
     
-    logger.info(`Returning ${transformedSports.length} sports with ${transformedSports.reduce((sum, s) => sum + s.leagues.length, 0)} leagues`);
+    logger.info(`Returning ${transformedSports.length} sports with ${transformedSports.reduce((sum: number, s: typeof transformedSports[number]) => sum + s.leagues.length, 0)} leagues`);
     
     const parsed = z.array(SportSchema).parse(transformedSports);
     return NextResponse.json(parsed);
