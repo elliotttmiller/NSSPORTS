@@ -40,7 +40,7 @@ export default function MyBetsPage() {
   if (loading) {
     return (
       <div className="bg-background min-h-screen">
-        <div className="container mx-auto px-6 md:px-8 xl:px-12 pt-12 pb-6 max-w-screen-2xl">
+        <div className="container mx-auto px-6 md:px-8 xl:px-12 pt-6 pb-6 max-w-screen-2xl">
           <div className="space-y-6">
             <Card>
               <CardHeader className="pb-4">
