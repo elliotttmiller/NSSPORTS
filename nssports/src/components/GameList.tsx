@@ -134,12 +134,17 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange, byp
       }
     }
     setAllGames(merged);
-    // Report total if provided by last page
-    const last = pages[pages.length - 1];
-    if (onTotalGamesChange && last?.pagination?.total !== undefined) {
-      onTotalGamesChange(last.pagination.total);
+  }, [flattenedGames, pages]);
+  
+  // Update total count based on filtered games (after sport/date filtering)
+  // This ensures the count reflects what's actually available to view
+  useEffect(() => {
+    if (onTotalGamesChange) {
+      // Count total games after context filtering (excludes finished games)
+      // This gives a more accurate count of available games
+      onTotalGamesChange(contextFilteredGames.length);
     }
-  }, [flattenedGames, pages, onTotalGamesChange]);
+  }, [contextFilteredGames, onTotalGamesChange]);
 
   // IntersectionObserver sentinel to fetch next page
   const onIntersect = useCallback(
