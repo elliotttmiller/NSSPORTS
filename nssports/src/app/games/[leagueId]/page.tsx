@@ -107,7 +107,7 @@ export default function LeaguePage() {
 
   return (
     <div className="bg-background min-h-screen pb-20">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-12 pb-6 max-w-[1920px] pt-16">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-12 pb-6 max-w-[1920px] pt-6">
         {/* Page Header */}
         <div className="mb-6 lg:mb-8 flex items-center justify-between">
           <div className="flex items-center gap-4 lg:gap-5">

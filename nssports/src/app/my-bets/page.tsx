@@ -71,7 +71,7 @@ export default function MyBetsPage() {
   return (
     <div className="bg-background min-h-screen pb-20">
             {/* debug UI removed */}
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-12 pb-6 max-w-[1920px] pt-16">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-12 pb-6 max-w-[1920px] pt-6">
         <div className="space-y-6 lg:space-y-8">
           {/* Active Bets Section */}
           <Card>

@@ -375,7 +375,7 @@ export default function LivePage() {
 
   return (
     <div className="bg-background h-full min-h-screen pb-20">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-12 pb-6 max-w-[1920px] pt-16">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-12 pb-6 max-w-[1920px] pt-6">
         {/* Page Header */}
         <div className="mb-6 lg:mb-8">
           <div className="flex items-center justify-between mb-4">
