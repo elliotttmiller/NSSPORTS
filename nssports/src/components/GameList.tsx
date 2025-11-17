@@ -135,16 +135,6 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange, byp
     }
     setAllGames(merged);
   }, [flattenedGames, pages]);
-  
-  // Update total count based on filtered games (after sport/date filtering)
-  // This ensures the count reflects what's actually available to view
-  useEffect(() => {
-    if (onTotalGamesChange) {
-      // Count total games after context filtering (excludes finished games)
-      // This gives a more accurate count of available games
-      onTotalGamesChange(contextFilteredGames.length);
-    }
-  }, [contextFilteredGames, onTotalGamesChange]);
 
   // IntersectionObserver sentinel to fetch next page
   const onIntersect = useCallback(
@@ -216,6 +206,16 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange, byp
   const contextFilteredGames = useMemo(() => {
     return visibleGames.filter(game => shouldShowInCurrentContext(game, 'upcoming'));
   }, [visibleGames, shouldShowInCurrentContext]);
+
+  // Update total count based on filtered games (after sport/date filtering)
+  // This ensures the count reflects what's actually available to view
+  useEffect(() => {
+    if (onTotalGamesChange) {
+      // Count total games after context filtering (excludes finished games)
+      // This gives a more accurate count of available games
+      onTotalGamesChange(contextFilteredGames.length);
+    }
+  }, [contextFilteredGames, onTotalGamesChange]);
 
   // ⭐ Extract unique sports from games with counts (BEFORE sport filtering)
   // Now correlated with selected date - only show leagues that have games on that date
