@@ -96,7 +96,7 @@
     "@types/bcryptjs": "^2.4.6",
     "@types/ioredis": "^4.28.10",
     "@types/jest": "^30.0.0",
-    "@types/node": "^22.18.13",
+    "@types/node": "^22.19.1",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "babel-jest": "^30.0.0",
