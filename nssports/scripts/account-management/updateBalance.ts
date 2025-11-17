@@ -45,14 +45,28 @@ async function displayUsers() {
 }
 
 async function updateBalance(userId: string, newBalance: number) {
+  // If account row doesn't exist (happens for older users), create it.
   const account = await prisma.account.findUnique({ where: { userId } });
   const currentBalance = account?.balance || 0;
-  
-  await prisma.account.update({
-    where: { userId },
-    data: { balance: newBalance }
-  });
-  
+
+  if (!account) {
+    // Create the account record instead of failing the update
+    await prisma.account.create({
+      data: {
+        userId,
+        balance: newBalance,
+        freePlay: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }
+    });
+  } else {
+    await prisma.account.update({
+      where: { userId },
+      data: { balance: newBalance, updatedAt: new Date() }
+    });
+  }
+
   return { currentBalance, newBalance };
 }
 
