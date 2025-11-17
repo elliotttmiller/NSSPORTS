@@ -390,6 +390,14 @@ function getTeamLogo(team: SDKTeam, leagueId: string): string {
     normalizedTeamID = 'LOS_ANGELES_CLIPPERS_NBA';
   }
 
+    // Special case: Fix upstream typo for Philadelphia 76ers
+  if (
+    leagueId === 'NBA' &&
+    (normalizedTeamID === 'PHILADELPHIA_7ERS_NBA' || normalizedTeamID === 'PHILADELPHIA_7ERS')
+  ) {
+    normalizedTeamID = 'PHILADELPHIA_76ERS_NBA';
+  }
+  
   // Use the normalized SDK team ID (e.g., MONTREAL_CANADIENS_NHL.svg)
   return `${logoPath}/${normalizedTeamID}.svg`;
 }

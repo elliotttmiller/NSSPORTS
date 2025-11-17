@@ -193,7 +193,7 @@ export default function AdjustBalancePage() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-20 pt-16">
+    <div className="min-h-screen bg-background pb-20 pt-6">
       {/* Header - Mobile Optimized */}
       <div className="bg-card border-b border-border p-3 sm:p-4 mb-4">
         <div className="flex items-center gap-3">

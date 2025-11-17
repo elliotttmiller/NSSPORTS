@@ -334,10 +334,10 @@ function AuthenticatedHomePage({ session }: { session: Session }) {
 
   return (
     <div className="bg-background text-foreground min-h-screen pb-20">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-12 py-6 max-w-[1920px] pt-16">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-12 py-6 max-w-[1920px] pt-6">
         <div className="space-y-6 lg:space-y-8">
           {/* ...existing code... */}
-          <div className="text-center py-8 lg:py-12">
+          <div className="text-center py-4 lg:py-6">
             <h1 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold text-foreground tracking-tight mb-4">
               {`Welcome, ${displayName}`}
             </h1>
