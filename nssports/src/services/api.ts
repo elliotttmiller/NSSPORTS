@@ -204,7 +204,7 @@ export const getGamesPaginated = async (
   // Validate and sanitize pagination parameters to prevent 422 errors
   // Ensure page and limit are valid positive integers
   const safePage = Number.isFinite(page) && page > 0 ? Math.floor(page) : 1;
-  const safeLimit = Number.isFinite(limit) && limit > 0 && limit <= 100 ? Math.floor(limit) : 10;
+  const safeLimit = Number.isFinite(limit) && limit > 0 && limit <= 500 ? Math.floor(limit) : 100;
   
   const params = new URLSearchParams({
     page: safePage.toString(),

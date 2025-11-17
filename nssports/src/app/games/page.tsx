@@ -70,7 +70,7 @@ export default function GamesPage() {
 
         {/* Unified Games List with internal sport and date filters */}
         <GameList 
-          limit={500} 
+          limit={100} 
           leagueId={undefined} 
           status={undefined} 
           onTotalGamesChange={setTotalGames}

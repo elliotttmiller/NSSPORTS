@@ -25,12 +25,11 @@ async function getCachedAllGames() {
   const now = new Date();
   const sixHoursAgo = new Date(now.getTime() - 6 * 60 * 60 * 1000); // Look back 6 hours
   const startsAfter = sixHoursAgo; // Include games that started up to 6 hours ago (live games)
-  const startsBefore = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000); // 14 days ahead (2 weeks)
+  const startsBefore = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days ahead (1 week)
   
   // API limit: Maximum 100 games per request (enforced by SportsGameOdds API)
   // Fetch all available games to ensure proper display across all dates
-  // In development, use a reasonable limit to save API calls while still testing properly
-  const fetchLimit = process.env.NODE_ENV === 'development' ? 50 : 100; // 50 games per league in dev, 100 in prod
+  const fetchLimit = 100; // Maximum allowed by API - fetch all available games
   
   logger.info(`Searching for games from ${startsAfter.toISOString()} to ${startsBefore.toISOString()}`);
   
@@ -157,7 +156,7 @@ export async function GET(request: NextRequest) {
     const QuerySchema = z.object({
       leagueId: z.string().optional(),
       page: z.coerce.number().int().positive().default(1),
-      limit: z.coerce.number().int().positive().max(100).default(10),
+      limit: z.coerce.number().int().positive().max(500).default(100),
       status: z.enum(["upcoming", "live", "finished"]).optional(),
     });
     let leagueId: string | undefined;

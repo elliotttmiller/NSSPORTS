@@ -10,6 +10,7 @@ import { MemoizedProfessionalGameRow as ProfessionalGameRow } from '@/components
 import { CompactMobileGameRow } from '@/components/features/games/CompactMobileGameRow';
 import { RefreshButton } from '@/components/ui/RefreshButton';
 import { useGameTransitions } from '@/hooks/useGameTransitions';
+import { GameListDebugLogger as DebugLog } from '@/lib/debugLogger';
 import type { Game } from '@/types';
 
 export type GameListProps = Partial<UsePaginatedGamesParams> & {
@@ -133,6 +134,12 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange, byp
         merged.push(g);
       }
     }
+    const gamesByLeague = merged.reduce((acc, g) => {
+      acc[g.leagueId] = (acc[g.leagueId] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+    
+    DebugLog.info(`Merged ${merged.length} games from ${pages.length} pages`, { gamesByLeague });
     setAllGames(merged);
   }, [flattenedGames, pages]);
 
@@ -342,11 +349,23 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange, byp
 
   const items: Item[] = useMemo(() => {
     if (!selectedDate) return [];
+    
+    const leagueInfo = Object.keys(groupedByLeague).map(league => 
+      `${league}: ${Object.keys(groupedByLeague[league]).length} dates`
+    );
+    DebugLog.info(`Building items for date: ${selectedDate}`, { 
+      groupedByLeague: leagueInfo 
+    });
+    
     const out: Item[] = [];
 
     const pushLeague = (lid: string) => {
       const gamesForDate = groupedByLeague[lid]?.[selectedDate];
-      if (!gamesForDate || gamesForDate.length === 0) return;
+      if (!gamesForDate || gamesForDate.length === 0) {
+        DebugLog.warn(`No games for ${lid} on ${selectedDate}`);
+        return;
+      }
+      DebugLog.info(`Adding ${gamesForDate.length} games for ${lid} on ${selectedDate}`);
       out.push({ kind: 'league-header', key: `lh-${lid}`, leagueId: lid });
       // Insert a table header right below the league header
       out.push({ kind: 'table-header', key: `th-${lid}`, leagueId: lid });
