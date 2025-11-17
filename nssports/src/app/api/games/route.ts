@@ -28,8 +28,9 @@ async function getCachedAllGames() {
   const startsBefore = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000); // 14 days ahead (2 weeks)
   
   // API limit: Maximum 100 games per request (enforced by SportsGameOdds API)
-  // In development, drastically reduce to save API calls
-  const fetchLimit = process.env.NODE_ENV === 'development' ? 10 : 100; // Only 10 games per league in dev!
+  // Fetch all available games to ensure proper display across all dates
+  // In development, use a reasonable limit to save API calls while still testing properly
+  const fetchLimit = process.env.NODE_ENV === 'development' ? 50 : 100; // 50 games per league in dev, 100 in prod
   
   logger.info(`Searching for games from ${startsAfter.toISOString()} to ${startsBefore.toISOString()}`);
   

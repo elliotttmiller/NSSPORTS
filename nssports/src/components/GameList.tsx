@@ -48,9 +48,9 @@ const LeagueHeaderWithDateFilter = memo(({
   isRefreshing: boolean;
 }) => (
   <div className={`${isFirst ? '' : 'mt-6'}`}>
-    <div className="flex items-center justify-between gap-4 py-2 px-4 bg-muted/20 border-b border-border rounded shadow-sm mb-2">
-      <div className="text-base font-semibold text-accent">{leagueName}</div>
-      <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
+    <div className="flex items-center gap-4 py-2 px-4 bg-muted/20 border-b border-border rounded shadow-sm mb-2">
+      <div className="text-base font-semibold text-accent shrink-0">{leagueName}</div>
+      <div className="flex items-center gap-1.5 overflow-x-auto min-w-0 flex-1" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(155, 155, 155, 0.5) transparent' }}>
         <div className="shrink-0">
           <RefreshButton onRefresh={onRefresh} isLoading={isRefreshing} />
         </div>
@@ -79,7 +79,7 @@ const DateFilterButton = memo(({
   onClick: () => void;
 }) => (
   <button
-    className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all duration-150 ${
+    className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all duration-150 ${
       isSelected 
         ? 'bg-accent text-accent-foreground shadow-md' 
         : 'bg-muted/10 text-muted-foreground hover:bg-accent/10'
@@ -134,12 +134,17 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange, byp
       }
     }
     setAllGames(merged);
-    // Report total if provided by last page
-    const last = pages[pages.length - 1];
-    if (onTotalGamesChange && last?.pagination?.total !== undefined) {
-      onTotalGamesChange(last.pagination.total);
+  }, [flattenedGames, pages]);
+  
+  // Update total count based on filtered games (after sport/date filtering)
+  // This ensures the count reflects what's actually available to view
+  useEffect(() => {
+    if (onTotalGamesChange) {
+      // Count total games after context filtering (excludes finished games)
+      // This gives a more accurate count of available games
+      onTotalGamesChange(contextFilteredGames.length);
     }
-  }, [flattenedGames, pages, onTotalGamesChange]);
+  }, [contextFilteredGames, onTotalGamesChange]);
 
   // IntersectionObserver sentinel to fetch next page
   const onIntersect = useCallback(
