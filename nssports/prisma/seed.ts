@@ -88,6 +88,11 @@ async function main() {
     { id: 'football', name: 'Football', icon: '🏈' },
     { id: 'hockey', name: 'Hockey', icon: '🏒' },
     { id: 'tennis', name: 'Tennis', icon: '🎾' },
+    { id: 'soccer', name: 'Soccer', icon: '⚽' },
+    { id: 'mma', name: 'MMA', icon: '🥊' },
+    { id: 'boxing', name: 'Boxing', icon: '🥊' },
+    { id: 'golf', name: 'Golf', icon: '⛳' },
+    { id: 'horse_racing', name: 'Horse Racing', icon: '🏇' },
   ];
   
   for (const sport of sportsData) {
@@ -117,6 +122,32 @@ async function main() {
     { id: 'ATP', name: 'ATP', sportId: 'tennis', logo: '/logos/atp/atp.svg' },
     { id: 'WTA', name: 'WTA', sportId: 'tennis', logo: '/logos/wta/wta.svg' },
     { id: 'ITF', name: 'ITF', sportId: 'tennis', logo: '/logos/itf/itf.svg' },
+    // Soccer leagues - Per https://sportsgameodds.com/docs/data-types/markets/soccer
+    { id: 'EPL', name: 'English Premier League', sportId: 'soccer', logo: '/logos/soccer/EPL.svg' },
+    { id: 'LA_LIGA', name: 'La Liga', sportId: 'soccer', logo: '/logos/soccer/LA_LIGA.svg' },
+    { id: 'BUNDESLIGA', name: 'Bundesliga', sportId: 'soccer', logo: '/logos/soccer/BUNDESLIGA.svg' },
+    { id: 'IT_SERIE_A', name: 'Serie A', sportId: 'soccer', logo: '/logos/soccer/IT_SERIE_A.svg' },
+    { id: 'FR_LIGUE_1', name: 'Ligue 1', sportId: 'soccer', logo: '/logos/soccer/FR_LIGUE_1.svg' },
+    { id: 'MLS', name: 'MLS', sportId: 'soccer', logo: '/logos/soccer/MLS.svg' },
+    { id: 'LIGA_MX', name: 'Liga MX', sportId: 'soccer', logo: '/logos/soccer/LIGA_MX.svg' },
+    { id: 'UEFA_CHAMPIONS_LEAGUE', name: 'UEFA Champions League', sportId: 'soccer', logo: '/logos/soccer/UEFA_CHAMPIONS_LEAGUE.svg' },
+    { id: 'UEFA_EUROPA_LEAGUE', name: 'UEFA Europa League', sportId: 'soccer', logo: '/logos/soccer/UEFA_EUROPA_LEAGUE.svg' },
+    { id: 'BR_SERIE_A', name: 'Brasileirão', sportId: 'soccer', logo: '/logos/soccer/BR_SERIE_A.svg' },
+    { id: 'INTERNATIONAL_SOCCER', name: 'International Soccer', sportId: 'soccer', logo: '/logos/soccer/INTERNATIONAL_SOCCER.svg' },
+    // MMA leagues - Per https://sportsgameodds.com/docs/data-types/markets/mma
+    { id: 'UFC', name: 'UFC', sportId: 'mma', logo: '/logos/mma/UFC.svg' },
+    { id: 'BELLATOR', name: 'Bellator MMA', sportId: 'mma', logo: '/logos/mma/BELLATOR.svg' },
+    { id: 'PFL', name: 'PFL', sportId: 'mma', logo: '/logos/mma/PFL.svg' },
+    { id: 'ONE_CHAMPIONSHIP', name: 'ONE Championship', sportId: 'mma', logo: '/logos/mma/ONE_CHAMPIONSHIP.svg' },
+    // Boxing
+    { id: 'BOXING', name: 'Boxing', sportId: 'boxing', logo: '/logos/boxing/BOXING.svg' },
+    // Golf leagues - Per https://sportsgameodds.com/docs/data-types/leagues
+    { id: 'PGA_MEN', name: 'PGA Tour', sportId: 'golf', logo: '/logos/golf/PGA_MEN.svg' },
+    { id: 'PGA_WOMEN', name: 'LPGA Tour', sportId: 'golf', logo: '/logos/golf/PGA_WOMEN.svg' },
+    { id: 'LIV_TOUR', name: 'LIV Golf', sportId: 'golf', logo: '/logos/golf/LIV_TOUR.svg' },
+    { id: 'DP_WORLD_TOUR', name: 'DP World Tour', sportId: 'golf', logo: '/logos/golf/DP_WORLD_TOUR.svg' },
+    // Horse Racing
+    { id: 'HORSE_RACING', name: 'Horse Racing', sportId: 'horse_racing', logo: '/logos/horse_racing/HORSE_RACING.svg' },
   ];
   
   for (const league of leaguesData) {
