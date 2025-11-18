@@ -728,14 +728,22 @@ export async function settleBet(betId: string): Promise<SettlementResult | null>
             const playerProp = metadata?.playerProp;
             if (playerProp?.playerId && playerProp?.statType) {
               const stats = await fetchPlayerStats(bet.gameId!, playerProp.playerId);
-              if (stats && stats[playerProp.statType] !== undefined) {
-                const statValue = stats[playerProp.statType];
-                const line = bet.line;
-                // Format: "28.5 PTS" with line for context
-                if (typeof line === 'number') {
-                  actualResultString = `${statValue} ${playerProp.statType.replace(/_/g, ' ').toUpperCase()} | Line: ${line}`;
-                } else {
-                  actualResultString = `${statValue} ${playerProp.statType.replace(/_/g, ' ').toUpperCase()}`;
+              if (stats) {
+                // Handle combined stats (e.g., "points+rebounds+assists")
+                const statValue = playerProp.statType.includes('+') 
+                  ? calculateCombinedStat(playerProp.statType, stats)
+                  : stats[playerProp.statType];
+                
+                if (statValue !== undefined) {
+                  const line = bet.line;
+                  // Format stat type for display (replace + with proper formatting)
+                  const statTypeDisplay = playerProp.statType.replace(/\+/g, '+').replace(/_/g, ' ').toUpperCase();
+                  // Format: "41 PTS+REB+AST" with line for context
+                  if (typeof line === 'number') {
+                    actualResultString = `${statValue} ${statTypeDisplay} | Line: ${line}`;
+                  } else {
+                    actualResultString = `${statValue} ${statTypeDisplay}`;
+                  }
                 }
               }
             }
