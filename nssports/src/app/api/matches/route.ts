@@ -26,6 +26,7 @@ import { transformSDKEvents } from "@/lib/transformers/sportsgameodds-sdk";
 import { GameSchema } from "@/lib/schemas/game";
 import { logger } from "@/lib/logger";
 import { applySingleLeagueLimit } from "@/lib/devDataLimit";
+import { MAIN_LINE_ODDIDS } from "@/lib/sportsgameodds-sdk";
 import type { ExtendedSDKEvent } from "@/lib/transformers/sportsgameodds-sdk";
 
 // Map sport keys to league IDs
@@ -82,6 +83,11 @@ export async function GET(request: NextRequest) {
     try {
       const leagueID = SPORT_TO_LEAGUE_MAP[sport] || "NBA";
       
+      // ⭐ CRITICAL OPTIMIZATION: Use oddIDs parameter based on lines query
+      // Per official docs: https://sportsgameodds.com/docs/guides/response-speed
+      // main = 50-90% payload reduction, all = full odds including props
+      const oddIDs = lines === 'main' ? MAIN_LINE_ODDIDS : undefined;
+      
       // ⭐ CRITICAL OPTIMIZATION: Separate LIVE vs UPCOMING games
       // Official SDK Method: Use live=true for in-progress games, finalized=false for not finished
       // FORWARD-LOOKING: Wider window to find available games (14 days)
@@ -96,6 +102,8 @@ export async function GET(request: NextRequest) {
         leagueID,
         live: true,                     // ✅ OFFICIAL: Only in-progress games
         finalized: false,               // ✅ OFFICIAL: Exclude finished games
+        oddIDs,                         // ✅ OFFICIAL: Filter specific markets (50-90% reduction)
+        includeOpposingOddIDs: true,   // ✅ OFFICIAL: Get both sides automatically
         includeConsensus: true,         // ✅ CRITICAL: Request bookOdds calculations
         limit: 50,
       });
@@ -108,6 +116,8 @@ export async function GET(request: NextRequest) {
         finalized: false,                          // ✅ OFFICIAL: Not finished
         startsAfter: now.toISOString(),           // ✅ From current time forward
         startsBefore: fourteenDaysFromNow.toISOString(), // ✅ Max 14 days ahead
+        oddIDs,                                    // ✅ OFFICIAL: Filter specific markets (50-90% reduction)
+        includeOpposingOddIDs: true,              // ✅ OFFICIAL: Get both sides automatically
         includeConsensus: true,                   // ✅ CRITICAL: Request bookOdds calculations
         limit: 100,
       });
