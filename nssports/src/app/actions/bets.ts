@@ -38,6 +38,7 @@ const betLegSchema = z.object({
     propType: z.string().optional(),
     description: z.string().optional(),
     marketCategory: z.string().optional(),
+    periodID: z.string().optional(), // For period-specific props (e.g., "1q", "2q", "1h")
   }).optional(),
 });
 
@@ -59,6 +60,7 @@ const singleBetSchema = z.object({
     propType: z.string(),
     description: z.string(),
     marketCategory: z.string(),
+    periodID: z.string().optional(), // For period-specific props (e.g., "1q", "2q", "1h")
   }).optional(),
 });
 

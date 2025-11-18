@@ -54,6 +54,7 @@ export interface PlacedBet {
     propType: string;
     description: string;
     marketCategory: string;
+    periodID?: string; // For period-specific props (e.g., "1q", "2q", "1h")
   };
   teaserType?: string;
   teaserMetadata?: {
@@ -97,6 +98,7 @@ export interface PlacedBet {
       propType: string;
       description: string;
       marketCategory: string;
+      periodID?: string; // For period-specific props (e.g., "1q", "2q", "1h")
     };
     actualResult?: string; // Display the actual outcome for this leg
   }>;
