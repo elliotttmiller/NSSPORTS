@@ -15,7 +15,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { prisma } from "@/lib/prisma";
-import { fetchPlayerStats } from "@/lib/player-stats";
+import { fetchPlayerStats, calculateCombinedStat } from "@/lib/player-stats";
 import { getPeriodScore } from "@/lib/period-scores";
 
 // ============================================================================
@@ -152,7 +152,7 @@ export function gradeTotalBet(params: {
  * Grade a player prop bet
  * 
  * Requires actual player stats from the game.
- * For now, this is a placeholder - in production you'd fetch real stats.
+ * Supports both single stats (e.g., "points") and combined stats (e.g., "points+rebounds+assists").
  * 
  * @param params - Player prop bet details
  * @param playerStats - Actual player performance data
@@ -161,18 +161,37 @@ export function gradePlayerPropBet(params: {
   selection: string; // 'over' or 'under'
   line: number;
   playerId: string;
-  statType: string; // 'points', 'rebounds', 'assists', etc.
+  statType: string; // 'points', 'rebounds', 'assists', 'points+rebounds+assists', etc.
 }, playerStats?: { [statType: string]: number }): BetGradingResult {
   const { selection, line, statType } = params;
 
   // TODO: Integrate with actual player stats API
   // If stats unavailable, we cannot grade the bet - throw error to prevent settlement
-  if (!playerStats || playerStats[statType] === undefined) {
+  if (!playerStats) {
     console.error(`[gradePlayerPropBet] No stats available for ${statType}, cannot grade bet`);
     throw new Error(`Player stats unavailable for ${statType}`);
   }
 
-  const actualValue = playerStats[statType];
+  // Check if this is a combined stat (e.g., "points+rebounds+assists")
+  let actualValue: number | undefined;
+  
+  if (statType.includes('+')) {
+    // Combined stat - calculate sum of individual stats
+    actualValue = calculateCombinedStat(statType, playerStats);
+    
+    if (actualValue === undefined) {
+      console.error(`[gradePlayerPropBet] Unable to calculate combined stat ${statType}, missing component stats`);
+      throw new Error(`Player stats unavailable for combined stat ${statType}`);
+    }
+  } else {
+    // Single stat - direct lookup
+    actualValue = playerStats[statType];
+    
+    if (actualValue === undefined) {
+      console.error(`[gradePlayerPropBet] No stats available for ${statType}, cannot grade bet`);
+      throw new Error(`Player stats unavailable for ${statType}`);
+    }
+  }
 
   // Only push if line is a whole number and stat matches exactly
   // Decimal lines (9.5, 24.5) CANNOT push since stats are integers
@@ -709,14 +728,22 @@ export async function settleBet(betId: string): Promise<SettlementResult | null>
             const playerProp = metadata?.playerProp;
             if (playerProp?.playerId && playerProp?.statType) {
               const stats = await fetchPlayerStats(bet.gameId!, playerProp.playerId);
-              if (stats && stats[playerProp.statType] !== undefined) {
-                const statValue = stats[playerProp.statType];
-                const line = bet.line;
-                // Format: "28.5 PTS" with line for context
-                if (typeof line === 'number') {
-                  actualResultString = `${statValue} ${playerProp.statType.replace(/_/g, ' ').toUpperCase()} | Line: ${line}`;
-                } else {
-                  actualResultString = `${statValue} ${playerProp.statType.replace(/_/g, ' ').toUpperCase()}`;
+              if (stats) {
+                // Handle combined stats (e.g., "points+rebounds+assists")
+                const statValue = playerProp.statType.includes('+') 
+                  ? calculateCombinedStat(playerProp.statType, stats)
+                  : stats[playerProp.statType];
+                
+                if (statValue !== undefined) {
+                  const line = bet.line;
+                  // Format stat type for display (replace + with proper formatting)
+                  const statTypeDisplay = playerProp.statType.replace(/\+/g, '+').replace(/_/g, ' ').toUpperCase();
+                  // Format: "41 PTS+REB+AST" with line for context
+                  if (typeof line === 'number') {
+                    actualResultString = `${statValue} ${statTypeDisplay} | Line: ${line}`;
+                  } else {
+                    actualResultString = `${statValue} ${statTypeDisplay}`;
+                  }
                 }
               }
             }

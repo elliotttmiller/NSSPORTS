@@ -19,7 +19,7 @@ interface GamePropButtonProps {
 }
 
 export function GamePropButton({ prop, game }: GamePropButtonProps) {
-  const { addBet, removeBet, betSlip } = useBetSlip();
+  const { addGamePropBet, removeBet, betSlip } = useBetSlip();
 
   const betId = `${game.id}-gameprop-${prop.id}`;
 
@@ -31,8 +31,24 @@ export function GamePropButton({ prop, game }: GamePropButtonProps) {
     if (isBetInSlip) {
       removeBet(betId);
     } else {
-      // Use moneyline bet type for game props
-      addBet(game, "moneyline", "home", prop.odds, prop.line || undefined);
+      // Extract period ID from prop type if present (e.g., "1q_team_total_home_over")
+      const periodMatch = prop.propType.match(/^(1q|2q|3q|4q|1h|2h|1p|2p|3p)_/);
+      const periodID = periodMatch ? periodMatch[1] : undefined;
+      
+      // Add game prop bet with proper metadata including periodID for settlement
+      addGamePropBet(
+        game,
+        prop.id,
+        prop.selection || "over",
+        prop.odds,
+        prop.line ?? undefined,
+        {
+          marketCategory: "Game Props",
+          propType: prop.propType,
+          description: prop.description,
+          periodID, // Include period ID for proper settlement
+        }
+      );
     }
   };
 

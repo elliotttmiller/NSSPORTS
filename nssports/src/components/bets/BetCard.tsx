@@ -288,7 +288,21 @@ export function formatSelectionLabel(
       // Example: '1P', '2P', '1Q', '2H', etc.
       periodInfo = ` ${gameProp.marketCategory.toUpperCase()}`;
     }
-    return `${gameProp.description || gameProp.propType} ${sel}${lineStr}${periodInfo}`.trim();
+    
+    // Replace HOME/AWAY with actual team names in description
+    let description = gameProp.description || gameProp.propType || '';
+    if (game) {
+      // Replace "Home" or "HOME" with actual home team name
+      if (game.homeTeam?.shortName) {
+        description = description.replace(/\b(Home|HOME)\b/g, game.homeTeam.shortName);
+      }
+      // Replace "Away" or "AWAY" with actual away team name
+      if (game.awayTeam?.shortName) {
+        description = description.replace(/\b(Away|AWAY)\b/g, game.awayTeam.shortName);
+      }
+    }
+    
+    return `${description} ${sel}${lineStr}${periodInfo}`.trim();
   }
 
   // Handle total/over-under bets explicitly
