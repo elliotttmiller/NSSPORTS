@@ -49,6 +49,7 @@ interface BetSlipContextType {
       marketCategory: string;
       propType: string;
       description: string;
+      periodID?: string;
     }
   ) => void;
   removeBet: (betId: string) => void;
@@ -328,6 +329,7 @@ export function BetSlipProvider({ children }: BetSlipProviderProps) {
         marketCategory: string;
         propType: string;
         description: string;
+        periodID?: string;
       }
     ) => {
       const betId = `${game.id}-gameprop-${propId}`;

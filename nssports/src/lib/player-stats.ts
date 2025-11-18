@@ -269,3 +269,51 @@ export async function batchFetchPlayerStats(
     return statsMap;
   }
 }
+
+/**
+ * Calculate combined stat value for player props with multiple stats
+ * 
+ * Handles stat types like "points+rebounds+assists" by summing individual stats.
+ * 
+ * @param statType - Stat type string (e.g., "points", "points+rebounds", "points+rebounds+assists")
+ * @param playerStats - Player's game stats object
+ * @returns Combined stat value, or undefined if any component is missing
+ * 
+ * @example
+ * ```typescript
+ * const stats = { points: 28, rebounds: 8, assists: 5 };
+ * calculateCombinedStat("points+rebounds+assists", stats); // Returns 41
+ * calculateCombinedStat("points", stats); // Returns 28
+ * calculateCombinedStat("points+rebounds", stats); // Returns 36
+ * ```
+ */
+export function calculateCombinedStat(
+  statType: string,
+  playerStats: PlayerGameStats
+): number | undefined {
+  // Check if this is a combined stat (contains '+')
+  if (!statType.includes('+')) {
+    // Single stat - return directly
+    return playerStats[statType];
+  }
+
+  // Split by '+' to get individual stat types
+  const statTypes = statType.split('+').map(s => s.trim());
+  
+  logger.info(`[calculateCombinedStat] Calculating combined stat for: ${statTypes.join(' + ')}`);
+  
+  let total = 0;
+  for (const individualStat of statTypes) {
+    const value = playerStats[individualStat];
+    
+    if (value === undefined || value === null) {
+      logger.warn(`[calculateCombinedStat] Missing stat "${individualStat}" for combined stat "${statType}"`);
+      return undefined; // Cannot calculate if any component is missing
+    }
+    
+    total += value;
+  }
+  
+  logger.info(`[calculateCombinedStat] Combined total for "${statType}": ${total}`);
+  return total;
+}

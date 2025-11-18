@@ -129,6 +129,7 @@ export interface Bet {
     marketCategory: string;
     propType: string;
     description: string;
+    periodID?: string; // For period-specific props (e.g., "1q", "2q", "1h")
   };
   legs?: Bet[];
 }
