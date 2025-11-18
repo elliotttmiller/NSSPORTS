@@ -105,6 +105,26 @@ export default function LeaguePage() {
   });
   const filteredDates = selectedDate ? [selectedDate] : sortedDates;
 
+  // Auto-select first available date when page loads or when games change
+  useEffect(() => {
+    if (!selectedDate && upcomingOnlyGames.length > 0) {
+      const allDates: string[] = Object.keys(groupedGames);
+      const sorted = allDates.sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+      if (sorted.length > 0) setSelectedDate(sorted[0]);
+    }
+  }, [groupedGames, selectedDate, upcomingOnlyGames.length]);
+
+  // Ensure selectedDate remains valid when games or dates change
+  useEffect(() => {
+    if (!selectedDate && upcomingOnlyGames.length === 0) return;
+    if (selectedDate && !Object.prototype.hasOwnProperty.call(groupedGames, selectedDate)) {
+      const allDates: string[] = Object.keys(groupedGames);
+      const sorted = allDates.sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+      if (sorted.length > 0) setSelectedDate(sorted[0]);
+      else setSelectedDate(null);
+    }
+  }, [groupedGames, selectedDate, upcomingOnlyGames.length]);
+
   return (
     <div className="bg-background min-h-screen pb-20">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-12 pb-6 max-w-[1920px] pt-6">

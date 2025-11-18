@@ -5,6 +5,7 @@ import { getEventsWithCache } from '@/lib/hybrid-cache';
 import { transformSDKEvents } from '@/lib/transformers/sportsgameodds-sdk';
 import { logger } from '@/lib/logger';
 import { applySingleLeagueLimit } from '@/lib/devDataLimit';
+import { MAIN_LINE_ODDIDS } from '@/lib/sportsgameodds-sdk';
 import type { ExtendedSDKEvent } from '@/lib/transformers/sportsgameodds-sdk';
 
 export const revalidate = 30;
@@ -119,53 +120,71 @@ export async function GET(
     const { leagueId } = await context.params;
 
     try {
-      logger.info(`Fetching games for league ${leagueId} using hybrid cache`);
-      
+      logger.info(`Fetching games for league ${leagueId} using hybrid cache (aligned with /api/games workflow)`);
+
       // Map league ID to SDK format (NBA, NFL, NHL)
       const apiLeagueId = LEAGUE_ID_TO_API[leagueId] || leagueId.toUpperCase();
-      
-      // Define time range
+
+      // Define time range: look back 6 hours to include live games, and 7 days ahead
       const now = new Date();
-      const startsAfter = new Date(now.getTime() - 4 * 60 * 60 * 1000); // 4 hours ago
+      const startsAfter = new Date(now.getTime() - 6 * 60 * 60 * 1000); // 6 hours ago
       const startsBefore = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
-      
-      // Use hybrid cache (Prisma + SDK)
-      // Use main lines with proper oddID format for 50-90% payload reduction
+
+      // Fetch events using the hybrid cache (same params as /api/games for consistency)
       const response = await getEventsWithCache({
         leagueID: apiLeagueId,
+        finalized: false,
         startsAfter: startsAfter.toISOString(),
         startsBefore: startsBefore.toISOString(),
-        oddsAvailable: true,
-        oddIDs: 'game-ml,game-ats,game-ou', // Main lines: moneyline, spread, total
-        includeOpposingOddIDs: true, // Get both sides of each market
+        oddIDs: MAIN_LINE_ODDIDS,
+        includeOpposingOddIDs: true,
+        includeConsensus: true,
         limit: 100,
       });
-      
-      const events = response.data;
+
+      const events = response.data || [];
       logger.info(`Fetched ${events.length} events for league ${leagueId} (source: ${response.source})`);
-      
+
       // Transform events using official SDK status fields
-      // Events from cache/SDK match ExtendedSDKEvent structure
-      let transformedGames = await transformSDKEvents(events as ExtendedSDKEvent[]);
-      
-      // ⭐ Filter out finished games (never send to frontend)
+      let transformedGames = events.length > 0 ? await transformSDKEvents(events as ExtendedSDKEvent[]) : [];
+
+      // Filter out finished games (unless a finished status is explicitly desired)
       const beforeFilter = transformedGames.length;
       transformedGames = transformedGames.filter(game => game.status !== 'finished');
       logger.info(`Filtered out ${beforeFilter - transformedGames.length} finished games for league ${leagueId}`);
-      
-      // Apply development limit (Protocol I-IV)
+
+      // Additional time-based filter: remove games older than 12 hours (same as /api/games)
+      const twelveHoursAgo = new Date(Date.now() - 12 * 60 * 60 * 1000);
+      const beforeHistoricalFilter = transformedGames.length;
+      transformedGames = transformedGames.filter(game => {
+        const gameTime = new Date(game.startTime);
+        if (game.status === 'upcoming') return true;
+        if (game.status === 'live' && gameTime > twelveHoursAgo) return true;
+        return gameTime > twelveHoursAgo;
+      });
+      if (beforeHistoricalFilter > transformedGames.length) {
+        logger.warn(`Filtered out ${beforeHistoricalFilter - transformedGames.length} historical games for league ${leagueId}`);
+      }
+
+      // Apply development single-league limit
       transformedGames = applySingleLeagueLimit(transformedGames);
-      
+
+      // Sort by start time ascending
+      transformedGames.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+
       const parsed = z.array(GameSchema).parse(transformedGames);
-      
+
+      // Cache options similar to /api/games
+      const hasLiveGames = parsed.some(g => g.status === 'live');
+      const cacheOptions = hasLiveGames
+        ? { maxAge: 15, sMaxAge: 30, staleWhileRevalidate: 60 }
+        : { maxAge: 30, sMaxAge: 60, staleWhileRevalidate: 120 };
+
       logger.info(`Returning ${parsed.length} games for league ${leagueId}`);
-      return successResponse(parsed, 200, { source: response.source });
+      return successResponse(parsed, 200, { source: response.source }, cacheOptions);
     } catch (error) {
       logger.error(`Error fetching games for league ${leagueId}`, error);
-      
-      return ApiErrors.serviceUnavailable(
-        'Unable to fetch league data at this time. Please try again later.'
-      );
+      return ApiErrors.serviceUnavailable('Unable to fetch league data at this time. Please try again later.');
     }
   });
 }
