@@ -35,7 +35,7 @@ import {
   ApiErrors,
   successResponse,
 } from "@/lib/apiResponse";
-import { getEvents } from "@/lib/sportsgameodds-sdk";
+import { getEvents, MAIN_LINE_ODDIDS } from "@/lib/sportsgameodds-sdk";
 import { transformSDKEvents } from "@/lib/transformers/sportsgameodds-sdk";
 import { GameSchema } from "@/lib/schemas/game";
 import { logger } from "@/lib/logger";
@@ -52,7 +52,7 @@ const QuerySchema = z.object({
     .describe("main = moneyline/spread/total only, all = include props"),
 });
 
-const MAX_BATCH_SIZE = 20; // Safety limit per official docs recommendations
+const MAX_BATCH_SIZE = 50; // Per official docs: optimize batch sizes (max 100, use 50 for balance)
 
 export async function GET(request: NextRequest) {
   return withErrorHandling(async () => {
@@ -105,14 +105,15 @@ export async function GET(request: NextRequest) {
       // ⭐ OFFICIAL SDK PATTERN: Batch fetch with eventIDs parameter
       // Per official docs: https://sportsgameodds.com/docs/guides/data-batches
       // eventIDs accepts comma-separated string OR array (SDK converts array to string)
-      const oddIDs = lines === 'main' 
-        ? 'game-ml,game-ats,game-ou'  // Main lines only: 60-80% smaller payload
-        : undefined;                    // All odds: includes props
+      // 
+      // ⭐ CRITICAL OPTIMIZATION: Use oddIDs parameter based on lines query
+      // Per official docs: https://sportsgameodds.com/docs/guides/response-speed
+      const oddIDs = lines === 'main' ? MAIN_LINE_ODDIDS : undefined;
       
       const response = await getEvents({
         eventIDs: eventIdArray,          // ✅ OFFICIAL: Batch parameter
-        oddIDs,                          // Filter specific markets
-        includeOpposingOddIDs: true,    // Get both sides of markets
+        oddIDs,                          // ✅ OFFICIAL: Filter specific markets (50-90% reduction)
+        includeOpposingOddIDs: true,    // ✅ OFFICIAL: Get both sides of markets
         includeConsensus: true,          // ✅ CRITICAL: Request bookOdds calculations
         limit: MAX_BATCH_SIZE,
       });

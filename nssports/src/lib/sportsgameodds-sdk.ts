@@ -1018,6 +1018,9 @@ export function extractGameProps(event: any): any[] {
 
 /**
  * Fetch player props for a specific event using SDK
+ * 
+ * ⭐ OPTIMIZATION: Uses oddIDs parameter to fetch only player props (50-90% payload reduction)
+ * Per official docs: https://sportsgameodds.com/docs/guides/response-speed
  */
 export async function getPlayerProps(
   eventID: string,
@@ -1029,8 +1032,12 @@ export async function getPlayerProps(
   try {
     logger.info(`Fetching player props for event ${eventID}`);
     
+    // ⭐ CRITICAL OPTIMIZATION: Use PLAYER_PROP_ODDIDS to reduce payload by 50-90%
+    // Without oddIDs: Fetches ALL odds including main lines, game props, etc.
+    // With oddIDs: Only fetches player props, dramatically faster response
     const { data: events } = await getEvents({
       eventIDs: eventID,
+      oddIDs: PLAYER_PROP_ODDIDS,              // ✅ OFFICIAL: Filter to player props only
       oddsAvailable: true,
       includeOpposingOddIDs: true, // CRITICAL: Get both over AND under for each prop
       includeConsensus: true, // CRITICAL: Request bookOdds for real market data
@@ -1078,6 +1085,9 @@ export async function getPlayerProps(
 
 /**
  * Fetch game props for a specific event using SDK
+ * 
+ * ⭐ OPTIMIZATION: Uses oddIDs parameter to fetch only game props (50-90% payload reduction)
+ * Per official docs: https://sportsgameodds.com/docs/guides/response-speed
  */
 export async function getGameProps(
   eventID: string,
@@ -1088,8 +1098,12 @@ export async function getGameProps(
   try {
     logger.info(`Fetching game props for event ${eventID}`);
     
+    // ⭐ CRITICAL OPTIMIZATION: Use GAME_PROP_ODDIDS to reduce payload by 50-90%
+    // Without oddIDs: Fetches ALL odds including main lines, player props, etc.
+    // With oddIDs: Only fetches game props (quarters, halves, team totals), dramatically faster
     const { data: events } = await getEvents({
       eventIDs: eventID,
+      oddIDs: GAME_PROP_ODDIDS,                // ✅ OFFICIAL: Filter to game props only
       oddsAvailable: true,
       includeOpposingOddIDs: true, // CRITICAL: Get both sides of all markets (over/under, home/away)
       includeConsensus: true, // CRITICAL: Request bookOdds for real market data

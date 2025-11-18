@@ -17,7 +17,7 @@
  * Production Strategy:
  * - Higher throughput for real-time user experience
  * - Shorter deduplication windows for responsiveness
- * - Based on SportsGameOdds Pro Plan: 300 req/min
+ * - Based on SportsGameOdds Pro Plan: 1000 req/min (we use 800 for safety margin)
  * 
  * @see https://sportsgameodds.com/docs/setup/rate-limiting
  */
@@ -83,9 +83,11 @@ class RateLimiter {
       deduplicationWindow: 2000,        // 2s dedup window (catches rapid rerenders)
     } : {
       // PRODUCTION: Pro Plan limits with safety margin
-      requestsPerMinute: 250,           // Pro: 300/min, we use 250 for safety
-      requestsPerHour: 15000,           // Pro: ~18k/hour theoretical
-      burstSize: 20,                    // Allow burst traffic
+      // ⭐ OFFICIAL: Pro Plan provides 1000 req/min (we use 800 for 20% safety margin)
+      // Per docs: https://sportsgameodds.com/docs/setup/rate-limiting
+      requestsPerMinute: 800,           // Pro: 1000/min, we use 800 for safety
+      requestsPerHour: 45000,           // Pro: 50k/hour theoretical, we use 45k
+      burstSize: 50,                    // Allow burst traffic for live games
       deduplicationWindow: 500,         // 500ms dedup window
     };
 

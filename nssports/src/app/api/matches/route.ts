@@ -26,6 +26,7 @@ import { transformSDKEvents } from "@/lib/transformers/sportsgameodds-sdk";
 import { GameSchema } from "@/lib/schemas/game";
 import { logger } from "@/lib/logger";
 import { applySingleLeagueLimit } from "@/lib/devDataLimit";
+import { MAIN_LINE_ODDIDS } from "@/lib/sportsgameodds-sdk";
 import type { ExtendedSDKEvent } from "@/lib/transformers/sportsgameodds-sdk";
 
 // Map sport keys to league IDs
@@ -46,6 +47,17 @@ const QuerySchema = z.object({
     .enum(["main", "all"])
     .default("main")
     .describe("main = moneyline/spread/total only (60-80% smaller), all = include props"),
+  cursor: z
+    .string()
+    .optional()
+    .describe("Cursor for pagination (from previous response's nextCursor)"),
+  limit: z
+    .coerce
+    .number()
+    .min(1)
+    .max(100)
+    .default(50)
+    .describe("Number of results per page (1-100, default 50)"),
 });
 
 export async function GET(request: NextRequest) {
@@ -65,13 +77,19 @@ export async function GET(request: NextRequest) {
     // Parse and validate query parameters
     let sport: string;
     let lines: "main" | "all";
+    let cursor: string | undefined;
+    let limit: number;
     try {
       const query = QuerySchema.parse({
         sport: searchParams.get("sport") ?? undefined,
         lines: searchParams.get("lines") ?? undefined,
+        cursor: searchParams.get("cursor") ?? undefined,
+        limit: searchParams.get("limit") ?? undefined,
       });
       sport = query.sport;
       lines = query.lines;
+      cursor = query.cursor;
+      limit = query.limit;
     } catch (e) {
       if (e instanceof z.ZodError) {
         return ApiErrors.unprocessable("Invalid query parameters", e.errors);
@@ -81,6 +99,11 @@ export async function GET(request: NextRequest) {
 
     try {
       const leagueID = SPORT_TO_LEAGUE_MAP[sport] || "NBA";
+      
+      // ⭐ CRITICAL OPTIMIZATION: Use oddIDs parameter based on lines query
+      // Per official docs: https://sportsgameodds.com/docs/guides/response-speed
+      // main = 50-90% payload reduction, all = full odds including props
+      const oddIDs = lines === 'main' ? MAIN_LINE_ODDIDS : undefined;
       
       // ⭐ CRITICAL OPTIMIZATION: Separate LIVE vs UPCOMING games
       // Official SDK Method: Use live=true for in-progress games, finalized=false for not finished
@@ -96,6 +119,8 @@ export async function GET(request: NextRequest) {
         leagueID,
         live: true,                     // ✅ OFFICIAL: Only in-progress games
         finalized: false,               // ✅ OFFICIAL: Exclude finished games
+        oddIDs,                         // ✅ OFFICIAL: Filter specific markets (50-90% reduction)
+        includeOpposingOddIDs: true,   // ✅ OFFICIAL: Get both sides automatically
         includeConsensus: true,         // ✅ CRITICAL: Request bookOdds calculations
         limit: 50,
       });
@@ -108,6 +133,8 @@ export async function GET(request: NextRequest) {
         finalized: false,                          // ✅ OFFICIAL: Not finished
         startsAfter: now.toISOString(),           // ✅ From current time forward
         startsBefore: fourteenDaysFromNow.toISOString(), // ✅ Max 14 days ahead
+        oddIDs,                                    // ✅ OFFICIAL: Filter specific markets (50-90% reduction)
+        includeOpposingOddIDs: true,              // ✅ OFFICIAL: Get both sides automatically
         includeConsensus: true,                   // ✅ CRITICAL: Request bookOdds calculations
         limit: 100,
       });
@@ -138,6 +165,18 @@ export async function GET(request: NextRequest) {
 
       logger.info(`Returning ${validatedGames.length} matches: ${liveGamesCount} live, ${upcomingGamesCount} upcoming (lines=${lines})`);
 
+      // ⭐ PAGINATION: Cursor-based pagination support (Phase 2)
+      // Note: Currently using cache layer which doesn't expose SDK cursors
+      // Future enhancement: Pass cursor through cache to SDK for true cursor pagination
+      // Per official docs: https://sportsgameodds.com/docs/guides/data-batches
+      const paginationMeta = {
+        currentPage: cursor ? 'N/A (cursor-based)' : 1,
+        hasNextPage: false, // Cache layer doesn't expose this yet
+        nextCursor: undefined, // Future: Expose from SDK response
+        limit,
+        returnedCount: validatedGames.length,
+      };
+
       return successResponse(
         validatedGames,
         200,
@@ -150,6 +189,7 @@ export async function GET(request: NextRequest) {
           optimization: lines === 'main' ? 'Payload reduced by ~60-80%' : 'Full odds data',
           liveSource: liveGamesResponse.source,
           upcomingSource: upcomingGamesResponse.source,
+          pagination: paginationMeta,
         }
       );
     } catch (error) {

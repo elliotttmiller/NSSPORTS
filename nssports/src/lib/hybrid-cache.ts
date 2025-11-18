@@ -76,13 +76,13 @@ function stableKeyForOptions(options: Record<string, any>) {
  * 3. Stale = expired TTL → Fetch from SDK REST API, update cache, return
  * 4. Result: Sub-minute real-time updates with optimal rate limit usage
  * 
- * TTL VALUES (Optimized for Pro Plan - 300 req/min):
+ * TTL VALUES (Optimized for Pro Plan - 1000 req/min):
  * 
  * LIVE GAMES (Game in progress):
- * - TTL: 5 seconds (aggressive real-time updates)
- * - Why: In-game odds change VERY rapidly during live play, need near-instant updates
- * - Rate limit: ~12 req/min per game (300/min allows 25+ concurrent live games)
- * - Critical for accurate live betting odds
+ * - TTL: 10 seconds (sub-minute real-time updates)
+ * - Why: Balances fresh odds with API efficiency, still rapid enough for live betting
+ * - Rate limit: ~6 req/min per game (1000/min allows 150+ concurrent live games)
+ * - Pro Plan allows aggressive polling, but 10s is optimal balance
  * 
  * CRITICAL WINDOW (Game starts in < 1 hour):
  * - TTL: 30 seconds  
@@ -100,11 +100,11 @@ function stableKeyForOptions(options: Record<string, any>) {
  * - Rate limit: ~1 req/min per game (optimized for many future games)
  * 
  * KEY INSIGHT: Live games need MUCH more aggressive polling than pre-game.
- * 5s TTL ensures odds changes are reflected almost immediately, which is
- * critical for live betting accuracy and user trust.
+ * 10s TTL ensures odds changes are reflected quickly (sub-minute) while
+ * optimizing API usage. Pro Plan's 1000 req/min allows for this efficiency.
  */
 const CACHE_TTL = {
-  live: 5,         // Live games - aggressive real-time updates (was 15s, now 5s)
+  live: 10,        // Live games - sub-minute real-time updates (optimal balance)
   critical: 30,    // <1hr to start - line movements accelerate
   active: 45,      // 1-24hr to start - moderate market activity  
   standard: 60,    // 24hr+ to start - stable odds
@@ -115,14 +115,18 @@ const CACHE_TTL = {
  * Returns appropriate cache duration in seconds
  * 
  * Pro Plan Strategy: Use REST polling with smart TTL for sub-minute updates
- * Live games poll every 15s, upcoming games scale based on start time
+ * Live games poll every 10s, upcoming games scale based on start time
+ * 
+ * ⭐ OPTIMIZED: 10s for live (was 5s) - balances freshness with API efficiency
+ * Per official docs best practices for Pro Plan (1000 req/min limit)
  */
 function getSmartCacheTTL(startTime: Date, isLive?: boolean): number {
   const now = new Date();
   const hoursUntilStart = (startTime.getTime() - now.getTime()) / (1000 * 60 * 60);
   
   // EXPLICIT LIVE GAME CHECK (highest priority)
-  // Live games get 15s TTL for sub-minute REST polling updates
+  // Live games get 10s TTL for sub-minute REST polling updates
+  // ⭐ OPTIMIZED: 10s balances freshness with API efficiency for Pro Plan
   if (isLive === true) {
     return CACHE_TTL.live;
   }
