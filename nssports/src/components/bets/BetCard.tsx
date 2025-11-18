@@ -413,8 +413,8 @@ export function BetCardSingle({
           <div className="flex items-center gap-4">
             <div className="flex-1 min-w-0">
               {/* Selection content, vertically centered */}
-              <div className="flex flex-col min-w-0 justify-center">
-                <div className="flex flex-col items-center justify-center py-4">
+              <div className="flex flex-col min-w-0 justify-center items-start">
+                <div className="flex flex-col items-start justify-center py-4">
                   {/* Game Matchup - Centered */}
                   {game?.awayTeam?.shortName && game?.homeTeam?.shortName && (
                     <div className="text-[9px] sm:text-[10px] text-muted-foreground/50 uppercase tracking-[0.06em] font-semibold leading-tight mb-2">
@@ -430,7 +430,7 @@ export function BetCardSingle({
                       : formatSelectionLabel(betType, selection, line, game, playerProp)}
                   </div>
                   {/* Selection details cleaned: only statType and marketCategory if present */}
-                  <div className="flex items-center gap-2 justify-center min-h-6">
+                  <div className="flex items-center gap-2 justify-start min-h-6">
                     {playerProp?.statType && (
                       <span className="text-[10px] sm:text-xs text-muted-foreground/60 font-semibold uppercase tracking-[0.05em]">
                         {formatStatType(playerProp.statType)}
