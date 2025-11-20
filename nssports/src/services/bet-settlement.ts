@@ -1015,16 +1015,18 @@ async function gradeParlayLegs(bet: { legs: unknown }): Promise<LegGradingResult
           const playerStats = await fetchPlayerStats(leg.gameId, leg.playerProp.playerId);
           
           if (!playerStats) {
-            console.warn(`[gradeParlayLegs] Player stats unavailable - cannot grade this leg yet`);
-            throw new Error(`Player stats unavailable for parlay leg - cannot settle yet`);
+            console.warn(`[gradeParlayLegs] Player stats unavailable - marking leg as push`);
+            // Mark as push instead of throwing error - allows other legs to be graded
+            // Player stats should be available for finished games, but if not, push is fair
+            legResult = { status: "push", reason: "Player stats unavailable" };
+          } else {
+            legResult = gradePlayerPropBet({
+              selection: leg.selection,
+              line: leg.line ?? 0,
+              playerId: leg.playerProp.playerId,
+              statType: leg.playerProp.statType
+            }, playerStats);
           }
-          
-          legResult = gradePlayerPropBet({
-            selection: leg.selection,
-            line: leg.line ?? 0,
-            playerId: leg.playerProp.playerId,
-            statType: leg.playerProp.statType
-          }, playerStats);
         }
         break;
 
@@ -1041,18 +1043,29 @@ async function gradeParlayLegs(bet: { legs: unknown }): Promise<LegGradingResult
             periodScoresForLeg = await getPeriodScore(leg.gameId, leg.gameProp.periodID);
             
             if (!periodScoresForLeg) {
-              console.warn(`[gradeParlayLegs] Period ${leg.gameProp.periodID} scores unavailable - cannot grade this leg yet`);
-              throw new Error(`Period scores unavailable for parlay leg - cannot settle yet`);
+              console.warn(`[gradeParlayLegs] Period ${leg.gameProp.periodID} scores unavailable - marking leg as push`);
+              // Mark as push instead of throwing error - allows other legs to be graded
+              // Period data should be available for finished games, but if not, push is fair
+              legResult = { status: "push", reason: "Period data unavailable" };
+            } else {
+              legResult = gradeGamePropBet({
+                propType: leg.gameProp.propType,
+                selection: leg.selection,
+                line: leg.line ?? undefined,
+                homeScore: game.homeScore,
+                awayScore: game.awayScore
+              }, periodScoresForLeg);
             }
+          } else {
+            // No period ID - grade using full game scores
+            legResult = gradeGamePropBet({
+              propType: leg.gameProp.propType,
+              selection: leg.selection,
+              line: leg.line ?? undefined,
+              homeScore: game.homeScore,
+              awayScore: game.awayScore
+            }, null);
           }
-
-          legResult = gradeGamePropBet({
-            propType: leg.gameProp.propType,
-            selection: leg.selection,
-            line: leg.line ?? undefined,
-            homeScore: game.homeScore,
-            awayScore: game.awayScore
-          }, periodScoresForLeg);
         }
         break;
 
