@@ -957,19 +957,30 @@ async function gradeParlayLegs(bet: { legs: unknown }): Promise<LegGradingResult
   const legs = bet.legs ? JSON.parse(JSON.stringify(bet.legs)) : [];
   const results: LegGradingResult[] = [];
 
-  for (const leg of legs) {
+  for (let i = 0; i < legs.length; i++) {
+    const leg = legs[i];
+    // Generate a unique leg ID for tracking (legs don't have IDs in database)
+    const legId = `leg-${i}-${leg.gameId || 'no-game'}`;
+    
     // Fetch game for this leg
     const game = await prisma.game.findUnique({
       where: { id: leg.gameId }
     });
 
-    if (!game || game.homeScore === null || game.awayScore === null) {
-      results.push({
-        legId: leg.id,
-        status: "push",
-        reason: "Game data unavailable"
-      });
-      continue;
+    // Check if game is finished and has scores
+    if (!game) {
+      console.error(`[gradeParlayLegs] Game ${leg.gameId} not found`);
+      throw new Error(`Game ${leg.gameId} not found for parlay leg`);
+    }
+    
+    if (game.status !== "finished") {
+      console.warn(`[gradeParlayLegs] Game ${leg.gameId} not finished yet (status: ${game.status})`);
+      throw new Error(`Game ${leg.gameId} not finished yet - cannot settle parlay`);
+    }
+    
+    if (game.homeScore === null || game.awayScore === null) {
+      console.error(`[gradeParlayLegs] Game ${leg.gameId} missing final scores despite finished status`);
+      throw new Error(`Game ${leg.gameId} missing final scores - cannot settle parlay`);
     }
 
     let legResult: BetGradingResult;
@@ -1062,7 +1073,7 @@ async function gradeParlayLegs(bet: { legs: unknown }): Promise<LegGradingResult
     }
 
     results.push({
-      legId: leg.id,
+      legId,
       status: legResult.status,
       reason: legResult.reason || ""
     });
@@ -1257,21 +1268,32 @@ export async function settleRoundRobin(bet: { id: string; stake: number; legs: u
 /**
  * Helper to grade parlay legs from data
  */
-async function gradeParlayLegsFromData(legs: { id: string; gameId: string; betType: string; selection: string; line?: number }[]): Promise<LegGradingResult[]> {
+async function gradeParlayLegsFromData(legs: { id?: string; gameId: string; betType: string; selection: string; line?: number }[]): Promise<LegGradingResult[]> {
   const results: LegGradingResult[] = [];
 
-  for (const leg of legs) {
+  for (let i = 0; i < legs.length; i++) {
+    const leg = legs[i];
+    // Generate a unique leg ID for tracking (may not have id field)
+    const legId = leg.id || `leg-${i}-${leg.gameId || 'no-game'}`;
+    
     const game = await prisma.game.findUnique({
       where: { id: leg.gameId }
     });
 
-    if (!game || game.homeScore === null || game.awayScore === null) {
-      results.push({
-        legId: leg.id,
-        status: "push",
-        reason: "Game data unavailable"
-      });
-      continue;
+    // Check if game is finished and has scores
+    if (!game) {
+      console.error(`[gradeParlayLegsFromData] Game ${leg.gameId} not found`);
+      throw new Error(`Game ${leg.gameId} not found for round robin leg`);
+    }
+    
+    if (game.status !== "finished") {
+      console.warn(`[gradeParlayLegsFromData] Game ${leg.gameId} not finished yet (status: ${game.status})`);
+      throw new Error(`Game ${leg.gameId} not finished yet - cannot settle round robin`);
+    }
+    
+    if (game.homeScore === null || game.awayScore === null) {
+      console.error(`[gradeParlayLegsFromData] Game ${leg.gameId} missing final scores despite finished status`);
+      throw new Error(`Game ${leg.gameId} missing final scores - cannot settle round robin`);
     }
 
     let legResult: BetGradingResult;
@@ -1305,7 +1327,7 @@ async function gradeParlayLegsFromData(legs: { id: string; gameId: string; betTy
     }
 
     results.push({
-      legId: leg.id,
+      legId,
       status: legResult.status,
       reason: legResult.reason || ""
     });
