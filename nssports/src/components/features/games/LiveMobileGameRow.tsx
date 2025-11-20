@@ -294,7 +294,7 @@ export const LiveMobileGameRow = memo(({ game, justUpdated = false }: Props) => 
           {/* Live Clock/Period (or game time if not live) */}
           <div className="flex items-center gap-2 mr-2">
             {/* Show live clock if game status is live */}
-            {game.status === 'live' && (game.period || game.timeRemaining) ? (
+            {game.status === 'live' ? (
               <motion.div 
                 className="flex items-center gap-1 text-[10px] text-accent font-semibold"
                 animate={{ 
@@ -306,9 +306,16 @@ export const LiveMobileGameRow = memo(({ game, justUpdated = false }: Props) => 
                   ease: "easeInOut"
                 }}
               >
-                {game.period && <span className="uppercase">{game.period}</span>}
-                {game.period && displayTimeRemaining && <span>•</span>}
+                {/* Use periodDisplay for human-friendly format, fallback to period token */}
+                {(game.periodDisplay || game.period) && (
+                  <span>{game.periodDisplay || game.period}</span>
+                )}
+                {(game.periodDisplay || game.period) && displayTimeRemaining && <span>•</span>}
                 {displayTimeRemaining && <span>{displayTimeRemaining}</span>}
+                {/* Show LIVE indicator if no period/time data available */}
+                {!game.periodDisplay && !game.period && !displayTimeRemaining && (
+                  <span>LIVE</span>
+                )}
               </motion.div>
             ) : (
               /* Show game time if not live */
