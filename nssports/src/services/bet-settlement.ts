@@ -288,6 +288,52 @@ export function gradeGamePropBet(params: {
     }
   }
 
+  // Period/Quarter Winner props (e.g., "1q_ml", "2q_ml", "1h_ml")
+  // Matches patterns like: "1q_ml", "2q_ml", "3q_ml", "4q_ml", "1h_ml", "2h_ml", "1p_ml", "2p_ml", "3p_ml"
+  if (/^(1q|2q|3q|4q|1h|2h|1p|2p|3p)_ml$/.test(propType)) {
+    // Period winner bet - need period scores
+    if (!periodScores) {
+      console.warn(`[gradeGamePropBet] No period data available for ${propType}, marking as push`);
+      return { status: "push", reason: "Period data unavailable" };
+    }
+
+    // Determine which team was selected
+    // The selection should be the team name or contain identifying info
+    // Need to check if selection matches home or away team
+    // Since we get team names now (e.g., "MIN WIN", "DEN WIN"), check for team identifier
+    const homeScore = periodScores.home;
+    const awayScore = periodScores.away;
+
+    // Check if it's a tie
+    if (homeScore === awayScore) {
+      return { status: "push", reason: `Period ended in a tie ${homeScore}-${awayScore}` };
+    }
+
+    // Determine if the selected team won
+    // Selection format should be like "MIN WIN" or could be "home" or "away"
+    const selectionLower = selection.toLowerCase();
+    const isHomeSelection = selectionLower.includes("home") || selectionLower === "home";
+    const isAwaySelection = selectionLower.includes("away") || selectionLower === "away";
+    
+    let didWin = false;
+    if (isHomeSelection) {
+      didWin = homeScore > awayScore;
+    } else if (isAwaySelection) {
+      didWin = awayScore > homeScore;
+    } else {
+      // If we can't determine, try to infer from period scores
+      // This is a fallback - ideally we'd have better data
+      console.warn(`[gradeGamePropBet] Cannot determine team from selection: ${selection}`);
+      return { status: "push", reason: "Cannot determine selected team" };
+    }
+
+    if (didWin) {
+      return { status: "won", reason: `Period: ${homeScore}-${awayScore}, team won` };
+    } else {
+      return { status: "lost", reason: `Period: ${homeScore}-${awayScore}, team lost` };
+    }
+  }
+
   // Default: unable to grade
   console.warn(`[gradeGamePropBet] Unknown prop type: ${propType}, marking as push`);
   return { status: "push", reason: "Unknown prop type" };

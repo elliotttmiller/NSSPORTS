@@ -907,6 +907,10 @@ export function extractPlayerProps(event: any, playerDataMap?: Map<string, any>)
 export function extractGameProps(event: any): any[] {
   if (!event.odds) return [];
   
+  // Extract team information for proper labeling
+  const homeTeamName = event.teams?.home?.names?.short || event.teams?.home?.names?.medium?.split(' ').pop() || 'Home';
+  const awayTeamName = event.teams?.away?.names?.short || event.teams?.away?.names?.medium?.split(' ').pop() || 'Away';
+  
   // Map to group related props (e.g., over/under pairs)
   const propsMap = new Map<string, any>();
   
@@ -961,8 +965,8 @@ export function extractGameProps(event: any): any[] {
     else if (periodID === 'game') marketCategory = 'Team Totals';
     else marketCategory = 'Other Props';
     
-    // Build description based on bet type
-    const teamLabel = entity === 'home' ? 'Home' : entity === 'away' ? 'Away' : 'Total';
+    // Build description based on bet type - USE ACTUAL TEAM NAMES
+    const teamLabel = entity === 'home' ? homeTeamName : entity === 'away' ? awayTeamName : 'Total';
     
     if (betTypeID === 'sp') {
       // Spread
@@ -975,8 +979,8 @@ export function extractGameProps(event: any): any[] {
       const overUnder = sideID === 'over' ? 'Over' : 'Under';
       description = `${teamLabel} ${overUnder} ${line || 0}`;
     } else if (betTypeID === 'ml') {
-      // Moneyline
-      description = `${teamLabel} Win`;
+      // Moneyline/Winner props - USE ACTUAL TEAM NAME
+      description = `${teamLabel} WIN`;
     } else {
       // Other bet types
       description = `${teamLabel} ${betTypeID}`;
