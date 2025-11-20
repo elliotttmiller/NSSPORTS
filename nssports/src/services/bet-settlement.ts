@@ -288,6 +288,52 @@ export function gradeGamePropBet(params: {
     }
   }
 
+  // Period/Quarter Winner props (e.g., "1q_ml", "2q_ml", "1h_ml")
+  // Matches patterns like: "1q_ml", "2q_ml", "3q_ml", "4q_ml", "1h_ml", "2h_ml", "1p_ml", "2p_ml", "3p_ml"
+  if (/^(1q|2q|3q|4q|1h|2h|1p|2p|3p)_ml$/.test(propType)) {
+    // Period winner bet - need period scores
+    if (!periodScores) {
+      console.warn(`[gradeGamePropBet] No period data available for ${propType}, marking as push`);
+      return { status: "push", reason: "Period data unavailable" };
+    }
+
+    // Determine which team was selected
+    // The selection should be the team name or contain identifying info
+    // Need to check if selection matches home or away team
+    // Since we get team names now (e.g., "MIN WIN", "DEN WIN"), check for team identifier
+    const homeScore = periodScores.home;
+    const awayScore = periodScores.away;
+
+    // Check if it's a tie
+    if (homeScore === awayScore) {
+      return { status: "push", reason: `Period ended in a tie ${homeScore}-${awayScore}` };
+    }
+
+    // Determine if the selected team won
+    // Selection format should be like "MIN WIN" or could be "home" or "away"
+    const selectionLower = selection.toLowerCase();
+    const isHomeSelection = selectionLower.includes("home") || selectionLower === "home";
+    const isAwaySelection = selectionLower.includes("away") || selectionLower === "away";
+    
+    let didWin = false;
+    if (isHomeSelection) {
+      didWin = homeScore > awayScore;
+    } else if (isAwaySelection) {
+      didWin = awayScore > homeScore;
+    } else {
+      // If we can't determine, try to infer from period scores
+      // This is a fallback - ideally we'd have better data
+      console.warn(`[gradeGamePropBet] Cannot determine team from selection: ${selection}`);
+      return { status: "push", reason: "Cannot determine selected team" };
+    }
+
+    if (didWin) {
+      return { status: "won", reason: `Period: ${homeScore}-${awayScore}, team won` };
+    } else {
+      return { status: "lost", reason: `Period: ${homeScore}-${awayScore}, team lost` };
+    }
+  }
+
   // Default: unable to grade
   console.warn(`[gradeGamePropBet] Unknown prop type: ${propType}, marking as push`);
   return { status: "push", reason: "Unknown prop type" };
@@ -911,19 +957,30 @@ async function gradeParlayLegs(bet: { legs: unknown }): Promise<LegGradingResult
   const legs = bet.legs ? JSON.parse(JSON.stringify(bet.legs)) : [];
   const results: LegGradingResult[] = [];
 
-  for (const leg of legs) {
+  for (let i = 0; i < legs.length; i++) {
+    const leg = legs[i];
+    // Generate a unique leg ID for tracking (legs don't have IDs in database)
+    const legId = `leg-${i}-${leg.gameId || 'no-game'}`;
+    
     // Fetch game for this leg
     const game = await prisma.game.findUnique({
       where: { id: leg.gameId }
     });
 
-    if (!game || game.homeScore === null || game.awayScore === null) {
-      results.push({
-        legId: leg.id,
-        status: "push",
-        reason: "Game data unavailable"
-      });
-      continue;
+    // Check if game is finished and has scores
+    if (!game) {
+      console.error(`[gradeParlayLegs] Game ${leg.gameId} not found`);
+      throw new Error(`Game ${leg.gameId} not found for parlay leg`);
+    }
+    
+    if (game.status !== "finished") {
+      console.warn(`[gradeParlayLegs] Game ${leg.gameId} not finished yet (status: ${game.status})`);
+      throw new Error(`Game ${leg.gameId} not finished yet - cannot settle parlay`);
+    }
+    
+    if (game.homeScore === null || game.awayScore === null) {
+      console.error(`[gradeParlayLegs] Game ${leg.gameId} missing final scores despite finished status`);
+      throw new Error(`Game ${leg.gameId} missing final scores - cannot settle parlay`);
     }
 
     let legResult: BetGradingResult;
@@ -1016,7 +1073,7 @@ async function gradeParlayLegs(bet: { legs: unknown }): Promise<LegGradingResult
     }
 
     results.push({
-      legId: leg.id,
+      legId,
       status: legResult.status,
       reason: legResult.reason || ""
     });
@@ -1211,21 +1268,32 @@ export async function settleRoundRobin(bet: { id: string; stake: number; legs: u
 /**
  * Helper to grade parlay legs from data
  */
-async function gradeParlayLegsFromData(legs: { id: string; gameId: string; betType: string; selection: string; line?: number }[]): Promise<LegGradingResult[]> {
+async function gradeParlayLegsFromData(legs: { id?: string; gameId: string; betType: string; selection: string; line?: number }[]): Promise<LegGradingResult[]> {
   const results: LegGradingResult[] = [];
 
-  for (const leg of legs) {
+  for (let i = 0; i < legs.length; i++) {
+    const leg = legs[i];
+    // Generate a unique leg ID for tracking (may not have id field)
+    const legId = leg.id || `leg-${i}-${leg.gameId || 'no-game'}`;
+    
     const game = await prisma.game.findUnique({
       where: { id: leg.gameId }
     });
 
-    if (!game || game.homeScore === null || game.awayScore === null) {
-      results.push({
-        legId: leg.id,
-        status: "push",
-        reason: "Game data unavailable"
-      });
-      continue;
+    // Check if game is finished and has scores
+    if (!game) {
+      console.error(`[gradeParlayLegsFromData] Game ${leg.gameId} not found`);
+      throw new Error(`Game ${leg.gameId} not found for round robin leg`);
+    }
+    
+    if (game.status !== "finished") {
+      console.warn(`[gradeParlayLegsFromData] Game ${leg.gameId} not finished yet (status: ${game.status})`);
+      throw new Error(`Game ${leg.gameId} not finished yet - cannot settle round robin`);
+    }
+    
+    if (game.homeScore === null || game.awayScore === null) {
+      console.error(`[gradeParlayLegsFromData] Game ${leg.gameId} missing final scores despite finished status`);
+      throw new Error(`Game ${leg.gameId} missing final scores - cannot settle round robin`);
     }
 
     let legResult: BetGradingResult;
@@ -1259,7 +1327,7 @@ async function gradeParlayLegsFromData(legs: { id: string; gameId: string; betTy
     }
 
     results.push({
-      legId: leg.id,
+      legId,
       status: legResult.status,
       reason: legResult.reason || ""
     });

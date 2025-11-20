@@ -300,14 +300,21 @@ export function ProfessionalGameRow({
                 )}
               </div>
               {/* Live Game Status - Period and Time Remaining */}
-              {(game.period || game.timeRemaining) && (
+              {game.status === 'live' && (game.periodDisplay || game.period || game.timeRemaining) && (
                 <div className="flex items-center gap-2 text-[10px] lg:text-xs text-accent font-semibold">
-                  {game.period && <span className="uppercase">{game.period}</span>}
+                  {/* Use periodDisplay for human-friendly format, fallback to period token */}
+                  {(game.periodDisplay || game.period) && (
+                    <span>{game.periodDisplay || game.period}</span>
+                  )}
                   {game.timeRemaining && (
                     <>
-                      {game.period && <span>•</span>}
+                      {(game.periodDisplay || game.period) && <span>•</span>}
                       <span>{game.timeRemaining}</span>
                     </>
+                  )}
+                  {/* Show LIVE indicator if no period/time data available */}
+                  {!game.periodDisplay && !game.period && !game.timeRemaining && (
+                    <span>LIVE</span>
                   )}
                 </div>
               )}

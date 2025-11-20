@@ -163,6 +163,8 @@ export interface Game {
   awayScore?: number;
   period?: string;
   timeRemaining?: string;
+  // Human-friendly display for the current period (e.g. "3rd Quarter", "1st Period", "2nd Half")
+  periodDisplay?: string;
   // MMA/Boxing specific fields - Per https://sportsgameodds.com/docs/explorer
   winMethod?: string;        // e.g., "KO/TKO", "Submission", "Decision"
   winMethodDetail?: string;  // e.g., "Rear Naked Choke", "Split Decision"

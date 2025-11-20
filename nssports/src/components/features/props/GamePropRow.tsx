@@ -156,6 +156,10 @@ export function GamePropRow({ prop, game }: GamePropRowProps) {
     if (isBetInSlip(outcome.id)) {
       removeBet(betId);
     } else {
+      // Extract period ID from prop type if present (e.g., "1q_ml", "2q_ou")
+      const periodMatch = prop.propType.match(/^(1q|2q|3q|4q|1h|2h|1p|2p|3p)_/);
+      const periodID = periodMatch ? periodMatch[1] : undefined;
+      
       addGamePropBet(
         game,
         outcome.id,
@@ -166,6 +170,7 @@ export function GamePropRow({ prop, game }: GamePropRowProps) {
           marketCategory: prop.marketCategory,
           propType: prop.propType,
           description: outcome.description,
+          periodID, // Include period ID for proper settlement
         }
       );
     }

@@ -281,7 +281,7 @@ export function LiveGameRow({
                 {game.leagueId}
               </div>
               {/* Show live status if game is live, otherwise show start time */}
-              {game.status === 'live' && (game.period || game.timeRemaining) ? (
+              {game.status === 'live' ? (
                 <motion.div 
                   className="flex flex-col gap-0.5"
                   animate={{ 
@@ -293,14 +293,21 @@ export function LiveGameRow({
                     ease: "easeInOut"
                   }}
                 >
-                  {game.period && (
-                    <div className="text-accent font-semibold text-[10px] lg:text-xs uppercase">
-                      {game.period}
+                  {/* Use periodDisplay for human-friendly format, fallback to period token */}
+                  {(game.periodDisplay || game.period) && (
+                    <div className="text-accent font-semibold text-[10px] lg:text-xs">
+                      {game.periodDisplay || game.period}
                     </div>
                   )}
                   {displayTimeRemaining && (
                     <div className="text-accent font-semibold text-[10px] lg:text-xs">
                       {displayTimeRemaining}
+                    </div>
+                  )}
+                  {/* Show LIVE indicator if no period/time data available */}
+                  {!game.periodDisplay && !game.period && !displayTimeRemaining && (
+                    <div className="text-accent font-semibold text-[10px] lg:text-xs">
+                      LIVE
                     </div>
                   )}
                 </motion.div>
@@ -551,6 +558,7 @@ const arePropsEqual = (prev: LiveGameRowProps, next: LiveGameRowProps) => {
     game1.awayScore === game2.awayScore &&
     game1.period === game2.period &&
     game1.timeRemaining === game2.timeRemaining &&
+    game1.periodDisplay === game2.periodDisplay &&
     game1.status === game2.status &&
     // Compare odds shallow (object reference)
     game1.odds === game2.odds;
