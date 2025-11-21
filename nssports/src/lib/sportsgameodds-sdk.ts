@@ -459,6 +459,7 @@ export async function getAllEvents(
     oddIDs?: string;
     bookmakerID?: string;
     includeOpposingOddIDs?: boolean;
+    includeConsensus?: boolean;
     live?: boolean;
     finalized?: boolean;
     limit?: number;
