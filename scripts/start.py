@@ -98,6 +98,11 @@ def wait_for_server(port: int, timeout: int) -> bool:
                 elapsed = int(time.time() - start_time)
                 print()  # New line after dots
                 print_status(f"Server ready after {elapsed} seconds", "success")
+                
+                # Additional stabilization period for server to fully settle
+                print_status("Allowing server to stabilize before tunnel connection", "wait")
+                time.sleep(3)
+                print_status("Server fully stabilized", "success")
                 return True
         except (requests.exceptions.ConnectionError, requests.exceptions.ReadTimeout) as e:
             attempts += 1
@@ -107,6 +112,42 @@ def wait_for_server(port: int, timeout: int) -> bool:
             time.sleep(4)
     
     print()  # New line after dots
+    return False
+
+def verify_ngrok_tunnel(domain: str, port: int, max_attempts: int = 3) -> bool:
+    """Verify ngrok tunnel can reach the local server"""
+    print_status("Verifying ngrok tunnel connectivity", "wait")
+    
+    tunnel_url = f"https://{domain}"
+    local_url = f"http://localhost:{port}"
+    
+    for attempt in range(1, max_attempts + 1):
+        try:
+            # First verify local server is still responding
+            local_response = requests.get(local_url, timeout=5, allow_redirects=True)
+            if local_response.status_code >= 500:
+                print_status(f"Local server error (attempt {attempt}/{max_attempts})", "error")
+                time.sleep(2)
+                continue
+            
+            # Now verify tunnel can reach it
+            tunnel_response = requests.get(tunnel_url, timeout=10, allow_redirects=True)
+            if tunnel_response.status_code < 500:
+                print_status("Ngrok tunnel verified successfully", "success")
+                return True
+            else:
+                print_status(f"Tunnel responded with error {tunnel_response.status_code} (attempt {attempt}/{max_attempts})", "error")
+                
+        except requests.exceptions.ConnectionError as e:
+            print_status(f"Tunnel connection failed (attempt {attempt}/{max_attempts}): {str(e)[:50]}", "error")
+        except requests.exceptions.Timeout:
+            print_status(f"Tunnel connection timeout (attempt {attempt}/{max_attempts})", "error")
+        except Exception as e:
+            print_status(f"Unexpected error verifying tunnel (attempt {attempt}/{max_attempts}): {str(e)[:50]}", "error")
+        
+        if attempt < max_attempts:
+            time.sleep(3)
+    
     return False
 
 # ═══════════════════════════════════════════════════════════════
@@ -175,7 +216,24 @@ def run() -> None:
             env=os.environ.copy()
         )
         
-        time.sleep(2)
+        # Wait for ngrok to initialize and establish tunnel
+        print_status("Waiting for ngrok tunnel to initialize", "wait")
+        time.sleep(5)
+        
+        # Verify tunnel can reach local server
+        if not verify_ngrok_tunnel(NGROK_STATIC_DOMAIN, DEV_SERVER_PORT):
+            print_status("Warning: Ngrok tunnel verification failed", "error")
+            print_status("The tunnel may still work, but you might experience connection issues", "error")
+            print_status("If you see ERR_NGROK_8012, try restarting the script", "info")
+            print()
+            print_separator()
+            print(f"\n{Style.YELLOW}TROUBLESHOOTING:{Style.RESET}")
+            print(f"  1. Ensure Next.js dev server is running on port {DEV_SERVER_PORT}")
+            print(f"  2. Check if ngrok is properly configured")
+            print(f"  3. Verify your internet connection is stable")
+            print(f"  4. Try: curl http://localhost:{DEV_SERVER_PORT}")
+            print()
+            print_separator()
         
         # Start professional BullMQ settlement system
         print_status("Starting professional settlement system (BullMQ + Redis)", "info")

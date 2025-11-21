@@ -83,3 +83,8 @@ nginx.conf
 
 # Exclude test snapshots
 __snapshots__/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
