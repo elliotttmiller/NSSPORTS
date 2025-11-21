@@ -116,8 +116,26 @@ class Logger {
    * Warning logging - potentially harmful situations
    * Always enabled
    */
-  warn(message: LazyMessage, context?: LazyContext): void {
-    this.log('warn', message, context);
+  warn(message: LazyMessage, errorOrContext?: Error | unknown | LazyContext, context?: LazyContext): void {
+    // Check if second argument is an Error
+    if (errorOrContext instanceof Error || (errorOrContext && typeof errorOrContext === 'object' && 'message' in errorOrContext)) {
+      const error = errorOrContext;
+      const errorContext: LazyContext = () => {
+        const baseContext = typeof context === 'function' ? context() : (context || {});
+        return {
+          ...baseContext,
+          error: error instanceof Error ? {
+            message: error.message,
+            stack: error.stack,
+            name: error.name,
+          } : error,
+        };
+      };
+      this.log('warn', message, errorContext);
+    } else {
+      // Second argument is context
+      this.log('warn', message, errorOrContext as LazyContext);
+    }
   }
 
   /**
@@ -125,7 +143,13 @@ class Logger {
    * Always enabled
    */
   error(message: LazyMessage, error?: Error | unknown, context?: LazyContext): void {
-    // Wrap error in context if provided
+    if (!error) {
+      // No error provided, just log the message with context
+      this.log('error', message, context);
+      return;
+    }
+
+    // Create lazy context that includes the error
     const errorContext: LazyContext = () => {
       const baseContext = typeof context === 'function' ? context() : (context || {});
       return {

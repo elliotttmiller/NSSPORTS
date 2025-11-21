@@ -9,10 +9,10 @@ const isDebugEnabled = isDev || process.env.NEXT_PUBLIC_LOG_LEVEL === 'debug';
 
 const clientLogger = {
   debug: (message: string, ...args: unknown[]) => {
-    if (isDebugEnabled) clientLogger.debug(message, ...args);
+    if (isDebugEnabled) console.log(message, ...args);
   },
   error: (message: string, ...args: unknown[]) => {
-    clientLogger.error(message, ...args);
+    console.error(message, ...args);
   }
 };
 

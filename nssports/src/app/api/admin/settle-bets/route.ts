@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
     );
 
   } catch (error) {
-    logger.error("[admin/settle-bets] Error", { data: error });
+    logger.error("[admin/settle-bets] Error", error as Error);
     return NextResponse.json(
       {
         error: "Internal server error",

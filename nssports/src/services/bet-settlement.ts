@@ -656,7 +656,7 @@ export async function settleBet(betId: string): Promise<SettlementResult | null>
           result = gradeParlayBet(legResults);
         } catch (error) {
           // If any leg cannot be graded (missing stats), skip settlement for now
-          logger.warn(`[settleBet] Cannot settle parlay yet - missing data:`, { error });
+          logger.warn('[settleBet] Cannot settle parlay yet - missing data', error as Error);
           return null;
         }
         break;
@@ -678,7 +678,7 @@ export async function settleBet(betId: string): Promise<SettlementResult | null>
           };
         } catch (error) {
           // If any leg cannot be graded (missing stats), skip settlement for now
-          logger.warn(`[settleBet] Cannot settle teaser yet - missing data:`, { error });
+          logger.warn('[settleBet] Cannot settle teaser yet - missing data', error as Error);
           return null;
         }
         break;

@@ -268,8 +268,7 @@ export async function placeSingleBetAction(
       betIds: [createdBet.id],
     };
   } catch (error) {
-    logger.error("[placeSingleBetAction] Error", { data: error });
-    logger.error("[placeSingleBetAction] Bet data:", JSON.stringify(bet, null, 2));
+    logger.error("[placeSingleBetAction] Error", error as Error, () => ({ bet }));
     return {
       success: false,
       error: `Failed to place bet: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -431,8 +430,7 @@ export async function placeParlayBetAction(
       betIds: [createdBet.id],
     };
   } catch (error) {
-    logger.error("[placeParlayBetAction] Error", { data: error });
-    logger.error("[placeParlayBetAction] Parlay data:", JSON.stringify(parlayData, null, 2));
+    logger.error("[placeParlayBetAction] Error", error as Error, () => ({ parlayData }));
     return {
       success: false,
       error: `Failed to place parlay bet: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -607,8 +605,7 @@ export async function placeTeaserBetAction(
       betIds: [createdBet.id],
     };
   } catch (error) {
-    logger.error("[placeTeaserBetAction] Error", { data: error });
-    logger.error("[placeTeaserBetAction] Teaser data:", JSON.stringify(teaserData, null, 2));
+    logger.error("[placeTeaserBetAction] Error", error as Error, () => ({ teaserData }));
     return {
       success: false,
       error: `Failed to place teaser bet: ${error instanceof Error ? error.message : 'Unknown error'}`,
