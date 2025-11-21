@@ -170,24 +170,90 @@ export const PLAYER_PROP_ODDIDS = [
  * Game props (team/quarter-specific betting)
  * Used for: Advanced betting, quarter/half markets
  * 
- * Examples:
- * - Team totals: Individual team point totals
- * - Quarter/Half: Specific period betting
- * - First half spread, second half total, etc.
+ * Per https://sportsgameodds.com/docs/data-types/periods:
+ * - NBA/NFL/NCAAF: Quarters (1q, 2q, 3q, 4q) and Halves (1h, 2h)
+ * - NCAAB: Halves only (1h, 2h) - NO quarters
+ * - NHL: Periods (1p, 2p, 3p), Regulation (reg), Overtime (ot), Shootout (so)
+ * - MLB: Innings (1i through 9i), First 5 innings (f5)
+ * - Soccer: Halves (1h, 2h)
+ * 
+ * NOTE: SDK returns all available markets for the sport/event.
+ * League-specific filtering (e.g., removing quarters for NCAAB) is done in extractGameProps.
  */
 export const GAME_PROP_ODDIDS = [
-  // Team totals
+  // Team totals (full game)
   'points-home-game-ou-over',      // Home team total points
   'points-away-game-ou-over',      // Away team total points
   
-  // First half betting
-  'points-home-1h-ml-home',        // First half moneyline
-  'points-home-1h-sp-home',        // First half spread
-  'points-all-1h-ou-over',         // First half total
+  // ========================================
+  // QUARTERS - NBA, NFL, NCAAF
+  // ========================================
   
-  // First quarter betting (NBA/NHL specific)
+  // First quarter (1q)
   'points-home-1q-ml-home',        // Q1 moneyline
+  'points-home-1q-sp-home',        // Q1 spread
   'points-all-1q-ou-over',         // Q1 total
+  
+  // Second quarter (2q)
+  'points-home-2q-ml-home',        // Q2 moneyline
+  'points-home-2q-sp-home',        // Q2 spread
+  'points-all-2q-ou-over',         // Q2 total
+  
+  // Third quarter (3q)
+  'points-home-3q-ml-home',        // Q3 moneyline
+  'points-home-3q-sp-home',        // Q3 spread
+  'points-all-3q-ou-over',         // Q3 total
+  
+  // Fourth quarter (4q)
+  'points-home-4q-ml-home',        // Q4 moneyline
+  'points-home-4q-sp-home',        // Q4 spread
+  'points-all-4q-ou-over',         // Q4 total
+  
+  // ========================================
+  // HALVES - NBA, NFL, NCAAF, NCAAB, Soccer
+  // ========================================
+  
+  // First half (1h)
+  'points-home-1h-ml-home',        // 1H moneyline
+  'points-home-1h-sp-home',        // 1H spread
+  'points-all-1h-ou-over',         // 1H total
+  
+  // Second half (2h)
+  'points-home-2h-ml-home',        // 2H moneyline
+  'points-home-2h-sp-home',        // 2H spread
+  'points-all-2h-ou-over',         // 2H total
+  
+  // ========================================
+  // PERIODS - NHL
+  // ========================================
+  
+  // First period (1p)
+  'points-home-1p-ml-home',        // P1 moneyline
+  'points-home-1p-sp-home',        // P1 spread (puck line)
+  'points-all-1p-ou-over',         // P1 total
+  
+  // Second period (2p)
+  'points-home-2p-ml-home',        // P2 moneyline
+  'points-home-2p-sp-home',        // P2 spread
+  'points-all-2p-ou-over',         // P2 total
+  
+  // Third period (3p)
+  'points-home-3p-ml-home',        // P3 moneyline
+  'points-home-3p-sp-home',        // P3 spread
+  'points-all-3p-ou-over',         // P3 total
+  
+  // Regulation (reg) - NHL
+  'points-home-reg-ml-home',       // Regulation moneyline
+  'points-all-reg-ou-over',        // Regulation total
+  
+  // ========================================
+  // INNINGS - MLB (First 5 innings most common)
+  // ========================================
+  
+  // First 5 innings (f5 or 1h in MLB context)
+  'points-home-f5-ml-home',        // F5 moneyline
+  'points-home-f5-sp-home',        // F5 run line
+  'points-all-f5-ou-over',         // F5 total runs
 ].join(',');
 
 /**
@@ -914,6 +980,9 @@ export function extractGameProps(event: any): any[] {
   // Map to group related props (e.g., over/under pairs)
   const propsMap = new Map<string, any>();
   
+  // Extract league ID for sport-specific filtering
+  const leagueID = event.leagueID?.toUpperCase() || '';
+  
   Object.entries(event.odds).forEach(([oddID, oddData]: [string, any]) => {
     // Parse oddID format: "statType-entity-periodID-betTypeID-sideID"
     const parts = oddID.split('-');
@@ -930,6 +999,50 @@ export function extractGameProps(event: any): any[] {
     if (periodID === 'game' && betTypeID === 'ml') return; // Skip moneyline
     if (periodID === 'game' && betTypeID === 'sp' && entity !== 'all') return; // Skip main spread (keep alt spreads)
     if (periodID === 'game' && betTypeID === 'ou' && entity === 'all') return; // Skip main total (keep team totals)
+    
+    // ========================================
+    // LEAGUE-SPECIFIC PERIOD FILTERING
+    // ========================================
+    
+    // NCAAB: Basketball uses HALVES only (no quarters)
+    // Filter out any quarter markets (1q, 2q, 3q, 4q) for college basketball
+    if (leagueID === 'NCAAB') {
+      const quarterPeriods = ['1q', '2q', '3q', '4q'];
+      if (quarterPeriods.includes(periodID)) {
+        return; // Skip quarter markets for NCAAB
+      }
+    }
+    
+    // NHL: Filter out non-hockey periods
+    // NHL uses periods (1p, 2p, 3p), regulation (reg), overtime (ot), shootout (so)
+    // Skip quarter/half terminology for hockey
+    if (leagueID === 'NHL') {
+      const nonHockeyPeriods = ['1q', '2q', '3q', '4q'];
+      if (nonHockeyPeriods.includes(periodID)) {
+        return; // Skip non-hockey periods
+      }
+    }
+    
+    // MLB: Filter out non-baseball periods
+    // MLB uses innings (1i-9i), first 5 innings (f5)
+    // Skip quarter/period terminology for baseball
+    if (leagueID === 'MLB') {
+      const nonBaseballPeriods = ['1q', '2q', '3q', '4q', '1p', '2p', '3p'];
+      if (nonBaseballPeriods.includes(periodID)) {
+        return; // Skip non-baseball periods
+      }
+    }
+    
+    // Soccer: Filter out non-soccer periods
+    // Soccer uses halves (1h, 2h) only
+    // Skip quarter/period terminology for soccer
+    const soccerLeagues = ['MLS', 'EPL', 'LA_LIGA', 'BUNDESLIGA', 'IT_SERIE_A', 'FR_LIGUE_1'];
+    if (soccerLeagues.includes(leagueID)) {
+      const nonSoccerPeriods = ['1q', '2q', '3q', '4q', '1p', '2p', '3p'];
+      if (nonSoccerPeriods.includes(periodID)) {
+        return; // Skip non-soccer periods
+      }
+    }
     
     // PROFESSIONAL-GRADE: STRICT bookOdds enforcement (no fallback allowed)
     // Only use real market consensus data - never mathematical fair odds
