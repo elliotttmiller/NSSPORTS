@@ -17,6 +17,7 @@
 import { prisma } from "@/lib/prisma";
 import { fetchPlayerStats, calculateCombinedStat } from "@/lib/player-stats";
 import { getPeriodScore } from "@/lib/period-scores";
+import { logger } from "@/lib/logger";
 
 // ============================================================================
 // TYPES & INTERFACES
@@ -168,7 +169,7 @@ export function gradePlayerPropBet(params: {
   // TODO: Integrate with actual player stats API
   // If stats unavailable, we cannot grade the bet - throw error to prevent settlement
   if (!playerStats) {
-    console.error(`[gradePlayerPropBet] No stats available for ${statType}, cannot grade bet`);
+    logger.error(`[gradePlayerPropBet] No stats available for ${statType}, cannot grade bet`);
     throw new Error(`Player stats unavailable for ${statType}`);
   }
 
@@ -180,7 +181,7 @@ export function gradePlayerPropBet(params: {
     actualValue = calculateCombinedStat(statType, playerStats);
     
     if (actualValue === undefined) {
-      console.error(`[gradePlayerPropBet] Unable to calculate combined stat ${statType}, missing component stats`);
+      logger.error(`[gradePlayerPropBet] Unable to calculate combined stat ${statType}, missing component stats`);
       throw new Error(`Player stats unavailable for combined stat ${statType}`);
     }
   } else {
@@ -188,7 +189,7 @@ export function gradePlayerPropBet(params: {
     actualValue = playerStats[statType];
     
     if (actualValue === undefined) {
-      console.error(`[gradePlayerPropBet] No stats available for ${statType}, cannot grade bet`);
+      logger.error(`[gradePlayerPropBet] No stats available for ${statType}, cannot grade bet`);
       throw new Error(`Player stats unavailable for ${statType}`);
     }
   }
@@ -230,7 +231,7 @@ export function gradeGamePropBet(params: {
   if (/^(1q|2q|3q|4q|1h|2h|1p|2p|3p)_team_total/.test(propType)) {
     // Period-specific team total
     if (!periodScores) {
-      console.warn(`[gradeGamePropBet] No period data available for ${propType}, marking as push`);
+      logger.warn(`[gradeGamePropBet] No period data available for ${propType}, marking as push`);
       return { status: "push", reason: "Period data unavailable" };
     }
 
@@ -293,7 +294,7 @@ export function gradeGamePropBet(params: {
   if (/^(1q|2q|3q|4q|1h|2h|1p|2p|3p)_ml$/.test(propType)) {
     // Period winner bet - need period scores
     if (!periodScores) {
-      console.warn(`[gradeGamePropBet] No period data available for ${propType}, marking as push`);
+      logger.warn(`[gradeGamePropBet] No period data available for ${propType}, marking as push`);
       return { status: "push", reason: "Period data unavailable" };
     }
 
@@ -323,7 +324,7 @@ export function gradeGamePropBet(params: {
     } else {
       // If we can't determine, try to infer from period scores
       // This is a fallback - ideally we'd have better data
-      console.warn(`[gradeGamePropBet] Cannot determine team from selection: ${selection}`);
+      logger.warn(`[gradeGamePropBet] Cannot determine team from selection: ${selection}`);
       return { status: "push", reason: "Cannot determine selected team" };
     }
 
@@ -335,7 +336,7 @@ export function gradeGamePropBet(params: {
   }
 
   // Default: unable to grade
-  console.warn(`[gradeGamePropBet] Unknown prop type: ${propType}, marking as push`);
+  logger.warn(`[gradeGamePropBet] Unknown prop type: ${propType}, marking as push`);
   return { status: "push", reason: "Unknown prop type" };
 }
 
@@ -498,12 +499,12 @@ export async function settleBet(betId: string): Promise<SettlementResult | null>
       });
 
     if (!bet) {
-      console.error(`[settleBet] Bet ${betId} not found`);
+      logger.error(`[settleBet] Bet ${betId} not found`);
       return null;
     }
 
     if (bet.status !== "pending") {
-      console.log(`[settleBet] Bet ${betId} already settled with status: ${bet.status}`);
+      logger.info(`[settleBet] Bet ${betId} already settled with status: ${bet.status}`);
       return null;
     }
 
@@ -512,17 +513,17 @@ export async function settleBet(betId: string): Promise<SettlementResult | null>
 
     if (!isMultiLegBet) {
       if (!bet.game) {
-        console.error(`[settleBet] Bet ${betId} has no associated game`);
+        logger.error(`[settleBet] Bet ${betId} has no associated game`);
         return null;
       }
 
       if (bet.game.status !== "finished") {
-        console.log(`[settleBet] Game ${bet.game.id} not finished yet (status: ${bet.game.status})`);
+        logger.info(`[settleBet] Game ${bet.game.id} not finished yet (status: ${bet.game.status})`);
         return null;
       }
 
       if (bet.game.homeScore === null || bet.game.awayScore === null) {
-        console.error(`[settleBet] Game ${bet.game.id} missing final scores`);
+        logger.error(`[settleBet] Game ${bet.game.id} missing final scores`);
         return null;
       }
     }
@@ -535,7 +536,7 @@ export async function settleBet(betId: string): Promise<SettlementResult | null>
     switch (bet.betType) {
       case "spread":
         if (bet.line === null) {
-          console.error(`[settleBet] Spread bet ${betId} missing line`);
+          logger.error(`[settleBet] Spread bet ${betId} missing line`);
           return null;
         }
         result = gradeSpreadBet({
@@ -556,7 +557,7 @@ export async function settleBet(betId: string): Promise<SettlementResult | null>
 
       case "total":
         if (bet.line === null) {
-          console.error(`[settleBet] Total bet ${betId} missing line`);
+          logger.error(`[settleBet] Total bet ${betId} missing line`);
           return null;
         }
         result = gradeTotalBet({
@@ -576,25 +577,25 @@ export async function settleBet(betId: string): Promise<SettlementResult | null>
             playerPropMetadata = metadata.playerProp;
           }
         } catch (e) {
-          console.error(`[settleBet] Failed to parse player prop metadata for bet ${betId}:`, e);
+          logger.error(`[settleBet] Failed to parse player prop metadata for bet ${betId}:`, e);
         }
 
         if (!playerPropMetadata?.playerId || !playerPropMetadata?.statType) {
-          console.error(`[settleBet] Player prop bet ${betId} missing required metadata (playerId/statType)`);
+          logger.error(`[settleBet] Player prop bet ${betId} missing required metadata (playerId/statType)`);
           return null;
         }
 
         if (!bet.gameId) {
-          console.error(`[settleBet] Player prop bet ${betId} missing gameId`);
+          logger.error(`[settleBet] Player prop bet ${betId} missing gameId`);
           return null;
         }
 
         // ✅ Fetch actual player stats from SDK
-        console.log(`[settleBet] Fetching player stats for ${playerPropMetadata.playerId} in game ${bet.gameId}`);
+        logger.info(`[settleBet] Fetching player stats for ${playerPropMetadata.playerId} in game ${bet.gameId}`);
         const playerStats = await fetchPlayerStats(bet.gameId, playerPropMetadata.playerId);
         
         if (!playerStats) {
-          console.warn(`[settleBet] Player stats unavailable for player ${playerPropMetadata.playerId} - cannot settle yet`);
+          logger.warn(`[settleBet] Player stats unavailable for player ${playerPropMetadata.playerId} - cannot settle yet`);
           return null; // Don't settle until stats are available
         }
         
@@ -606,7 +607,7 @@ export async function settleBet(betId: string): Promise<SettlementResult | null>
             statType: playerPropMetadata.statType
           }, playerStats);
         } catch (error) {
-          console.error(`[settleBet] Failed to grade player prop bet ${betId}:`, error);
+          logger.error(`[settleBet] Failed to grade player prop bet ${betId}:`, error);
           return null; // Can't settle without stats
         }
         break;
@@ -620,22 +621,22 @@ export async function settleBet(betId: string): Promise<SettlementResult | null>
             gamePropMetadata = metadata.gameProp;
           }
         } catch (e) {
-          console.error(`[settleBet] Failed to parse game prop metadata for bet ${betId}:`, e);
+          logger.error(`[settleBet] Failed to parse game prop metadata for bet ${betId}:`, e);
         }
 
         if (!gamePropMetadata?.propType) {
-          console.error(`[settleBet] Game prop bet ${betId} missing propType in metadata`);
+          logger.error(`[settleBet] Game prop bet ${betId} missing propType in metadata`);
           return null;
         }
 
         // Check if this is a period/quarter prop
         let periodScoresForProp: { home: number; away: number } | null = null;
         if (gamePropMetadata.periodID && bet.gameId) {
-          console.log(`[settleBet] Fetching period ${gamePropMetadata.periodID} scores for game ${bet.gameId}`);
+          logger.info(`[settleBet] Fetching period ${gamePropMetadata.periodID} scores for game ${bet.gameId}`);
           periodScoresForProp = await getPeriodScore(bet.gameId, gamePropMetadata.periodID);
           
           if (!periodScoresForProp) {
-            console.warn(`[settleBet] Period ${gamePropMetadata.periodID} scores unavailable - marking as push`);
+            logger.warn(`[settleBet] Period ${gamePropMetadata.periodID} scores unavailable - marking as push`);
           }
         }
 
@@ -655,7 +656,7 @@ export async function settleBet(betId: string): Promise<SettlementResult | null>
           result = gradeParlayBet(legResults);
         } catch (error) {
           // If any leg cannot be graded (missing stats), skip settlement for now
-          console.warn(`[settleBet] Cannot settle parlay yet - missing data:`, error);
+          logger.warn(`[settleBet] Cannot settle parlay yet - missing data:`, { error });
           return null;
         }
         break;
@@ -677,7 +678,7 @@ export async function settleBet(betId: string): Promise<SettlementResult | null>
           };
         } catch (error) {
           // If any leg cannot be graded (missing stats), skip settlement for now
-          console.warn(`[settleBet] Cannot settle teaser yet - missing data:`, error);
+          logger.warn(`[settleBet] Cannot settle teaser yet - missing data:`, { error });
           return null;
         }
         break;
@@ -723,7 +724,7 @@ export async function settleBet(betId: string): Promise<SettlementResult | null>
         break;
 
       default:
-        console.error(`[settleBet] Unsupported bet type: ${bet.betType}`);
+        logger.error(`[settleBet] Unsupported bet type: ${bet.betType}`);
         return null;
     }
 
@@ -931,11 +932,11 @@ export async function settleBet(betId: string): Promise<SettlementResult | null>
     });
 
     if (!transactionResult.applied) {
-      console.log(`[settleBet] Bet ${betId} was already settled by another process; skipping payout`);
+      logger.info(`[settleBet] Bet ${betId} was already settled by another process; skipping payout`);
       return null;
     }
 
-    console.log(`[settleBet] Bet ${betId} settled as ${result.status}, payout: $${payout.toFixed(2)}`);
+    logger.info(`[settleBet] Bet ${betId} settled as ${result.status}, payout: $${payout.toFixed(2)}`);
 
     return {
       betId,
@@ -945,7 +946,7 @@ export async function settleBet(betId: string): Promise<SettlementResult | null>
     };
 
   } catch (error) {
-    console.error(`[settleBet] Error settling bet ${betId}:`, error);
+    logger.error(`[settleBet] Error settling bet ${betId}:`, error);
     return null;
   }
 }
@@ -969,17 +970,17 @@ async function gradeParlayLegs(bet: { legs: unknown }): Promise<LegGradingResult
 
     // Check if game is finished and has scores
     if (!game) {
-      console.error(`[gradeParlayLegs] Game ${leg.gameId} not found`);
+      logger.error(`[gradeParlayLegs] Game ${leg.gameId} not found`);
       throw new Error(`Game ${leg.gameId} not found for parlay leg`);
     }
     
     if (game.status !== "finished") {
-      console.warn(`[gradeParlayLegs] Game ${leg.gameId} not finished yet (status: ${game.status})`);
+      logger.warn(`[gradeParlayLegs] Game ${leg.gameId} not finished yet (status: ${game.status})`);
       throw new Error(`Game ${leg.gameId} not finished yet - cannot settle parlay`);
     }
     
     if (game.homeScore === null || game.awayScore === null) {
-      console.error(`[gradeParlayLegs] Game ${leg.gameId} missing final scores despite finished status`);
+      logger.error(`[gradeParlayLegs] Game ${leg.gameId} missing final scores despite finished status`);
       throw new Error(`Game ${leg.gameId} missing final scores - cannot settle parlay`);
     }
 
@@ -1015,18 +1016,18 @@ async function gradeParlayLegs(bet: { legs: unknown }): Promise<LegGradingResult
       case "player_prop":
         // Extract player prop metadata from leg
         if (!leg.playerProp?.playerId || !leg.playerProp?.statType) {
-          console.error(`[gradeParlayLegs] Player prop leg missing metadata:`, leg);
+          logger.error(`[gradeParlayLegs] Player prop leg missing metadata:`, leg);
           legResult = { status: "push", reason: "Missing player prop metadata" };
         } else if (!leg.gameId) {
-          console.error(`[gradeParlayLegs] Player prop leg missing gameId:`, leg);
+          logger.error(`[gradeParlayLegs] Player prop leg missing gameId:`, leg);
           legResult = { status: "push", reason: "Missing gameId" };
         } else {
           // ✅ Fetch actual player stats
-          console.log(`[gradeParlayLegs] Fetching player stats for ${leg.playerProp.playerId} in game ${leg.gameId}`);
+          logger.info(`[gradeParlayLegs] Fetching player stats for ${leg.playerProp.playerId} in game ${leg.gameId}`);
           const playerStats = await fetchPlayerStats(leg.gameId, leg.playerProp.playerId);
           
           if (!playerStats) {
-            console.warn(`[gradeParlayLegs] Player stats unavailable - cannot grade this leg yet`);
+            logger.warn(`[gradeParlayLegs] Player stats unavailable - cannot grade this leg yet`);
             throw new Error(`Player stats unavailable for parlay leg - cannot settle yet`);
           }
           
@@ -1042,17 +1043,17 @@ async function gradeParlayLegs(bet: { legs: unknown }): Promise<LegGradingResult
       case "game_prop":
         // Extract game prop metadata from leg
         if (!leg.gameProp?.propType) {
-          console.error(`[gradeParlayLegs] Game prop leg missing propType:`, leg);
+          logger.error(`[gradeParlayLegs] Game prop leg missing propType:`, leg);
           legResult = { status: "push", reason: "Missing game prop metadata" };
         } else {
           // Check if this is a period/quarter prop
           let periodScoresForLeg: { home: number; away: number } | null = null;
           if (leg.gameProp.periodID && leg.gameId) {
-            console.log(`[gradeParlayLegs] Fetching period ${leg.gameProp.periodID} scores for game ${leg.gameId}`);
+            logger.info(`[gradeParlayLegs] Fetching period ${leg.gameProp.periodID} scores for game ${leg.gameId}`);
             periodScoresForLeg = await getPeriodScore(leg.gameId, leg.gameProp.periodID);
             
             if (!periodScoresForLeg) {
-              console.warn(`[gradeParlayLegs] Period ${leg.gameProp.periodID} scores unavailable - cannot grade this leg yet`);
+              logger.warn(`[gradeParlayLegs] Period ${leg.gameProp.periodID} scores unavailable - cannot grade this leg yet`);
               throw new Error(`Period scores unavailable for parlay leg - cannot settle yet`);
             }
           }
@@ -1068,7 +1069,7 @@ async function gradeParlayLegs(bet: { legs: unknown }): Promise<LegGradingResult
         break;
 
       default:
-        console.warn(`[gradeParlayLegs] Unsupported leg type: ${leg.betType}`);
+        logger.warn(`[gradeParlayLegs] Unsupported leg type: ${leg.betType}`);
         legResult = { status: "push", reason: "Unsupported leg type" };
     }
 
@@ -1282,17 +1283,17 @@ async function gradeParlayLegsFromData(legs: { id?: string; gameId: string; betT
 
     // Check if game is finished and has scores
     if (!game) {
-      console.error(`[gradeParlayLegsFromData] Game ${leg.gameId} not found`);
+      logger.error(`[gradeParlayLegsFromData] Game ${leg.gameId} not found`);
       throw new Error(`Game ${leg.gameId} not found for round robin leg`);
     }
     
     if (game.status !== "finished") {
-      console.warn(`[gradeParlayLegsFromData] Game ${leg.gameId} not finished yet (status: ${game.status})`);
+      logger.warn(`[gradeParlayLegsFromData] Game ${leg.gameId} not finished yet (status: ${game.status})`);
       throw new Error(`Game ${leg.gameId} not finished yet - cannot settle round robin`);
     }
     
     if (game.homeScore === null || game.awayScore === null) {
-      console.error(`[gradeParlayLegsFromData] Game ${leg.gameId} missing final scores despite finished status`);
+      logger.error(`[gradeParlayLegsFromData] Game ${leg.gameId} missing final scores despite finished status`);
       throw new Error(`Game ${leg.gameId} missing final scores - cannot settle round robin`);
     }
 
@@ -1348,7 +1349,7 @@ async function gradeParlayLegsFromData(legs: { id?: string; gameId: string; betT
  */
 export async function settleGameBets(gameId: string): Promise<SettlementResult[]> {
   try {
-    console.log(`[settleGameBets] Settling all bets for game ${gameId}`);
+    logger.info(`[settleGameBets] Settling all bets for game ${gameId}`);
 
     // Find all pending bets for this game
     const pendingBets = await prisma.bet.findMany({
@@ -1358,7 +1359,7 @@ export async function settleGameBets(gameId: string): Promise<SettlementResult[]
       }
     });
 
-    console.log(`[settleGameBets] Found ${pendingBets.length} pending bets to settle`);
+    logger.info(`[settleGameBets] Found ${pendingBets.length} pending bets to settle`);
 
     const results: SettlementResult[] = [];
 
@@ -1369,12 +1370,12 @@ export async function settleGameBets(gameId: string): Promise<SettlementResult[]
       }
     }
 
-    console.log(`[settleGameBets] Successfully settled ${results.length} bets for game ${gameId}`);
+    logger.info(`[settleGameBets] Successfully settled ${results.length} bets for game ${gameId}`);
 
     return results;
 
   } catch (error) {
-    console.error(`[settleGameBets] Error settling bets for game ${gameId}:`, error);
+    logger.error(`[settleGameBets] Error settling bets for game ${gameId}:`, error);
     return [];
   }
 }
@@ -1391,7 +1392,7 @@ export async function settleAllFinishedGames(): Promise<{
   results: SettlementResult[];
 }> {
   try {
-    console.log(`[settleAllFinishedGames] Starting settlement run...`);
+    logger.info(`[settleAllFinishedGames] Starting settlement run...`);
 
     // Find all finished games that might have pending bets
     const finishedGames = await prisma.game.findMany({
@@ -1408,7 +1409,7 @@ export async function settleAllFinishedGames(): Promise<{
       }
     });
 
-    console.log(`[settleAllFinishedGames] Found ${finishedGames.length} games with pending single bets`);
+    logger.info(`[settleAllFinishedGames] Found ${finishedGames.length} games with pending single bets`);
 
     const allResults: SettlementResult[] = [];
 
@@ -1432,7 +1433,7 @@ export async function settleAllFinishedGames(): Promise<{
       }
     });
 
-    console.log(`[settleAllFinishedGames] Found ${pendingMultiLegBets.length} pending multi-leg bets`);
+    logger.info(`[settleAllFinishedGames] Found ${pendingMultiLegBets.length} pending multi-leg bets`);
 
     // Check each multi-leg bet to see if all its games are finished
     for (const bet of pendingMultiLegBets) {
@@ -1454,7 +1455,7 @@ export async function settleAllFinishedGames(): Promise<{
 
       // If all games are found and finished, settle the bet
       if (games.length === gameIds.length) {
-        console.log(`[settleAllFinishedGames] All games finished for multi-leg bet ${bet.id}, settling...`);
+        logger.info(`[settleAllFinishedGames] All games finished for multi-leg bet ${bet.id}, settling...`);
         const result = await settleBet(bet.id);
         if (result) {
           allResults.push(result);
@@ -1462,7 +1463,7 @@ export async function settleAllFinishedGames(): Promise<{
       }
     }
 
-    console.log(`[settleAllFinishedGames] Settlement run complete. ` +
+    logger.info(`[settleAllFinishedGames] Settlement run complete. ` +
       `Processed ${finishedGames.length} games, settled ${allResults.length} bets`);
 
     return {
@@ -1472,7 +1473,7 @@ export async function settleAllFinishedGames(): Promise<{
     };
 
   } catch (error) {
-    console.error(`[settleAllFinishedGames] Error during settlement run:`, error);
+    logger.error(`[settleAllFinishedGames] Error during settlement run:`, error);
     return {
       gamesProcessed: 0,
       betsSettled: 0,

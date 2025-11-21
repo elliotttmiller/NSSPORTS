@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { auth } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 
 /**
  * Next.js Middleware for CORS, Request Handling, and Authentication
@@ -41,7 +42,7 @@ function getAllowedOrigins(): string[] {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
-  console.log('[Middleware] Request to:', pathname);
+  logger.debug('[Middleware] Request', { pathname });
   
   // ============================================================
   // 🔹 STEP 1: BYPASS - Static Assets & Internal Routes
@@ -64,14 +65,14 @@ export async function middleware(request: NextRequest) {
   // Admin routes use custom JWT authentication (admin_token cookie)
   // Completely isolated from user/agent NextAuth system
   if (pathname.startsWith('/admin') || pathname.startsWith('/api/admin')) {
-    console.log('[Middleware] 🔐 Admin route - using custom JWT auth system');
+    logger.debug('[Middleware] 🔐 Admin route - using custom JWT auth system');
     
     // Public admin routes (no auth required)
     const isAdminLoginPage = pathname === '/admin/login' || pathname === '/admin';
     const isAdminAuthAPI = pathname.startsWith('/api/admin/auth');
     
     if (isAdminLoginPage || isAdminAuthAPI) {
-      console.log('[Middleware] ✅ Admin public route, allowing access');
+      logger.debug('[Middleware] ✅ Admin public route, allowing access');
       return NextResponse.next();
     }
     
@@ -79,11 +80,11 @@ export async function middleware(request: NextRequest) {
     const adminToken = request.cookies.get('admin_token');
     
     if (!adminToken) {
-      console.log('[Middleware] ❌ No admin token, redirecting to /admin/login');
+      logger.debug('[Middleware] ❌ No admin token, redirecting to /admin/login');
       return NextResponse.redirect(new URL('/admin/login', request.url));
     }
     
-    console.log('[Middleware] ✅ Admin token found, allowing access');
+    logger.debug('[Middleware] ✅ Admin token found, allowing access');
     return NextResponse.next();
   }
 
@@ -91,7 +92,7 @@ export async function middleware(request: NextRequest) {
   // 🔹 STEP 3: USER/AGENT AUTH SYSTEM - NextAuth (JWT Sessions)
   // ============================================================
   // User and agent routes use NextAuth with JWT sessions
-  console.log('[Middleware] 👤 User/Agent route - using NextAuth system');
+  logger.debug('[Middleware] 👤 User/Agent route - using NextAuth system');
   
   // Define public routes (no auth required)
   const PUBLIC_ROUTES = [
@@ -115,17 +116,17 @@ export async function middleware(request: NextRequest) {
 
   // Skip auth check for public routes and public APIs
   if (isPublicRoute || isPublicApi) {
-    console.log('[Middleware] ✅ Public route, allowing access');
+    logger.debug('[Middleware] ✅ Public route, allowing access');
     return NextResponse.next();
   }
 
   // ⚠️ STRICT AUTHENTICATION CHECK - All other routes require NextAuth session
   const session = await auth();
   
-  console.log('[Middleware] Session check - pathname:', pathname, 'hasSession:', !!session);
+  logger.debug('[Middleware] Session check', { pathname, hasSession: !!session });
   
   if (!session || !session.user) {
-    console.log('[Middleware] ❌ No NextAuth session, redirecting to /auth/login');
+    logger.debug('[Middleware] ❌ No NextAuth session, redirecting to /auth/login');
     // Block API routes with 401
     if (pathname.startsWith('/api/')) {
       return new NextResponse(
@@ -139,7 +140,7 @@ export async function middleware(request: NextRequest) {
     if (pathname !== '/' && pathname !== '/auth/login') {
       loginUrl.searchParams.set('callbackUrl', pathname);
     }
-    console.log('[Middleware] Redirecting to:', loginUrl.toString());
+    logger.debug('[Middleware] Redirecting', { url: loginUrl.toString() });
     return NextResponse.redirect(loginUrl);
   }
 
@@ -149,7 +150,7 @@ export async function middleware(request: NextRequest) {
   
   // Players cannot access /agent routes
   if (!isAgent && isAgentRoute) {
-    console.log('[Middleware] Player trying to access agent route, redirecting to /');
+    logger.debug('[Middleware] Player trying to access agent route, redirecting to /');
     return NextResponse.redirect(new URL('/', request.url));
   }
 

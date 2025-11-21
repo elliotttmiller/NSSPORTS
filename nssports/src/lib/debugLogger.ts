@@ -1,14 +1,38 @@
 /**
- * Debug Logger for GameList Component
- * Writes debug logs to browser console with special formatting
- * and sends to API endpoint for server-side file logging
+ * Optimized Debug Logger for Client-Side Components
+ * 
+ * Performance Optimizations:
+ * - Removed HTTP API calls that add latency and overhead
+ * - Environment-aware: Only logs in development by default
+ * - Respects LOG_LEVEL environment variable
+ * - Zero overhead when disabled
+ * 
+ * For server-side logging, use the main logger from @/lib/logger
  */
 
-export class GameListDebugLogger {
-  private static logs: string[] = [];
-  private static readonly MAX_BUFFER = 20;
+type DebugLevel = 'INFO' | 'WARN' | 'ERROR';
 
-  private static formatMessage(level: string, message: string, data?: unknown): string {
+export class GameListDebugLogger {
+  private static isProduction = process.env.NODE_ENV === 'production';
+  private static logLevel = process.env.NEXT_PUBLIC_LOG_LEVEL?.toUpperCase() || 'INFO';
+  
+  // Log level priorities
+  private static readonly levelPriority: Record<DebugLevel, number> = {
+    INFO: 1,
+    WARN: 2,
+    ERROR: 3,
+  };
+
+  private static shouldLog(level: DebugLevel): boolean {
+    // In production, only log WARN and ERROR by default
+    if (this.isProduction && this.logLevel === 'INFO') {
+      return level !== 'INFO';
+    }
+    // Otherwise, check log level priority
+    return this.levelPriority[level] >= (this.levelPriority[this.logLevel as DebugLevel] || 1);
+  }
+
+  private static formatMessage(level: DebugLevel, message: string, data?: unknown): string {
     const timestamp = new Date().toISOString();
     let formatted = `🔍 [GameList Debug] [${timestamp}] [${level}] ${message}`;
     
@@ -19,45 +43,37 @@ export class GameListDebugLogger {
     return formatted;
   }
 
-  private static write(message: string): void {
-    // Always log to console with special formatting
-    console.log(message);
-    
-    // Buffer logs for API
-    this.logs.push(message);
-    
-    // Send to API when buffer is full
-    if (this.logs.length >= this.MAX_BUFFER) {
-      this.flush();
+  private static write(level: DebugLevel, message: string): void {
+    if (!this.shouldLog(level)) {
+      return;
+    }
+
+    // Use appropriate console method based on level
+    switch (level) {
+      case 'ERROR':
+        console.error(message);
+        break;
+      case 'WARN':
+        console.warn(message);
+        break;
+      default:
+        console.log(message);
     }
   }
 
   static info(message: string, data?: unknown): void {
     const formatted = this.formatMessage('INFO', message, data);
-    this.write(formatted);
+    this.write('INFO', formatted);
   }
 
   static warn(message: string, data?: unknown): void {
     const formatted = this.formatMessage('WARN', message, data);
-    this.write(formatted);
+    this.write('WARN', formatted);
   }
 
   static error(message: string, data?: unknown): void {
     const formatted = this.formatMessage('ERROR', message, data);
-    this.write(formatted);
-  }
-
-  static flush(): void {
-    if (this.logs.length === 0) return;
-    
-    // Send accumulated logs to API
-    fetch('/api/debug-logs', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ logs: this.logs })
-    }).catch(e => console.error('Failed to send debug logs:', e));
-    
-    this.logs = [];
+    this.write('ERROR', formatted);
   }
 }
 
