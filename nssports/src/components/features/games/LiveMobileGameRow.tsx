@@ -308,7 +308,11 @@ export const LiveMobileGameRow = memo(({ game, justUpdated = false }: Props) => 
               >
                 {/* Use periodDisplay for human-friendly format, fallback to period token */}
                 {(game.periodDisplay || game.period) && (
-                  <span>{game.periodDisplay || game.period}</span>
+                  <span>
+                    {game.leagueId === 'NCAAB' && game.periodDisplay
+                      ? game.periodDisplay.replace('Quarter', 'Half')
+                      : game.periodDisplay || game.period}
+                  </span>
                 )}
                 {(game.periodDisplay || game.period) && displayTimeRemaining && <span>•</span>}
                 {displayTimeRemaining && <span>{displayTimeRemaining}</span>}
