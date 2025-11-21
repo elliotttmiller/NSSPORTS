@@ -137,25 +137,25 @@ def verify_ngrok_tunnel(domain: str, port: int, max_attempts: int = 3) -> bool:
     """Verify ngrok tunnel can reach the local server"""
     print_status("Verifying ngrok tunnel connectivity", "wait")
     
-    tunnel_url = f"https://{domain}"
-    local_url = f"http://localhost:{port}"
+    tunnel_health_url = f"https://{domain}/api/health"
+    local_health_url = f"http://localhost:{port}/api/health"
     
     for attempt in range(1, max_attempts + 1):
         try:
-            # First verify local server is still responding
-            local_response = requests.get(local_url, timeout=5, allow_redirects=True)
-            if local_response.status_code >= 500:
-                print_status(f"Local server error (attempt {attempt}/{max_attempts})", "error")
+            # First verify local server is still responding using health endpoint
+            local_response = requests.get(local_health_url, timeout=5, allow_redirects=False)
+            if local_response.status_code != 200:
+                print_status(f"Local health check failed (attempt {attempt}/{max_attempts})", "error")
                 time.sleep(2)
                 continue
             
-            # Now verify tunnel can reach it
-            tunnel_response = requests.get(tunnel_url, timeout=10, allow_redirects=True)
-            if tunnel_response.status_code < 500:
+            # Now verify tunnel can reach it using health endpoint
+            tunnel_response = requests.get(tunnel_health_url, timeout=10, allow_redirects=False)
+            if tunnel_response.status_code == 200:
                 print_status("Ngrok tunnel verified successfully", "success")
                 return True
             else:
-                print_status(f"Tunnel responded with error {tunnel_response.status_code} (attempt {attempt}/{max_attempts})", "error")
+                print_status(f"Tunnel health check failed with status {tunnel_response.status_code} (attempt {attempt}/{max_attempts})", "error")
                 
         except requests.exceptions.ConnectionError as e:
             print_status(f"Tunnel connection failed (attempt {attempt}/{max_attempts}): {str(e)[:50]}", "error")

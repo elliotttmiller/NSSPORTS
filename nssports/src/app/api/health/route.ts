@@ -28,21 +28,12 @@ export const runtime = 'nodejs';
  * - Monitoring and uptime checks
  */
 export async function GET() {
-  return NextResponse.json(
-    {
-      status: 'ok',
-      timestamp: new Date().toISOString(),
-      service: 'nssports',
-      environment: process.env.NODE_ENV || 'development',
-    },
-    {
-      status: 200,
-      headers: {
-        'Cache-Control': 'no-store, no-cache, must-revalidate',
-        'Content-Type': 'application/json',
-      },
-    }
-  );
+  return NextResponse.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    service: 'nssports',
+    environment: process.env.NODE_ENV || 'development',
+  });
 }
 
 /**
@@ -55,7 +46,6 @@ export async function HEAD() {
   return new NextResponse(null, {
     status: 200,
     headers: {
-      'Cache-Control': 'no-store, no-cache, must-revalidate',
       'X-Service-Status': 'ok',
     },
   });
