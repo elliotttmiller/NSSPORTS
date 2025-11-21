@@ -162,9 +162,11 @@ The script implements multi-layer health checks:
 
 1. **Local Server Check** (`wait_for_server`)
    - Polls localhost:3000 until it responds
+   - Uses `/api/health` endpoint for faster checks (no auth required)
    - Accepts any non-500 status code
    - Includes 3-second stabilization period
    - Timeout: 90 seconds
+   - Fallback: If health endpoint not ready, checks root page
 
 2. **Ngrok Tunnel Verification** (`verify_ngrok_tunnel`)
    - Verifies local server is still responsive
@@ -176,6 +178,23 @@ The script implements multi-layer health checks:
    - Verifies process is still running after 4 seconds
    - Checks for immediate startup errors
    - Reports success/failure status
+
+### Health Check Endpoint
+
+A lightweight `/api/health` endpoint has been added for:
+- Fast server startup verification (no auth, no redirects)
+- Monitoring and uptime checks
+- Load balancer health probes
+
+**Response:**
+```json
+{
+  "status": "ok",
+  "timestamp": "2024-11-21T03:30:00.000Z",
+  "service": "nssports",
+  "environment": "development"
+}
+```
 
 ## Performance Characteristics
 
@@ -271,13 +290,17 @@ The script includes platform-specific logic:
 
 ## Changelog
 
-### 2024-11-21 - Enhanced Ngrok Reliability
+### 2024-11-21 - Enhanced Ngrok Reliability & Health Checks
 - Added 3-second stabilization period after server responds
 - Increased ngrok initialization delay from 2s to 5s
 - Implemented `verify_ngrok_tunnel()` function with health checks
 - Added retry logic (3 attempts) for tunnel verification
 - Improved error messages with troubleshooting guidance
 - Added graceful fallback when verification fails
+- **NEW**: Created `/api/health` endpoint for lightweight server checks
+- **NEW**: Updated `wait_for_server()` to use health endpoint for faster verification
+- Updated middleware to make health endpoint public (no auth required)
+- Enhanced documentation with detailed troubleshooting and architecture
 
 ### Previous
 - Initial implementation with basic health checks

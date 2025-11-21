@@ -82,6 +82,7 @@ def wait_for_server(port: int, timeout: int) -> bool:
     """Wait for server to become responsive"""
     start_time = time.time()
     url = f"http://localhost:{port}"
+    health_url = f"http://localhost:{port}/api/health"
     print_status("Waiting for Next.js to compile (first page compilation may take 40-60 seconds)", "wait")
     
     # Wait longer initially for Turbopack compilation
@@ -90,7 +91,25 @@ def wait_for_server(port: int, timeout: int) -> bool:
     attempts = 0
     while time.time() - start_time < timeout:
         try:
-            # Allow redirects and follow to login page compilation
+            # First try the lightweight health endpoint (doesn't trigger auth)
+            # This is much faster than hitting the root which redirects to /auth/login
+            try:
+                health_response = requests.get(health_url, timeout=5, allow_redirects=False)
+                if health_response.status_code == 200:
+                    elapsed = int(time.time() - start_time)
+                    print()  # New line after dots
+                    print_status(f"Server ready after {elapsed} seconds (health check)", "success")
+                    
+                    # Additional stabilization period for server to fully settle
+                    print_status("Allowing server to stabilize before tunnel connection", "wait")
+                    time.sleep(3)
+                    print_status("Server fully stabilized", "success")
+                    return True
+            except requests.exceptions.RequestException:
+                # Health endpoint not ready yet, fall back to root check
+                pass
+            
+            # Fallback: Allow redirects and follow to login page compilation
             # This will trigger /auth/login compilation but that's okay - we wait for it
             response = requests.get(url, timeout=10, allow_redirects=True)
             # Accept any successful response (server is up and responding)
