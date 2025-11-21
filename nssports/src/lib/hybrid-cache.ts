@@ -516,14 +516,21 @@ export async function getAllEventsWithCache(
   
   const sdkFetchPromise = (async () => {
     try {
+      // Default includeConsensus to true if not explicitly set to false
       const result = await sdkGetAllEvents(
-        { ...options, includeConsensus: options.includeConsensus !== false },
+        { 
+          ...options, 
+          includeConsensus: options.includeConsensus ?? true 
+        },
         maxPages
       );
       
-      logger.info(`[SDK] ✅ SDK returned ${result.data.length} events across ${result.meta.pageCount} pages for ${options.leagueID || 'all'}`);
+      const pageCount = result.meta?.pageCount ?? 1;
+      const hasMore = result.meta?.hasMore ?? false;
       
-      if (result.meta.hasMore) {
+      logger.info(`[SDK] ✅ SDK returned ${result.data.length} events across ${pageCount} pages for ${options.leagueID || 'all'}`);
+      
+      if (hasMore) {
         logger.warn(`[SDK] ⚠️ More data available beyond ${maxPages} pages for ${options.leagueID || 'all'}`);
       }
       
