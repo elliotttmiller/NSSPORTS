@@ -5,6 +5,7 @@
 
 import type { Bet } from "@/types";
 import type { TeaserType } from "@/types/teaser";
+import { logger } from '@/lib/logger';
 import { 
   getTeaserConfig, 
   isBetEligibleForTeaser,
@@ -439,7 +440,7 @@ export function validateTeaserBets(
   bets: Bet[], 
   teaserType: TeaserType
 ): BettingRuleViolation | null {
-  console.log(`[validateTeaserBets] Starting validation for ${bets.length} bets with teaser type: ${teaserType}`, {
+  logger.info(`[validateTeaserBets] Starting validation for ${bets.length} bets with teaser type: ${teaserType}`, {
     bets: bets.map(bet => ({
       id: bet.id,
       betType: bet.betType,
@@ -459,14 +460,14 @@ export function validateTeaserBets(
   const result = validateTeaserBetCore(bets, teaserType);
   
   if (!result.valid) {
-    console.log(`[validateTeaserBets] ❌ Validation failed:`, result.error);
+    logger.info(`[validateTeaserBets] ❌ Validation failed`, { error: result.error });
     return {
       rule: "TEASER_VALIDATION",
       message: result.error || "Invalid teaser bet",
     };
   }
   
-  console.log(`[validateTeaserBets] ✅ Validation passed`);
+  logger.info(`[validateTeaserBets] ✅ Validation passed`);
   return null;
 }
 

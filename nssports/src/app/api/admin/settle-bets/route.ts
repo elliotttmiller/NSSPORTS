@@ -12,6 +12,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { settleBet, settleGameBets, settleAllFinishedGames } from "@/services/bet-settlement";
+import { logger } from '@/lib/logger';
 
 /**
  * POST /api/admin/settle-bets
@@ -44,7 +45,7 @@ export async function POST(request: NextRequest) {
 
     // Settle specific bet
     if (body.betId) {
-      console.log(`[admin/settle-bets] Settling bet ${body.betId}`);
+      logger.info(`[admin/settle-bets] Settling bet ${body.betId}`);
       const result = await settleBet(body.betId);
       
       if (!result) {
@@ -63,7 +64,7 @@ export async function POST(request: NextRequest) {
 
     // Settle all bets for a game
     if (body.gameId) {
-      console.log(`[admin/settle-bets] Settling all bets for game ${body.gameId}`);
+      logger.info(`[admin/settle-bets] Settling all bets for game ${body.gameId}`);
       const results = await settleGameBets(body.gameId);
       
       return NextResponse.json({
@@ -81,7 +82,7 @@ export async function POST(request: NextRequest) {
 
     // Settle all finished games
     if (body.all === true) {
-      console.log(`[admin/settle-bets] Settling all finished games`);
+      logger.info(`[admin/settle-bets] Settling all finished games`);
       const result = await settleAllFinishedGames();
       
       return NextResponse.json({
@@ -103,7 +104,7 @@ export async function POST(request: NextRequest) {
     );
 
   } catch (error) {
-    console.error("[admin/settle-bets] Error:", error);
+    logger.error("[admin/settle-bets] Error", error as Error);
     return NextResponse.json(
       {
         error: "Internal server error",

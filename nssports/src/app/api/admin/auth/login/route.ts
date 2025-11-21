@@ -3,15 +3,16 @@ import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { SignJWT } from "jose";
 import { JWT_SECRET } from "@/lib/adminAuth";
+import { logger } from "@/lib/logger";
 
 export async function POST(request: NextRequest) {
-  console.log('[API /api/admin/auth/login] POST - Request received');
+  logger.debug('[API /api/admin/auth/login] POST - Request received');
   try {
     const { username, password } = await request.json();
-    console.log('[API /api/admin/auth/login] Login attempt for username:', username);
+    logger.debug('[API /api/admin/auth/login] Login attempt for username:', username);
 
     if (!username || !password) {
-      console.log('[API /api/admin/auth/login] Missing username or password');
+      logger.debug('[API /api/admin/auth/login] Missing username or password');
       return NextResponse.json(
         { error: "Username and password are required" },
         { status: 400 }
@@ -19,7 +20,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Find admin user in database
-    console.log('[API /api/admin/auth/login] Looking up admin in database...');
+    logger.debug('[API /api/admin/auth/login] Looking up admin in database...');
     const admin = await prisma.adminUser.findUnique({
       where: { username },
       select: {
@@ -32,10 +33,10 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    console.log('[API /api/admin/auth/login] Admin found:', !!admin, 'status:', admin?.status);
+    logger.debug('[API /api/admin/auth/login] Admin found', { found: !!admin, status: admin?.status });
 
     if (!admin) {
-      console.log('[API /api/admin/auth/login] Admin not found');
+      logger.debug('[API /api/admin/auth/login] Admin not found');
       return NextResponse.json(
         { error: "Invalid credentials" },
         { status: 401 }
@@ -44,7 +45,7 @@ export async function POST(request: NextRequest) {
 
     // Check if admin is active
     if (admin.status !== "active") {
-      console.log('[API /api/admin/auth/login] Admin account is suspended');
+      logger.debug('[API /api/admin/auth/login] Admin account is suspended');
       return NextResponse.json(
         { error: "Account is suspended" },
         { status: 403 }
@@ -52,12 +53,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify password
-    console.log('[API /api/admin/auth/login] Verifying password...');
+    logger.debug('[API /api/admin/auth/login] Verifying password...');
     const isValidPassword = await bcrypt.compare(password, admin.password);
-    console.log('[API /api/admin/auth/login] Password valid:', isValidPassword);
+    logger.debug('[API /api/admin/auth/login] Password valid', { isValidPassword });
     
     if (!isValidPassword) {
-      console.log('[API /api/admin/auth/login] Invalid password');
+      logger.debug('[API /api/admin/auth/login] Invalid password');
       return NextResponse.json(
         { error: "Invalid credentials" },
         { status: 401 }
@@ -65,7 +66,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create JWT token
-    console.log('[API /api/admin/auth/login] Creating JWT token...');
+    logger.debug('[API /api/admin/auth/login] Creating JWT token...');
     const token = await new SignJWT({ 
       adminId: admin.id,
       username: admin.username,
@@ -75,7 +76,7 @@ export async function POST(request: NextRequest) {
       .setExpirationTime("8h")
       .sign(JWT_SECRET);
 
-    console.log('[API /api/admin/auth/login] JWT token created, setting cookie...');
+    logger.debug('[API /api/admin/auth/login] JWT token created, setting cookie...');
     
     // Create response with admin data
     const response = NextResponse.json({
@@ -97,7 +98,7 @@ export async function POST(request: NextRequest) {
       path: "/",
     });
 
-    console.log('[API /api/admin/auth/login] Cookie set in response headers:', {
+    logger.debug('[API /api/admin/auth/login] Cookie set in response headers:', {
       secure: process.env.NODE_ENV === 'production',
       sameSite: process.env.NODE_ENV === 'production' ? "none" : "lax",
       path: '/',
@@ -105,7 +106,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Log login activity
-    console.log('[API /api/admin/auth/login] Logging activity...');
+    logger.debug('[API /api/admin/auth/login] Logging activity...');
     await prisma.adminActivityLog.create({
       data: {
         adminUserId: admin.id,
@@ -121,7 +122,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Update last login
-    console.log('[API /api/admin/auth/login] Updating last login...');
+    logger.debug('[API /api/admin/auth/login] Updating last login...');
     await prisma.adminUser.update({
       where: { id: admin.id },
       data: { 
@@ -130,10 +131,10 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    console.log('[API /api/admin/auth/login] Login successful, returning response with cookie');
+    logger.debug('[API /api/admin/auth/login] Login successful, returning response with cookie');
     return response;
   } catch (error) {
-    console.error("[API /api/admin/auth/login] Error:", error);
+    logger.error("[API /api/admin/auth/login] Error", { data: error });
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

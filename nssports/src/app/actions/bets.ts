@@ -18,6 +18,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import prisma from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { logger } from "@/lib/logger";
 
 // Validation schemas
 const betLegSchema = z.object({
@@ -113,24 +114,24 @@ export async function placeSingleBetAction(
   bet: z.infer<typeof singleBetSchema>
 ): Promise<PlaceBetsState> {
   try {
-    console.log("[placeSingleBetAction] Received bet data:", JSON.stringify(bet, null, 2));
+    logger.debug("[placeSingleBetAction] Received bet data", { bet });
     
     // Get authenticated user
     const session = await auth();
     if (!session?.user?.id) {
-      console.error("[placeSingleBetAction] No authenticated user");
+      logger.error("[placeSingleBetAction] No authenticated user");
       return {
         success: false,
         error: "You must be logged in to place bets",
       };
     }
 
-    console.log("[placeSingleBetAction] User authenticated:", session.user.id);
+    logger.info("[placeSingleBetAction] User authenticated", { userId: session.user.id });
 
     // Validate input
     const validatedData = singleBetSchema.safeParse(bet);
     if (!validatedData.success) {
-      console.error("[placeSingleBetAction] Validation failed:", validatedData.error.errors);
+      logger.error("[placeSingleBetAction] Validation failed", validatedData.error);
       return {
         success: false,
         error: `Invalid bet data: ${validatedData.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
@@ -139,7 +140,7 @@ export async function placeSingleBetAction(
 
     const { gameId, betType, selection, odds, line, stake, potentialPayout, playerProp, gameProp } = validatedData.data;
     
-    console.log("[placeSingleBetAction] Validated data:", { gameId, betType, selection, odds, line, stake, potentialPayout, playerProp, gameProp });
+    logger.info("[placeSingleBetAction] Validated data", { data: { gameId, betType, selection, odds, line, stake, potentialPayout, playerProp, gameProp } });
     
     // Ensure odds is an integer as required by Prisma schema
     const oddsInt = Math.round(odds);
@@ -151,14 +152,14 @@ export async function placeSingleBetAction(
     });
 
     if (!game) {
-      console.log("[placeSingleBetAction] Game not in database, fetching from API:", gameId);
+      logger.info("[placeSingleBetAction] Game not in database, fetching from API", { data: gameId });
       
       // Try to fetch the game from the live API and persist it
       const { fetchGameFromAPI, ensureGameExists } = await import("@/lib/gameHelpers");
       const gameData = await fetchGameFromAPI(gameId);
       
       if (!gameData) {
-        console.error("[placeSingleBetAction] Game not found in API:", gameId);
+        logger.error("[placeSingleBetAction] Game not found in API", { data: gameId });
         return {
           success: false,
           error: "Game not found. Please refresh the page and try again.",
@@ -175,7 +176,7 @@ export async function placeSingleBetAction(
       });
       
       if (!game) {
-        console.error("[placeSingleBetAction] Failed to create game:", gameId);
+        logger.error("[placeSingleBetAction] Failed to create game", { data: gameId });
         return {
           success: false,
           error: "Failed to process game data. Please try again.",
@@ -184,14 +185,14 @@ export async function placeSingleBetAction(
     }
 
     if (game.status === "finished") {
-      console.error("[placeSingleBetAction] Game already finished:", gameId);
+      logger.error("[placeSingleBetAction] Game already finished", { data: gameId });
       return {
         success: false,
         error: "Cannot place bet on finished game",
       };
     }
 
-    console.log("[placeSingleBetAction] Creating bet in database...");
+    logger.info("[placeSingleBetAction] Creating bet in database...");
 
     // Check available balance (balance minus pending bet risk)
     let account = await prisma.account.findUnique({
@@ -201,7 +202,7 @@ export async function placeSingleBetAction(
 
     // Auto-create account if it doesn't exist (for legacy users)
     if (!account) {
-      console.warn("[placeSingleBetAction] Account not found, creating new account for user:", session.user.id);
+      logger.warn("[placeSingleBetAction] Account not found, creating new account for user", { data: session.user.id });
       account = await prisma.account.create({
         data: {
           userId: session.user.id,
@@ -209,7 +210,7 @@ export async function placeSingleBetAction(
         },
         select: { balance: true },
       });
-      console.log("[placeSingleBetAction] Account created with balance:", account.balance);
+      logger.info("[placeSingleBetAction] Account created with balance", { data: account.balance });
     }
 
     // Calculate risk from pending bets
@@ -221,12 +222,12 @@ export async function placeSingleBetAction(
     const availableBalance = Number(account.balance) - currentRisk;
 
     if (availableBalance < stake) {
-      console.error("[placeSingleBetAction] Insufficient available balance:", { 
+      logger.error("[placeSingleBetAction] Insufficient available balance", { data: { 
         balance: account.balance, 
         risk: currentRisk, 
         available: availableBalance, 
         stake 
-      });
+      } });
       return {
         success: false,
         error: `Insufficient available balance. Balance: $${account.balance.toFixed(2)}, At Risk: $${currentRisk.toFixed(2)}, Available: $${availableBalance.toFixed(2)}, Required: $${stake.toFixed(2)}`,
@@ -254,8 +255,8 @@ export async function placeSingleBetAction(
       },
     });
 
-    console.log("[placeSingleBetAction] Bet created successfully:", createdBet.id);
-    console.log("[placeSingleBetAction] Balance unchanged, risk increased by:", stake);
+    logger.info("[placeSingleBetAction] Bet created successfully", { data: createdBet.id });
+    logger.info("[placeSingleBetAction] Balance unchanged, risk increased by", { data: stake });
 
     // Revalidate bet history cache - this triggers React Query refetch
     revalidatePath("/my-bets");
@@ -267,8 +268,7 @@ export async function placeSingleBetAction(
       betIds: [createdBet.id],
     };
   } catch (error) {
-    console.error("[placeSingleBetAction] Error:", error);
-    console.error("[placeSingleBetAction] Bet data:", JSON.stringify(bet, null, 2));
+    logger.error("[placeSingleBetAction] Error", error as Error, () => ({ bet }));
     return {
       success: false,
       error: `Failed to place bet: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -286,24 +286,24 @@ export async function placeParlayBetAction(
   parlayData: z.infer<typeof parlayBetSchema>
 ): Promise<PlaceBetsState> {
   try {
-    console.log("[placeParlayBetAction] Received parlay data:", JSON.stringify(parlayData, null, 2));
+    logger.debug("[placeParlayBetAction] Received parlay data", { parlayData });
     
     // Get authenticated user
     const session = await auth();
     if (!session?.user?.id) {
-      console.error("[placeParlayBetAction] No authenticated user");
+      logger.error("[placeParlayBetAction] No authenticated user");
       return {
         success: false,
         error: "You must be logged in to place bets",
       };
     }
 
-    console.log("[placeParlayBetAction] User authenticated:", session.user.id);
+    logger.info("[placeParlayBetAction] User authenticated", { data: session.user.id });
 
     // Validate input
     const validatedData = parlayBetSchema.safeParse(parlayData);
     if (!validatedData.success) {
-      console.error("[placeParlayBetAction] Validation failed:", validatedData.error.errors);
+      logger.error("[placeParlayBetAction] Validation failed", { data: validatedData.error.errors });
       return {
         success: false,
         error: `Invalid parlay data: ${validatedData.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
@@ -312,7 +312,7 @@ export async function placeParlayBetAction(
 
     const { legs, stake, potentialPayout, odds } = validatedData.data;
 
-    console.log("[placeParlayBetAction] Validated data:", { legs: legs.length, stake, potentialPayout, odds });
+    logger.info("[placeParlayBetAction] Validated data", { data: { legs: legs.length, stake, potentialPayout, odds } });
 
     // Ensure odds is an integer as required by Prisma schema
     const oddsInt = Math.round(odds);
@@ -329,12 +329,12 @@ export async function placeParlayBetAction(
       });
       
       if (!game) {
-        console.log("[placeParlayBetAction] Game not in database, fetching from API:", leg.gameId);
+        logger.info("[placeParlayBetAction] Game not in database, fetching from API", { data: leg.gameId });
         
         const gameData = await fetchGameFromAPI(leg.gameId);
         
         if (!gameData) {
-          console.error("[placeParlayBetAction] Game not found in API:", leg.gameId);
+          logger.error("[placeParlayBetAction] Game not found in API", { data: leg.gameId });
           return {
             success: false,
             error: `Game not found: ${leg.gameId}. Please refresh and try again.`,
@@ -350,7 +350,7 @@ export async function placeParlayBetAction(
       }
       
       if (game?.status === "finished") {
-        console.error("[placeParlayBetAction] Game already finished:", leg.gameId);
+        logger.error("[placeParlayBetAction] Game already finished", { data: leg.gameId });
         return {
           success: false,
           error: "Cannot place bet on finished game",
@@ -358,7 +358,7 @@ export async function placeParlayBetAction(
       }
     }
 
-    console.log("[placeParlayBetAction] Creating parlay bet in database...");
+    logger.info("[placeParlayBetAction] Creating parlay bet in database...");
 
     // Check available balance (balance minus pending bet risk)
     let account = await prisma.account.findUnique({
@@ -368,7 +368,7 @@ export async function placeParlayBetAction(
 
     // Auto-create account if it doesn't exist (for legacy users)
     if (!account) {
-      console.warn("[placeParlayBetAction] Account not found, creating new account for user:", session.user.id);
+      logger.warn("[placeParlayBetAction] Account not found, creating new account for user", { data: session.user.id });
       account = await prisma.account.create({
         data: {
           userId: session.user.id,
@@ -376,7 +376,7 @@ export async function placeParlayBetAction(
         },
         select: { balance: true },
       });
-      console.log("[placeParlayBetAction] Account created with balance:", account.balance);
+      logger.info("[placeParlayBetAction] Account created with balance", { data: account.balance });
     }
 
     // Calculate risk from pending bets
@@ -388,12 +388,12 @@ export async function placeParlayBetAction(
     const availableBalance = Number(account.balance) - currentRisk;
 
     if (availableBalance < stake) {
-      console.error("[placeParlayBetAction] Insufficient available balance:", { 
+      logger.error("[placeParlayBetAction] Insufficient available balance", { data: { 
         balance: account.balance, 
         risk: currentRisk, 
         available: availableBalance, 
         stake 
-      });
+      } });
       return {
         success: false,
         error: `Insufficient available balance. Balance: $${account.balance.toFixed(2)}, At Risk: $${currentRisk.toFixed(2)}, Available: $${availableBalance.toFixed(2)}, Required: $${stake.toFixed(2)}`,
@@ -417,8 +417,8 @@ export async function placeParlayBetAction(
       },
     });
 
-    console.log("[placeParlayBetAction] Parlay bet created successfully:", createdBet.id);
-    console.log("[placeParlayBetAction] Balance unchanged, risk increased by:", stake);
+    logger.info("[placeParlayBetAction] Parlay bet created successfully", { data: createdBet.id });
+    logger.info("[placeParlayBetAction] Balance unchanged, risk increased by", { data: stake });
 
     // Revalidate bet history cache - this triggers React Query refetch
     revalidatePath("/my-bets");
@@ -430,8 +430,7 @@ export async function placeParlayBetAction(
       betIds: [createdBet.id],
     };
   } catch (error) {
-    console.error("[placeParlayBetAction] Error:", error);
-    console.error("[placeParlayBetAction] Parlay data:", JSON.stringify(parlayData, null, 2));
+    logger.error("[placeParlayBetAction] Error", error as Error, () => ({ parlayData }));
     return {
       success: false,
       error: `Failed to place parlay bet: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -449,24 +448,24 @@ export async function placeTeaserBetAction(
   teaserData: z.infer<typeof teaserBetSchema>
 ): Promise<PlaceBetsState> {
   try {
-    console.log("[placeTeaserBetAction] Received teaser data:", JSON.stringify(teaserData, null, 2));
+    logger.debug("[placeTeaserBetAction] Received teaser data", { teaserData });
     
     // Get authenticated user
     const session = await auth();
     if (!session?.user?.id) {
-      console.error("[placeTeaserBetAction] No authenticated user");
+      logger.error("[placeTeaserBetAction] No authenticated user");
       return {
         success: false,
         error: "You must be logged in to place bets",
       };
     }
 
-    console.log("[placeTeaserBetAction] User authenticated:", session.user.id);
+    logger.info("[placeTeaserBetAction] User authenticated", { data: session.user.id });
 
     // Validate input
     const validatedData = teaserBetSchema.safeParse(teaserData);
     if (!validatedData.success) {
-      console.error("[placeTeaserBetAction] Validation failed:", validatedData.error.errors);
+      logger.error("[placeTeaserBetAction] Validation failed", { data: validatedData.error.errors });
       return {
         success: false,
         error: `Invalid teaser data: ${validatedData.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
@@ -475,14 +474,14 @@ export async function placeTeaserBetAction(
 
     const { legs, stake, potentialPayout, odds, teaserType, teaserMetadata } = validatedData.data;
 
-    console.log("[placeTeaserBetAction] Validated data:", { 
+    logger.info("[placeTeaserBetAction] Validated data", { data: { 
       legs: legs.length, 
       stake, 
       potentialPayout, 
       odds, 
       teaserType,
       pushRule: teaserMetadata.pushRule 
-    });
+    } });
 
     // Ensure odds is an integer as required by Prisma schema
     const oddsInt = Math.round(odds);
@@ -499,12 +498,12 @@ export async function placeTeaserBetAction(
       });
       
       if (!game) {
-        console.log("[placeTeaserBetAction] Game not in database, fetching from API:", leg.gameId);
+        logger.info("[placeTeaserBetAction] Game not in database, fetching from API", { data: leg.gameId });
         
         const gameData = await fetchGameFromAPI(leg.gameId);
         
         if (!gameData) {
-          console.error("[placeTeaserBetAction] Game not found in API:", leg.gameId);
+          logger.error("[placeTeaserBetAction] Game not found in API", { data: leg.gameId });
           return {
             success: false,
             error: `Game not found: ${leg.gameId}. Please refresh and try again.`,
@@ -520,7 +519,7 @@ export async function placeTeaserBetAction(
       }
       
       if (game?.status === "finished") {
-        console.error("[placeTeaserBetAction] Game already finished:", leg.gameId);
+        logger.error("[placeTeaserBetAction] Game already finished", { data: leg.gameId });
         return {
           success: false,
           error: "Cannot place bet on finished game",
@@ -528,7 +527,7 @@ export async function placeTeaserBetAction(
       }
     }
 
-    console.log("[placeTeaserBetAction] Creating teaser bet in database...");
+    logger.info("[placeTeaserBetAction] Creating teaser bet in database...");
 
     // Check available balance (balance minus pending bet risk)
     let account = await prisma.account.findUnique({
@@ -538,7 +537,7 @@ export async function placeTeaserBetAction(
 
     // Auto-create account if it doesn't exist (for legacy users)
     if (!account) {
-      console.warn("[placeTeaserBetAction] Account not found, creating new account for user:", session.user.id);
+      logger.warn("[placeTeaserBetAction] Account not found, creating new account for user", { data: session.user.id });
       account = await prisma.account.create({
         data: {
           userId: session.user.id,
@@ -546,7 +545,7 @@ export async function placeTeaserBetAction(
         },
         select: { balance: true },
       });
-      console.log("[placeTeaserBetAction] Account created with balance:", account.balance);
+      logger.info("[placeTeaserBetAction] Account created with balance", { data: account.balance });
     }
 
     // Calculate risk from pending bets
@@ -558,12 +557,12 @@ export async function placeTeaserBetAction(
     const availableBalance = Number(account.balance) - currentRisk;
 
     if (availableBalance < stake) {
-      console.error("[placeTeaserBetAction] Insufficient available balance:", { 
+      logger.error("[placeTeaserBetAction] Insufficient available balance", { data: { 
         balance: account.balance, 
         risk: currentRisk, 
         available: availableBalance, 
         stake 
-      });
+      } });
       return {
         success: false,
         error: `Insufficient available balance. Balance: $${account.balance.toFixed(2)}, At Risk: $${currentRisk.toFixed(2)}, Available: $${availableBalance.toFixed(2)}, Required: $${stake.toFixed(2)}`,
@@ -593,8 +592,8 @@ export async function placeTeaserBetAction(
       },
     });
 
-    console.log("[placeTeaserBetAction] Teaser bet created successfully:", createdBet.id);
-    console.log("[placeTeaserBetAction] Balance unchanged, risk increased by:", stake);
+    logger.info("[placeTeaserBetAction] Teaser bet created successfully", { data: createdBet.id });
+    logger.info("[placeTeaserBetAction] Balance unchanged, risk increased by", { data: stake });
 
     // Revalidate bet history cache - this triggers React Query refetch
     revalidatePath("/my-bets");
@@ -606,8 +605,7 @@ export async function placeTeaserBetAction(
       betIds: [createdBet.id],
     };
   } catch (error) {
-    console.error("[placeTeaserBetAction] Error:", error);
-    console.error("[placeTeaserBetAction] Teaser data:", JSON.stringify(teaserData, null, 2));
+    logger.error("[placeTeaserBetAction] Error", error as Error, () => ({ teaserData }));
     return {
       success: false,
       error: `Failed to place teaser bet: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -628,7 +626,7 @@ export async function settleBetAction(
   legResults?: { [legId: string]: "won" | "lost" | "push" }
 ): Promise<PlaceBetsState> {
   try {
-    console.log("[settleBetAction] Settling bet:", betId, "Status:", status, "Leg results:", legResults);
+    logger.info("[settleBetAction] Settling bet", { betId, status, legResults });
 
     // Get authenticated user (in production, check admin role)
     const session = await auth();
@@ -682,42 +680,42 @@ export async function settleBetAction(
       const hasPush = legStatuses.some(s => s === "push");
       const allWins = legStatuses.every(s => s === "won");
 
-      console.log("[settleBetAction] Teaser evaluation:", { 
+      logger.info("[settleBetAction] Teaser evaluation", { data: { 
         teaserType: bet.teaserType, 
         pushRule, 
         hasLoss, 
         hasPush, 
         allWins,
         legCount: legStatuses.length 
-      });
+      } });
 
       if (hasLoss) {
         // Any loss = entire teaser loses
         finalStatus = "lost";
         payoutAmount = 0;
-        console.log("[settleBetAction] Teaser lost - has losing leg");
+        logger.info("[settleBetAction] Teaser lost - has losing leg");
       } else if (allWins) {
         // All wins = teaser wins
         finalStatus = "won";
         payoutAmount = bet.potentialPayout;
-        console.log("[settleBetAction] Teaser won - all legs won");
+        logger.info("[settleBetAction] Teaser won - all legs won");
       } else if (hasPush) {
         // Has push(es), apply push rule
-        console.log("[settleBetAction] Applying push rule:", pushRule);
+        logger.info("[settleBetAction] Applying push rule", { data: pushRule });
         
         switch (pushRule) {
           case "push":
             // Entire teaser pushes, return stake
             finalStatus = "push";
             payoutAmount = bet.stake;
-            console.log("[settleBetAction] Push rule: push - returning stake");
+            logger.info("[settleBetAction] Push rule: push - returning stake");
             break;
             
           case "lose":
             // Entire teaser loses
             finalStatus = "lost";
             payoutAmount = 0;
-            console.log("[settleBetAction] Push rule: lose - bet marked as lost");
+            logger.info("[settleBetAction] Push rule: lose - bet marked as lost");
             break;
             
           case "revert":
@@ -725,10 +723,10 @@ export async function settleBetAction(
             const { getTeaserConfig } = await import("@/types/teaser");
             const remainingLegs = legStatuses.filter(s => s === "won").length;
             
-            console.log("[settleBetAction] Attempting to revert teaser:", {
+            logger.info("[settleBetAction] Attempting to revert teaser", { data: {
               originalType: bet.teaserType,
               remainingLegs
-            });
+            } });
             
             // Find teaser config for remaining legs
             const revertedType = `${remainingLegs}T_TEASER`;
@@ -745,16 +743,16 @@ export async function settleBetAction(
                 );
                 finalStatus = "won";
                 payoutAmount = revertedPayout;
-                console.log("[settleBetAction] Reverted to:", revertedType, "Payout:", revertedPayout);
+                logger.info("[settleBetAction] Reverted", { revertedType, payout: revertedPayout });
               } else {
                 // Not enough legs to revert, return stake
                 finalStatus = "push";
                 payoutAmount = bet.stake;
-                console.log("[settleBetAction] Cannot revert - not enough legs, returning stake");
+                logger.info("[settleBetAction] Cannot revert - not enough legs, returning stake");
               }
             } catch (error) {
               // If reversion fails, return stake
-              console.warn("[settleBetAction] Reversion failed, returning stake:", error);
+              logger.warn("[settleBetAction] Reversion failed, returning stake", { data: error });
               finalStatus = "push";
               payoutAmount = bet.stake;
             }
@@ -768,7 +766,7 @@ export async function settleBetAction(
       } else if (finalStatus === "push") {
         payoutAmount = bet.stake;
       }
-      console.log("[settleBetAction] Standard bet settlement:", { finalStatus, payoutAmount });
+      logger.info("[settleBetAction] Standard bet settlement", { data: { finalStatus, payoutAmount } });
     }
 
     // Update bet status and process balance changes in a transaction
@@ -793,7 +791,7 @@ export async function settleBetAction(
         }),
       ]);
 
-      console.log("[settleBetAction] Bet settled, payout added:", payoutAmount);
+      logger.info("[settleBetAction] Bet settled, payout added", { data: payoutAmount });
     } else {
       // For lost bets: deduct the stake from balance
       await prisma.$transaction([
@@ -814,7 +812,7 @@ export async function settleBetAction(
         }),
       ]);
 
-      console.log("[settleBetAction] Bet settled as lost, stake deducted:", bet.stake);
+      logger.info("[settleBetAction] Bet settled as lost, stake deducted", { data: bet.stake });
     }
 
     // Revalidate caches
@@ -827,7 +825,7 @@ export async function settleBetAction(
       betIds: [betId],
     };
   } catch (error) {
-    console.error("[settleBetAction] Error:", error);
+    logger.error("[settleBetAction] Error", { data: error });
     return {
       success: false,
       error: `Failed to settle bet: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -902,7 +900,7 @@ export async function placeBetsAction(data: {
       };
     }
   } catch (error) {
-    console.error("Place bets error:", error);
+    logger.error("Place bets error", { data: error });
     return {
       success: false,
       error: "Failed to place bets. Please try again.",
