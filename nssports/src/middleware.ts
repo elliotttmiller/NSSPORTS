@@ -110,7 +110,8 @@ export async function middleware(request: NextRequest) {
                       pathname.startsWith('/api/sports') ||
                       pathname.startsWith('/api/matches') ||
                       pathname.startsWith('/api/player-props') ||
-                      pathname.startsWith('/api/game-props');
+                      pathname.startsWith('/api/game-props') ||
+                      pathname.startsWith('/api/health'); // Health check endpoint
 
   // Skip auth check for public routes and public APIs
   if (isPublicRoute || isPublicApi) {
