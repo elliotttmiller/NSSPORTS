@@ -59,6 +59,7 @@
 import SportsGameOdds from 'sports-odds-api';
 import { logger } from "./logger";
 import { rateLimiter } from "./rate-limiter";
+import { SOCCER_LEAGUES, QUARTER_PERIODS } from './constants';
 
 // Re-export official SDK types for use in other files
 // SDK provides types through the main namespace
@@ -1007,8 +1008,7 @@ export function extractGameProps(event: any): any[] {
     // NCAAB: Basketball uses HALVES only (no quarters)
     // Filter out any quarter markets (1q, 2q, 3q, 4q) for college basketball
     if (leagueID === 'NCAAB') {
-      const quarterPeriods = ['1q', '2q', '3q', '4q'];
-      if (quarterPeriods.includes(periodID)) {
+      if (QUARTER_PERIODS.includes(periodID as any)) {
         return; // Skip quarter markets for NCAAB
       }
     }
@@ -1017,8 +1017,7 @@ export function extractGameProps(event: any): any[] {
     // NHL uses periods (1p, 2p, 3p), regulation (reg), overtime (ot), shootout (so)
     // Skip quarter/half terminology for hockey
     if (leagueID === 'NHL') {
-      const nonHockeyPeriods = ['1q', '2q', '3q', '4q'];
-      if (nonHockeyPeriods.includes(periodID)) {
+      if (QUARTER_PERIODS.includes(periodID as any)) {
         return; // Skip non-hockey periods
       }
     }
@@ -1036,8 +1035,7 @@ export function extractGameProps(event: any): any[] {
     // Soccer: Filter out non-soccer periods
     // Soccer uses halves (1h, 2h) only
     // Skip quarter/period terminology for soccer
-    const soccerLeagues = ['MLS', 'EPL', 'LA_LIGA', 'BUNDESLIGA', 'IT_SERIE_A', 'FR_LIGUE_1'];
-    if (soccerLeagues.includes(leagueID)) {
+    if (SOCCER_LEAGUES.includes(leagueID as any)) {
       const nonSoccerPeriods = ['1q', '2q', '3q', '4q', '1p', '2p', '3p'];
       if (nonSoccerPeriods.includes(periodID)) {
         return; // Skip non-soccer periods

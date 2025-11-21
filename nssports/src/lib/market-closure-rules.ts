@@ -14,6 +14,7 @@
 
 import type { LeagueID } from '@/types/game';
 import { logger } from './logger';
+import { SOCCER_LEAGUES, QUARTER_PERIODS } from './constants';
 
 export interface GameState {
   leagueId: LeagueID;
@@ -673,7 +674,7 @@ export function isPeriodCompleted(periodID: string, gameState: GameState): boole
     // Inning-specific props (1i through 9i)
     const propInningMatch = propPeriod.match(/^(\d+)i$/);
     if (propInningMatch && propInningMatch[1]) {
-      const propInning = parseInt(propInningMatch[1]);
+      const propInning = parseInt(propInningMatch[1], 10);
       return inning > propInning;
     }
     
@@ -684,8 +685,7 @@ export function isPeriodCompleted(periodID: string, gameState: GameState): boole
   }
   
   // Soccer - Halves (1h, 2h)
-  const soccerLeagues = ['MLS', 'EPL', 'LA_LIGA', 'BUNDESLIGA', 'IT_SERIE_A', 'FR_LIGUE_1'];
-  if (soccerLeagues.includes(leagueId)) {
+  if (SOCCER_LEAGUES.includes(leagueId as any)) {
     if (propPeriod === '1h') {
       // 1H is completed if we're in 2H or later
       return currentPeriod.includes('2') || currentPeriod.includes('second') ||
@@ -704,7 +704,7 @@ export function isPeriodCompleted(periodID: string, gameState: GameState): boole
     
     const propSetMatch = propPeriod.match(/^(\d+)s$/);
     if (propSetMatch && propSetMatch[1]) {
-      const propSet = parseInt(propSetMatch[1]);
+      const propSet = parseInt(propSetMatch[1], 10);
       return currentSet > propSet;
     }
   }
