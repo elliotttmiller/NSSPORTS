@@ -3,36 +3,37 @@ import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import { prisma } from "@/lib/prisma";
 import { JWT_SECRET } from "@/lib/adminAuth";
+import { logger } from '@/lib/logger';
 
 export async function GET() {
-  console.log('[API /api/admin/auth/session] GET - Request received');
+  logger.debug('[API /api/admin/auth/session] GET - Request received');
   try {
     const cookieStore = await cookies();
     const allCookies = cookieStore.getAll();
-    console.log('[API /api/admin/auth/session] All cookies:', allCookies.map(c => c.name).join(', '));
+    logger.debug('[API /api/admin/auth/session] All cookies', { cookies: allCookies.map(c => c.name).join(', ') });
     
     const token = cookieStore.get("admin_token")?.value;
 
-    console.log('[API /api/admin/auth/session] Token present:', !!token);
+    logger.debug('[API /api/admin/auth/session] Token present', { hasToken: !!token });
     if (token) {
-      console.log('[API /api/admin/auth/session] Token preview:', token.substring(0, 20) + '...');
+      logger.debug('[API /api/admin/auth/session] Token preview', { preview: token.substring(0, 20) + '...' });
     }
 
     if (!token) {
-      console.log('[API /api/admin/auth/session] No token found, returning 401');
+      logger.debug('[API /api/admin/auth/session] No token found, returning 401');
       return NextResponse.json(
         { error: "Not authenticated" },
         { status: 401 }
       );
     }
 
-    console.log('[API /api/admin/auth/session] Verifying JWT...');
+    logger.debug('[API /api/admin/auth/session] Verifying JWT...');
     // Verify JWT
     const { payload } = await jwtVerify(token, JWT_SECRET);
-    console.log('[API /api/admin/auth/session] JWT valid, payload:', payload);
+    logger.debug('[API /api/admin/auth/session] JWT valid', { payload });
     
     // Get admin details from database
-    console.log('[API /api/admin/auth/session] Fetching admin from DB, adminId:', payload.adminId);
+    logger.debug('[API /api/admin/auth/session] Fetching admin from DB', { adminId: payload.adminId });
     const admin = await prisma.adminUser.findUnique({
       where: { id: payload.adminId as string },
       select: {
@@ -44,17 +45,17 @@ export async function GET() {
       },
     });
 
-    console.log('[API /api/admin/auth/session] Admin found:', !!admin, 'status:', admin?.status);
+    logger.debug('[API /api/admin/auth/session] Admin found', { found: !!admin, status: admin?.status });
 
     if (!admin || admin.status !== "active") {
-      console.log('[API /api/admin/auth/session] Admin not found or inactive, returning 401');
+      logger.debug('[API /api/admin/auth/session] Admin not found or inactive, returning 401');
       return NextResponse.json(
         { error: "Invalid session" },
         { status: 401 }
       );
     }
 
-    console.log('[API /api/admin/auth/session] Session valid, returning admin data');
+    logger.debug('[API /api/admin/auth/session] Session valid, returning admin data');
     return NextResponse.json({
       admin: {
         id: admin.id,
@@ -64,7 +65,7 @@ export async function GET() {
       },
     });
   } catch (error) {
-    console.error("[API /api/admin/auth/session] Error:", error);
+    logger.error("[API /api/admin/auth/session] Error", error as Error);
     return NextResponse.json(
       { error: "Invalid session" },
       { status: 401 }

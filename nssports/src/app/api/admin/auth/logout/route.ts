@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import { prisma } from "@/lib/prisma";
 import { JWT_SECRET } from "@/lib/adminAuth";
+import { logger } from '@/lib/logger';
 
 export async function POST() {
   try {
@@ -24,7 +25,7 @@ export async function POST() {
         });
       } catch (error) {
         // Token invalid, continue with logout
-        console.error("Logout token verification error:", error);
+        logger.error("Logout token verification error", { data: error });
       }
     }
 
@@ -33,7 +34,7 @@ export async function POST() {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Logout error:", error);
+    logger.error("Logout error", { data: error });
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

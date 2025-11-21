@@ -6,6 +6,7 @@
 import { NextRequest } from 'next/server';
 import { SignJWT, jwtVerify } from 'jose';
 import prisma from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 // Centralized JWT secret - exported so all admin auth files use the same secret
 export const JWT_SECRET = new TextEncoder().encode(
@@ -28,24 +29,24 @@ export async function verifyAdminToken(request: NextRequest): Promise<AdminJWTPa
     const token = request.cookies.get('admin_token')?.value;
     
     if (!token) {
-      console.log('[verifyAdminToken] No admin_token cookie found');
+      logger.info('[verifyAdminToken] No admin_token cookie found');
       return null;
     }
 
     // Verify JWT
     const { payload } = await jwtVerify(token, JWT_SECRET);
     
-    console.log('[verifyAdminToken] Token valid, payload:', payload);
+    logger.info('[verifyAdminToken] Token valid, payload:', payload);
     
     // Type assertion with validation
     if (!payload.adminId || !payload.username || !payload.role) {
-      console.log('[verifyAdminToken] Invalid payload structure');
+      logger.info('[verifyAdminToken] Invalid payload structure');
       return null;
     }
     
     return payload as unknown as AdminJWTPayload;
   } catch (error) {
-    console.error('[verifyAdminToken] Token verification failed:', error);
+    logger.error('[verifyAdminToken] Token verification failed:', error);
     return null;
   }
 }
@@ -57,16 +58,16 @@ export async function verifyAdminToken(request: NextRequest): Promise<AdminJWTPa
  * @returns Admin user data if valid, null if invalid
  */
 export async function getAdminUser(request: NextRequest) {
-  console.log('[getAdminUser] Starting admin authentication check');
+  logger.info('[getAdminUser] Starting admin authentication check');
   
   const payload = await verifyAdminToken(request);
   
   if (!payload) {
-    console.log('[getAdminUser] No valid token payload');
+    logger.info('[getAdminUser] No valid token payload');
     return null;
   }
 
-  console.log('[getAdminUser] Token payload valid, fetching admin from DB, adminId:', payload.adminId);
+  logger.debug('[getAdminUser] Token payload valid, fetching admin from DB', { adminId: payload.adminId });
 
   // Fetch admin from database
   const admin = await prisma.adminUser.findUnique({
@@ -81,11 +82,11 @@ export async function getAdminUser(request: NextRequest) {
   });
 
   if (!admin || admin.status !== 'active') {
-    console.log('[getAdminUser] Admin not found or inactive, admin:', admin);
+    logger.debug('[getAdminUser] Admin not found or inactive', { admin });
     return null;
   }
 
-  console.log('[getAdminUser] Admin authenticated successfully:', admin.username);
+  logger.debug('[getAdminUser] Admin authenticated successfully', { username: admin.username });
   return admin;
 }
 

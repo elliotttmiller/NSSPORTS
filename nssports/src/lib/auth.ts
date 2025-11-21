@@ -3,6 +3,7 @@ import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import prisma from "@/lib/prisma";
 import { z } from "zod";
+import { logger } from '@/lib/logger';
 
 /**
  * NextAuth.js v5 Configuration
@@ -46,13 +47,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
           // Check if account is locked
           if (user.accountLockedUntil && user.accountLockedUntil > new Date()) {
-            console.error(`Account locked until ${user.accountLockedUntil}`);
+            logger.error(`Account locked until ${user.accountLockedUntil}`);
             return null;
           }
 
           // Check if account is active
           if (!user.isActive) {
-            console.error(`Account is inactive: ${username}`);
+            logger.error(`Account is inactive: ${username}`);
             return null;
           }
 
@@ -97,7 +98,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             isAdmin: ['client_admin', 'platform_admin'].includes(user.userType),
           };
         } catch (error) {
-          console.error("Auth error:", error);
+          logger.error("Auth error:", error);
           return null;
         }
       },
@@ -136,7 +137,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               },
             });
           } catch (error) {
-            console.error("Failed to create/verify account:", error);
+            logger.error("Failed to create/verify account:", error);
           }
         }
       }
