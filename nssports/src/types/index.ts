@@ -39,6 +39,7 @@ export interface Game {
   awayScore?: number | null;
   period?: string | null;
   timeRemaining?: string | null;
+  periodDisplay?: string | null; // Human-friendly display for the current period (e.g., "3rd Quarter", "1st Period", "2nd Half")
 }
 
 export interface Team {

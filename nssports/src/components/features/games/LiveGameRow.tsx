@@ -296,7 +296,9 @@ export function LiveGameRow({
                   {/* Use periodDisplay for human-friendly format, fallback to period token */}
                   {(game.periodDisplay || game.period) && (
                     <div className="text-accent font-semibold text-[10px] lg:text-xs">
-                      {game.periodDisplay || game.period}
+                      {game.leagueId === 'NCAAB' && game.periodDisplay
+                        ? game.periodDisplay.replace('Quarter', 'Half')
+                        : game.periodDisplay || game.period}
                     </div>
                   )}
                   {displayTimeRemaining && (
