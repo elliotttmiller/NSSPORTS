@@ -41,6 +41,7 @@ import { logger } from './logger';
 import type { LeagueID } from '@/types/game';
 import {
   getEvents as sdkGetEvents,
+  getAllEvents as sdkGetAllEvents,
   getPlayerProps as sdkGetPlayerProps,
   getGameProps as sdkGetGameProps,
 } from './sportsgameodds-sdk';
@@ -407,6 +408,178 @@ export async function getEventsWithCache(options: {
     Promise.all(promises).catch(error => {
       logger.error('Failed to update caches', error);
       // Don't throw - cache update failure shouldn't break the response
+    });
+
+    return { data: events, source: 'sdk' as const };
+  } finally {
+    inflightFetches.delete(key);
+  }
+}
+
+/**
+ * Fetch ALL events with pagination support and intelligent caching
+ * 
+ * This function handles cases where more than 100 games exist per league
+ * by automatically fetching multiple pages from the SDK.
+ * 
+ * Features:
+ * - Automatic pagination to fetch all available games
+ * - Intelligent caching with TTL
+ * - Deduplication of concurrent fetches
+ * - Rate limit protection
+ * 
+ * @param options Query options for fetching events
+ * @param maxPages Maximum pages to fetch (default: 10 = up to 1000 games)
+ * @returns Object with data array and source
+ */
+export async function getAllEventsWithCache(
+  options: {
+    leagueID?: string;
+    eventIDs?: string | string[];
+    oddsAvailable?: boolean;
+    oddIDs?: string;
+    bookmakerID?: string;
+    includeOpposingOddIDs?: boolean;
+    includeConsensus?: boolean;
+    live?: boolean;
+    finalized?: boolean;
+    limit?: number;
+    startsAfter?: string;
+    startsBefore?: string;
+  },
+  maxPages: number = 10
+) {
+  const key = stableKeyForOptions({ ...options, _getAllEvents: true } as any);
+
+  // Check for in-flight fetch
+  const existing = inflightFetches.get(key);
+  if (existing) {
+    return existing;
+  }
+
+  // Redis cache key for paginated results
+  function redisKeyForOptions(opts: Record<string, any>) {
+    const prefix = `${CachePrefix.LIVE_GAMES}${opts.leagueID || 'all'}`;
+    const stable = stableKeyForOptions({ ...opts, _getAllEvents: true });
+    const hash = createHash('sha1').update(stable).digest('hex');
+    return `${prefix}:all:${hash}`;
+  }
+
+  const skipRedisCache = false;
+
+  // Try Redis cache first
+  if (!skipRedisCache) {
+    const redisKey = redisKeyForOptions(options as any);
+    try {
+      const redisData = await cacheGet<any[]>(redisKey);
+      if (redisData && redisData.length > 0) {
+        logger.debug('[Cache] ✅ Redis hit (paginated):', { key: redisKey, count: redisData.length });
+        return { data: redisData, source: 'redis' as const };
+      }
+    } catch (redisError) {
+      logger.warn('[Cache] Redis check failed (paginated), falling back to Prisma', { error: redisError });
+    }
+  }
+
+  // Try Prisma cache
+  try {
+    const cachedEvents = await getEventsFromCache(options);
+    if (cachedEvents.length > 0) {
+      logger.info(`[Cache] ✅ Prisma cache hit (paginated) for ${options.leagueID || 'all'}: ${cachedEvents.length} games`);
+      
+      // For live queries, ensure we have live games
+      if (options.live === true) {
+        const liveCached = cachedEvents.filter((e: any) => e.status?.live === true);
+        if (liveCached.length > 0) {
+          if (!skipRedisCache) {
+            const redisKey = redisKeyForOptions(options as any);
+            const ttl = CacheTTL.LIVE_GAMES;
+            await cacheSet(redisKey, liveCached, ttl);
+          }
+          return { data: liveCached, source: 'prisma-cache' as const };
+        }
+      } else {
+        if (!skipRedisCache) {
+          const redisKey = redisKeyForOptions(options as any);
+          const ttl = CacheTTL.UPCOMING_GAMES;
+          await cacheSet(redisKey, cachedEvents, ttl);
+        }
+        return { data: cachedEvents, source: 'prisma-cache' as const };
+      }
+    }
+  } catch (cacheError) {
+    logger.warn('Prisma cache check failed (paginated), will fetch from SDK', { error: cacheError });
+  }
+
+  // Fetch from SDK with pagination
+  logger.info(`[SDK] 📡 Fetching ALL events with pagination for ${options.leagueID || 'all'} (max ${maxPages} pages)`);
+  
+  const sdkFetchPromise = (async () => {
+    try {
+      // Default includeConsensus to true if not explicitly set to false
+      const result = await sdkGetAllEvents(
+        { 
+          ...options, 
+          includeConsensus: options.includeConsensus ?? true 
+        },
+        maxPages
+      );
+      
+      const pageCount = result.meta?.pageCount ?? 1;
+      const hasMore = result.meta?.hasMore ?? false;
+      
+      logger.info(`[SDK] ✅ SDK returned ${result.data.length} events across ${pageCount} pages for ${options.leagueID || 'all'}`);
+      
+      if (hasMore) {
+        logger.warn(`[SDK] ⚠️ More data available beyond ${maxPages} pages for ${options.leagueID || 'all'}`);
+      }
+      
+      return { data: result.data, source: 'sdk' as const };
+    } catch (e) {
+      logger.error('[SDK] SDK fetch failed (paginated)', e);
+      throw e;
+    }
+  })();
+
+  // Track in-flight fetch
+  inflightFetches.set(key, sdkFetchPromise as any);
+
+  try {
+    const sdkResult = await sdkFetchPromise;
+    const events = sdkResult.data;
+
+    // Update caches asynchronously
+    const promises: Promise<unknown>[] = [updateEventsCache(events)];
+
+    if (!skipRedisCache) {
+      const ttl = options.live ? CacheTTL.LIVE_GAMES : CacheTTL.UPCOMING_GAMES;
+      
+      if (options.leagueID) {
+        const redisKey = `${CachePrefix.LIVE_GAMES}${options.leagueID}:all:${options.live ? 'live' : 'upcoming'}`;
+        promises.push(cacheSet(redisKey, events, ttl) as any);
+      } else {
+        // Partition by league for better cache management
+        try {
+          const byLeague: Record<string, any[]> = {};
+          for (const ev of events) {
+            const league = (ev.leagueID || 'all').toString().toUpperCase();
+            if (!byLeague[league]) byLeague[league] = [];
+            byLeague[league].push(ev);
+          }
+
+          for (const [league, arr] of Object.entries(byLeague)) {
+            const redisKey = `${CachePrefix.LIVE_GAMES}${league}:all:${options.live ? 'live' : 'upcoming'}`;
+            promises.push(cacheSet(redisKey, arr, ttl) as any);
+          }
+        } catch {
+          const fallbackKey = `${CachePrefix.LIVE_GAMES}all:all:${options.live ? 'live' : 'upcoming'}`;
+          promises.push(cacheSet(fallbackKey, events, ttl) as any);
+        }
+      }
+    }
+
+    Promise.all(promises).catch(error => {
+      logger.error('Failed to update caches (paginated)', error);
     });
 
     return { data: events, source: 'sdk' as const };

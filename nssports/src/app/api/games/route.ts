@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { GameSchema } from '@/lib/schemas/game';
 import { paginatedResponseSchema } from '@/lib/schemas/pagination';
 import { withErrorHandling, ApiErrors, successResponse } from '@/lib/apiResponse';
-import { getEventsWithCache } from '@/lib/hybrid-cache';
+import { getAllEventsWithCache } from '@/lib/hybrid-cache';
 import { transformSDKEvents } from '@/lib/transformers/sportsgameodds-sdk';
 import { logger } from '@/lib/logger';
 import { applyStratifiedSampling } from '@/lib/devDataLimit';
@@ -15,11 +15,12 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 /**
- * Fetch all games using hybrid SDK + Prisma cache (no unstable_cache wrapper needed)
- * The getEventsWithCache function already handles Prisma-level caching with TTL
+ * Fetch all games using hybrid SDK + Prisma cache with pagination support
+ * Uses getAllEventsWithCache to handle cases where >100 games exist per league
+ * The cache handles Prisma + Redis caching with intelligent TTL
  */
 async function getCachedAllGames() {
-  logger.info('[/api/games] Fetching all games (live + upcoming) from hybrid cache');
+  logger.info('[/api/games] Fetching all games (live + upcoming) from hybrid cache with pagination');
   
   // Define time range - look back 6 hours to catch live games that started earlier today
   const now = new Date();
@@ -27,9 +28,9 @@ async function getCachedAllGames() {
   const startsAfter = sixHoursAgo; // Include games that started up to 6 hours ago (live games)
   const startsBefore = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days ahead (1 week)
   
-  // API limit: Maximum 100 games per request (enforced by SportsGameOdds API)
-  // Fetch all available games to ensure proper display across all dates
-  const fetchLimit = 100; // Maximum allowed by API - fetch all available games
+  // ⭐ PAGINATION: Max 10 pages per league (100 games/page = up to 1000 games per league)
+  // This ensures we fetch ALL available games without hitting API limits
+  const maxPages = 10; // Safety limit - prevents infinite loops
   
   logger.info(`Searching for games from ${startsAfter.toISOString()} to ${startsBefore.toISOString()}`);
   
@@ -41,7 +42,7 @@ async function getCachedAllGames() {
   // - includeConsensus: true → CRITICAL: Get bookOdds (real market consensus)
   // Note: NOT using `live` parameter here - we want both live AND upcoming
   const [nbaResult, ncaabResult, nflResult, ncaafResult, nhlResult, mlbResult, atpResult, wtaResult, itfResult] = await Promise.allSettled([
-    getEventsWithCache({ 
+    getAllEventsWithCache({ 
       leagueID: 'NBA',
       finalized: false,                // ✅ OFFICIAL: Exclude finished (includes live + upcoming)
       startsAfter: startsAfter.toISOString(),
@@ -49,9 +50,8 @@ async function getCachedAllGames() {
       oddIDs: MAIN_LINE_ODDIDS,        // ✅ OFFICIAL: Main lines only (ML, spread, total)
       includeOpposingOddIDs: true,     // ✅ OFFICIAL: Auto-include opposing sides
       includeConsensus: true,          // ✅ CRITICAL: Request bookOdds calculations
-      limit: fetchLimit,
-    }),
-    getEventsWithCache({ 
+    }, maxPages),
+    getAllEventsWithCache({ 
       leagueID: 'NCAAB',
       finalized: false,                // ✅ OFFICIAL: Exclude finished (includes live + upcoming)
       startsAfter: startsAfter.toISOString(),
@@ -59,9 +59,8 @@ async function getCachedAllGames() {
       oddIDs: MAIN_LINE_ODDIDS,        // ✅ OFFICIAL: Main lines only (ML, spread, total)
       includeOpposingOddIDs: true,     // ✅ OFFICIAL: Auto-include opposing sides
       includeConsensus: true,          // ✅ CRITICAL: Request bookOdds calculations
-      limit: fetchLimit,
-    }),
-    getEventsWithCache({ 
+    }, maxPages),
+    getAllEventsWithCache({ 
       leagueID: 'NFL',
       finalized: false,                // ✅ OFFICIAL: Exclude finished (includes live + upcoming)
       startsAfter: startsAfter.toISOString(),
@@ -69,9 +68,8 @@ async function getCachedAllGames() {
       oddIDs: MAIN_LINE_ODDIDS,        // ✅ OFFICIAL: Main lines only
       includeOpposingOddIDs: true,     // ✅ OFFICIAL: Auto-include opposing sides
       includeConsensus: true,          // ✅ CRITICAL: Request bookOdds calculations
-      limit: fetchLimit,
-    }),
-    getEventsWithCache({ 
+    }, maxPages),
+    getAllEventsWithCache({ 
       leagueID: 'NCAAF',
       finalized: false,                // ✅ OFFICIAL: Exclude finished (includes live + upcoming)
       startsAfter: startsAfter.toISOString(),
@@ -79,9 +77,8 @@ async function getCachedAllGames() {
       oddIDs: MAIN_LINE_ODDIDS,        // ✅ OFFICIAL: Main lines only
       includeOpposingOddIDs: true,     // ✅ OFFICIAL: Auto-include opposing sides
       includeConsensus: true,          // ✅ CRITICAL: Request bookOdds calculations
-      limit: fetchLimit,
-    }),
-    getEventsWithCache({ 
+    }, maxPages),
+    getAllEventsWithCache({ 
       leagueID: 'NHL',
       finalized: false,                // ✅ OFFICIAL: Exclude finished (includes live + upcoming)
       startsAfter: startsAfter.toISOString(),
@@ -89,9 +86,8 @@ async function getCachedAllGames() {
       oddIDs: MAIN_LINE_ODDIDS,        // ✅ OFFICIAL: Main lines only
       includeOpposingOddIDs: true,     // ✅ OFFICIAL: Auto-include opposing sides
       includeConsensus: true,          // ✅ CRITICAL: Request bookOdds calculations
-      limit: fetchLimit,
-    }),
-    getEventsWithCache({ 
+    }, maxPages),
+    getAllEventsWithCache({ 
       leagueID: 'MLB',
       finalized: false,                // ✅ OFFICIAL: Exclude finished (includes live + upcoming)
       startsAfter: startsAfter.toISOString(),
@@ -99,9 +95,8 @@ async function getCachedAllGames() {
       oddIDs: MAIN_LINE_ODDIDS,        // ✅ OFFICIAL: Main lines only
       includeOpposingOddIDs: true,     // ✅ OFFICIAL: Auto-include opposing sides
       includeConsensus: true,          // ✅ CRITICAL: Request bookOdds calculations
-      limit: fetchLimit,
-    }),
-    getEventsWithCache({ 
+    }, maxPages),
+    getAllEventsWithCache({ 
       leagueID: 'ATP',
       finalized: false,                // ✅ OFFICIAL: Exclude finished (includes live + upcoming)
       startsAfter: startsAfter.toISOString(),
@@ -109,9 +104,8 @@ async function getCachedAllGames() {
       oddIDs: MAIN_LINE_ODDIDS,        // ✅ OFFICIAL: Main lines only (moneyline for tennis)
       includeOpposingOddIDs: true,     // ✅ OFFICIAL: Auto-include opposing sides
       includeConsensus: true,          // ✅ CRITICAL: Request bookOdds calculations
-      limit: fetchLimit,
-    }),
-    getEventsWithCache({ 
+    }, maxPages),
+    getAllEventsWithCache({ 
       leagueID: 'WTA',
       finalized: false,                // ✅ OFFICIAL: Exclude finished (includes live + upcoming)
       startsAfter: startsAfter.toISOString(),
@@ -119,9 +113,8 @@ async function getCachedAllGames() {
       oddIDs: MAIN_LINE_ODDIDS,        // ✅ OFFICIAL: Main lines only (moneyline for tennis)
       includeOpposingOddIDs: true,     // ✅ OFFICIAL: Auto-include opposing sides
       includeConsensus: true,          // ✅ CRITICAL: Request bookOdds calculations
-      limit: fetchLimit,
-    }),
-    getEventsWithCache({ 
+    }, maxPages),
+    getAllEventsWithCache({ 
       leagueID: 'ITF',
       finalized: false,                // ✅ OFFICIAL: Exclude finished (includes live + upcoming)
       startsAfter: startsAfter.toISOString(),
@@ -129,8 +122,7 @@ async function getCachedAllGames() {
       oddIDs: MAIN_LINE_ODDIDS,        // ✅ OFFICIAL: Main lines only (moneyline for tennis)
       includeOpposingOddIDs: true,     // ✅ OFFICIAL: Auto-include opposing sides
       includeConsensus: true,          // ✅ CRITICAL: Request bookOdds calculations
-      limit: fetchLimit,
-    }),
+    }, maxPages),
   ]);
   
   const nbaEvents = nbaResult.status === 'fulfilled' ? nbaResult.value.data : [];
@@ -145,7 +137,7 @@ async function getCachedAllGames() {
   
   const allEvents = [...nbaEvents, ...ncaabEvents, ...nflEvents, ...ncaafEvents, ...nhlEvents, ...mlbEvents, ...atpEvents, ...wtaEvents, ...itfEvents];
   
-  logger.info(`Fetched ${allEvents.length} total events from hybrid cache`);
+  logger.info(`Fetched ${allEvents.length} total events from hybrid cache (with pagination)`);
   logger.info(`Events by league - NBA: ${nbaEvents.length}, NCAAB: ${ncaabEvents.length}, NFL: ${nflEvents.length}, NCAAF: ${ncaafEvents.length}, NHL: ${nhlEvents.length}, MLB: ${mlbEvents.length}, ATP: ${atpEvents.length}, WTA: ${wtaEvents.length}, ITF: ${itfEvents.length}`);
   return allEvents;
 }
