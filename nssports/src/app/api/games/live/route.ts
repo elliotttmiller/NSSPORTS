@@ -199,7 +199,17 @@ export async function GET() {
 
         const statusDisplayLong = getNested(src, ['status', 'displayLong']);
         const statusDisplay = getNested(src, ['status', 'display']);
-        const periodDisplay = g.periodDisplay ?? (typeof statusDisplayLong === 'string' ? statusDisplayLong : (typeof statusDisplay === 'string' ? statusDisplay : undefined));
+        let periodDisplay = g.periodDisplay ?? (typeof statusDisplayLong === 'string' ? statusDisplayLong : (typeof statusDisplay === 'string' ? statusDisplay : undefined));
+
+        // Explicit handling for NCAA Basketball games
+        if (g.leagueId === 'ncaab') {
+          const periodNumber = parseInt(g.period ?? '', 10);
+          if (periodNumber === 1) {
+            periodDisplay = '1st Half';
+          } else if (periodNumber === 2) {
+            periodDisplay = '2nd Half';
+          }
+        }
 
         const timeRemaining = g.timeRemaining ?? parseClockFromStatus(getNested(src, ['status'])) ?? undefined;
 
