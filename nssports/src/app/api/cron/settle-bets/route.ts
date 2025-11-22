@@ -23,6 +23,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { settleAllFinishedGames } from "@/services/bet-settlement";
 import { syncFinishedGames } from "@/scripts/sync-game-status";
+import { logger } from "@/lib/logger";
 
 /**
  * GET /api/cron/settle-bets
@@ -36,28 +37,33 @@ export async function GET(request: NextRequest) {
     const cronSecret = process.env.CRON_SECRET || "dev-secret-change-in-production";
     
     if (authHeader !== `Bearer ${cronSecret}`) {
-      console.warn("[settle-bets cron] Unauthorized access attempt");
+      logger.warn("[settle-bets cron] Unauthorized access attempt");
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
       );
     }
 
-    console.log("[settle-bets cron] Starting settlement run...");
+    logger.info("[settle-bets cron] Starting settlement run...");
     const startTime = Date.now();
 
     // STEP 1: Sync game status from SDK (NEW - CRITICAL)
-    console.log("[settle-bets cron] Step 1: Syncing game status from SDK...");
+    logger.info("[settle-bets cron] Step 1: Syncing game status from SDK...");
     const syncResult = await syncFinishedGames();
-    console.log("[settle-bets cron] Game sync complete", syncResult);
+    logger.info("[settle-bets cron] Game sync complete", {
+      gamesChecked: syncResult.gamesChecked,
+      gamesUpdated: syncResult.gamesUpdated,
+      betsSettled: syncResult.betsSettled,
+      errors: syncResult.errors.length
+    });
 
     // STEP 2: Run settlement process (catches any games missed by sync)
-    console.log("[settle-bets cron] Step 2: Running settlement for all finished games...");
+    logger.info("[settle-bets cron] Step 2: Running settlement for all finished games...");
     const settlementResult = await settleAllFinishedGames();
 
     const duration = Date.now() - startTime;
 
-    console.log("[settle-bets cron] Settlement run completed", {
+    logger.info("[settle-bets cron] Settlement run completed", {
       sync: {
         gamesChecked: syncResult.gamesChecked,
         gamesUpdated: syncResult.gamesUpdated,

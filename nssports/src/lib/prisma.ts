@@ -18,8 +18,7 @@ const basePrisma = new PrismaClient({
 
 // Add connection retry logic
 basePrisma.$connect().catch((err) => {
-  console.error('Initial Prisma connection failed:', err);
-  console.log('Will retry on next query...');
+  logger.error('Initial Prisma connection failed', err);
 });
 
 // Extend Prisma to automatically create PlayerTransaction records when bets are placed
@@ -32,8 +31,7 @@ function createPrismaClient() {
           
           // After bet is created, create transaction record for agent dashboard
           try {
-            console.log('\n========== [TRANSACTION AUTO-CREATE] START ==========');
-            logger.info('[TRANSACTION AUTO-CREATE] Bet created, finding user info', {
+            logger.debug('[TRANSACTION AUTO-CREATE] Bet created, finding user info', {
               betId: result.id,
               userId: result.userId,
               stake: result.stake,
@@ -55,10 +53,9 @@ function createPrismaClient() {
             });
 
             if (!user || !user.parentAgentId) {
-              logger.warn('[TRANSACTION AUTO-CREATE] User not found or has no parent agent', {
+              logger.debug('[TRANSACTION AUTO-CREATE] User not found or has no parent agent', {
                 userId: result.userId
               });
-              console.log('========== [TRANSACTION AUTO-CREATE] END ==========\n');
               return result;
             }
 
@@ -130,19 +127,17 @@ function createPrismaClient() {
               }
             });
 
-            logger.info('[TRANSACTION AUTO-CREATE] PlayerTransaction created', {
+            logger.debug('[TRANSACTION AUTO-CREATE] PlayerTransaction created', {
               transactionId: transaction.id,
               playerId: dashboardPlayer.id,
               amount: -Number(result.stake)
             });
-            console.log('========== [TRANSACTION AUTO-CREATE] END ==========\n');
 
           } catch (error) {
             logger.error('[TRANSACTION AUTO-CREATE] Failed to create transaction', {
               error: error instanceof Error ? error.message : 'Unknown error',
               betId: result.id
             });
-            console.log('========== [TRANSACTION AUTO-CREATE] END ==========\n');
           }
 
           return result;

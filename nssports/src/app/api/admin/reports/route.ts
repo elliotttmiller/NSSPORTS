@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
 import { prisma } from "@/lib/prisma";
+import { logger } from "@/lib/logger";
 
 const JWT_SECRET = new TextEncoder().encode(
   process.env.ADMIN_JWT_SECRET || "your-admin-secret-key-change-in-production"
@@ -17,23 +18,135 @@ export async function POST(req: NextRequest) {
     await jwtVerify(token, JWT_SECRET);
 
     const body = await req.json();
-    const { reportType, dateFrom: _dateFrom, dateTo: _dateTo, format } = body;
+    const { reportType, dateFrom, dateTo, format } = body;
 
-    // TODO: Implement actual report file generation (CSV/PDF)
-    // For now, return download URL placeholder
+    // Fetch data for report
+    const reportData = await generateReportData(reportType, dateFrom, dateTo);
+    
+    // Generate CSV format
+    if (format === 'csv') {
+      const csv = generateCSV(reportData, reportType);
+      
+      return new NextResponse(csv, {
+        headers: {
+          'Content-Type': 'text/csv',
+          'Content-Disposition': `attachment; filename="${reportType}_report_${Date.now()}.csv"`,
+        },
+      });
+    }
+
+    // For PDF, return JSON data structure (PDF generation would require a library like pdfkit or puppeteer)
+    // For now, return structured data that frontend can display or convert to PDF
     return NextResponse.json({
       success: true,
       reportId: `report_${Date.now()}`,
-      downloadUrl: `/api/admin/reports/download/${reportType}_${Date.now()}.${format}`,
+      reportType,
+      format,
+      data: reportData,
       generatedAt: new Date().toISOString(),
+      message: format === 'pdf' 
+        ? 'PDF generation requires additional library installation. Returning structured data for frontend PDF generation.'
+        : 'Report generated successfully'
     });
   } catch (error) {
-    console.error("Report generation error:", error);
+    logger.error("Report generation error", error);
     return NextResponse.json(
       { error: "Failed to generate report" },
       { status: 500 }
     );
   }
+}
+
+// Helper function to generate CSV from report data
+function generateCSV(data: Record<string, unknown>, reportType: string): string {
+  if (reportType === 'financial') {
+    const headers = ['Metric', 'Value'];
+    const rows = Object.entries(data).map(([key, value]) => {
+      const formattedKey = key.replace(/([A-Z])/g, ' $1').trim();
+      return `"${formattedKey}","${value}"`;
+    });
+    return [headers.join(','), ...rows].join('\n');
+  }
+  
+  if (reportType === 'agents' && data.agents && Array.isArray(data.agents)) {
+    const headers = ['Username', 'Display Name', 'Status', 'Players', 'Balance'];
+    const rows = (data.agents as Array<{
+      username: string;
+      displayName: string;
+      status: string;
+      _count: { players: number };
+      balance: number;
+    }>).map(agent => 
+      `"${agent.username}","${agent.displayName}","${agent.status}","${agent._count.players}","${agent.balance}"`
+    );
+    return [headers.join(','), ...rows].join('\n');
+  }
+  
+  // Default: convert object to simple CSV
+  const headers = ['Key', 'Value'];
+  const rows = Object.entries(data).map(([key, value]) => 
+    `"${key}","${JSON.stringify(value)}"`
+  );
+  return [headers.join(','), ...rows].join('\n');
+}
+
+// Helper function to fetch report data
+async function generateReportData(
+  reportType: string, 
+  dateFrom?: string, 
+  dateTo?: string
+): Promise<Record<string, unknown>> {
+  const filters: { placedAt?: { gte?: Date; lte?: Date } } = {};
+  if (dateFrom) filters.placedAt = { gte: new Date(dateFrom) };
+  if (dateTo) filters.placedAt = { ...filters.placedAt, lte: new Date(dateTo) };
+
+  if (reportType === 'financial') {
+    const [totalPlayerBets, totalAgents, totalPlayers] = await Promise.all([
+      prisma.playerBet.aggregate({
+        _sum: { amount: true, potentialWin: true },
+        _count: true,
+        where: filters
+      }),
+      prisma.agent.count(),
+      prisma.dashboardPlayer.count(),
+    ]);
+
+    const totalDeposits = await prisma.playerTransaction.aggregate({
+      _sum: { amount: true },
+      where: { type: "deposit", ...filters },
+    });
+
+    const totalWagered = totalPlayerBets._sum.amount || 0;
+    const totalPayouts = await prisma.playerBet.aggregate({
+      _sum: { potentialWin: true },
+      where: { status: "won", ...filters },
+    });
+
+    const totalRevenue = totalDeposits._sum.amount || 0;
+    const totalPayoutsAmount = totalPayouts._sum.potentialWin || 0;
+    const netProfit = totalRevenue - totalPayoutsAmount;
+
+    return {
+      totalRevenue: Math.round(totalRevenue * 100) / 100,
+      totalPayouts: Math.round(totalPayoutsAmount * 100) / 100,
+      netProfit: Math.round(netProfit * 100) / 100,
+      totalWagered: Math.round(totalWagered * 100) / 100,
+      totalBets: totalPlayerBets._count || 0,
+      totalAgents,
+      totalPlayers,
+    };
+  }
+
+  if (reportType === 'agents') {
+    const agents = await prisma.agent.findMany({
+      include: {
+        _count: { select: { players: true } },
+      },
+    });
+    return { agents };
+  }
+
+  return { message: 'Report type not implemented' };
 }
 
 export async function GET(req: NextRequest) {
@@ -83,6 +196,44 @@ export async function GET(req: NextRequest) {
       const totalPayoutsAmount = totalPayouts._sum.potentialWin || 0;
       const netProfit = totalRevenue - totalPayoutsAmount;
 
+      // Calculate growth from previous period (30 days ago)
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const sixtyDaysAgo = new Date();
+      sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+
+      const [previousDeposits, previousPayouts] = await Promise.all([
+        prisma.playerTransaction.aggregate({
+          _sum: { amount: true },
+          where: { 
+            type: "deposit",
+            createdAt: { gte: sixtyDaysAgo, lt: thirtyDaysAgo }
+          },
+        }),
+        prisma.playerBet.aggregate({
+          _sum: { potentialWin: true },
+          where: { 
+            status: "won",
+            placedAt: { gte: sixtyDaysAgo, lt: thirtyDaysAgo }
+          },
+        })
+      ]);
+
+      const previousRevenue = previousDeposits._sum.amount || 0;
+      const previousPayoutsAmount = previousPayouts._sum.potentialWin || 0;
+      const previousProfit = previousRevenue - previousPayoutsAmount;
+
+      // Calculate growth percentages
+      const revenueGrowth = previousRevenue > 0 
+        ? ((totalRevenue - previousRevenue) / previousRevenue) * 100 
+        : 0;
+      const payoutsGrowth = previousPayoutsAmount > 0 
+        ? ((totalPayoutsAmount - previousPayoutsAmount) / previousPayoutsAmount) * 100 
+        : 0;
+      const profitGrowth = previousProfit > 0 
+        ? ((netProfit - previousProfit) / previousProfit) * 100 
+        : 0;
+
       reportData = {
         totalRevenue: Math.round(totalRevenue * 100) / 100,
         totalPayouts: Math.round(totalPayoutsAmount * 100) / 100,
@@ -91,9 +242,9 @@ export async function GET(req: NextRequest) {
         totalBets: totalPlayerBets._count || 0,
         totalAgents,
         totalPlayers,
-        revenueGrowth: 0, // TODO: Calculate growth from previous period
-        payoutsGrowth: 0,
-        profitGrowth: 0,
+        revenueGrowth: Math.round(revenueGrowth * 100) / 100,
+        payoutsGrowth: Math.round(payoutsGrowth * 100) / 100,
+        profitGrowth: Math.round(profitGrowth * 100) / 100,
       };
     } else if (reportType === "agents") {
       // Get agent statistics

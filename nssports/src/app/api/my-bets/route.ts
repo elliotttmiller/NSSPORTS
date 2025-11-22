@@ -756,7 +756,7 @@ export async function POST(req: Request) {
 
       // Auto-create account if it doesn't exist (for legacy users)
       if (!account) {
-        console.warn("[POST /api/my-bets] Account not found, creating new account for user:", userId);
+        logger.warn("[POST /api/my-bets] Account not found, creating new account for user", { userId });
         account = await tx.account.create({
           data: {
             userId,
@@ -764,7 +764,7 @@ export async function POST(req: Request) {
           },
           select: { balance: true },
         });
-        console.log("[POST /api/my-bets] Account created with balance:", account.balance);
+        logger.info("[POST /api/my-bets] Account created", { balance: account.balance });
       }
 
       const currentBalance = Number(account.balance);

@@ -36,22 +36,15 @@ export default function AdminDashboardLayout({ children }: AdminDashboardLayoutP
   const router = useRouter();
   const pathname = usePathname();
 
-  console.log('[AdminDashboardLayout] Render - pathname:', pathname, 'isLoading:', isLoading, 'isAuthenticated:', isAuthenticated, 'admin:', admin);
-
   // Redirect to login if not authenticated
   useEffect(() => {
-    console.log('[AdminDashboardLayout] useEffect - isLoading:', isLoading, 'isAuthenticated:', isAuthenticated);
     if (!isLoading && !isAuthenticated) {
-      console.log('[AdminDashboardLayout] useEffect - Not authenticated, redirecting to /admin/login');
       router.push("/admin/login");
-    } else if (!isLoading && isAuthenticated) {
-      console.log('[AdminDashboardLayout] useEffect - Authenticated, staying on dashboard');
     }
   }, [isLoading, isAuthenticated, router]);
 
   // Show loading state
   if (isLoading) {
-    console.log('[AdminDashboardLayout] Showing loading state');
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -64,11 +57,8 @@ export default function AdminDashboardLayout({ children }: AdminDashboardLayoutP
 
   // Don't render if not authenticated
   if (!isAuthenticated || !admin) {
-    console.log('[AdminDashboardLayout] Not authenticated or no admin, returning null');
     return null;
   }
-
-  console.log('[AdminDashboardLayout] Rendering full dashboard layout');
 
   return (
     <div className="min-h-screen bg-background">

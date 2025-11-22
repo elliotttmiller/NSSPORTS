@@ -14,7 +14,7 @@
 
 import type { LeagueID } from '@/types/game';
 import { logger } from './logger';
-import { SOCCER_LEAGUES, QUARTER_PERIODS } from './constants';
+import { SOCCER_LEAGUES } from './constants';
 
 export interface GameState {
   leagueId: LeagueID;
@@ -685,7 +685,7 @@ export function isPeriodCompleted(periodID: string, gameState: GameState): boole
   }
   
   // Soccer - Halves (1h, 2h)
-  if (SOCCER_LEAGUES.includes(leagueId as any)) {
+  if (SOCCER_LEAGUES.includes(leagueId as typeof SOCCER_LEAGUES[number])) {
     if (propPeriod === '1h') {
       // 1H is completed if we're in 2H or later
       return currentPeriod.includes('2') || currentPeriod.includes('second') ||

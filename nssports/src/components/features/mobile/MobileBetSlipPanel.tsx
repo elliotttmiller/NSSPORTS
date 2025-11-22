@@ -29,20 +29,6 @@ export function MobileBetSlipPanel() {
   const handlePlaceBets = async () => {
     if (betSlip.bets.length === 0) return;
 
-    console.log(`[MobileBetSlip] 🎯 Starting bet placement`, {
-      betType: betSlip.betType,
-      teaserType: betSlip.teaserType,
-      betCount: betSlip.bets.length,
-      bets: betSlip.bets.map(b => ({
-        id: b.id,
-        betType: b.betType,
-        selection: b.selection,
-        line: b.line,
-        leagueId: b.game?.leagueId,
-        hasGame: !!b.game,
-      }))
-    });
-
     // Validate betting rules before placement (treat custom as parlay for validation)
     const stakes = betSlip.bets.reduce((acc, bet) => {
       acc[bet.id] = bet.stake || 0;
@@ -68,12 +54,6 @@ export function MobileBetSlipPanel() {
           ? (betSlip.teaserType as import("@/types/teaser").TeaserType)
           : undefined;
 
-    console.log(`[MobileBetSlip] 🔍 About to validate`, {
-      validationType,
-      teaserType,
-      hasTeaserType: !!teaserType,
-    });
-
     const violation = validateBetPlacement(
       betSlip.bets, 
       validationType, 
@@ -81,10 +61,7 @@ export function MobileBetSlipPanel() {
         teaserType
     );
 
-    console.log(`[MobileBetSlip] 📊 Validation result:`, violation);
-
     if (violation) {
-      console.log(`[MobileBetSlip] ❌ Validation failed:`, violation);
       toast.error(violation.message, {
         description: violation.rule.replace(/_/g, " "),
         duration: 4000,

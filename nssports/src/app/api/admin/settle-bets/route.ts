@@ -13,6 +13,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { settleBet, settleGameBets, settleAllFinishedGames } from "@/services/bet-settlement";
 import { logger } from '@/lib/logger';
+import prisma from '@/lib/prisma';
 
 /**
  * POST /api/admin/settle-bets
@@ -33,13 +34,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // TODO: Add admin role check
-    // if (session.user.role !== 'admin') {
-    //   return NextResponse.json(
-    //     { error: "Forbidden - admin access required" },
-    //     { status: 403 }
-    //   );
-    // }
+    // Check admin role
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { userType: true }
+    });
+
+    if (!user || (user.userType !== 'platform_admin' && user.userType !== 'client_admin')) {
+      logger.warn(`[admin/settle-bets] Unauthorized access attempt by user ${session.user.id} with type ${user?.userType}`);
+      return NextResponse.json(
+        { error: "Forbidden - admin access required" },
+        { status: 403 }
+      );
+    }
 
     const body = await request.json();
 

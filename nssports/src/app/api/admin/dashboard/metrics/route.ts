@@ -84,9 +84,29 @@ export async function GET() {
       }),
     ]);
 
-    // Calculate today's deposits and withdrawals (placeholder - you may need transaction tracking)
-    const todayDeposits = 0; // TODO: Implement transaction tracking
-    const todayWithdrawals = 0; // TODO: Implement transaction tracking
+    // Calculate today's deposits and withdrawals from PlayerTransaction table
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    
+    const [depositTransactions, withdrawalTransactions] = await Promise.all([
+      prisma.playerTransaction.aggregate({
+        where: {
+          type: { in: ['deposit', 'balance_added', 'credit'] },
+          createdAt: { gte: startOfToday }
+        },
+        _sum: { amount: true }
+      }),
+      prisma.playerTransaction.aggregate({
+        where: {
+          type: { in: ['withdrawal', 'balance_deducted', 'debit'] },
+          createdAt: { gte: startOfToday }
+        },
+        _sum: { amount: true }
+      })
+    ]);
+
+    const todayDeposits = Math.abs(depositTransactions._sum.amount || 0);
+    const todayWithdrawals = Math.abs(withdrawalTransactions._sum.amount || 0);
 
     // Calculate today's GGR (bet stake - payouts)
     const todayGGR = todayBets.reduce((sum, bet) => {

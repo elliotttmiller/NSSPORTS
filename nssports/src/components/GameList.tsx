@@ -110,7 +110,6 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange, byp
 
   // Manual refresh handler - forces cache bypass
   const handleRefresh = useCallback(async () => {
-    console.log('[GameList] 🔄 Refreshing with cache bypass for fresh odds');
     await refetch();
   }, [refetch]);
 
@@ -328,7 +327,6 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange, byp
     );
     
     if (!sportHasGamesOnDate) {
-      console.log(`[GameList] Selected sport "${selectedSport}" has no games on ${selectedDate}, resetting to "all"`);
       setSelectedSport("all");
     }
   }, [selectedDate, selectedSport, availableSports]);
