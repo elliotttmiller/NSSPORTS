@@ -1,4 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
 import { logger } from './logger';
 
 // PrismaClient is attached to the `global` object in development to prevent
@@ -7,17 +10,22 @@ import { logger } from './logger';
 
 const globalForPrisma = global as unknown as { prisma: ReturnType<typeof createPrismaClient> };
 
-// Validate DATABASE_URL exists
-if (!process.env.DATABASE_URL) {
-  throw new Error('DATABASE_URL environment variable is required but not set');
+// Load and validate database URL (allow DIRECT_URL as a fallback for migrations)
+const DATABASE_URL = process.env.DATABASE_URL || process.env.DIRECT_URL;
+if (!DATABASE_URL) {
+  throw new Error('DATABASE_URL (or DIRECT_URL) environment variable is required but not set');
 }
 
 const basePrisma = new PrismaClient({
+  // Use the PostgreSQL adapter when Prisma is running with the "client"
+  // engine type (no Rust/binary engine). The adapter provides the
+  // necessary database driver so PrismaClient can construct successfully.
+  adapter: new PrismaPg({ connectionString: DATABASE_URL }),
   log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
 });
 
 // Add connection retry logic
-basePrisma.$connect().catch((err) => {
+basePrisma.$connect().catch((err: unknown) => {
   logger.error('Initial Prisma connection failed', err);
 });
 
@@ -26,7 +34,7 @@ function createPrismaClient() {
   return basePrisma.$extends({
     query: {
       bet: {
-        async create({ args, query }) {
+        async create({ args, query }: { args: any; query: (args: any) => Promise<any> }) {
           const result = await query(args);
           
           // After bet is created, create transaction record for agent dashboard

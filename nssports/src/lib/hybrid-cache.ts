@@ -677,39 +677,50 @@ async function updateEventsCache(events: any[]) {
       };
       
       // Ensure teams exist in database first
+      // Defensive: compute safe fallbacks so Prisma never receives undefined for required fields
+      const homeNameLong = homeTeam?.names?.long ?? homeTeam?.name ?? String(homeTeam?.teamID ?? '');
+      const homeShortName = homeTeam?.names?.short ?? homeNameLong ?? String(homeTeam?.teamID ?? '');
+      const homeLogo = getTeamLogoPath(homeTeam.teamID, String(leagueId));
+      const homeRecord = homeTeam.standings?.record ?? null;
+
       await prisma.team.upsert({
         where: { id: homeTeam.teamID },
         update: {
-          name: homeTeam.names.long,
-          shortName: homeTeam.names.short,
-          logo: getTeamLogoPath(homeTeam.teamID, leagueId),
-          record: homeTeam.standings?.record || null,
+          name: homeNameLong,
+          shortName: homeShortName,
+          logo: homeLogo,
+          record: homeRecord,
         },
         create: {
           id: homeTeam.teamID,
-          name: homeTeam.names.long,
-          shortName: homeTeam.names.short,
-          logo: getTeamLogoPath(homeTeam.teamID, leagueId),
-          leagueId: leagueId,
-          record: homeTeam.standings?.record || null,
+          name: homeNameLong,
+          shortName: homeShortName,
+          logo: homeLogo,
+          leagueId: String(leagueId),
+          record: homeRecord,
         },
       });
-      
+
+      const awayNameLong = awayTeam?.names?.long ?? awayTeam?.name ?? String(awayTeam?.teamID ?? '');
+      const awayShortName = awayTeam?.names?.short ?? awayNameLong ?? String(awayTeam?.teamID ?? '');
+      const awayLogo = getTeamLogoPath(awayTeam.teamID, String(leagueId));
+      const awayRecord = awayTeam.standings?.record ?? null;
+
       await prisma.team.upsert({
         where: { id: awayTeam.teamID },
         update: {
-          name: awayTeam.names.long,
-          shortName: awayTeam.names.short,
-          logo: getTeamLogoPath(awayTeam.teamID, leagueId),
-          record: awayTeam.standings?.record || null,
+          name: awayNameLong,
+          shortName: awayShortName,
+          logo: awayLogo,
+          record: awayRecord,
         },
         create: {
           id: awayTeam.teamID,
-          name: awayTeam.names.long,
-          shortName: awayTeam.names.short,
-          logo: getTeamLogoPath(awayTeam.teamID, leagueId),
-          leagueId: leagueId,
-          record: awayTeam.standings?.record || null,
+          name: awayNameLong,
+          shortName: awayShortName,
+          logo: awayLogo,
+          leagueId: String(leagueId),
+          record: awayRecord,
         },
       });
       

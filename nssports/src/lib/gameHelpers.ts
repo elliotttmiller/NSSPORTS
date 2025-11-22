@@ -6,6 +6,8 @@
  */
 
 import prisma from "@/lib/prisma";
+// Prisma transaction callback uses an internal client shape in Prisma v7.
+// We'll accept `any` here for the tx parameter to avoid type mismatches.
 import type { Game } from "@/types";
 import { getEvents } from "@/lib/sportsgameodds-sdk";
 import { transformSDKEvents } from "@/lib/transformers/sportsgameodds-sdk";
@@ -62,7 +64,9 @@ export async function ensureGameExists(game: Game): Promise<string> {
 
   // Game doesn't exist, need to create it with all related data
   // Use a transaction to ensure atomicity
-  await prisma.$transaction(async (tx) => {
+  // NOTE: let Prisma infer the transaction client type to match runtime client shape
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await prisma.$transaction(async (tx: any) => {
     // Ensure league exists
     const sportIdMap: Record<string, string> = {
       NBA: 'basketball',
@@ -138,14 +142,14 @@ export async function ensureGameExists(game: Game): Promise<string> {
       create: {
         id: game.homeTeam.id,
         name: game.homeTeam.name,
-        shortName: game.homeTeam.shortName,
+        shortName: game.homeTeam.shortName ?? game.homeTeam.name ?? game.homeTeam.id,
         logo: game.homeTeam.logo || '',
         record: game.homeTeam.record,
         leagueId: game.leagueId,
       },
       update: {
         name: game.homeTeam.name,
-        shortName: game.homeTeam.shortName,
+        shortName: game.homeTeam.shortName ?? game.homeTeam.name ?? game.homeTeam.id,
         logo: game.homeTeam.logo || '',
         record: game.homeTeam.record,
       },
@@ -157,14 +161,14 @@ export async function ensureGameExists(game: Game): Promise<string> {
       create: {
         id: game.awayTeam.id,
         name: game.awayTeam.name,
-        shortName: game.awayTeam.shortName,
+        shortName: game.awayTeam.shortName ?? game.awayTeam.name ?? game.awayTeam.id,
         logo: game.awayTeam.logo || '',
         record: game.awayTeam.record,
         leagueId: game.leagueId,
       },
       update: {
         name: game.awayTeam.name,
-        shortName: game.awayTeam.shortName,
+        shortName: game.awayTeam.shortName ?? game.awayTeam.name ?? game.awayTeam.id,
         logo: game.awayTeam.logo || '',
         record: game.awayTeam.record,
       },

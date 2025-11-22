@@ -1,11 +1,14 @@
 generator client {
-  provider = "prisma-client-js"
+  provider   = "prisma-client-js"
+  // Use the binary engine to avoid requiring an adapter when instantiating
+  // PrismaClient. In Prisma v7 the `client` engine requires an `adapter` or
+  // `accelerateUrl`; setting `engineType = "binary"` ensures the classic
+  // binary query engine is used instead.
+  engineType = "binary"
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
 }
 
 model User {

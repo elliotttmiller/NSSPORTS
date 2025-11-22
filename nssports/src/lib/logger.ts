@@ -46,7 +46,19 @@ class Logger {
     
     if (this.isProduction) {
       // Production: default to 'warn' (only warnings and errors)
-      this.logLevel = envLogLevel || 'warn';
+      // During Next.js prerender/build we may want to silence info logs to
+      // avoid noisy output — detect common indicators and raise threshold.
+      const prerenderFlag = Boolean(
+        process.env.PRERENDER === 'true' ||
+        process.env.SILENCE_BUILD_INFO === 'true' ||
+        (process.env.NEXT_PHASE && typeof process.env.NEXT_PHASE === 'string')
+      );
+
+      const baseLevel: LogLevel = envLogLevel || 'warn';
+      // If we're in a prerender/build phase, don't allow a lower threshold than 'warn'
+      this.logLevel = prerenderFlag && this.levelPriority[baseLevel] < this.levelPriority['warn']
+        ? 'warn'
+        : baseLevel;
     } else {
       // Development: default to 'debug' (all logs)
       this.logLevel = envLogLevel || 'debug';
