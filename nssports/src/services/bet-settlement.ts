@@ -1110,7 +1110,7 @@ export async function settleIfBet(bet: {
   legs: unknown;
   metadata?: { condition?: string }
 }): Promise<SettlementResult | null> {
-  const legs = bet.legs ? JSON.parse(JSON.stringify(bet.legs)) : [];
+  const legs = Array.isArray(bet.legs) ? bet.legs : JSON.parse(bet.legs as string);
   const condition = bet.metadata?.condition || "if_win_only";
 
   let currentStake = bet.stake;
@@ -1217,7 +1217,7 @@ export async function settleReverseBet(bet: {
   legs: unknown;
   metadata?: { condition?: string }
 }): Promise<SettlementResult | null> {
-  // Parse legs
+  // Parse legs consistently with settleIfBet
   const legs = Array.isArray(bet.legs) ? bet.legs : JSON.parse(bet.legs as string);
   
   if (legs.length !== 2) {

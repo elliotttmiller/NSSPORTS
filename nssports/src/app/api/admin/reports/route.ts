@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
 import { prisma } from "@/lib/prisma";
+import { logger } from "@/lib/logger";
 
 const JWT_SECRET = new TextEncoder().encode(
   process.env.ADMIN_JWT_SECRET || "your-admin-secret-key-change-in-production"
@@ -48,7 +49,7 @@ export async function POST(req: NextRequest) {
         : 'Report generated successfully'
     });
   } catch (error) {
-    console.error("Report generation error:", error);
+    logger.error("Report generation error", error);
     return NextResponse.json(
       { error: "Failed to generate report" },
       { status: 500 }

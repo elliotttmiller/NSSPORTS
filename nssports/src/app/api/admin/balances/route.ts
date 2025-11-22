@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getAdminUser } from "@/lib/adminAuth";
+import { logger } from "@/lib/logger";
 
 export async function POST(req: NextRequest) {
   try {
@@ -90,7 +91,7 @@ export async function POST(req: NextRequest) {
       }
     } catch (auditError) {
       // Don't fail the transaction if audit logging fails
-      console.error('[Balance Adjustment] Failed to create audit log:', auditError);
+      logger.error('[Balance Adjustment] Failed to create audit log', auditError);
     }
 
     return NextResponse.json({

@@ -33,7 +33,7 @@ export function ServiceWorkerRegistration() {
           registration.update();
         })
         .catch((error) => {
-          // Always log errors
+          // Client-side error logging is acceptable for service worker
           console.error("❌ Service Worker registration failed:", error);
         });
     } else if (isDev) {
