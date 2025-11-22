@@ -65,14 +65,6 @@ export function useBatchGames(
       
       const json: BatchGamesResponse = await response.json();
       
-      // Log optimization metrics
-      console.info('[useBatchGames] Batch fetch complete:', {
-        requested: json.meta.requestedCount,
-        returned: json.meta.returnedCount,
-        optimization: json.meta.optimization,
-        callsSaved: json.meta.individualCallsSaved,
-      });
-      
       return json.data;
     },
     enabled: enabled && !!eventIds && eventIds.length > 0,
@@ -112,8 +104,6 @@ export function useBatchGamesWithSplitting(
         batches.push(eventIds.slice(i, i + batchSize));
       }
       
-      console.info(`[useBatchGamesWithSplitting] Splitting ${eventIds.length} games into ${batches.length} batches`);
-      
       // Fetch all batches in parallel
       const batchPromises = batches.map(async (batch) => {
         const eventIdsParam = batch.join(',');
@@ -134,8 +124,6 @@ export function useBatchGamesWithSplitting(
       
       const results = await Promise.all(batchPromises);
       const allGames = results.flat();
-      
-      console.info(`[useBatchGamesWithSplitting] Fetched ${allGames.length} games in ${batches.length} batch calls (vs ${eventIds.length} individual calls)`);
       
       return allGames;
     },

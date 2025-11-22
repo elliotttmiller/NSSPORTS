@@ -42,12 +42,10 @@ export function LiveDataProvider({ children }: LiveDataProviderProps) {
       status === 'idle'
     ) {
       initializationStarted.current = true;
-      console.log('[LiveDataProvider] 🚀 Initializing data fetch (authenticated)...');
       
       // Reduced delay for faster initial load after login
       setTimeout(() => {
-        fetchAllMatches().catch((err) => {
-          console.error('[LiveDataProvider] ❌ Failed to fetch matches:', err);
+        fetchAllMatches().catch(() => {
           // Store will handle error state, don't block here
         });
       }, 50); // Reduced from 100ms
@@ -56,7 +54,6 @@ export function LiveDataProvider({ children }: LiveDataProviderProps) {
       setTimeout(() => {
         const currentStatus = useLiveDataStore.getState().status;
         if (currentStatus === 'loading') {
-          console.warn('[LiveDataProvider] ⚠️ Fetch timeout (15s) - forcing success state');
           useLiveDataStore.setState({
             status: 'success',
             matches: [],

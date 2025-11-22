@@ -34,7 +34,6 @@ function AuthGuard({ children }: { children: ReactNode }) {
   useEffect(() => {
     const hardTimeout = setTimeout(() => {
       if (!isReady && status === 'loading') {
-        console.warn('[AuthGuard] ⚠️ Hard timeout reached - forcing ready state');
         setIsReady(true);
         // Try to refresh session one more time
         router.refresh();
@@ -66,7 +65,6 @@ function AuthGuard({ children }: { children: ReactNode }) {
 
     // Unauthenticated - redirect to login (unless already on public route)
     if (status === 'unauthenticated' && !isPublicRoute) {
-      console.log('[AuthGuard] Unauthenticated access attempt, redirecting to login');
       // Always redirect to login with callback URL (except if already on auth pages)
       const loginUrl = pathname !== '/auth/login' && pathname !== '/auth/register'
         ? `/auth/login?callbackUrl=${encodeURIComponent(pathname)}`

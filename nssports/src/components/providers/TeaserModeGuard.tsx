@@ -20,7 +20,6 @@ export function TeaserModeGuard() {
   useEffect(() => {
     // If we're in teaser mode but NOT on the teaser page, reset to single mode
     if (betSlip.betType === "teaser" && pathname !== "/teasers") {
-      console.log(`[TeaserModeGuard] Resetting teaser mode - left /teasers page (now on ${pathname})`);
       setBetType("single");
     }
   }, [pathname, betSlip.betType, setBetType]);

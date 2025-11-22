@@ -19,21 +19,16 @@ export function RefreshProvider({ children }: { children: ReactNode }) {
   const refreshHandlerRef = useRef<(() => Promise<void>) | null>(null);
 
   const registerRefreshHandler = useCallback((handler: () => Promise<void>) => {
-    console.log('[RefreshContext] Registering refresh handler');
     refreshHandlerRef.current = handler;
   }, []);
 
   const unregisterRefreshHandler = useCallback(() => {
-    console.log('[RefreshContext] Unregistering refresh handler');
     refreshHandlerRef.current = null;
   }, []);
 
   const triggerRefresh = useCallback(async () => {
     if (refreshHandlerRef.current) {
-      console.log('[RefreshContext] Triggering refresh');
       await refreshHandlerRef.current();
-    } else {
-      console.warn('[RefreshContext] No refresh handler registered');
     }
   }, []);
 
