@@ -166,7 +166,6 @@ export function gradePlayerPropBet(params: {
 }, playerStats?: { [statType: string]: number }): BetGradingResult {
   const { selection, line, statType } = params;
 
-  // TODO: Integrate with actual player stats API
   // If stats unavailable, we cannot grade the bet - throw error to prevent settlement
   if (!playerStats) {
     logger.error(`[gradePlayerPropBet] No stats available for ${statType}, cannot grade bet`);
@@ -1105,10 +1104,14 @@ async function gradeTeaserLegs(bet: { legs: unknown }): Promise<LegGradingResult
  * - Process continues through all legs
  * - Any loss stops the chain
  */
-export async function settleIfBet(bet: { id: string; stake: number; legs: unknown }): Promise<SettlementResult | null> {
+export async function settleIfBet(bet: { 
+  id: string; 
+  stake: number; 
+  legs: unknown;
+  metadata?: { condition?: string }
+}): Promise<SettlementResult | null> {
   const legs = bet.legs ? JSON.parse(JSON.stringify(bet.legs)) : [];
-  const metadata = bet.legs ? JSON.parse(JSON.stringify(bet.legs)) : {};
-  const condition = metadata.condition || "if_win_only";
+  const condition = bet.metadata?.condition || "if_win_only";
 
   let currentStake = bet.stake;
   let allLegsSettled = true;
@@ -1200,16 +1203,83 @@ export async function settleIfBet(bet: { id: string; stake: number; legs: unknow
  * Settle a Reverse Bet
  * 
  * Reverse bets are two if-bets in opposite order.
- * Each direction is settled independently.
+ * Each direction is settled independently, and payouts are combined.
+ * 
+ * Example: Reverse bet on Games A and B
+ * - Direction 1: If A wins → bet on B (A → B)
+ * - Direction 2: If B wins → bet on A (B → A)
+ * 
+ * The bet wins if either direction wins.
  */
-export async function settleReverseBet(_bet: { id: string; stake: number; legs: unknown }): Promise<SettlementResult | null> {
-  // Reverse bet is essentially two if-bets
-  // Would need to track each direction separately in bet.legs metadata
-  // For now, use similar logic to if-bet but handle both directions
+export async function settleReverseBet(bet: { 
+  id: string; 
+  stake: number; 
+  legs: unknown;
+  metadata?: { condition?: string }
+}): Promise<SettlementResult | null> {
+  // Parse legs
+  const legs = Array.isArray(bet.legs) ? bet.legs : JSON.parse(bet.legs as string);
   
-  // TODO: Implement full reverse bet settlement
-  // This requires storing both if-bet directions in metadata
-  return null;
+  if (legs.length !== 2) {
+    logger.error(`[settleReverseBet] Reverse bet ${bet.id} must have exactly 2 legs, has ${legs.length}`);
+    return null;
+  }
+
+  // Get condition (if_win_only or if_win_or_tie)
+  const condition = bet.metadata?.condition || "if_win_only";
+  
+  // Reverse bet uses half stake for each direction
+  const halfStake = bet.stake / 2;
+
+  // Settle Direction 1: A → B (legs in original order)
+  const direction1Result = await settleIfBet({
+    id: `${bet.id}_dir1`,
+    stake: halfStake,
+    legs: legs,
+    metadata: { condition }
+  });
+
+  // Settle Direction 2: B → A (legs in reverse order)
+  const direction2Result = await settleIfBet({
+    id: `${bet.id}_dir2`,
+    stake: halfStake,
+    legs: [...legs].reverse(),
+    metadata: { condition }
+  });
+
+  // If either direction is still pending, entire bet is pending
+  if (!direction1Result || !direction2Result) {
+    return null;
+  }
+
+  // Calculate combined result
+  const totalPayout = direction1Result.payout + direction2Result.payout;
+  
+  // Determine overall status
+  let status: "won" | "lost" | "push";
+  if (direction1Result.status === "won" || direction2Result.status === "won") {
+    // If either direction wins, the bet wins
+    status = "won";
+  } else if (direction1Result.status === "lost" && direction2Result.status === "lost") {
+    // Both directions lost
+    status = "lost";
+  } else {
+    // Both pushed
+    status = "push";
+  }
+
+  logger.info(`[settleReverseBet] Bet ${bet.id} settled:`, {
+    direction1: { status: direction1Result.status, payout: direction1Result.payout },
+    direction2: { status: direction2Result.status, payout: direction2Result.payout },
+    totalPayout,
+    finalStatus: status
+  });
+
+  return {
+    betId: bet.id,
+    status,
+    payout: totalPayout
+  };
 }
 
 /**

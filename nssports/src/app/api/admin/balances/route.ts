@@ -60,9 +60,38 @@ export async function POST(req: NextRequest) {
       }
     });
 
-    // TODO: Log admin activity when User/AdminUser relationship is established
-    // Note: AdminActivityLog currently requires AdminUser FK, but we're using User authentication
-    // await prisma.adminActivityLog.create({ ... });
+    // Log admin activity in AuditLog
+    try {
+      // Get User record corresponding to player for audit trail
+      const playerUser = await prisma.user.findUnique({
+        where: { username: player.username },
+        select: { id: true }
+      });
+
+      if (playerUser) {
+        await prisma.auditLog.create({
+          data: {
+            userId: admin.id,
+            actionType: 'balance_adjustment',
+            targetUserId: playerUser.id,
+            oldValue: player.balance.toString(),
+            newValue: newBalance.toString(),
+            ipAddress: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown',
+            userAgent: req.headers.get('user-agent') || 'unknown',
+            metadata: {
+              type,
+              amount: parseFloat(amount.toString()),
+              reason,
+              playerId,
+              playerUsername: player.username
+            }
+          }
+        });
+      }
+    } catch (auditError) {
+      // Don't fail the transaction if audit logging fails
+      console.error('[Balance Adjustment] Failed to create audit log:', auditError);
+    }
 
     return NextResponse.json({
       success: true,
