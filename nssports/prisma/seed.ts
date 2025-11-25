@@ -21,9 +21,17 @@
  * ============================================================================
  */
 
+import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
 
-const prisma = new PrismaClient();
+const DATABASE_URL = process.env.DATABASE_URL || process.env.DIRECT_URL;
+if (!DATABASE_URL) {
+  console.error('DATABASE_URL (or DIRECT_URL) is required to run the seed. Set it in .env.local or the environment.');
+  process.exit(1);
+}
+
+const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: DATABASE_URL }) });
 
 async function main() {
   console.log('╔════════════════════════════════════════════════════════════╗');
