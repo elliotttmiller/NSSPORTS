@@ -2,17 +2,18 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import { logger } from '@/lib/logger';
 
-// Simple conditional logger for client-side code
+// Simple conditional logger wrapper for client-side code
 const isDev = process.env.NODE_ENV === 'development';
 const isDebugEnabled = isDev || process.env.NEXT_PUBLIC_LOG_LEVEL === 'debug';
 
 const clientLogger = {
   debug: (message: string, ...args: unknown[]) => {
-    if (isDebugEnabled) console.log(message, ...args);
+    if (isDebugEnabled) logger.debug(() => `${message} ${args.map(a => JSON.stringify(a)).join(' ')}`);
   },
   error: (message: string, ...args: unknown[]) => {
-    console.error(message, ...args);
+    logger.error(() => `${message} ${args.map(a => JSON.stringify(a)).join(' ')}`);
   }
 };
 

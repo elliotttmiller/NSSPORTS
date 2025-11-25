@@ -17,10 +17,17 @@
  *   npm run settle-bets -- --dry-run  # Preview without settling
  */
 
-import { PrismaClient } from '@prisma/client';
+import 'dotenv/config';
+import prisma from '../../src/lib/prisma';
 import { settleAllFinishedGames, settleGameBets, settleBet } from '../../src/services/bet-settlement';
+import { logger } from '../../src/lib/logger';
 
-const prisma = new PrismaClient();
+const DATABASE_URL = process.env.DATABASE_URL || process.env.DIRECT_URL;
+if (!DATABASE_URL) {
+  logger.error('DATABASE_URL (or DIRECT_URL) is required to run settlement script.');
+  process.exit(1);
+}
+
 
 // Colors for terminal output
 const colors = {
@@ -34,7 +41,8 @@ const colors = {
 };
 
 function log(message: string, color: keyof typeof colors = 'reset') {
-  console.log(`${colors[color]}${message}${colors.reset}`);
+  // Use centralized logger but preserve color codes for CLI output
+  logger.info(`${colors[color]}${message}${colors.reset}`);
 }
 
 async function main() {

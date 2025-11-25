@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import Image from "next/image";
+import { logger } from '@/lib/logger';
 
 export default function AdminLoginPage() {
   const [username, setUsername] = useState("");
@@ -13,11 +14,11 @@ export default function AdminLoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAdminAuth();
 
-  console.log('[AdminLoginPage] Component rendering');
+  logger.debug('[AdminLoginPage] Component rendering');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('[AdminLoginPage] Form submitted, username:', username);
+  logger.debug('[AdminLoginPage] Form submitted', { username });
     
     if (!username || !password) {
       toast.error("Please enter both username and password");
@@ -35,10 +36,10 @@ export default function AdminLoginPage() {
     }
   };
 
-  console.log('[AdminLoginPage] Rendering admin login UI');
+  logger.debug('[AdminLoginPage] Rendering admin login UI');
 
   if (isLoading) {
-    console.log('[AdminLoginPage] Showing loading state');
+    logger.debug('[AdminLoginPage] Showing loading state');
     return (
       <div className="flex items-center justify-center h-screen bg-background">
         <div className="text-center">

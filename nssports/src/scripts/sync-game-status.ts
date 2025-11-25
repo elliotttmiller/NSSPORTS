@@ -257,12 +257,12 @@ export async function syncFinishedGames(): Promise<SyncResult> {
 if (import.meta.url === `file://${process.argv[1]}`) {
   syncFinishedGames()
     .then((result) => {
-      console.log('\n✅ Sync completed successfully!');
-      console.log(JSON.stringify(result, null, 2));
+  logger.info('✅ Sync completed successfully!');
+  logger.debug(JSON.stringify(result, null, 2));
       process.exit(0);
     })
     .catch((error) => {
-      console.error('\n❌ Sync failed:', error);
+      logger.error('❌ Sync failed:', error);
       process.exit(1);
     });
 }

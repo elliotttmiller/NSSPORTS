@@ -34,7 +34,8 @@ const colors = {
 };
 
 function log(message, color = colors.reset) {
-  console.log(`${color}${message}${colors.reset}`);
+  // Use stdout writes to avoid console.log while keeping formatting
+  process.stdout.write(`${color}${message}${colors.reset}\n`);
 }
 
 function header(message) {

@@ -26,6 +26,9 @@ import { Game } from '@/types';
 import { StreamingService } from '@/lib/streaming-service';
 import { logger } from '@/lib/logger';
 
+// Module-scoped logger for this store
+const log = logger.createScopedLogger('LiveDataStore');
+
 // Singleton streaming service instance
 let streamingService: StreamingService | null = null;
 
@@ -93,12 +96,12 @@ const createLiveDataStore = () => create<LiveDataState>()(
   fetchAllMatches: async (force = false) => {
     // Prevent duplicate fetches if already loading
     if (get().status === 'loading') {
-      console.log('[LiveDataStore] Already loading, skipping duplicate fetch');
+      log.debug('Already loading, skipping duplicate fetch');
       return;
     }
     
     set({ status: 'loading', error: null });
-    console.log('[LiveDataStore] Starting fetchAllMatches...');
+    log.debug('Starting fetchAllMatches...');
     
     try {
       // Use /api/games endpoint which fetches all leagues in parallel
@@ -128,7 +131,7 @@ const createLiveDataStore = () => create<LiveDataState>()(
       // Handle paginated response from /api/games
       const matches = Array.isArray(json.data) ? json.data : [];
       
-      console.log(`[LiveDataStore] ✅ Fetched ${matches.length} games successfully`);
+  log.info(`✅ Fetched ${matches.length} games successfully`);
       
       set({
         matches,
@@ -140,7 +143,7 @@ const createLiveDataStore = () => create<LiveDataState>()(
       // Enable streaming if we have live games
       const liveGamesCount = matches.filter((g: Game) => g.status === 'live').length;
       if (liveGamesCount > 0) {
-        console.log(`[LiveDataStore] Found ${liveGamesCount} live games, will enable streaming`);
+        log.info(`Found ${liveGamesCount} live games, will enable streaming`);
       }
       
     } catch (error) {
@@ -148,7 +151,7 @@ const createLiveDataStore = () => create<LiveDataState>()(
       
       // Don't block UI on timeout - set empty state and allow render
       if (error instanceof Error && error.name === 'AbortError') {
-        console.warn('[LiveDataStore] ⚠️ Fetch timeout - rendering with no games');
+  log.warn('⚠️ Fetch timeout - rendering with no games');
         set({
           matches: [],
           status: 'success', // Set success to unblock UI
@@ -156,7 +159,7 @@ const createLiveDataStore = () => create<LiveDataState>()(
           lastFetch: Date.now(),
         });
       } else {
-        console.error('[LiveDataStore] ❌ Error fetching matches:', error);
+  log.error('❌ Error fetching matches:', error);
         set({
           matches: [],
           status: 'error',
@@ -190,19 +193,19 @@ const createLiveDataStore = () => create<LiveDataState>()(
     const state = get();
     
     if (state.streamingEnabled) {
-      logger.info('[LiveDataStore] Streaming already enabled');
+      log.info('Streaming already enabled');
       return;
     }
     
     // ✅ OPTIMIZATION: Only connect if there are games to stream
     if (!Array.isArray(state.matches) || state.matches.length === 0) {
-      logger.info('[LiveDataStore] No games available - skipping streaming connection');
+      log.info('No games available - skipping streaming connection');
       return;
     }
     
     // Check if streaming is available (requires AllStar plan)
     if (!process.env.NEXT_PUBLIC_STREAMING_ENABLED) {
-      logger.warn('[LiveDataStore] Streaming not available - requires AllStar plan');
+      log.warn('Streaming not available - requires AllStar plan');
       return;
     }
     
@@ -245,7 +248,7 @@ const createLiveDataStore = () => create<LiveDataState>()(
           
           // Detect status transitions
           if (oldStatus !== newStatus) {
-            logger.info(`[LiveDataStore] Status transition detected`, {
+            log.info('Status transition detected', {
               gameId: evt.eventID,
               from: oldStatus,
               to: newStatus,
@@ -259,7 +262,7 @@ const createLiveDataStore = () => create<LiveDataState>()(
           }
           
           set({ matches: updatedMatches, lastFetch: Date.now() });
-          logger.debug(`[LiveDataStore] Updated game ${evt.eventID} via streaming`);
+          log.debug(`Updated game ${evt.eventID} via streaming`);
         }
       });
       
@@ -276,11 +279,11 @@ const createLiveDataStore = () => create<LiveDataState>()(
         streamingStatus: 'connected',
       });
       
-      logger.info('[LiveDataStore] Streaming enabled for live games (real-time odds + props, <1s latency)');
-      logger.info('[LiveDataStore] Note: For upcoming games odds streaming, use events:upcoming per league');
+      log.info('Streaming enabled for live games (real-time odds + props, <1s latency)');
+      log.info('Note: For upcoming games odds streaming, use events:upcoming per league');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('[LiveDataStore] Failed to enable streaming:', error);
+      log.error('Failed to enable streaming:', error);
       
       set({
         streamingEnabled: false,
@@ -303,7 +306,7 @@ const createLiveDataStore = () => create<LiveDataState>()(
       streamingStatus: 'disconnected',
     });
     
-    logger.info('[LiveDataStore] Streaming disabled');
+    log.info('Streaming disabled');
   },
   
   /**

@@ -9,6 +9,7 @@ gsap.registerPlugin(ScrollTrigger);
 // ...existing code...
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { logger } from '@/lib/logger';
 
 export default function GamesPage() {
   const [totalGames, setTotalGames] = useState<number | null>(null);
@@ -24,14 +25,14 @@ export default function GamesPage() {
   
   // Enable streaming when component mounts - optimized to avoid unnecessary re-runs
   useEffect(() => {
-    if (totalGames !== null && totalGames > 0 && !streamingEnabled && typeof enableStreaming === 'function') {
-      console.log('[GamesPage] Enabling real-time streaming for', totalGames, 'games');
+      if (totalGames !== null && totalGames > 0 && !streamingEnabled && typeof enableStreaming === 'function') {
+      logger.info('[GamesPage] Enabling real-time streaming', { totalGames });
       enableStreaming();
     }
     
     return () => {
       if (streamingEnabled && typeof disableStreaming === 'function') {
-        console.log('[GamesPage] Disabling streaming on unmount');
+        logger.info('[GamesPage] Disabling streaming on unmount');
         disableStreaming();
       }
     };
@@ -40,7 +41,7 @@ export default function GamesPage() {
 
   // Manual refresh handler for pull-to-refresh (forces cache bypass)
   const handleRefresh = useCallback(async () => {
-    console.log('[GamesPage] 🔄 Manual refresh triggered - calling GameList refresh');
+    logger.info('[GamesPage] 🔄 Manual refresh triggered - calling GameList refresh');
     // Call the GameList's internal refresh handler directly
     if (gameListRefreshRef.current) {
       await gameListRefreshRef.current();

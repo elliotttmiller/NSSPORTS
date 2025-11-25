@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { logger } from '@/lib/logger';
 import { useParams } from "next/navigation";
 import Image from "next/image";
 import { MemoizedProfessionalGameRow as ProfessionalGameRow, CompactMobileGameRow, MobileGameTableHeader, DesktopGameTableHeader } from "@/components/features/games";
@@ -54,14 +55,14 @@ export default function LeaguePage() {
   // Streaming just provides instant invalidation for premium UX
   useEffect(() => {
     if (upcomingOnlyGames.length > 0 && !isStreaming) {
-      console.log(`[LeaguePage] Enabling WebSocket streaming for ${leagueId} (${upcomingOnlyGames.length} games)`);
-      console.log('[LeaguePage] Note: Smart cache (30s-120s TTL) is primary system, streaming enhances it');
+      logger.info(() => `[LeaguePage] Enabling WebSocket streaming for ${leagueId} (${upcomingOnlyGames.length} games)`);
+      logger.debug('[LeaguePage] Note: Smart cache (30s-120s TTL) is primary system, streaming enhances it');
       startStreaming(leagueId.toUpperCase()); // Uses 'events:upcoming' feed for this league
     }
     
     return () => {
       if (isStreaming) {
-        console.log(`[LeaguePage] Stopping streaming for ${leagueId}`);
+        logger.info(() => `[LeaguePage] Stopping streaming for ${leagueId}`);
         stopStreaming();
       }
     };
@@ -69,7 +70,7 @@ export default function LeaguePage() {
   
   // Manual refresh handler for pull-to-refresh
   const handleRefresh = useCallback(async () => {
-    console.log('[LeaguePage] 🔄 Manual refresh - bypassing cache');
+    logger.info('[LeaguePage] 🔄 Manual refresh - bypassing cache');
     setRefreshKey(prev => prev + 1);
     await refetch();
   }, [refetch]);

@@ -1,5 +1,6 @@
 import prisma from '../../src/lib/prisma';
 import readline from 'readline';
+import { logger } from '../../src/lib/logger';
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -25,22 +26,22 @@ async function getAllUsers() {
 }
 
 async function displayUsers() {
-  console.log('\n📋 REGISTERED USER ACCOUNTS\n');
-  console.log('════════════════════════════════════════════════════════════');
+  logger.info('\n📋 REGISTERED USER ACCOUNTS\n');
+  logger.info('════════════════════════════════════════════════════════════');
   
   const users = await getAllUsers();
   
   if (users.length === 0) {
-    console.log('No users found in database.');
+    logger.info('No users found in database.');
     return [];
   }
   
   users.forEach((user, index) => {
     const balance = user.account?.balance || 0;
-    console.log(`${index + 1}. ${user.username.padEnd(20)} | Balance: $${balance.toFixed(2).padStart(10)} | ID: ${user.id}`);
+    logger.info(`${index + 1}. ${user.username.padEnd(20)} | Balance: $${balance.toFixed(2).padStart(10)} | ID: ${user.id}`);
   });
   
-  console.log('════════════════════════════════════════════════════════════\n');
+  logger.info('════════════════════════════════════════════════════════════\n');
   return users;
 }
 
@@ -71,7 +72,7 @@ async function updateBalance(userId: string, newBalance: number) {
 }
 
 async function main() {
-  console.log('\n💰 ACCOUNT BALANCE MANAGEMENT TOOL\n');
+  logger.info('\n💰 ACCOUNT BALANCE MANAGEMENT TOOL\n');
   
   // Display all users
   const users = await displayUsers();
@@ -96,38 +97,38 @@ async function main() {
   }
   
   if (!selectedUser) {
-    console.log('\n❌ Invalid selection. User not found.');
+    logger.error('\n❌ Invalid selection. User not found.');
     rl.close();
     return;
   }
   
   const currentBalance = selectedUser.account?.balance || 0;
-  console.log(`\n✅ Selected: ${selectedUser.username}`);
-  console.log(`   Current Balance: $${currentBalance.toFixed(2)}`);
+  logger.info(`\n✅ Selected: ${selectedUser.username}`);
+  logger.info(`   Current Balance: $${currentBalance.toFixed(2)}`);
   
   // Get new balance
   const newBalanceInput = await question('\nEnter the new balance amount (e.g., 1000.00): $');
   const newBalance = parseFloat(newBalanceInput);
   
   if (isNaN(newBalance) || newBalance < 0) {
-    console.log('\n❌ Invalid amount. Balance must be a positive number.');
+    logger.error('\n❌ Invalid amount. Balance must be a positive number.');
     rl.close();
     return;
   }
   
   // Confirm update
-  console.log('\n⚠️  CONFIRM BALANCE UPDATE');
-  console.log('════════════════════════════════════════════════════════════');
-  console.log(`Account: ${selectedUser.username}`);
-  console.log(`Current Balance: $${currentBalance.toFixed(2)}`);
-  console.log(`New Balance: $${newBalance.toFixed(2)}`);
-  console.log(`Change: ${newBalance >= currentBalance ? '+' : ''}$${(newBalance - currentBalance).toFixed(2)}`);
-  console.log('════════════════════════════════════════════════════════════');
+  logger.info('\n⚠️  CONFIRM BALANCE UPDATE');
+  logger.info('════════════════════════════════════════════════════════════');
+  logger.info(`Account: ${selectedUser.username}`);
+  logger.info(`Current Balance: $${currentBalance.toFixed(2)}`);
+  logger.info(`New Balance: $${newBalance.toFixed(2)}`);
+  logger.info(`Change: ${newBalance >= currentBalance ? '+' : ''}$${(newBalance - currentBalance).toFixed(2)}`);
+  logger.info('════════════════════════════════════════════════════════════');
   
   const confirmation = await question('\nProceed with balance update? (yes/no): ');
   
   if (confirmation.toLowerCase() !== 'yes' && confirmation.toLowerCase() !== 'y') {
-    console.log('\n❌ Balance update cancelled.');
+    logger.info('\n❌ Balance update cancelled.');
     rl.close();
     return;
   }
@@ -135,20 +136,20 @@ async function main() {
   // Perform update
   const result = await updateBalance(selectedUser.id, newBalance);
   
-  console.log('\n✅ BALANCE UPDATED SUCCESSFULLY');
-  console.log('════════════════════════════════════════════════════════════');
-  console.log(`Account: ${selectedUser.username}`);
-  console.log(`Previous Balance: $${result.currentBalance.toFixed(2)}`);
-  console.log(`New Balance: $${result.newBalance.toFixed(2)}`);
-  console.log(`Difference: ${result.newBalance >= result.currentBalance ? '+' : ''}$${(result.newBalance - result.currentBalance).toFixed(2)}`);
-  console.log('════════════════════════════════════════════════════════════\n');
+  logger.info('\n✅ BALANCE UPDATED SUCCESSFULLY');
+  logger.info('════════════════════════════════════════════════════════════');
+  logger.info(`Account: ${selectedUser.username}`);
+  logger.info(`Previous Balance: $${result.currentBalance.toFixed(2)}`);
+  logger.info(`New Balance: $${result.newBalance.toFixed(2)}`);
+  logger.info(`Difference: ${result.newBalance >= result.currentBalance ? '+' : ''}$${(result.newBalance - result.currentBalance).toFixed(2)}`);
+  logger.info('════════════════════════════════════════════════════════════\n');
   
   rl.close();
 }
 
 main()
   .catch((error) => {
-    console.error('\n❌ Error:', error);
+    logger.error('\n❌ Error:', error);
     rl.close();
   })
   .finally(() => prisma.$disconnect());

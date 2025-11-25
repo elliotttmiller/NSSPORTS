@@ -29,11 +29,12 @@ config({ path: resolve(process.cwd(), '.env') });
 config({ path: resolve(process.cwd(), '.env.local') });
 
 // Log loaded Redis config to verify
-console.log('[ENV] Redis Configuration Loaded:');
-console.log(`  REDIS_HOST: ${process.env.REDIS_HOST || 'NOT SET'}`);
-console.log(`  REDIS_PORT: ${process.env.REDIS_PORT || 'NOT SET'}`);
-console.log(`  REDIS_TLS: ${process.env.REDIS_TLS || 'NOT SET'}`);
-console.log('');
+logger.info('[ENV] Redis Configuration Loaded', {
+  REDIS_HOST: process.env.REDIS_HOST || 'NOT SET',
+  REDIS_PORT: process.env.REDIS_PORT || 'NOT SET',
+  REDIS_TLS: process.env.REDIS_TLS || 'NOT SET',
+});
+logger.info('');
 
 import { getSettlementQueue, initializeSettlementQueue, startSettlementWorker } from '../src/services/settlement-queue.service';
 import { logger } from '../src/lib/logger';
@@ -45,12 +46,12 @@ const STATS_INTERVAL = 60000; // Print stats every 60 seconds
  * Print system banner
  */
 function printBanner() {
-  console.log('');
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('  ⚡ NSSPORTS Professional Settlement System');
-  console.log('  Powered by BullMQ + Redis');
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('');
+  logger.info('');
+  logger.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  logger.info('  ⚡ NSSPORTS Professional Settlement System');
+  logger.info('  Powered by BullMQ + Redis');
+  logger.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  logger.info('');
 }
 
 /**
@@ -140,25 +141,25 @@ async function main() {
       printStats();
     }, STATS_INTERVAL);
 
-    // Success!
-    console.log('');
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('✅ Settlement System Ready');
-    console.log('');
-    console.log('📡 Status:');
-    console.log('   • Queue: Active and scheduled');
-    console.log('   • Worker: Processing jobs');
-    console.log('   • System: Fully operational');
-    console.log('');
-    console.log('ℹ️  Jobs run automatically every 5 minutes');
-    console.log('💡 Press Ctrl+C for graceful shutdown');
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('');
+  // Success!
+  logger.info('');
+  logger.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  logger.info('✅ Settlement System Ready');
+  logger.info('');
+  logger.info('📡 Status:');
+  logger.info('   • Queue: Active and scheduled');
+  logger.info('   • Worker: Processing jobs');
+  logger.info('   • System: Fully operational');
+  logger.info('');
+  logger.info('ℹ️  Jobs run automatically every 5 minutes');
+  logger.info('💡 Press Ctrl+C for graceful shutdown');
+  logger.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  logger.info('');
 
     // Set up graceful shutdown
     const shutdown = async (signal: string) => {
-      console.log('');
-      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      logger.info('');
+      logger.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
       logger.info(`Received ${signal}, shutting down gracefully...`);
 
       // Clear stats interval
@@ -173,14 +174,14 @@ async function main() {
         logger.info('🔌 Closing queue connections...');
         await queue.close();
 
-        logger.info('✅ Settlement system shut down successfully');
-        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  logger.info('✅ Settlement system shut down successfully');
+  logger.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
         process.exit(0);
       } catch (error) {
         logger.error('❌ Error during shutdown', error);
         process.exit(1);
       }
-    };
+  };
 
     // Handle termination signals
     process.on('SIGTERM', () => shutdown('SIGTERM'));
@@ -198,10 +199,10 @@ async function main() {
     });
 
   } catch (error) {
-    console.log('');
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    logger.info('');
+    logger.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     logger.error('❌ Failed to start settlement system', error);
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    logger.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     process.exit(1);
   }
 }

@@ -140,7 +140,7 @@ export async function fetchPage<T>(
  * Example:
  * ```typescript
  * for await (const page of paginateData(fetcher, { limit: 100 })) {
- *   console.log(`Processing ${page.length} items...`);
+ *   logger.info(`Processing ${page.length} items...`);
  *   // Process page
  * }
  * ```

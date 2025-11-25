@@ -1,4 +1,5 @@
 import prisma from '../../src/lib/prisma';
+import { logger } from '../../src/lib/logger';
 
 async function checkImageUrls() {
   try {
@@ -17,21 +18,21 @@ async function checkImageUrls() {
       }
     });
     
-    console.log(`\n🔍 Found ${leagues.length} leagues with example.com URLs:\n`);
+  logger.info(`\n🔍 Found ${leagues.length} leagues with example.com URLs:\n`);
     
     for (const league of leagues) {
-      console.log(`League: ${league.name}`);
-      console.log(`  ID: ${league.id}`);
-      console.log(`  Logo: ${league.logo}`);
-      console.log('');
+      logger.info(`League: ${league.name}`);
+      logger.info(`  ID: ${league.id}`);
+      logger.info(`  Logo: ${league.logo}`);
+      logger.info('');
     }
     
     if (leagues.length > 0) {
-      console.log('💡 These URLs need to use HTTPS or be replaced with real logos.\n');
+      logger.info('💡 These URLs need to use HTTPS or be replaced with real logos.\n');
     }
     
   } catch (error) {
-    console.error('Error:', error);
+    logger.error('Error:', error);
   } finally {
     await prisma.$disconnect();
   }

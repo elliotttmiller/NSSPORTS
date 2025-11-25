@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { handleAuthError } from "@/lib/clientAuthHelpers";
+import { logger } from '@/lib/logger';
 
 interface BalanceAdjustment {
   id: string;
@@ -57,7 +58,7 @@ export default function BalancesPage() {
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
-        console.error("[BalancesPage] API Error:", {
+        logger.error('[BalancesPage] API Error', {
           status: response.status,
           statusText: response.statusText,
           error: errorData
@@ -76,12 +77,12 @@ export default function BalancesPage() {
       }
       
       const data = await response.json();
-      console.log("[BalancesPage] Balance data loaded successfully");
+  logger.info('[BalancesPage] Balance data loaded successfully');
       setSummary(data.summary);
       setRecentAdjustments(data.recentAdjustments || []);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to load balance data";
-      console.error("[BalancesPage] Fetch error:", error);
+  const errorMessage = error instanceof Error ? error.message : "Failed to load balance data";
+  logger.error('[BalancesPage] Fetch error', error as Error);
       toast.error(errorMessage);
     } finally {
       setIsLoading(false);

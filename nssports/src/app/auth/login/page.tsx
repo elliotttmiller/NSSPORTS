@@ -8,6 +8,7 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { loginAction, type LoginState } from "../actions";
+import { logger } from '@/lib/logger';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -39,15 +40,14 @@ function LoginForm() {
     if (state.success && state.message && !isRedirecting) {
       toast.success(state.message);
       setIsRedirecting(true);
-      
-      console.log('[Login] Login successful, initiating redirect...');
+      logger.info('[Login] Login successful, initiating redirect...');
       
       // Determine redirect URL based on login type
       const redirectUrl = loginType === "agent" 
         ? "/agent" 
         : (callbackUrl === "/agent" ? "/" : callbackUrl);
       
-      console.log('[Login] Redirecting to:', redirectUrl);
+      logger.info('[Login] Redirecting to', { redirectUrl });
       
       // Direct redirect without session update - NextAuth handles session automatically
       window.location.href = redirectUrl;

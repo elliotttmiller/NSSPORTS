@@ -1,10 +1,19 @@
-import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
-const prisma = new PrismaClient();
+import 'dotenv/config';
+import { logger } from '../src/lib/logger';
+import prisma from '../src/lib/prisma';
+
+const DATABASE_URL = process.env.DATABASE_URL || process.env.DIRECT_URL;
+if (!DATABASE_URL) {
+  logger.error('DATABASE_URL (or DIRECT_URL) is required to run this script.');
+  process.exit(1);
+}
+
+// use shared prisma client
 
 async function main() {
-  console.log("🌱 Seeding admin dashboard data...");
+  logger.info("🌱 Seeding admin dashboard data...");
 
   // Create default admin user ONLY
   const adminPassword = await bcrypt.hash("admin123", 10);
@@ -18,7 +27,7 @@ async function main() {
       status: "active",
     },
   });
-  console.log("✅ Admin user created:", admin.username);
+  logger.info('✅ Admin user created', { username: admin.username });
 
   // Create default odds configuration
   await prisma.oddsConfiguration.upsert({
@@ -39,19 +48,19 @@ async function main() {
       liveGameMultiplier: 1.0,
     },
   });
-  console.log("✅ Default odds configuration created");
+  logger.info("✅ Default odds configuration created");
 
-  console.log("\n🎉 Seeding completed successfully!");
-  console.log("\n📝 Admin credentials:");
-  console.log("  Username: admin");
-  console.log("  Password: admin123");
-  console.log("\n💡 Use the admin dashboard to create agents and players:");
-  console.log("  Dashboard: http://localhost:3000/admin");
+  logger.info("\n🎉 Seeding completed successfully!");
+  logger.info("\n📝 Admin credentials:");
+  logger.info("  Username: admin");
+  logger.info("  Password: admin123");
+  logger.info("\n💡 Use the admin dashboard to create agents and players:");
+  logger.info("  Dashboard: http://localhost:3000/admin");
 }
 
 main()
   .catch((e) => {
-    console.error("❌ Error seeding database:", e);
+    logger.error('❌ Error seeding database', { error: e instanceof Error ? e.message : String(e) });
     process.exit(1);
   })
   .finally(async () => {

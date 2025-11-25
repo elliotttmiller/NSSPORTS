@@ -13,6 +13,7 @@ import { useGameTransitions } from "@/hooks/useGameTransitions";
 import { RefreshButton } from "@/components/ui";
 import { useRefresh } from "@/context";
 import { LoadingScreen } from "@/components/LoadingScreen";
+import { logger } from '@/lib/logger';
 
 /**
  * Helper function to check if games array has actually changed
@@ -65,7 +66,7 @@ export default function LivePage() {
   const fetchLiveGames = useCallback(async (isBackgroundUpdate = false, forceUpdate = false) => {
     // OPTIMIZED: Prevent duplicate concurrent requests - return early if fetch already in progress
     if (fetchInProgressRef.current) {
-      console.log('[LivePage] Skipping duplicate fetch - request already in progress');
+      logger.debug('[LivePage] Skipping duplicate fetch - request already in progress');
       return;
     }
     
@@ -89,7 +90,7 @@ export default function LivePage() {
     try {
       // Silent background updates - no logging spam
       if (!isBackgroundUpdate) {
-        console.log('[LivePage] Initial fetch from /api/games/live...');
+        logger.debug('[LivePage] Initial fetch from /api/games/live...');
       }
   const url = forceUpdate ? `/api/games/live?t=${Date.now()}` : '/api/games/live';
       const response = await fetch(url, {
@@ -109,7 +110,7 @@ export default function LivePage() {
       const json = await response.json();
   const games = Array.isArray(json.data) ? json.data : [];
       if (!isBackgroundUpdate) {
-        console.log(`[LivePage] ✅ Games loaded - ${games.length} live games`);
+        logger.info(() => `[LivePage] ✅ Games loaded - ${games.length} live games`);
       }
       
       // Compute lightweight fingerprint per game (fields we care about)
@@ -175,7 +176,7 @@ export default function LivePage() {
       
       // Only log errors that aren't timeouts on background updates
       if (!isBackgroundUpdate || !isTimeoutError) {
-        console.error('[LivePage] Error:', errorMsg);
+        logger.error('[LivePage] Error', new Error(errorMsg));
       }
       
       // Mobile: Only set error on initial load to avoid disrupting user experience

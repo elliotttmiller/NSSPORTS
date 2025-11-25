@@ -1,7 +1,7 @@
-import { PrismaClient } from '@prisma/client';
+import 'dotenv/config';
+import prisma from '../../src/lib/prisma';
+import { logger } from '../../src/lib/logger';
 import bcrypt from 'bcryptjs';
-
-const prisma = new PrismaClient();
 
 async function createAdmin() {
   try {
@@ -28,9 +28,9 @@ async function createAdmin() {
         freePlay: 0,
       },
     });
-    console.log('Admin user created: admin / admin123');
+    logger.info('Admin user created: admin / admin123');
   } catch (error) {
-    console.error('Error creating admin user:', error);
+    logger.error('Error creating admin user:', error);
     process.exit(1);
   } finally {
     await prisma.$disconnect();

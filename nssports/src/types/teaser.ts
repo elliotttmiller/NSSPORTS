@@ -22,6 +22,9 @@
 import type { Bet } from "@/types";
 import { logger } from '@/lib/logger';
 
+// Scoped logger for teaser validation messages — prefer createScopedLogger for module-level context
+const log = logger.createScopedLogger('TeaserValidation');
+
 /**
  * Teaser type definitions based on problem statement requirements
  */
@@ -244,7 +247,7 @@ export function isBetEligibleForTeaser(bet: Bet, teaserType: TeaserType): boolea
   
   // Must be spread or total
   if (!config.eligibleBetTypes.includes(bet.betType as "spread" | "total")) {
-    logger.info(`[Teaser Validation] ❌ Bet type "${bet.betType}" not eligible. Must be spread or total.`, {
+    log.info(`❌ Bet type "${bet.betType}" not eligible. Must be spread or total.`, {
       betId: bet.id,
       betType: bet.betType,
       game: `${bet.game?.awayTeam?.shortName || 'Unknown'} @ ${bet.game?.homeTeam?.shortName || 'Unknown'}`
@@ -254,7 +257,7 @@ export function isBetEligibleForTeaser(bet: Bet, teaserType: TeaserType): boolea
   
   // Must have a line
   if (bet.line === undefined || bet.line === null) {
-    logger.info(`[Teaser Validation] ❌ No line found for bet`, {
+    log.info(`❌ No line found for bet`, {
       betId: bet.id,
       betType: bet.betType,
       line: bet.line,
@@ -266,7 +269,7 @@ export function isBetEligibleForTeaser(bet: Bet, teaserType: TeaserType): boolea
   // Must be from eligible league
   const leagueId = bet.game?.leagueId?.toUpperCase();
   if (!leagueId || !config.eligibleLeagues.includes(leagueId)) {
-    logger.info(`[Teaser Validation] ❌ League "${leagueId || 'undefined'}" not eligible for ${config.displayName}`, {
+    log.info(`❌ League "${leagueId || 'undefined'}" not eligible for ${config.displayName}`, {
       betId: bet.id,
       leagueId: leagueId || 'undefined',
       eligibleLeagues: config.eligibleLeagues,
@@ -277,7 +280,7 @@ export function isBetEligibleForTeaser(bet: Bet, teaserType: TeaserType): boolea
     return false;
   }
   
-  logger.info(`[Teaser Validation] ✅ Bet is eligible`, {
+  log.info(`✅ Bet is eligible`, {
     betId: bet.id,
     betType: bet.betType,
     leagueId: leagueId,

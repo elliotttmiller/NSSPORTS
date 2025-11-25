@@ -33,11 +33,12 @@ const colors = {
 };
 
 const log = {
-  info: (msg) => console.log(`${colors.blue}ℹ${colors.reset} ${msg}`),
-  success: (msg) => console.log(`${colors.green}✓${colors.reset} ${msg}`),
-  warning: (msg) => console.log(`${colors.yellow}⚠${colors.reset} ${msg}`),
-  error: (msg) => console.log(`${colors.red}✗${colors.reset} ${msg}`),
-  header: (msg) => console.log(`\n${colors.bright}${colors.blue}${msg}${colors.reset}\n`),
+  // Use direct stdout/stderr writes to avoid console.log while preserving color codes
+  info: (msg) => process.stdout.write(`${colors.blue}ℹ${colors.reset} ${msg}\n`),
+  success: (msg) => process.stdout.write(`${colors.green}✓${colors.reset} ${msg}\n`),
+  warning: (msg) => process.stdout.write(`${colors.yellow}⚠${colors.reset} ${msg}\n`),
+  error: (msg) => process.stderr.write(`${colors.red}✗${colors.reset} ${msg}\n`),
+  header: (msg) => process.stdout.write(`\n${colors.bright}${colors.blue}${msg}${colors.reset}\n`),
 };
 
 /**
@@ -204,8 +205,8 @@ async function prebuild() {
       env: { ...process.env, FORCE_COLOR: '1' }
     });
     
-    if (stdout) console.log(stdout);
-    if (stderr && !stderr.includes('warn')) console.error(stderr);
+  if (stdout) process.stdout.write(stdout);
+  if (stderr && !stderr.includes('warn')) process.stderr.write(stderr);
     
     log.success('Prisma client generated successfully');
     log.info('Build environment ready!\n');

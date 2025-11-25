@@ -22,26 +22,18 @@
  */
 
 import 'dotenv/config';
-import { PrismaClient } from '@prisma/client';
-import { PrismaPg } from '@prisma/adapter-pg';
-
-const DATABASE_URL = process.env.DATABASE_URL || process.env.DIRECT_URL;
-if (!DATABASE_URL) {
-  console.error('DATABASE_URL (or DIRECT_URL) is required to run the seed. Set it in .env.local or the environment.');
-  process.exit(1);
-}
-
-const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: DATABASE_URL }) });
+import { logger } from '../src/lib/logger';
+import prisma from '../src/lib/prisma';
 
 async function main() {
-  console.log('╔════════════════════════════════════════════════════════════╗');
-  console.log('║  DATABASE SEED - LEAGUES ONLY (NO MOCK DATA)              ║');
-  console.log('╚════════════════════════════════════════════════════════════╝\n');
+  logger.info('╔════════════════════════════════════════════════════════════╗');
+  logger.info('║  DATABASE SEED - LEAGUES ONLY (NO MOCK DATA)              ║');
+  logger.info('╚════════════════════════════════════════════════════════════╝\n');
 
   // ============================================================================
   // STEP 1: Upsert Sports (Add new sports, update existing ones)
   // ============================================================================
-  console.log('📋 Step 1: Upserting sports (preserving existing data)...');
+  logger.info('📋 Step 1: Upserting sports (preserving existing data)...');
   
   const sportsData = [
     { id: 'basketball', name: 'Basketball', icon: '🏀' },
@@ -62,9 +54,9 @@ async function main() {
         update: { name: sport.name, icon: sport.icon },
         create: sport,
       });
-      console.log(`  ✓ Upserted sport: ${sport.icon} ${sport.name}`);
+  logger.info(`  ✓ Upserted sport: ${sport.icon} ${sport.name}`);
     } catch (error) {
-      console.error(`  ✗ Error upserting sport ${sport.name}:`, error);
+      logger.error(`  ✗ Error upserting sport ${sport.name}:`, error);
       throw error;
     }
   }
@@ -72,9 +64,9 @@ async function main() {
   // ============================================================================
   // STEP 2: Upsert Leagues with OFFICIAL UPPERCASE IDs
   // ============================================================================
-  console.log('\n📋 Step 2: Upserting leagues with official SDK IDs (preserving existing data)...');
-  console.log('   ⚠️  CRITICAL: IDs must match SportsGameOdds SDK (NBA, NFL, NHL)');
-  console.log('   📚 Reference: https://sportsgameodds.com/docs/data-types/leagues\n');
+  logger.info('\n📋 Step 2: Upserting leagues with official SDK IDs (preserving existing data)...');
+  logger.info('   ⚠️  CRITICAL: IDs must match SportsGameOdds SDK (NBA, NFL, NHL)');
+  logger.info('   📚 Reference: https://sportsgameodds.com/docs/data-types/leagues\n');
   
   const leaguesData = [
     { id: 'NBA', name: 'NBA', sportId: 'basketball', logo: '/logos/nba/NBA.svg' },
@@ -121,7 +113,7 @@ async function main() {
         update: { name: league.name, sportId: league.sportId, logo: league.logo },
         create: league,
       });
-      console.log(`  ✓ Upserted league: ${league.name} (ID: ${league.id})`);
+  logger.info(`  ✓ Upserted league: ${league.name} (ID: ${league.id})`);
     } catch (error) {
       console.error(`  ✗ Error upserting league ${league.name}:`, error);
       throw error;
@@ -131,16 +123,16 @@ async function main() {
   // ============================================================================
   // SEED COMPLETE
   // ============================================================================
-  console.log('\n╔════════════════════════════════════════════════════════════╗');
-  console.log('║  ✅ SEED COMPLETE - SPORTS & LEAGUES UPSERTED             ║');
-  console.log('╚════════════════════════════════════════════════════════════╝');
-  console.log('\n📡 DATA SOURCES:');
-  console.log('   ✓ Teams:  Real-time from SportsGameOdds SDK');
-  console.log('   ✓ Games:  Real-time from SportsGameOdds SDK');
-  console.log('   ✓ Odds:   Real-time consensus from SportsGameOdds SDK');
-  console.log('   ✓ Players: Real-time from SportsGameOdds SDK');
-  console.log('   ✓ Props:  Real-time from SportsGameOdds SDK');
-  console.log('\n❌ NO MOCK DATA - ALL DATA IS REAL-TIME FROM API\n');
+  logger.info('\n╔════════════════════════════════════════════════════════════╗');
+  logger.info('║  ✅ SEED COMPLETE - SPORTS & LEAGUES UPSERTED             ║');
+  logger.info('╚════════════════════════════════════════════════════════════╝');
+  logger.info('\n📡 DATA SOURCES:');
+  logger.info('   ✓ Teams:  Real-time from SportsGameOdds SDK');
+  logger.info('   ✓ Games:  Real-time from SportsGameOdds SDK');
+  logger.info('   ✓ Odds:   Real-time consensus from SportsGameOdds SDK');
+  logger.info('   ✓ Players: Real-time from SportsGameOdds SDK');
+  logger.info('   ✓ Props:  Real-time from SportsGameOdds SDK');
+  logger.info('\n❌ NO MOCK DATA - ALL DATA IS REAL-TIME FROM API\n');
 }
 
 // ============================================================================
@@ -148,11 +140,11 @@ async function main() {
 // ============================================================================
 main()
   .catch((error) => {
-    console.error('\n❌ SEED FAILED:');
-    console.error(error);
+    logger.error('\n❌ SEED FAILED:');
+    logger.error(error);
     process.exit(1);
   })
   .finally(async () => {
     await prisma.$disconnect();
-    console.log('🔌 Database connection closed\n');
+    logger.info('🔌 Database connection closed\n');
   });

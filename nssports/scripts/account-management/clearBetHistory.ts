@@ -23,10 +23,10 @@
  *   npx tsx scripts/clearBetHistory.ts --yes
  */
 
-import { PrismaClient } from '@prisma/client';
 import * as readline from 'readline';
-
-const prisma = new PrismaClient();
+import 'dotenv/config';
+import prisma from '../../src/lib/prisma';
+import { logger } from '../../src/lib/logger';
 
 // Color codes for terminal output
 const colors = {
@@ -40,7 +40,8 @@ const colors = {
 };
 
 function log(message: string, color: keyof typeof colors = 'reset') {
-  console.log(`${colors[color]}${message}${colors.reset}`);
+  // Keep colored terminal output but route through centralized logger
+  logger.info(() => `${colors[color]}${message}${colors.reset}`);
 }
 
 function createInterface() {
@@ -149,7 +150,7 @@ async function clearBetHistory() {
     
   } catch (error) {
     log('\n❌ Error deleting bets:', 'red');
-    console.error(error);
+    logger.error('clearBetHistory error:', error);
     throw error;
   }
 }
@@ -159,7 +160,7 @@ async function main() {
     await clearBetHistory();
   } catch (error) {
     log('\n❌ Script failed:', 'red');
-    console.error(error);
+    logger.error('clearBetHistory script failed:', error);
     process.exit(1);
   } finally {
     await prisma.$disconnect();

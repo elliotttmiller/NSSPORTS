@@ -1,6 +1,6 @@
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import 'dotenv/config';
+import prisma from '../../src/lib/prisma';
+import { logger } from '../../src/lib/logger';
 
 async function clearUserBets() {
   try {
@@ -11,21 +11,21 @@ async function clearUserBets() {
     });
 
     if (!user) {
-      console.log('❌ User "slime" not found');
+      logger.error('❌ User "slime" not found');
       process.exit(1);
     }
 
-    console.log(`Found user: ${user.username} (${user.id})\n`);
+    logger.info(`Found user: ${user.username} (${user.id})\n`);
 
     // Count existing bets
     const existingBets = await prisma.bet.count({
       where: { userId: user.id }
     });
 
-    console.log(`📊 Current bet count: ${existingBets}`);
+  logger.info(`📊 Current bet count: ${existingBets}`);
 
     if (existingBets === 0) {
-      console.log('✅ No bets to delete - user already has clean slate');
+      logger.info('✅ No bets to delete - user already has clean slate');
       process.exit(0);
     }
 
@@ -36,23 +36,23 @@ async function clearUserBets() {
       _count: true,
     });
 
-    console.log('\n📋 Bets by status:');
+    logger.info('\n📋 Bets by status:');
     betsByStatus.forEach(group => {
-      console.log(`  ${group.status}: ${group._count}`);
+      logger.info(`  ${group.status}: ${group._count}`);
     });
 
     // Delete all bets for this user
-    console.log('\n🗑️  Deleting all bets...');
+  logger.info('\n🗑️  Deleting all bets...');
     
     const result = await prisma.bet.deleteMany({
       where: { userId: user.id }
     });
 
-    console.log(`✅ Successfully deleted ${result.count} bets for user "${user.username}"`);
-    console.log('\n🎉 User now has a clean slate for testing new settlement workflow!');
+  logger.info(`✅ Successfully deleted ${result.count} bets for user "${user.username}"`);
+  logger.info('\n🎉 User now has a clean slate for testing new settlement workflow!');
 
   } catch (error) {
-    console.error('❌ Error:', error);
+    logger.error('❌ Error:', error as Error);
     process.exit(1);
   } finally {
     await prisma.$disconnect();

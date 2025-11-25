@@ -15,6 +15,7 @@
  */
 
 import prisma from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 type Args = {
   username?: string;
@@ -49,19 +50,19 @@ async function main() {
   const args = parseArgs();
 
   if (!args.username && !(args.home && args.away)) {
-    console.error('Please pass at least --username or both --home and --away');
+    logger.error('Please pass at least --username or both --home and --away');
     process.exit(2);
   }
 
-  console.log('Starting settlement diagnostic...');
+  logger.info('Starting settlement diagnostic...');
 
   try {
     if (args.username) {
       const user = await prisma.user.findUnique({ where: { username: args.username } });
       if (!user) {
-        console.log(`User not found: ${args.username}`);
+        logger.info(`User not found: ${args.username}`);
       } else {
-        console.log(`Found user: ${user.id} (${user.username})`);
+        logger.info(`Found user: ${user.id} (${user.username})`);
 
         const bets: { id: string; betType: string; gameId: string | null; status: string; stake: number; potentialPayout: number; placedAt: Date; settledAt: Date | null }[] = await prisma.bet.findMany({
           where: { userId: user.id },
@@ -79,25 +80,25 @@ async function main() {
           }
         });
 
-        console.log(`Recent bets for ${args.username}: (${bets.length})`);
+        logger.info(`Recent bets for ${args.username}: (${bets.length})`);
         for (const b of bets) {
-          console.log(`- ${b.id} | type=${b.betType} | game=${b.gameId || 'N/A'} | status=${b.status} | stake=${b.stake} | placedAt=${b.placedAt} | settledAt=${b.settledAt || 'N/A'}`);
+          logger.debug(`Bet: ${b.id} | type=${b.betType} | game=${b.gameId || 'N/A'} | status=${b.status} | stake=${b.stake} | placedAt=${b.placedAt} | settledAt=${b.settledAt || 'N/A'}`);
         }
 
         // Gather referenced gameIds
         const gameIds = Array.from(new Set(bets.map(b => b.gameId).filter(Boolean) as string[]));
         if (gameIds.length > 0) {
-          console.log('\nLooking up referenced games...');
+          logger.info('Looking up referenced games...');
           const games = await prisma.game.findMany({
             where: { id: { in: gameIds } },
             select: { id: true, status: true, homeScore: true, awayScore: true, homeTeamId: true, awayTeamId: true, startTime: true }
           });
 
           for (const g of games) {
-            console.log(`- game ${g.id} | status=${g.status} | scores=${g.homeScore ?? 'null'}-${g.awayScore ?? 'null'} | start=${g.startTime.toISOString()}`);
+            logger.debug(`Game: ${g.id} | status=${g.status} | scores=${g.homeScore ?? 'null'}-${g.awayScore ?? 'null'} | start=${g.startTime.toISOString()}`);
             const home = await prisma.team.findUnique({ where: { id: g.homeTeamId }, select: { shortName: true, name: true } });
             const away = await prisma.team.findUnique({ where: { id: g.awayTeamId }, select: { shortName: true, name: true } });
-            console.log(`  teams: ${home?.shortName || home?.name || 'home?'} vs ${away?.shortName || away?.name || 'away?'}`);
+            logger.debug(`  teams: ${home?.shortName || home?.name || 'home?'} vs ${away?.shortName || away?.name || 'away?'}`);
           }
         }
       }
@@ -106,16 +107,16 @@ async function main() {
     if (args.home && args.away) {
       const lookback = Number(args.lookbackHours ?? '24');
       const since = new Date(Date.now() - lookback * 60 * 60 * 1000);
-      console.log(`\nSearching for games between ${args.home} and ${args.away} since ${since.toISOString()}...`);
+  logger.info(`Searching for games between ${args.home} and ${args.away} since ${since.toISOString()}...`);
 
       // Find teams
       const homeTeam = await prisma.team.findFirst({ where: { OR: [{ shortName: args.home }, { name: { contains: args.home, mode: 'insensitive' } }] } });
       const awayTeam = await prisma.team.findFirst({ where: { OR: [{ shortName: args.away }, { name: { contains: args.away, mode: 'insensitive' } }] } });
 
       if (!homeTeam || !awayTeam) {
-        console.log('Could not find matching team records for the provided short names. Found:', { homeTeam: !!homeTeam, awayTeam: !!awayTeam });
+        logger.info('Could not find matching team records for the provided short names.', { homeTeam: !!homeTeam, awayTeam: !!awayTeam });
       } else {
-        console.log(`Found teams: home=${homeTeam.id} (${homeTeam.shortName}) away=${awayTeam.id} (${awayTeam.shortName})`);
+        logger.info(`Found teams: home=${homeTeam.id} (${homeTeam.shortName}) away=${awayTeam.id} (${awayTeam.shortName})`);
 
         const games = await prisma.game.findMany({
           where: {
@@ -129,18 +130,17 @@ async function main() {
           take: 10,
         });
 
-        console.log(`Found ${games.length} recent games between these teams:`);
+        logger.info(`Found ${games.length} recent games between these teams:`);
         for (const g of games) {
-          console.log(`- ${g.id} | status=${g.status} | scores=${g.homeScore ?? 'null'}-${g.awayScore ?? 'null'} | start=${g.startTime.toISOString()}`);
+          logger.debug(`Game: ${g.id} | status=${g.status} | scores=${g.homeScore ?? 'null'}-${g.awayScore ?? 'null'} | start=${g.startTime.toISOString()}`);
           const pendingCount = await prisma.bet.count({ where: { gameId: g.id, status: 'pending' } });
-          console.log(`  pending bets: ${pendingCount}`);
+          logger.debug(`  pending bets: ${pendingCount}`);
         }
       }
     }
-
-    console.log('\nDiagnostic complete.');
+    logger.info('Diagnostic complete.');
   } catch (error) {
-    console.error('Diagnostic failed:', error);
+    logger.error('Diagnostic failed:', error);
     process.exitCode = 1;
   } finally {
     await prisma.$disconnect();

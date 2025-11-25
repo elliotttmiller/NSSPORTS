@@ -10,7 +10,10 @@ import { MemoizedProfessionalGameRow as ProfessionalGameRow } from '@/components
 import { CompactMobileGameRow } from '@/components/features/games/CompactMobileGameRow';
 import { RefreshButton } from '@/components/ui/RefreshButton';
 import { useGameTransitions } from '@/hooks/useGameTransitions';
-import { GameListDebugLogger as DebugLog } from '@/lib/debugLogger';
+import { logger } from '@/lib/logger';
+
+// Module-level scoped logger for this component to avoid recreating across renders
+const DebugLog = logger.createScopedLogger('GameList');
 import type { Game } from '@/types';
 
 export type GameListProps = Partial<UsePaginatedGamesParams> & {
@@ -107,6 +110,8 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange, byp
 
   const pages = useMemo(() => data?.pages ?? [], [data]);
   const flattenedGames = useMemo(() => pages.flatMap(p => p?.data ?? []), [pages]);
+
+  
 
   // Manual refresh handler - forces cache bypass
   const handleRefresh = useCallback(async () => {

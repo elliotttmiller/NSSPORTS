@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { logger } from '@/lib/logger';
 
 /**
  * Service Worker Registration Component
@@ -25,19 +26,18 @@ export function ServiceWorkerRegistration() {
         .register("/sw.js")
         .then((registration) => {
           if (isDev) {
-            console.log("✅ Service Worker registered:", registration.scope);
-            console.log("📱 PWA is ready! Add to Home Screen for app experience.");
+            logger.info(`✅ Service Worker registered: ${registration.scope}`);
+            logger.info('📱 PWA is ready! Add to Home Screen for app experience.');
           }
-          
           // Check for updates periodically
           registration.update();
         })
         .catch((error) => {
           // Client-side error logging is acceptable for service worker
-          console.error("❌ Service Worker registration failed:", error);
+          logger.error('❌ Service Worker registration failed:', error as Error);
         });
     } else if (isDev) {
-      console.log("⚠️ Service Workers not supported in this browser");
+      logger.warn('⚠️ Service Workers not supported in this browser');
     }
   }, []);
 

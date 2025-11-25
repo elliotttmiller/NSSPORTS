@@ -18,6 +18,7 @@ import { useEffect, useState, useMemo, useCallback } from "react";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import type { Session } from "next-auth";
 import type { Game } from "@/types";
+import { logger } from '@/lib/logger';
 
 export default function Home() {
   const { data: session } = useSession();
@@ -54,7 +55,7 @@ function AuthenticatedHomePage({ session }: { session: Session }) {
     try {
       // Silent background updates - no logging spam
       if (!isBackgroundUpdate) {
-        console.log('[HomePage] Initial fetch from /api/games/live...');
+        logger.debug('[HomePage] Initial fetch from /api/games/live...');
       }
       const response = await fetch('/api/games/live', {
         headers: {
@@ -69,7 +70,7 @@ function AuthenticatedHomePage({ session }: { session: Session }) {
       const json = await response.json();
       const games = Array.isArray(json.data) ? json.data : [];
       if (!isBackgroundUpdate) {
-        console.log(`[HomePage] ✅ Games loaded - ${games.length} live games`);
+        logger.info(() => `[HomePage] ✅ Games loaded - ${games.length} live games`);
       }
       
       // Only update state if games have actually changed (prevents flickering)
@@ -100,7 +101,7 @@ function AuthenticatedHomePage({ session }: { session: Session }) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to fetch live games';
       // Only log errors, not every background update
       if (!isBackgroundUpdate || errorMsg.includes('abort')) {
-        console.error('[HomePage] Error:', errorMsg);
+        logger.error('[HomePage] Error', new Error(errorMsg));
       }
       // Only set error on initial load to avoid disrupting user experience
       if (!isBackgroundUpdate) {
@@ -164,7 +165,7 @@ function AuthenticatedHomePage({ session }: { session: Session }) {
   useEffect(() => {
     // When streaming updates the store, merge those updates into our local state
     if (streamingEnabled && storeMatches.length > 0) {
-      console.log('[HomePage] Syncing streaming updates from liveDataStore...');
+      logger.debug('[HomePage] Syncing streaming updates from liveDataStore...');
       setLiveGamesData(prevGames => {
         // Only update if we have local games
         if (prevGames.length === 0) return prevGames;
@@ -254,8 +255,8 @@ function AuthenticatedHomePage({ session }: { session: Session }) {
   // Debug: Log available sports for troubleshooting
   useEffect(() => {
     if (availableSports.length > 0) {
-      console.log('[HomePage] Available sports filter:', availableSports);
-      console.log('[HomePage] Total live games:', filteredLiveGames.length);
+  logger.debug('[HomePage] Available sports filter', { availableSports });
+  logger.debug('[HomePage] Total live games', { totalLiveGames: filteredLiveGames.length });
     }
   }, [availableSports, filteredLiveGames.length]);
   
@@ -275,8 +276,8 @@ function AuthenticatedHomePage({ session }: { session: Session }) {
     const liveGamesCount = filteredLiveGames.length;
     
     if (liveGamesCount > 0 && !streamingEnabled && typeof enableStreaming === 'function') {
-      console.log('[HomePage] Enabling WebSocket streaming for', liveGamesCount, 'trending live games');
-      console.log('[HomePage] Streaming will provide <1s odds updates via liveDataStore sync');
+  logger.info('[HomePage] Enabling WebSocket streaming for ' + String(liveGamesCount) + ' trending live games');
+  logger.info('[HomePage] Streaming will provide <1s odds updates via liveDataStore sync');
       
       // Enable streaming - it will update the store's matches which we subscribe to above
       enableStreaming(); // Connects to 'events:live' feed (all sports)
@@ -285,7 +286,7 @@ function AuthenticatedHomePage({ session }: { session: Session }) {
     // Cleanup: disable streaming when component unmounts
     return () => {
       if (streamingEnabled && typeof disableStreaming === 'function') {
-        console.log('[HomePage] Disabling streaming on unmount');
+  logger.info('[HomePage] Disabling streaming on unmount');
         disableStreaming();
       }
     };
