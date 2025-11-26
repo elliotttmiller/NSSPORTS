@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, type WheelEvent } from "react";
 import { cn } from "@/lib/utils";
 import { 
   House, 
@@ -125,9 +125,29 @@ export function SideNavPanel() {
     });
   };
 
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+
+  const onWheel = (e: WheelEvent) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    // If the side panel can scroll, prevent wheel from propagating to parent
+    if (el.scrollHeight > el.clientHeight) {
+      // Stop the event from scrolling ancestor containers
+      e.stopPropagation();
+      // Allow the default to let the sidebar itself scroll
+      return;
+    }
+    // otherwise let the event bubble so main content can scroll
+  };
+
   return (
     <div className="h-full w-full flex flex-col overflow-hidden">
-      <div className="flex-1 overflow-y-scroll overflow-x-hidden p-4 seamless-scroll" style={{ height: '100%' }}>
+      <div
+        ref={scrollRef}
+        onWheel={onWheel}
+        className="flex-1 overflow-y-scroll overflow-x-hidden p-4 seamless-scroll"
+        style={{ height: '100%', overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}
+      >
         <div className="space-y-2">
           <h2 className="text-lg font-semibold mb-4 px-3">Navigation</h2>
           {navItems.map((item) => {
