@@ -20,6 +20,7 @@
 import { create } from 'zustand';
 import { Game } from '@/types';
 import { logger } from '@/lib/logger';
+const log = logger.createScopedLogger('GameTransition');
 
 interface GameTransition {
   gameId: string;
@@ -78,7 +79,7 @@ export const useGameTransitionStore = create<GameTransitionState>((set, get) => 
 
     // Track special transitions
     if (from === 'upcoming' && to === 'live') {
-      logger.info(`[GameTransition] Game ${gameId} just went LIVE!`, {
+      log.info(`Game ${gameId} just went LIVE!`, {
         gameId,
         from,
         to,
@@ -95,7 +96,7 @@ export const useGameTransitionStore = create<GameTransitionState>((set, get) => 
     }
 
     if (to === 'finished') {
-      logger.info(`[GameTransition] Game ${gameId} just FINISHED!`, {
+      log.info(`Game ${gameId} just FINISHED!`, {
         gameId,
         from,
         to,

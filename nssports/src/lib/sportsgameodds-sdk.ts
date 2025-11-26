@@ -58,6 +58,7 @@
 // Note: SDK types are accessed via SportsGameOdds namespace
 import SportsGameOdds from 'sports-odds-api';
 import { logger } from "./logger";
+const log = logger.createScopedLogger('SportsGameOddsSDK');
 import { rateLimiter } from "./rate-limiter";
 import { SOCCER_LEAGUES, QUARTER_PERIODS } from './constants';
 
@@ -395,12 +396,12 @@ export async function getLeagues(options: {
   const client = getSportsGameOddsClient();
   
   try {
-    logger.info('Fetching leagues from SportsGameOdds SDK');
+  log.info('Fetching leagues from SportsGameOdds SDK');
     
     const page: any = await client.leagues.get(options as any);
     const leagues = page.data || [];
     
-    logger.info(`Fetched ${leagues.length} leagues`);
+  log.info(`Fetched ${leagues.length} leagues`);
     return leagues;
   } catch (error) {
     logger.error('Error fetching leagues', error);
@@ -471,7 +472,7 @@ export async function getAllEvents(
   const client = getSportsGameOddsClient();
   
   try {
-    logger.info('Fetching all events with pagination', { options, maxPages });
+  log.info('Fetching all events with pagination', { options, maxPages });
     
     // Convert eventIDs array to comma-separated string if needed
     const params = { ...options } as any;
@@ -483,8 +484,8 @@ export async function getAllEvents(
     let page = await client.events.get(params);
     let pageCount = 1;
     
-    allEvents = allEvents.concat(page.data);
-    logger.debug(`Page ${pageCount}: fetched ${page.data.length} events`);
+  allEvents = allEvents.concat(page.data);
+  log.debug(`Page ${pageCount}: fetched ${page.data.length} events`);
     
     // Fetch remaining pages
     while (page.hasNextPage() && pageCount < maxPages) {
@@ -588,17 +589,21 @@ export async function getEvents(options: {
         // Debug: Log first event's odds structure to understand what we're getting
         if (page.data.length > 0 && page.data[0].odds) {
           const firstOdd = Object.values(page.data[0].odds || {})[0] as any;
-          logger.info('ODDS DEBUG - Sample odds structure:', {
-            eventID: page.data[0].eventID,
-            totalOddsMarkets: Object.keys(page.data[0].odds || {}).length,
-            firstOddID: Object.keys(page.data[0].odds || {})[0],
-            hasBookOdds: firstOdd?.bookOdds !== undefined,
-            hasFairOdds: firstOdd?.fairOdds !== undefined,
-            bookOddsValue: firstOdd?.bookOdds,
-            fairOddsValue: firstOdd?.fairOdds,
-            bookOddsAvailable: firstOdd?.bookOddsAvailable,
-            sampleOddKeys: firstOdd ? Object.keys(firstOdd) : []
-          });
+          // Heavy debug payload — make lazy and debug-level so it is only built when needed
+          logger.debug(
+            () => 'ODDS DEBUG - Sample odds structure',
+            () => ({
+              eventID: page.data[0].eventID,
+              totalOddsMarkets: Object.keys(page.data[0].odds || {}).length,
+              firstOddID: Object.keys(page.data[0].odds || {})[0],
+              hasBookOdds: firstOdd?.bookOdds !== undefined,
+              hasFairOdds: firstOdd?.fairOdds !== undefined,
+              bookOddsValue: firstOdd?.bookOdds,
+              fairOddsValue: firstOdd?.fairOdds,
+              bookOddsAvailable: firstOdd?.bookOddsAvailable,
+              sampleOddKeys: firstOdd ? Object.keys(firstOdd) : []
+            })
+          );
         } else {
           logger.warn('No odds data in SDK response', {
             eventCount: page.data.length,

@@ -38,6 +38,7 @@
 
 import prisma from './prisma';
 import { logger } from './logger';
+const log = logger.createScopedLogger('HybridCache');
 import type { LeagueID } from '@/types/game';
 import {
   getEvents as sdkGetEvents,
@@ -212,7 +213,7 @@ export async function getEventsWithCache(options: {
   try {
     const cachedEvents = await getEventsFromCache(options);
     if (cachedEvents.length > 0) {
-      logger.info(`[Cache] ✅ Prisma cache hit for ${options.leagueID || 'all'} (live=${options.live}): ${cachedEvents.length} games`);
+  log.debug(`[Cache] ✅ Prisma cache hit for ${options.leagueID || 'all'} (live=${options.live}): ${cachedEvents.length} games`);
       // If this is a live query, ensure the cached set contains at least one live game
       // Returning a cached set with no live games causes the live endpoint to show "no live games"
       if (options.live === true) {
@@ -239,7 +240,7 @@ export async function getEventsWithCache(options: {
         return { data: cachedEvents, source: 'prisma-cache' as const };
       }
     } else {
-      logger.info(`[Cache] ⚠️ Prisma cache miss for ${options.leagueID || 'all'} (live=${options.live}) - fetching from SDK`);
+  log.debug(`[Cache] ⚠️ Prisma cache miss for ${options.leagueID || 'all'} (live=${options.live}) - fetching from SDK`);
     }
   } catch (cacheError) {
     logger.warn('Prisma cache check failed, will fetch from SDK', { error: cacheError });
@@ -305,10 +306,10 @@ export async function getEventsWithCache(options: {
       const bgFetch = (async () => {
         const sdkPromise = (async () => {
           try {
-            logger.info(`[SWR] Revalidating SDK for ${options.leagueID || 'all'} (live=${options.live})`);
+            log.debug(`[SWR] Revalidating SDK for ${options.leagueID || 'all'} (live=${options.live})`);
             const { data: sdkEvents } = await sdkGetEvents({ ...options, includeConsensus: options.includeConsensus !== false });
             await Promise.all([updateEventsCache(sdkEvents)]);
-            logger.info(`[SWR] Revalidation completed for ${options.leagueID || 'all'} (fetched=${sdkEvents.length})`);
+            log.debug(`[SWR] Revalidation completed for ${options.leagueID || 'all'} (fetched=${sdkEvents.length})`);
             return { data: sdkEvents, source: 'sdk' as const };
           } catch (e) {
             logger.warn('[SWR] Background revalidation failed', { error: e });
@@ -336,11 +337,11 @@ export async function getEventsWithCache(options: {
           // No live games in stale cache - skip returning stale and continue to SDK
           logger.debug('[Cache] Stale Prisma cache contains no live games, skipping stale return for live query');
         } else {
-          logger.info(`[Cache] Returning stale Prisma live data for ${options.leagueID || 'all'} while revalidating (count=${staleLive.length})`);
+          log.debug(`[Cache] Returning stale Prisma live data for ${options.leagueID || 'all'} while revalidating (count=${staleLive.length})`);
           return { data: staleLive, source: 'stale-prisma-cache' as const };
         }
       } else {
-        logger.info(`[Cache] Returning stale Prisma data for ${options.leagueID || 'all'} while revalidating (count=${staleData.length})`);
+  log.debug(`[Cache] Returning stale Prisma data for ${options.leagueID || 'all'} while revalidating (count=${staleData.length})`);
         return { data: staleData, source: 'stale-prisma-cache' as const };
       }
     }
@@ -350,12 +351,12 @@ export async function getEventsWithCache(options: {
   
   // 2. Fetch from SDK (source of truth)
   // CRITICAL: Always request consensus odds (bookOdds) for real market data
-  logger.info(`[SDK] 📡 Fetching from SDK for ${options.leagueID || 'all'} (live=${options.live})`);
+  log.debug(`[SDK] 📡 Fetching from SDK for ${options.leagueID || 'all'} (live=${options.live})`);
   // Deduplicate concurrent SDK fetches for identical queries
   const sdkFetchPromise = (async () => {
     try {
       const { data: events } = await sdkGetEvents({ ...options, includeConsensus: options.includeConsensus !== false });
-      logger.info(`[SDK] ✅ SDK returned ${events.length} events for ${options.leagueID || 'all'} (live=${options.live})`);
+  log.debug(`[SDK] ✅ SDK returned ${events.length} events for ${options.leagueID || 'all'} (live=${options.live})`);
       return { data: events, source: 'sdk' as const };
     } catch (e) {
       logger.error('[SDK] SDK fetch failed', e);
@@ -485,7 +486,7 @@ export async function getAllEventsWithCache(
   try {
     const cachedEvents = await getEventsFromCache(options);
     if (cachedEvents.length > 0) {
-      logger.info(`[Cache] ✅ Prisma cache hit (paginated) for ${options.leagueID || 'all'}: ${cachedEvents.length} games`);
+  log.debug(`[Cache] ✅ Prisma cache hit (paginated) for ${options.leagueID || 'all'}: ${cachedEvents.length} games`);
       
       // For live queries, ensure we have live games
       if (options.live === true) {
@@ -512,7 +513,7 @@ export async function getAllEventsWithCache(
   }
 
   // Fetch from SDK with pagination
-  logger.info(`[SDK] 📡 Fetching ALL events with pagination for ${options.leagueID || 'all'} (max ${maxPages} pages)`);
+  log.debug(`[SDK] 📡 Fetching ALL events with pagination for ${options.leagueID || 'all'} (max ${maxPages} pages)`);
   
   const sdkFetchPromise = (async () => {
     try {
@@ -528,7 +529,7 @@ export async function getAllEventsWithCache(
       const pageCount = result.meta?.pageCount ?? 1;
       const hasMore = result.meta?.hasMore ?? false;
       
-      logger.info(`[SDK] ✅ SDK returned ${result.data.length} events across ${pageCount} pages for ${options.leagueID || 'all'}`);
+  log.debug(`[SDK] ✅ SDK returned ${result.data.length} events across ${pageCount} pages for ${options.leagueID || 'all'}`);
       
       if (hasMore) {
         logger.warn(`[SDK] ⚠️ More data available beyond ${maxPages} pages for ${options.leagueID || 'all'}`);
@@ -629,7 +630,7 @@ async function updateEventsCache(events: any[]) {
 
       // Skip leagues we haven't implemented/seeded in the DB to avoid FK errors
       if (!leagueId || !SUPPORTED_LEAGUES.has(String(leagueId).toUpperCase())) {
-        logger.info(`[updateEventsCache] Skipping event ${event.eventID} - unsupported league: ${leagueId}`);
+  log.debug(`[updateEventsCache] Skipping event ${event.eventID} - unsupported league: ${leagueId}`);
         continue;
       }
       
@@ -782,7 +783,7 @@ async function updateEventsCache(events: any[]) {
       
       // Log score updates for finished games (critical for settlement verification)
       if (gameStatus === 'finished' && (homeScore !== null || awayScore !== null)) {
-        logger.info(`[updateEventsCache] Storing final scores for ${event.eventID}: ${awayTeam.names.short} ${awayScore} @ ${homeTeam.names.short} ${homeScore}`);
+  log.info(`[updateEventsCache] Storing final scores for ${event.eventID}: ${awayTeam.names.short} ${awayScore} @ ${homeTeam.names.short} ${homeScore}`);
       }
       
       // Check if game just finished (was not finished before, now is finished)
@@ -829,7 +830,7 @@ async function updateEventsCache(events: any[]) {
       // 🔥 REAL-TIME SETTLEMENT TRIGGER
       // If game just finished, immediately queue settlement job
       if (gameJustFinished && homeScore !== null && awayScore !== null) {
-        logger.info(`[updateEventsCache] 🔥 Game just finished! Triggering immediate settlement: ${event.eventID}`);
+  log.info(`[updateEventsCache] 🔥 Game just finished! Triggering immediate settlement: ${event.eventID}`);
         
         // Import settlement queue dynamically to avoid circular dependencies
         const { getSettlementQueue } = await import('../services/settlement-queue.service');
@@ -838,7 +839,7 @@ async function updateEventsCache(events: any[]) {
         const queue = getSettlementQueue();
         queue.addSettleGameJob(event.eventID, 1) // Priority 1 (highest)
           .then((job) => {
-            logger.info(`[updateEventsCache] ✅ Real-time settlement job queued`, { 
+            log.info(`[updateEventsCache] ✅ Real-time settlement job queued`, { 
               jobId: job.id,
               gameId: event.eventID,
               score: `${awayScore}-${homeScore}`
@@ -1029,7 +1030,8 @@ async function updateOddsCache(gameId: string, oddsData: any) {
     });
     
     if (oddsToCreate.length > 0) {
-      logger.info(`Caching ${oddsToCreate.length} odds for game ${gameId}`);
+      // This can be very noisy when processing many games; downgrade to debug
+      logger.debug(() => `Caching ${oddsToCreate.length} odds for game ${gameId}`);
       await prisma.odds.createMany({
         data: oddsToCreate,
         skipDuplicates: true,
@@ -1339,7 +1341,7 @@ async function updatePlayerPropsCache(gameId: string, props: any[]) {
     }
     
     if (propsToCreate.length > 0) {
-      logger.info(`Creating ${propsToCreate.length} valid player props for ${gameId}`);
+  log.debug(`Creating ${propsToCreate.length} valid player props for ${gameId}`);
       await prisma.playerProp.createMany({
         data: propsToCreate,
         skipDuplicates: true,
@@ -1510,7 +1512,7 @@ export async function getGamePropsWithCache(eventID: string) {
         logger.error('Failed to update game props cache', error);
       });
       
-      logger.info(`Filtered ${props.length - filteredProps.length} completed period props for game ${eventID}`);
+  log.debug(`Filtered ${props.length - filteredProps.length} completed period props for game ${eventID}`);
       
       return { data: filteredProps, source: 'sdk' as const };
     }
@@ -1566,7 +1568,7 @@ async function updateGamePropsCache(gameId: string, props: any[]) {
     }
     
     if (propsToCreate.length > 0) {
-      logger.info(`Creating ${propsToCreate.length} valid game props for ${gameId}`);
+  log.debug(`Creating ${propsToCreate.length} valid game props for ${gameId}`);
       await prisma.gameProp.createMany({
         data: propsToCreate,
         skipDuplicates: true,

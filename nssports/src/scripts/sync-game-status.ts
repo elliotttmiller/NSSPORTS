@@ -19,6 +19,7 @@ import { getEvents } from '@/lib/sportsgameodds-sdk';
 import { prisma } from '@/lib/prisma';
 import { settleGameBets } from '@/services/bet-settlement';
 import { logger } from '@/lib/logger';
+const log = logger.createScopedLogger('SyncGameStatus');
 
 export interface SyncResult {
   gamesChecked: number;
@@ -54,14 +55,14 @@ async function cleanupStuckLiveGames(): Promise<{ updated: number; errors: strin
       }
     });
     
-    logger.info(`[cleanupStuckLiveGames] Found ${stuckGames.length} stuck live games`);
+  log.info(`[cleanupStuckLiveGames] Found ${stuckGames.length} stuck live games`);
     
     for (const game of stuckGames) {
       try {
         // Only mark as finished if we have scores
         // If no scores, we'll try to get them from SDK next time
         if (game.homeScore !== null && game.awayScore !== null) {
-          logger.info(`[cleanupStuckLiveGames] Marking stuck game ${game.id} as finished`, {
+          log.debug(`[cleanupStuckLiveGames] Marking stuck game ${game.id} as finished`, {
             gameId: game.id,
             startTime: game.startTime,
             homeScore: game.homeScore,
@@ -80,27 +81,27 @@ async function cleanupStuckLiveGames(): Promise<{ updated: number; errors: strin
           
           // Settle bets for this game
           const settlementResults = await settleGameBets(game.id);
-          logger.info(`[cleanupStuckLiveGames] Settled ${settlementResults.length} bets for game ${game.id}`);
+          log.debug(`[cleanupStuckLiveGames] Settled ${settlementResults.length} bets for game ${game.id}`);
         } else {
-          logger.warn(`[cleanupStuckLiveGames] Stuck game ${game.id} has no scores, skipping`, {
+          log.warn(`[cleanupStuckLiveGames] Stuck game ${game.id} has no scores, skipping`, {
             gameId: game.id,
             startTime: game.startTime
           });
         }
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
-        logger.error(`[cleanupStuckLiveGames] Error processing game ${game.id}:`, error);
+  log.error(`[cleanupStuckLiveGames] Error processing game ${game.id}:`, error);
         result.errors.push(`Game ${game.id}: ${errorMsg}`);
       }
     }
     
-    logger.info(`[cleanupStuckLiveGames] Cleanup complete`, {
+    log.info(`[cleanupStuckLiveGames] Cleanup complete`, {
       updated: result.updated,
       errors: result.errors.length
     });
     
   } catch (error) {
-    logger.error('[cleanupStuckLiveGames] Fatal error:', error);
+  log.error('[cleanupStuckLiveGames] Fatal error:', error);
     result.errors.push(`Fatal error: ${error instanceof Error ? error.message : String(error)}`);
   }
   
@@ -120,13 +121,13 @@ export async function syncFinishedGames(): Promise<SyncResult> {
   };
 
   try {
-    logger.info('[syncFinishedGames] Starting game status sync...');
+  log.info('[syncFinishedGames] Starting game status sync...');
 
     // Fetch games from last 12 hours (catches games that just finished)
     const twelveHoursAgo = new Date(Date.now() - 12 * 60 * 60 * 1000);
     const now = new Date();
 
-    logger.info('[syncFinishedGames] Fetching games from SDK', {
+    log.debug('[syncFinishedGames] Fetching games from SDK', {
       startsAfter: twelveHoursAgo.toISOString(),
       startsBefore: now.toISOString()
     });
@@ -138,7 +139,7 @@ export async function syncFinishedGames(): Promise<SyncResult> {
       limit: 200 // Check up to 200 recent games
     });
 
-    logger.info(`[syncFinishedGames] Received ${response.data.length} games from SDK`);
+  log.debug(`[syncFinishedGames] Received ${response.data.length} games from SDK`);
     result.gamesChecked = response.data.length;
 
     for (const event of response.data) {
@@ -162,7 +163,7 @@ export async function syncFinishedGames(): Promise<SyncResult> {
         });
 
         if (!dbGame) {
-          logger.warn(`[syncFinishedGames] Game ${event.eventID} not found in database - skipping`);
+          log.warn(`[syncFinishedGames] Game ${event.eventID} not found in database - skipping`);
           continue;
         }
 
@@ -178,7 +179,7 @@ export async function syncFinishedGames(): Promise<SyncResult> {
 
         // Note: Allow 0 scores, but skip if scores are null/undefined
         if (homeScore == null || awayScore == null) {
-          logger.warn(`[syncFinishedGames] Game ${event.eventID} missing final scores`, {
+          log.warn(`[syncFinishedGames] Game ${event.eventID} missing final scores`, {
             homeScore,
             awayScore,
             hasResults: !!event.results,
@@ -189,7 +190,7 @@ export async function syncFinishedGames(): Promise<SyncResult> {
         }
 
         // Update game status in database
-        logger.info(`[syncFinishedGames] Marking game ${dbGame.id} (${event.eventID}) as finished`, {
+        log.debug(`[syncFinishedGames] Marking game ${dbGame.id} (${event.eventID}) as finished`, {
           homeScore,
           awayScore
         });
@@ -206,11 +207,11 @@ export async function syncFinishedGames(): Promise<SyncResult> {
         result.gamesUpdated++;
 
         // Immediately settle all bets for this game
-        logger.info(`[syncFinishedGames] Settling bets for game ${dbGame.id}`);
+  log.debug(`[syncFinishedGames] Settling bets for game ${dbGame.id}`);
         const settlementResults = await settleGameBets(dbGame.id);
         result.betsSettled += settlementResults.length;
 
-        logger.info(`[syncFinishedGames] Settled ${settlementResults.length} bets for game ${dbGame.id}`, {
+        log.debug(`[syncFinishedGames] Settled ${settlementResults.length} bets for game ${dbGame.id}`, {
           gameId: dbGame.id,
           eventID: event.eventID,
           settled: settlementResults.length
@@ -223,7 +224,7 @@ export async function syncFinishedGames(): Promise<SyncResult> {
       }
     }
 
-    logger.info('[syncFinishedGames] Sync complete', {
+    log.info('[syncFinishedGames] Sync complete', {
       checked: result.gamesChecked,
       updated: result.gamesUpdated,
       betsSettled: result.betsSettled,
@@ -231,12 +232,12 @@ export async function syncFinishedGames(): Promise<SyncResult> {
     });
 
     // STEP 2: Cleanup "stuck" live games (fallback mechanism)
-    logger.info('[syncFinishedGames] Checking for stuck live games...');
+  log.debug('[syncFinishedGames] Checking for stuck live games...');
     const cleanupResult = await cleanupStuckLiveGames();
     result.stuckGamesFixed = cleanupResult.updated;
     result.errors.push(...cleanupResult.errors);
     
-    logger.info('[syncFinishedGames] All sync operations complete', {
+    log.info('[syncFinishedGames] All sync operations complete', {
       sdkGamesChecked: result.gamesChecked,
       sdkGamesUpdated: result.gamesUpdated,
       stuckGamesFixed: result.stuckGamesFixed,
@@ -247,7 +248,7 @@ export async function syncFinishedGames(): Promise<SyncResult> {
     return result;
 
   } catch (error) {
-    logger.error('[syncFinishedGames] Fatal error during sync:', error);
+  log.error('[syncFinishedGames] Fatal error during sync:', error);
     result.errors.push(`Fatal error: ${error instanceof Error ? error.message : String(error)}`);
     return result;
   }
@@ -257,12 +258,12 @@ export async function syncFinishedGames(): Promise<SyncResult> {
 if (import.meta.url === `file://${process.argv[1]}`) {
   syncFinishedGames()
     .then((result) => {
-  logger.info('✅ Sync completed successfully!');
-  logger.debug(JSON.stringify(result, null, 2));
+      log.info('✅ Sync completed successfully!');
+      log.debug(JSON.stringify(result, null, 2));
       process.exit(0);
     })
     .catch((error) => {
-      logger.error('❌ Sync failed:', error);
+      log.error('❌ Sync failed:', error);
       process.exit(1);
     });
 }

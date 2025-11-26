@@ -11,58 +11,60 @@
 
 import { initializeSettlementQueue, getSettlementQueue } from '../services/settlement-queue.service';
 import { logger } from '../lib/logger';
+const log = logger.createScopedLogger('InitSettlementScheduler');
 
 async function main() {
   try {
-    logger.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    logger.info('  NSSPORTS Settlement Scheduler Initialization');
-    logger.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    logger.info('');
+  log.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  log.info('  NSSPORTS Settlement Scheduler Initialization');
+  log.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  log.info('');
 
     // Initialize queue
-    logger.info('⏰ Initializing settlement queue...');
+  log.info('⏰ Initializing settlement queue...');
     await initializeSettlementQueue();
     
     // Get queue statistics
-    logger.info('');
-    logger.info('📊 Queue Statistics:');
+  log.info('');
+  log.info('📊 Queue Statistics:');
     const queue = getSettlementQueue();
     const stats = await queue.getStats();
     const repeatableJobs = await queue.getRepeatableJobs();
     
-    logger.info(`  • Waiting: ${stats.waiting}`);
-    logger.info(`  • Active: ${stats.active}`);
-    logger.info(`  • Completed: ${stats.completed}`);
-    logger.info(`  • Failed: ${stats.failed}`);
-    logger.info(`  • Delayed: ${stats.delayed}`);
-    logger.info(`  • Total: ${stats.total}`);
-    logger.info('');
-    logger.info(`  • Recurring Jobs: ${repeatableJobs.length}`);
+  log.info(`  • Waiting: ${stats.waiting}`);
+  log.info(`  • Active: ${stats.active}`);
+  log.info(`  • Completed: ${stats.completed}`);
+  log.info(`  • Failed: ${stats.failed}`);
+  log.info(`  • Delayed: ${stats.delayed}`);
+  log.info(`  • Total: ${stats.total}`);
+  log.info('');
+  log.info(`  • Recurring Jobs: ${repeatableJobs.length}`);
     
     if (repeatableJobs.length > 0) {
-      logger.info('');
-      logger.info('⏰ Scheduled Jobs:');
+      log.info('');
+      log.info('⏰ Scheduled Jobs:');
       repeatableJobs.forEach(job => {
-        logger.info(`  • ${job.name}: ${job.pattern}`);
+        // Detailed schedule lines can be noisy in automated runs; keep as debug
+        log.debug(`  • ${job.name}: ${job.pattern}`);
         if (job.next) {
-          logger.info(`    Next run: ${new Date(job.next).toISOString()}`);
+          log.debug(`    Next run: ${new Date(job.next).toISOString()}`);
         }
       });
     }
     
     logger.info('');
-    logger.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    logger.info('✅ Settlement scheduler initialized successfully!');
-    logger.info('');
-    logger.info('Next steps:');
-    logger.info('  1. Start worker: npm run settlement:worker');
-    logger.info('  2. Or use all-in-one: npm run settlement:start');
-    logger.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  log.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  log.info('✅ Settlement scheduler initialized successfully!');
+  log.info('');
+  log.info('Next steps:');
+  log.info('  1. Start worker: npm run settlement:worker');
+  log.info('  2. Or use all-in-one: npm run settlement:start');
+  log.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     
     await queue.close();
     process.exit(0);
   } catch (error) {
-    logger.error('Failed to initialize settlement scheduler:', error);
+  log.error('Failed to initialize settlement scheduler:', error);
     process.exit(1);
   }
 }

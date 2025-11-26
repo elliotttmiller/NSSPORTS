@@ -44,6 +44,7 @@
  */
 
 import { logger } from './logger';
+const log = logger.createScopedLogger('StreamingService');
 import { getEvents } from './sportsgameodds-sdk';
 
 // Type definitions for Pusher WebSocket client
@@ -170,7 +171,7 @@ export class StreamingService {
       // Get stream connection info from API (Step 1 - Official Pattern)
       const streamInfo = await this.getStreamConnectionInfo(feed, options);
       
-      logger.info('[Streaming] Stream configuration received', {
+      log.debug('[Streaming] Stream configuration received', {
         channel: streamInfo.channel,
         pusherKey: streamInfo.pusherKey,
         initialDataCount: streamInfo.initialData.length,
@@ -210,7 +211,7 @@ export class StreamingService {
         // CRITICAL: Updates contain ONLY eventID, not full data
         this.channel.bind('data', (data: unknown) => {
           const changedEvents = data as EventUpdate[];
-          logger.info('[Streaming] Received update notification', {
+          log.debug('[Streaming] Received update notification', {
             count: changedEvents.length,
           });
 

@@ -23,6 +23,7 @@
 
 import { getEvents } from '@/lib/sportsgameodds-sdk';
 import { logger } from '@/lib/logger';
+const log = logger.createScopedLogger('PlayerStats');
 
 /**
  * Player stats structure returned by SDK
@@ -51,7 +52,7 @@ export async function fetchPlayerStats(
   playerId: string
 ): Promise<PlayerGameStats | null> {
   try {
-    logger.info(`[fetchPlayerStats] Fetching stats for player ${playerId} in game ${gameId}`);
+  log.debug(`[fetchPlayerStats] Fetching stats for player ${playerId} in game ${gameId}`);
 
     // Fetch event from SDK
     const response = await getEvents({
@@ -59,7 +60,7 @@ export async function fetchPlayerStats(
     });
 
     if (!response.data || response.data.length === 0) {
-      logger.warn(`[fetchPlayerStats] Game ${gameId} not found in SDK`);
+  log.warn(`[fetchPlayerStats] Game ${gameId} not found in SDK`);
       return null;
     }
 
@@ -68,7 +69,7 @@ export async function fetchPlayerStats(
 
     // SDK structure: event.results['game'][playerID] = { points: X, rebounds: Y, ... }
     if (!event.results || !event.results['game']) {
-      logger.warn(`[fetchPlayerStats] No game results data for game ${gameId} - may not be finished yet`);
+  log.warn(`[fetchPlayerStats] No game results data for game ${gameId} - may not be finished yet`);
       return null;
     }
 
@@ -76,25 +77,25 @@ export async function fetchPlayerStats(
     
     // Check if player data exists
     if (!gameResults[playerId]) {
-      logger.warn(`[fetchPlayerStats] No stats found for player ${playerId} in game ${gameId}`);
-      const availablePlayers = Object.keys(gameResults).filter(k => k.includes('_NBA') || k.includes('_NFL') || k.includes('_NHL')).slice(0, 5);
-      logger.info(`[fetchPlayerStats] Sample available players: ${availablePlayers.join(', ')}`);
+  log.warn(`[fetchPlayerStats] No stats found for player ${playerId} in game ${gameId}`);
+  const availablePlayers = Object.keys(gameResults).filter(k => k.includes('_NBA') || k.includes('_NFL') || k.includes('_NHL')).slice(0, 5);
+  log.debug(`[fetchPlayerStats] Sample available players: ${availablePlayers.join(', ')}`);
       return null;
     }
 
     const playerStats = gameResults[playerId];
     
     if (typeof playerStats !== 'object') {
-      logger.warn(`[fetchPlayerStats] Invalid stats format for player ${playerId}`);
+  log.warn(`[fetchPlayerStats] Invalid stats format for player ${playerId}`);
       return null;
     }
 
-    logger.info(`[fetchPlayerStats] Found ${Object.keys(playerStats).length} stat types for player ${playerId}`);
+  log.debug(`[fetchPlayerStats] Found ${Object.keys(playerStats).length} stat types for player ${playerId}`);
     
     return playerStats as PlayerGameStats;
 
   } catch (error) {
-    logger.error(`[fetchPlayerStats] Error fetching stats for player ${playerId} in game ${gameId}:`, error);
+  log.error(`[fetchPlayerStats] Error fetching stats for player ${playerId} in game ${gameId}:`, error);
     return null;
   }
 }
@@ -122,7 +123,7 @@ export async function fetchAllPlayerStats(
   const statsMap = new Map<string, PlayerGameStats>();
 
   try {
-    logger.info(`[fetchAllPlayerStats] Fetching all player stats for game ${gameId}`);
+  log.debug(`[fetchAllPlayerStats] Fetching all player stats for game ${gameId}`);
 
     // Fetch event from SDK
     const response = await getEvents({
@@ -130,7 +131,7 @@ export async function fetchAllPlayerStats(
     });
 
     if (!response.data || response.data.length === 0) {
-      logger.warn(`[fetchAllPlayerStats] Game ${gameId} not found in SDK`);
+  log.warn(`[fetchAllPlayerStats] Game ${gameId} not found in SDK`);
       return statsMap;
     }
 
@@ -138,7 +139,7 @@ export async function fetchAllPlayerStats(
     const event = response.data[0] as any;
 
     if (!event.results || !event.results['game']) {
-      logger.warn(`[fetchAllPlayerStats] No game results data for game ${gameId}`);
+  log.warn(`[fetchAllPlayerStats] No game results data for game ${gameId}`);
       return statsMap;
     }
 
@@ -152,11 +153,11 @@ export async function fetchAllPlayerStats(
       }
     });
 
-    logger.info(`[fetchAllPlayerStats] Found stats for ${statsMap.size} players`);
+  log.debug(`[fetchAllPlayerStats] Found stats for ${statsMap.size} players`);
     return statsMap;
 
   } catch (error) {
-    logger.error(`[fetchAllPlayerStats] Error fetching all player stats for game ${gameId}:`, error);
+  log.error(`[fetchAllPlayerStats] Error fetching all player stats for game ${gameId}:`, error);
     return statsMap;
   }
 }
@@ -187,7 +188,7 @@ export async function fetchMultiplePlayerStats(
   const statsMap = new Map<string, PlayerGameStats>();
 
   try {
-    logger.info(`[fetchMultiplePlayerStats] Fetching stats for ${playerIds.length} players in game ${gameId}`);
+  log.debug(`[fetchMultiplePlayerStats] Fetching stats for ${playerIds.length} players in game ${gameId}`);
 
     // Fetch event from SDK
     const response = await getEvents({
@@ -195,7 +196,7 @@ export async function fetchMultiplePlayerStats(
     });
 
     if (!response.data || response.data.length === 0) {
-      logger.warn(`[fetchMultiplePlayerStats] Game ${gameId} not found in SDK`);
+  log.warn(`[fetchMultiplePlayerStats] Game ${gameId} not found in SDK`);
       return statsMap;
     }
 
@@ -203,7 +204,7 @@ export async function fetchMultiplePlayerStats(
     const event = response.data[0] as any;
 
     if (!event.results || !event.results['game']) {
-      logger.warn(`[fetchMultiplePlayerStats] No game results data for game ${gameId}`);
+  log.warn(`[fetchMultiplePlayerStats] No game results data for game ${gameId}`);
       return statsMap;
     }
 
@@ -216,7 +217,7 @@ export async function fetchMultiplePlayerStats(
       }
     });
 
-    logger.info(`[fetchMultiplePlayerStats] Found stats for ${statsMap.size} / ${playerIds.length} players`);
+  log.debug(`[fetchMultiplePlayerStats] Found stats for ${statsMap.size} / ${playerIds.length} players`);
     
     return statsMap;
 

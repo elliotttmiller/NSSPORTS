@@ -14,6 +14,7 @@
 
 import Redis from 'ioredis';
 import { logger } from './logger';
+const log = logger.createScopedLogger('Redis');
 
 /**
  * Get Redis configuration from environment variables
@@ -35,11 +36,11 @@ function getRedisConfig() {
     // Reconnection strategy - exponential backoff with a higher cap
     retryStrategy(times: number) {
       if (times > 20) {
-        logger.error('[Redis] Max reconnection attempts reached');
+        log.error('[Redis] Max reconnection attempts reached');
         return null; // Stop retrying after many attempts
       }
       const delay = Math.min(Math.pow(2, times) * 50, 30000); // up to 30s
-      logger.info(`[Redis] Reconnecting attempt ${times}, delay: ${delay}ms`);
+      log.debug(`[Redis] Reconnecting attempt ${times}, delay: ${delay}ms`);
       return delay;
     },
 
@@ -63,7 +64,7 @@ let redisClient: Redis | null = null;
 export function getRedisClient(): Redis {
   if (!redisClient) {
     const config = getRedisConfig();
-    logger.info('[Redis] Creating new Redis client...', {
+    log.info('[Redis] Creating new Redis client...', {
       host: config.host,
       port: config.port,
     });
@@ -72,34 +73,34 @@ export function getRedisClient(): Redis {
 
     // Event handlers
     redisClient.on('connect', () => {
-      logger.info('[Redis] ✅ Connected to Redis');
+      log.info('[Redis] ✅ Connected to Redis');
     });
 
     redisClient.on('ready', () => {
-      logger.info('[Redis] ✅ Redis client ready');
+      log.info('[Redis] ✅ Redis client ready');
     });
 
     redisClient.on('error', (err) => {
-      logger.error('[Redis] ❌ Redis client error:', err);
+      log.error('[Redis] ❌ Redis client error:', err);
     });
 
     redisClient.on('close', () => {
-      logger.warn('[Redis] ⚠️  Redis connection closed');
+      log.warn('[Redis] ⚠️  Redis connection closed');
     });
 
     redisClient.on('reconnecting', () => {
-      logger.info('[Redis] 🔄 Reconnecting to Redis...');
+      log.debug('[Redis] 🔄 Reconnecting to Redis...');
     });
 
     // Graceful shutdown
     process.on('SIGTERM', async () => {
-      logger.info('[Redis] Received SIGTERM, closing Redis connection...');
+  log.info('[Redis] Received SIGTERM, closing Redis connection...');
       await redisClient?.quit();
       redisClient = null;
     });
 
     process.on('SIGINT', async () => {
-      logger.info('[Redis] Received SIGINT, closing Redis connection...');
+  log.info('[Redis] Received SIGINT, closing Redis connection...');
       await redisClient?.quit();
       redisClient = null;
     });
@@ -114,7 +115,7 @@ export function getRedisClient(): Redis {
  */
 export function createRedisConnection(): Redis {
   const config = getRedisConfig();
-  logger.info('[Redis] Creating dedicated worker connection...');
+  log.info('[Redis] Creating dedicated worker connection...');
   return new Redis(config);
 }
 
@@ -123,7 +124,7 @@ export function createRedisConnection(): Redis {
  */
 export async function closeRedis(): Promise<void> {
   if (redisClient) {
-    logger.info('[Redis] Closing Redis connection...');
+  log.info('[Redis] Closing Redis connection...');
     await redisClient.quit();
     redisClient = null;
   }
@@ -138,7 +139,7 @@ export async function healthCheck(): Promise<boolean> {
     const result = await client.ping();
     return result === 'PONG';
   } catch (error) {
-    logger.error('[Redis] Health check failed:', error);
+  log.error('[Redis] Health check failed:', error);
     return false;
   }
 }

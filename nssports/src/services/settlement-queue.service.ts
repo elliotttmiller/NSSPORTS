@@ -24,6 +24,7 @@
 import { Queue, Worker, Job, QueueEvents, JobsOptions, RepeatOptions } from 'bullmq';
 import { createRedisConnection } from '../lib/redis';
 import { logger } from '../lib/logger';
+const log = logger.createScopedLogger('SettlementQueue');
 import { settleAllFinishedGames, settleBet, settleGameBets } from '../services/bet-settlement';
 import { syncFinishedGames } from '../scripts/sync-game-status';
 
@@ -136,7 +137,7 @@ export class SettlementQueueService {
       defaultJobOptions: DEFAULT_JOB_OPTIONS,
     });
 
-    logger.info('[SettlementQueue] Queue initialized', {
+    log.info('[SettlementQueue] Queue initialized', {
       queueName: QUEUE_NAMES.SETTLEMENT,
     });
   }
@@ -157,7 +158,7 @@ export class SettlementQueueService {
     }
 
     try {
-      logger.info('[SettlementQueue] Initializing settlement system...');
+  log.info('[SettlementQueue] Initializing settlement system...');
 
       // Set up queue events monitoring
       this.queueEvents = new QueueEvents(QUEUE_NAMES.SETTLEMENT, {
@@ -172,8 +173,8 @@ export class SettlementQueueService {
       // Schedule cleanup job
       await this.scheduleCleanupJob();
 
-      this.isInitialized = true;
-      logger.info('[SettlementQueue] ✅ Settlement system initialized successfully');
+  this.isInitialized = true;
+  log.info('[SettlementQueue] ✅ Settlement system initialized successfully');
     } catch (error) {
       logger.error('[SettlementQueue] Failed to initialize', error);
       throw error;
@@ -209,7 +210,7 @@ export class SettlementQueueService {
       }
     );
 
-    logger.info('[SettlementQueue] ✅ Scheduled recurring settlement job (every 5 minutes)');
+  log.info('[SettlementQueue] ✅ Scheduled recurring settlement job (every 5 minutes)');
   }
 
   /**
@@ -230,7 +231,7 @@ export class SettlementQueueService {
       }
     );
 
-    logger.info('[SettlementQueue] ✅ Scheduled cleanup job (daily at 3 AM)');
+  log.info('[SettlementQueue] ✅ Scheduled cleanup job (daily at 3 AM)');
   }
 
   /**
@@ -240,19 +241,19 @@ export class SettlementQueueService {
     if (!this.queueEvents) return;
 
     this.queueEvents.on('completed', ({ jobId, returnvalue }) => {
-      logger.info('[SettlementQueue] Job completed', { jobId, returnvalue });
+      log.info('[SettlementQueue] Job completed', { jobId, returnvalue });
     });
 
     this.queueEvents.on('failed', ({ jobId, failedReason }) => {
-      logger.error('[SettlementQueue] Job failed', { jobId, failedReason });
+      log.error('[SettlementQueue] Job failed', { jobId, failedReason });
     });
 
     this.queueEvents.on('progress', ({ jobId, data }) => {
-      logger.debug('[SettlementQueue] Job progress', { jobId, data });
+      log.debug('[SettlementQueue] Job progress', { jobId, data });
     });
 
     this.queueEvents.on('stalled', ({ jobId }) => {
-      logger.warn('[SettlementQueue] Job stalled', { jobId });
+      log.warn('[SettlementQueue] Job stalled', { jobId });
     });
   }
 
@@ -277,7 +278,7 @@ export class SettlementQueueService {
       }
     );
 
-    logger.info('[SettlementQueue] Added settle game job', { gameId, jobId: job.id });
+  log.info('[SettlementQueue] Added settle game job', { gameId, jobId: job.id });
     return job;
   }
 
@@ -298,7 +299,7 @@ export class SettlementQueueService {
       }
     );
 
-    logger.info('[SettlementQueue] Added settle bet job', { betId, jobId: job.id });
+  log.info('[SettlementQueue] Added settle bet job', { betId, jobId: job.id });
     return job;
   }
 
@@ -318,7 +319,7 @@ export class SettlementQueueService {
       }
     );
 
-    logger.info('[SettlementQueue] Added manual settle all job', { jobId: job.id, userId });
+  log.info('[SettlementQueue] Added manual settle all job', { jobId: job.id, userId });
     return job;
   }
 
@@ -335,7 +336,7 @@ export class SettlementQueueService {
       return;
     }
 
-    logger.info('[SettlementQueue] Starting worker...', { concurrency });
+  log.info('[SettlementQueue] Starting worker...', { concurrency });
 
     this.worker = new Worker<SettlementJobData>(
       QUEUE_NAMES.SETTLEMENT,
@@ -354,7 +355,7 @@ export class SettlementQueueService {
 
     this.setupWorkerEventHandlers();
 
-    logger.info('[SettlementQueue] ✅ Worker started successfully');
+  log.info('[SettlementQueue] ✅ Worker started successfully');
   }
 
   /**
@@ -362,7 +363,7 @@ export class SettlementQueueService {
    */
   private async processJob(job: Job<SettlementJobData>): Promise<unknown> {
     const startTime = Date.now();
-    logger.info('[SettlementQueue] Processing job', {
+    log.debug('[SettlementQueue] Processing job', {
       jobId: job.id,
       type: job.data.type,
       attempt: job.attemptsMade + 1,
@@ -397,7 +398,7 @@ export class SettlementQueueService {
       }
 
       const duration = Date.now() - startTime;
-      logger.info('[SettlementQueue] ✅ Job completed', {
+      log.info('[SettlementQueue] ✅ Job completed', {
         jobId: job.id,
         type: job.data.type,
         duration,
@@ -407,7 +408,7 @@ export class SettlementQueueService {
       return result;
     } catch (error) {
       const duration = Date.now() - startTime;
-      logger.error('[SettlementQueue] ❌ Job failed', {
+      log.error('[SettlementQueue] ❌ Job failed', {
         jobId: job.id,
         type: job.data.type,
         duration,
@@ -423,9 +424,9 @@ export class SettlementQueueService {
    */
   private async processSyncAndSettle(_job: Job<SyncAndSettleJobData>) {
     // Step 1: Sync game statuses from SDK
-    logger.info('[SettlementQueue] Step 1: Syncing game statuses...');
+    log.debug('[SettlementQueue] Step 1: Syncing game statuses...');
     const syncResult = await syncFinishedGames();
-    logger.info('[SettlementQueue] Sync complete', {
+    log.debug('[SettlementQueue] Sync complete', {
       gamesChecked: syncResult.gamesChecked,
       gamesUpdated: syncResult.gamesUpdated,
       betsSettled: syncResult.betsSettled,
@@ -433,9 +434,9 @@ export class SettlementQueueService {
     });
 
     // Step 2: Settle all pending bets for finished games
-    logger.info('[SettlementQueue] Step 2: Settling bets...');
+    log.debug('[SettlementQueue] Step 2: Settling bets...');
     const settlementResult = await settleAllFinishedGames();
-    logger.info('[SettlementQueue] Settlement complete', {
+    log.debug('[SettlementQueue] Settlement complete', {
       gamesProcessed: settlementResult.gamesProcessed,
       betsSettled: settlementResult.betsSettled,
     });
@@ -452,7 +453,7 @@ export class SettlementQueueService {
    */
   private async processSettleGame(job: Job<SettleGameJobData>) {
     const { gameId } = job.data;
-    logger.info('[SettlementQueue] Settling game', { gameId });
+  log.debug('[SettlementQueue] Settling game', { gameId });
 
     const results = await settleGameBets(gameId);
     
@@ -468,7 +469,7 @@ export class SettlementQueueService {
    */
   private async processSettleBet(job: Job<SettleBetJobData>) {
     const { betId } = job.data;
-    logger.info('[SettlementQueue] Settling bet', { betId });
+  log.debug('[SettlementQueue] Settling bet', { betId });
 
     const result = await settleBet(betId);
     
@@ -488,7 +489,7 @@ export class SettlementQueueService {
    * Process settle all job (manual trigger)
    */
   private async processSettleAll(_job: Job<SettleAllJobData>) {
-    logger.info('[SettlementQueue] Manual full settlement triggered');
+  log.info('[SettlementQueue] Manual full settlement triggered');
 
     const result = await settleAllFinishedGames();
     
@@ -504,7 +505,7 @@ export class SettlementQueueService {
    */
   private async processCleanup(job: Job<CleanupJobData>) {
     const { olderThanDays = 7 } = job.data;
-    logger.info('[SettlementQueue] Cleaning up old jobs', { olderThanDays });
+  log.info('[SettlementQueue] Cleaning up old jobs', { olderThanDays });
 
     const grace = olderThanDays * 86400 * 1000; // Convert days to milliseconds
     
@@ -526,7 +527,7 @@ export class SettlementQueueService {
     if (!this.worker) return;
 
     this.worker.on('completed', (job, result) => {
-      logger.info('[SettlementQueue] Worker completed job', {
+      log.info('[SettlementQueue] Worker completed job', {
         jobId: job.id,
         type: job.data.type,
         result,
@@ -534,7 +535,7 @@ export class SettlementQueueService {
     });
 
     this.worker.on('failed', (job, error) => {
-      logger.error('[SettlementQueue] Worker job failed', {
+      log.error('[SettlementQueue] Worker job failed', {
         jobId: job?.id,
         type: job?.data.type,
         error: error.message,
@@ -543,11 +544,11 @@ export class SettlementQueueService {
     });
 
     this.worker.on('error', (error) => {
-      logger.error('[SettlementQueue] Worker error', error);
+  log.error('[SettlementQueue] Worker error', error);
     });
 
     this.worker.on('stalled', (jobId) => {
-      logger.warn('[SettlementQueue] Worker job stalled', { jobId });
+  log.warn('[SettlementQueue] Worker job stalled', { jobId });
     });
   }
 
@@ -560,10 +561,10 @@ export class SettlementQueueService {
       return;
     }
 
-    logger.info('[SettlementQueue] Stopping worker...');
+  log.info('[SettlementQueue] Stopping worker...');
     await this.worker.close();
     this.worker = null;
-    logger.info('[SettlementQueue] ✅ Worker stopped');
+  log.info('[SettlementQueue] ✅ Worker stopped');
   }
 
   // ==========================================================================
@@ -606,7 +607,7 @@ export class SettlementQueueService {
    */
   async pause(): Promise<void> {
     await this.queue.pause();
-    logger.info('[SettlementQueue] ⏸️  Queue paused');
+  log.info('[SettlementQueue] ⏸️  Queue paused');
   }
 
   /**
@@ -614,7 +615,7 @@ export class SettlementQueueService {
    */
   async resume(): Promise<void> {
     await this.queue.resume();
-    logger.info('[SettlementQueue] ▶️  Queue resumed');
+  log.info('[SettlementQueue] ▶️  Queue resumed');
   }
 
   /**
@@ -622,14 +623,14 @@ export class SettlementQueueService {
    */
   async drain(): Promise<void> {
     await this.queue.drain();
-    logger.info('[SettlementQueue] 🚰 Queue drained');
+  log.info('[SettlementQueue] 🚰 Queue drained');
   }
 
   /**
    * Close queue and clean up connections
    */
   async close(): Promise<void> {
-    logger.info('[SettlementQueue] Closing settlement queue...');
+  log.info('[SettlementQueue] Closing settlement queue...');
 
     if (this.worker) {
       await this.stopWorker();
@@ -643,7 +644,7 @@ export class SettlementQueueService {
     await this.connection.quit();
 
     this.isInitialized = false;
-    logger.info('[SettlementQueue] ✅ Queue closed');
+  log.info('[SettlementQueue] ✅ Queue closed');
   }
 }
 

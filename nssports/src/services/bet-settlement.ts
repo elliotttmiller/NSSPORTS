@@ -18,6 +18,7 @@ import { prisma } from "@/lib/prisma";
 import { fetchPlayerStats, calculateCombinedStat } from "@/lib/player-stats";
 import { getPeriodScore } from "@/lib/period-scores";
 import { logger } from "@/lib/logger";
+const log = logger.createScopedLogger('BetSettlement');
 
 // ============================================================================
 // TYPES & INTERFACES
@@ -503,7 +504,7 @@ export async function settleBet(betId: string): Promise<SettlementResult | null>
     }
 
     if (bet.status !== "pending") {
-      logger.info(`[settleBet] Bet ${betId} already settled with status: ${bet.status}`);
+  log.debug(`[settleBet] Bet ${betId} already settled with status: ${bet.status}`);
       return null;
     }
 
@@ -517,7 +518,7 @@ export async function settleBet(betId: string): Promise<SettlementResult | null>
       }
 
       if (bet.game.status !== "finished") {
-        logger.info(`[settleBet] Game ${bet.game.id} not finished yet (status: ${bet.game.status})`);
+  log.debug(`[settleBet] Game ${bet.game.id} not finished yet (status: ${bet.game.status})`);
         return null;
       }
 
@@ -590,7 +591,7 @@ export async function settleBet(betId: string): Promise<SettlementResult | null>
         }
 
         // ✅ Fetch actual player stats from SDK
-        logger.info(`[settleBet] Fetching player stats for ${playerPropMetadata.playerId} in game ${bet.gameId}`);
+  log.debug(`[settleBet] Fetching player stats for ${playerPropMetadata.playerId} in game ${bet.gameId}`);
         const playerStats = await fetchPlayerStats(bet.gameId, playerPropMetadata.playerId);
         
         if (!playerStats) {
@@ -631,7 +632,7 @@ export async function settleBet(betId: string): Promise<SettlementResult | null>
         // Check if this is a period/quarter prop
         let periodScoresForProp: { home: number; away: number } | null = null;
         if (gamePropMetadata.periodID && bet.gameId) {
-          logger.info(`[settleBet] Fetching period ${gamePropMetadata.periodID} scores for game ${bet.gameId}`);
+          log.debug(`[settleBet] Fetching period ${gamePropMetadata.periodID} scores for game ${bet.gameId}`);
           periodScoresForProp = await getPeriodScore(bet.gameId, gamePropMetadata.periodID);
           
           if (!periodScoresForProp) {
@@ -931,11 +932,11 @@ export async function settleBet(betId: string): Promise<SettlementResult | null>
     });
 
     if (!transactionResult.applied) {
-      logger.info(`[settleBet] Bet ${betId} was already settled by another process; skipping payout`);
+  log.debug(`[settleBet] Bet ${betId} was already settled by another process; skipping payout`);
       return null;
     }
 
-    logger.info(`[settleBet] Bet ${betId} settled as ${result.status}, payout: $${payout.toFixed(2)}`);
+  log.info(`[settleBet] Bet ${betId} settled as ${result.status}, payout: $${payout.toFixed(2)}`);
 
     return {
       betId,
@@ -1022,7 +1023,7 @@ async function gradeParlayLegs(bet: { legs: unknown }): Promise<LegGradingResult
           legResult = { status: "push", reason: "Missing gameId" };
         } else {
           // ✅ Fetch actual player stats
-          logger.info(`[gradeParlayLegs] Fetching player stats for ${leg.playerProp.playerId} in game ${leg.gameId}`);
+          log.debug(`[gradeParlayLegs] Fetching player stats for ${leg.playerProp.playerId} in game ${leg.gameId}`);
           const playerStats = await fetchPlayerStats(leg.gameId, leg.playerProp.playerId);
           
           if (!playerStats) {
@@ -1048,7 +1049,7 @@ async function gradeParlayLegs(bet: { legs: unknown }): Promise<LegGradingResult
           // Check if this is a period/quarter prop
           let periodScoresForLeg: { home: number; away: number } | null = null;
           if (leg.gameProp.periodID && leg.gameId) {
-            logger.info(`[gradeParlayLegs] Fetching period ${leg.gameProp.periodID} scores for game ${leg.gameId}`);
+            log.debug(`[gradeParlayLegs] Fetching period ${leg.gameProp.periodID} scores for game ${leg.gameId}`);
             periodScoresForLeg = await getPeriodScore(leg.gameId, leg.gameProp.periodID);
             
             if (!periodScoresForLeg) {
@@ -1268,7 +1269,7 @@ export async function settleReverseBet(bet: {
     status = "push";
   }
 
-  logger.info(`[settleReverseBet] Bet ${bet.id} settled:`, {
+  log.info(`[settleReverseBet] Bet ${bet.id} settled:`, {
     direction1: { status: direction1Result.status, payout: direction1Result.payout },
     direction2: { status: direction2Result.status, payout: direction2Result.payout },
     totalPayout,
@@ -1419,7 +1420,7 @@ async function gradeParlayLegsFromData(legs: { id?: string; gameId: string; betT
  */
 export async function settleGameBets(gameId: string): Promise<SettlementResult[]> {
   try {
-    logger.info(`[settleGameBets] Settling all bets for game ${gameId}`);
+  log.info(`[settleGameBets] Settling all bets for game ${gameId}`);
 
     // Find all pending bets for this game
     const pendingBets = await prisma.bet.findMany({
@@ -1429,7 +1430,7 @@ export async function settleGameBets(gameId: string): Promise<SettlementResult[]
       }
     });
 
-    logger.info(`[settleGameBets] Found ${pendingBets.length} pending bets to settle`);
+  log.info(`[settleGameBets] Found ${pendingBets.length} pending bets to settle`);
 
     const results: SettlementResult[] = [];
 
@@ -1440,7 +1441,7 @@ export async function settleGameBets(gameId: string): Promise<SettlementResult[]
       }
     }
 
-    logger.info(`[settleGameBets] Successfully settled ${results.length} bets for game ${gameId}`);
+  log.info(`[settleGameBets] Successfully settled ${results.length} bets for game ${gameId}`);
 
     return results;
 
@@ -1462,7 +1463,7 @@ export async function settleAllFinishedGames(): Promise<{
   results: SettlementResult[];
 }> {
   try {
-    logger.info(`[settleAllFinishedGames] Starting settlement run...`);
+  log.info(`[settleAllFinishedGames] Starting settlement run...`);
 
     // Find all finished games that might have pending bets
     const finishedGames = await prisma.game.findMany({
@@ -1479,7 +1480,7 @@ export async function settleAllFinishedGames(): Promise<{
       }
     });
 
-    logger.info(`[settleAllFinishedGames] Found ${finishedGames.length} games with pending single bets`);
+  log.info(`[settleAllFinishedGames] Found ${finishedGames.length} games with pending single bets`);
 
     const allResults: SettlementResult[] = [];
 
@@ -1503,7 +1504,7 @@ export async function settleAllFinishedGames(): Promise<{
       }
     });
 
-    logger.info(`[settleAllFinishedGames] Found ${pendingMultiLegBets.length} pending multi-leg bets`);
+  log.info(`[settleAllFinishedGames] Found ${pendingMultiLegBets.length} pending multi-leg bets`);
 
     // Check each multi-leg bet to see if all its games are finished
     for (const bet of pendingMultiLegBets) {
@@ -1525,7 +1526,7 @@ export async function settleAllFinishedGames(): Promise<{
 
       // If all games are found and finished, settle the bet
       if (games.length === gameIds.length) {
-        logger.info(`[settleAllFinishedGames] All games finished for multi-leg bet ${bet.id}, settling...`);
+  log.info(`[settleAllFinishedGames] All games finished for multi-leg bet ${bet.id}, settling...`);
         const result = await settleBet(bet.id);
         if (result) {
           allResults.push(result);
@@ -1533,7 +1534,7 @@ export async function settleAllFinishedGames(): Promise<{
       }
     }
 
-    logger.info(`[settleAllFinishedGames] Settlement run complete. ` +
+  log.info(`[settleAllFinishedGames] Settlement run complete. ` +
       `Processed ${finishedGames.length} games, settled ${allResults.length} bets`);
 
     return {

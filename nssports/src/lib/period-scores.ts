@@ -19,6 +19,7 @@
 
 import { getEvents } from '@/lib/sportsgameodds-sdk';
 import { logger } from '@/lib/logger';
+const log = logger.createScopedLogger('PeriodScores');
 
 /**
  * Period scores structure
@@ -62,7 +63,7 @@ export async function fetchPeriodScores(
   gameId: string
 ): Promise<PeriodScores | null> {
   try {
-    logger.info(`[fetchPeriodScores] Fetching period scores for game ${gameId}`);
+  log.debug(`[fetchPeriodScores] Fetching period scores for game ${gameId}`);
 
     // Fetch event from SDK
     const response = await getEvents({
@@ -70,7 +71,7 @@ export async function fetchPeriodScores(
     });
 
     if (!response.data || response.data.length === 0) {
-      logger.warn(`[fetchPeriodScores] Game ${gameId} not found in SDK`);
+  log.warn(`[fetchPeriodScores] Game ${gameId} not found in SDK`);
       return null;
     }
 
@@ -79,7 +80,7 @@ export async function fetchPeriodScores(
 
     // SDK structure: event.results[periodID] = { home: { points: X }, away: { points: Y } }
     if (!event.results) {
-      logger.warn(`[fetchPeriodScores] No results field in event ${gameId}`);
+  log.warn(`[fetchPeriodScores] No results field in event ${gameId}`);
       return null;
     }
 
@@ -105,15 +106,15 @@ export async function fetchPeriodScores(
     }
 
     if (Object.keys(periodScores).length === 0) {
-      logger.warn(`[fetchPeriodScores] No period scores found in results for game ${gameId}`);
+  log.warn(`[fetchPeriodScores] No period scores found in results for game ${gameId}`);
       return null;
     }
 
-    logger.info(`[fetchPeriodScores] Successfully extracted ${Object.keys(periodScores).length} periods for game ${gameId}`);
+  log.debug(`[fetchPeriodScores] Successfully extracted ${Object.keys(periodScores).length} periods for game ${gameId}`);
     return periodScores;
 
   } catch (error) {
-    logger.error(`[fetchPeriodScores] Error fetching period scores for game ${gameId}:`, error);
+  log.error(`[fetchPeriodScores] Error fetching period scores for game ${gameId}:`, error);
     return null;
   }
 }
@@ -177,7 +178,7 @@ export async function getPeriodScore(
   const scores = await fetchExpandedPeriodScores(gameId);
   
   if (!scores || !scores[periodID]) {
-    logger.warn(`[getPeriodScore] No score data for period ${periodID} in game ${gameId}`);
+    log.warn(`[getPeriodScore] No score data for period ${periodID} in game ${gameId}`);
     return null;
   }
 

@@ -17,23 +17,24 @@
 
 import { startSettlementWorker } from '../services/settlement-queue.service';
 import { logger } from '../lib/logger';
+const log = logger.createScopedLogger('SettlementWorker');
 
 const WORKER_CONCURRENCY = parseInt(process.env.SETTLEMENT_WORKER_CONCURRENCY || '1');
 const WORKER_ID = process.env.WORKER_ID || `worker-${process.pid}`;
 
 async function main() {
-  logger.info(`[${WORKER_ID}] Starting settlement worker...`, {
+  log.info(`[${WORKER_ID}] Starting settlement worker...`, {
     concurrency: WORKER_CONCURRENCY,
     pid: process.pid,
   });
 
   try {
-    await startSettlementWorker(WORKER_CONCURRENCY);
-    logger.info(`[${WORKER_ID}] ✅ Worker started and processing jobs`);
+  await startSettlementWorker(WORKER_CONCURRENCY);
+  log.info(`[${WORKER_ID}] ✅ Worker started and processing jobs`);
 
     // Handle graceful shutdown
     const shutdown = async (signal: string) => {
-      logger.info(`[${WORKER_ID}] Received ${signal}, shutting down...`);
+      log.info(`[${WORKER_ID}] Received ${signal}, shutting down...`);
       process.exit(0);
     };
 
@@ -41,7 +42,7 @@ async function main() {
     process.on('SIGINT', () => shutdown('SIGINT'));
 
   } catch (error) {
-    logger.error(`[${WORKER_ID}] Failed to start worker`, error);
+    log.error(`[${WORKER_ID}] Failed to start worker`, error);
     process.exit(1);
   }
 }
