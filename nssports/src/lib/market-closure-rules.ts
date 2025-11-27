@@ -570,37 +570,41 @@ export function isPeriodCompleted(periodID: string, gameState: GameState): boole
   
   // NBA/NCAAB - Quarters (1q, 2q, 3q, 4q) and Halves (1h, 2h)
   if (leagueId === 'NBA' || leagueId === 'NCAAB') {
-    // Quarter props (NCAAB won't have these due to SDK filtering)
+    // Quarter props: treat a prop as "completed" (and therefore not offered)
+    // once that period has started or later. This closes the market at period start
+    // rather than waiting until the next period begins.
     if (propPeriod === '1q') {
-      // 1Q prop is completed if we're in Q2, Q3, Q4, or later
-      return currentPeriod.includes('2') || currentPeriod.includes('3') || 
-             currentPeriod.includes('4') || currentPeriod.includes('ot') || 
-             currentPeriod.includes('overtime');
-    }
-    if (propPeriod === '2q') {
-      return currentPeriod.includes('3') || currentPeriod.includes('4') || 
+      // 1Q prop is completed if we're in Q1, Q2, Q3, Q4, or later
+      return currentPeriod.includes('1') || currentPeriod.includes('2') ||
+             currentPeriod.includes('3') || currentPeriod.includes('4') ||
              currentPeriod.includes('ot') || currentPeriod.includes('overtime');
     }
-    if (propPeriod === '3q') {
-      return currentPeriod.includes('4') || currentPeriod.includes('ot') || 
+    if (propPeriod === '2q') {
+      return currentPeriod.includes('2') || currentPeriod.includes('3') ||
+             currentPeriod.includes('4') || currentPeriod.includes('ot') ||
              currentPeriod.includes('overtime');
     }
-    if (propPeriod === '4q') {
-      // 4Q prop is completed only after game ends (overtime starts)
-      return currentPeriod.includes('ot') || currentPeriod.includes('overtime');
+    if (propPeriod === '3q') {
+      return currentPeriod.includes('3') || currentPeriod.includes('4') ||
+             currentPeriod.includes('ot') || currentPeriod.includes('overtime');
     }
-    
-    // Half props
+    if (propPeriod === '4q') {
+      // 4Q prop is completed when Q4 starts or when overtime begins
+      return currentPeriod.includes('4') || currentPeriod.includes('ot') ||
+             currentPeriod.includes('overtime');
+    }
+
+    // Half props: close at start of the half
     if (propPeriod === '1h') {
-      // 1H prop is completed if we're in 2H (Q3/Q4) or later
-      return currentPeriod.includes('3') || currentPeriod.includes('4') || 
-             currentPeriod.includes('ot') || currentPeriod.includes('overtime') ||
-             currentPeriod.includes('2nd') || currentPeriod.includes('second');
+      // 1H prop is completed if we're in 1H (Q1/Q2) or later
+      return currentPeriod.includes('1') || currentPeriod.includes('2') ||
+             currentPeriod.includes('3') || currentPeriod.includes('4') ||
+             currentPeriod.includes('ot') || currentPeriod.includes('overtime');
     }
     if (propPeriod === '2h') {
-      // 2H prop is completed only after game ends (overtime starts)
-      // 2H includes Q3 and Q4, so it's only complete when game is over
-      return currentPeriod.includes('ot') || currentPeriod.includes('overtime');
+      // 2H prop is completed when Q3 starts or later
+      return currentPeriod.includes('3') || currentPeriod.includes('4') ||
+             currentPeriod.includes('ot') || currentPeriod.includes('overtime');
     }
     
     // Overtime/special cases
@@ -613,57 +617,63 @@ export function isPeriodCompleted(periodID: string, gameState: GameState): boole
   if (leagueId === 'NFL' || leagueId === 'NCAAF') {
     // Same logic as basketball
     if (propPeriod === '1q') {
-      return currentPeriod.includes('2') || currentPeriod.includes('3') || 
-             currentPeriod.includes('4') || currentPeriod.includes('ot') || 
-             currentPeriod.includes('overtime');
-    }
-    if (propPeriod === '2q') {
-      return currentPeriod.includes('3') || currentPeriod.includes('4') || 
+      return currentPeriod.includes('1') || currentPeriod.includes('2') ||
+             currentPeriod.includes('3') || currentPeriod.includes('4') ||
              currentPeriod.includes('ot') || currentPeriod.includes('overtime');
     }
-    if (propPeriod === '3q') {
-      return currentPeriod.includes('4') || currentPeriod.includes('ot') || 
+    if (propPeriod === '2q') {
+      return currentPeriod.includes('2') || currentPeriod.includes('3') ||
+             currentPeriod.includes('4') || currentPeriod.includes('ot') ||
              currentPeriod.includes('overtime');
     }
+    if (propPeriod === '3q') {
+      return currentPeriod.includes('3') || currentPeriod.includes('4') ||
+             currentPeriod.includes('ot') || currentPeriod.includes('overtime');
+    }
     if (propPeriod === '4q') {
-      return currentPeriod.includes('ot') || currentPeriod.includes('overtime');
+      return currentPeriod.includes('4') || currentPeriod.includes('ot') ||
+             currentPeriod.includes('overtime');
     }
     if (propPeriod === '1h') {
-      // 1H is completed if we're in 2H (Q3/Q4) or later
-      return currentPeriod.includes('3') || currentPeriod.includes('4') || 
+      return currentPeriod.includes('1') || currentPeriod.includes('2') ||
+             currentPeriod.includes('3') || currentPeriod.includes('4') ||
              currentPeriod.includes('ot') || currentPeriod.includes('overtime') ||
              currentPeriod.includes('2nd') || currentPeriod.includes('second');
     }
     if (propPeriod === '2h') {
-      // 2H is completed only after game ends
-      return currentPeriod.includes('ot') || currentPeriod.includes('overtime');
+      return currentPeriod.includes('3') || currentPeriod.includes('4') ||
+             currentPeriod.includes('ot') || currentPeriod.includes('overtime');
     }
   }
   
   // NHL - Periods (1p, 2p, 3p), Regulation (reg), Overtime (ot), Shootout (so)
   if (leagueId === 'NHL') {
     if (propPeriod === '1p') {
-      // 1P prop is completed if we're in 2P, 3P, OT, or SO
-      return currentPeriod.includes('2') || currentPeriod.includes('3') || 
+      // 1P prop is completed if we're in 1P, 2P, 3P, OT, or SO
+      return currentPeriod.includes('1') || currentPeriod.includes('2') ||
+             currentPeriod.includes('3') || currentPeriod.includes('ot') ||
+             currentPeriod.includes('overtime') || currentPeriod.includes('so') ||
+             currentPeriod.includes('shootout');
+    }
+    if (propPeriod === '2p') {
+      return currentPeriod.includes('2') || currentPeriod.includes('3') ||
              currentPeriod.includes('ot') || currentPeriod.includes('overtime') ||
              currentPeriod.includes('so') || currentPeriod.includes('shootout');
     }
-    if (propPeriod === '2p') {
-      return currentPeriod.includes('3') || currentPeriod.includes('ot') || 
-             currentPeriod.includes('overtime') || currentPeriod.includes('so') || 
+    if (propPeriod === '3p') {
+      return currentPeriod.includes('3') || currentPeriod.includes('ot') ||
+             currentPeriod.includes('overtime') || currentPeriod.includes('so') ||
              currentPeriod.includes('shootout');
     }
-    if (propPeriod === '3p') {
-      return currentPeriod.includes('ot') || currentPeriod.includes('overtime') ||
-             currentPeriod.includes('so') || currentPeriod.includes('shootout');
-    }
     if (propPeriod === 'reg') {
-      // Regulation props are completed when OT/SO begins
-      return currentPeriod.includes('ot') || currentPeriod.includes('overtime') ||
-             currentPeriod.includes('so') || currentPeriod.includes('shootout');
+      // Regulation props are completed when regulation (3P) begins or OT/SO begins
+      return currentPeriod.includes('3') || currentPeriod.includes('ot') ||
+             currentPeriod.includes('overtime') || currentPeriod.includes('so') ||
+             currentPeriod.includes('shootout');
     }
     if (propPeriod === 'ot') {
-      return currentPeriod.includes('so') || currentPeriod.includes('shootout');
+      return currentPeriod.includes('ot') || currentPeriod.includes('overtime') ||
+             currentPeriod.includes('so') || currentPeriod.includes('shootout');
     }
   }
   
@@ -675,26 +685,29 @@ export function isPeriodCompleted(periodID: string, gameState: GameState): boole
     const propInningMatch = propPeriod.match(/^(\d+)i$/);
     if (propInningMatch && propInningMatch[1]) {
       const propInning = parseInt(propInningMatch[1], 10);
-      return inning > propInning;
+      // Treat inning prop as completed once that inning has started or passed
+      return inning >= propInning;
     }
     
     // First 5 innings (1h or f5)
     if (propPeriod === '1h' || propPeriod === 'f5') {
-      return inning > 5;
+      return inning >= 5;
     }
   }
   
   // Soccer - Halves (1h, 2h)
   if (SOCCER_LEAGUES.includes(leagueId as typeof SOCCER_LEAGUES[number])) {
     if (propPeriod === '1h') {
-      // 1H is completed if we're in 2H or later
-      return currentPeriod.includes('2') || currentPeriod.includes('second') ||
-             currentPeriod.includes('stoppage') || currentPeriod.includes('injury') ||
-             currentPeriod.includes('added') || currentPeriod.includes('extra');
+      // 1H is completed if first half has started or later
+      return currentPeriod.includes('1') || currentPeriod.includes('2') ||
+             currentPeriod.includes('second') || currentPeriod.includes('stoppage') ||
+             currentPeriod.includes('injury') || currentPeriod.includes('added') ||
+             currentPeriod.includes('extra');
     }
     if (propPeriod === '2h') {
-      // 2H is completed when game ends (extra time)
-      return currentPeriod.includes('extra') || currentPeriod.includes('added');
+      // 2H is completed when second half has started or game moved to extra time
+      return currentPeriod.includes('2') || currentPeriod.includes('extra') ||
+             currentPeriod.includes('added');
     }
   }
   
@@ -705,7 +718,8 @@ export function isPeriodCompleted(periodID: string, gameState: GameState): boole
     const propSetMatch = propPeriod.match(/^(\d+)s$/);
     if (propSetMatch && propSetMatch[1]) {
       const propSet = parseInt(propSetMatch[1], 10);
-      return currentSet > propSet;
+      // Treat a set as completed once that set has started or passed
+      return currentSet >= propSet;
     }
   }
   
@@ -725,16 +739,76 @@ export function filterCompletedPeriodProps(
   gameProps: Array<{ periodID?: string; [key: string]: unknown }>,
   gameState: GameState
 ): Array<{ periodID?: string; [key: string]: unknown }> {
+  // Helper: try to infer a periodID from common SDK/market fields when periodID
+  // is not explicitly provided. SDKs sometimes encode period in marketType or
+  // description (e.g. "1q_team_total", "1st Quarter - Team Total", "1H").
+  function inferPeriodIDFromProp(p: { [key: string]: unknown }): string | undefined {
+    const candidates: string[] = [];
+    const pushIfString = (v: unknown) => { if (typeof v === 'string' && v) candidates.push(v); };
+    pushIfString(p.periodID);
+    pushIfString(p.propType ?? p.marketType ?? p.marketID ?? p.id);
+    pushIfString(p.description ?? p.selection ?? p.name ?? p.label);
+
+    const joined = candidates.join(' ').toLowerCase();
+
+    // Common patterns -> normalized period IDs used by isPeriodCompleted
+    const patterns: Array<[RegExp, string | ((m: RegExpMatchArray) => string)]> = [
+      [/\b(1q|q1|1st quarter|1st q|first quarter)\b/i, '1q'],
+      [/\b(2q|q2|2nd quarter|2nd q|second quarter)\b/i, '2q'],
+      [/\b(3q|q3|3rd quarter|3rd q|third quarter)\b/i, '3q'],
+      [/\b(4q|q4|4th quarter|4th q|fourth quarter)\b/i, '4q'],
+      [/\b(1h|1st half|first half)\b/i, '1h'],
+      [/\b(2h|2nd half|second half)\b/i, '2h'],
+      [/\b(1p|1st period|first period)\b/i, '1p'],
+      [/\b(2p|2nd period|second period)\b/i, '2p'],
+      [/\b(3p|3rd period|third period)\b/i, '3p'],
+      [/\b(overtime|ot)\b/i, 'ot'],
+      [/\b(1s|1st set|set 1)\b/i, '1s'],
+      [/\b(2s|2nd set|set 2)\b/i, '2s'],
+      [/\b(3s|3rd set|set 3)\b/i, '3s'],
+      [/\b(4s|4th set|set 4)\b/i, '4s'],
+      [/\b(5s|5th set|set 5)\b/i, '5s'],
+      [/\b(\d+)i\b/, (m: RegExpMatchArray) => `${m[1]}i`], // baseball inning like 1i, 9i
+    ];
+
+    for (const [re, norm] of patterns) {
+      const m = joined.match(re);
+      if (m) {
+        if (typeof norm === 'function') {
+          try {
+            return norm(m);
+          } catch {
+            return undefined;
+          }
+        }
+        return norm as string;
+      }
+    }
+
+    // Fallback: try to match simple numeric quarter tokens like "1" when
+    // prefixed with Q or suffixed with Q
+    const qMatch = joined.match(/\b(?:q\s*?([1-4])|([1-4])\s*?q)\b/);
+    if (qMatch) return `${(qMatch[1] || qMatch[2])}q`;
+
+    return undefined;
+  }
+
   return gameProps.filter((prop: { periodID?: string; [key: string]: unknown }) => {
-    // Keep props without periodID (full game props)
-    if (!prop.periodID) {
+    // Keep props without periodID (full game props) unless we can infer one
+    let period = prop.periodID as string | undefined;
+    if (!period) {
+      period = inferPeriodIDFromProp(prop);
+    }
+
+    if (!period) {
       return true;
     }
+
     // Filter out props for completed periods
-    const isCompleted = isPeriodCompleted(prop.periodID, gameState);
+    const isCompleted = isPeriodCompleted(period, gameState);
     if (isCompleted) {
       logger.debug('Filtering completed period prop', {
-        periodID: prop.periodID,
+        periodID: period,
         currentPeriod: gameState.period,
         leagueId: gameState.leagueId,
       });

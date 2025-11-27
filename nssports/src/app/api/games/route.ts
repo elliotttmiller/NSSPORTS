@@ -150,17 +150,21 @@ export async function GET(request: NextRequest) {
       page: z.coerce.number().int().positive().default(1),
       limit: z.coerce.number().int().positive().max(500).default(100),
       status: z.enum(["upcoming", "live", "finished"]).optional(),
+      // Optional developer flag to explicitly bypass development sampling/limits
+      noDevLimit: z.coerce.boolean().optional(),
     });
-    let leagueId: string | undefined;
-    let page: number = 1;
-    let limit: number = 10;
-    let status: 'upcoming' | 'live' | 'finished' | undefined;
+  let leagueId: string | undefined;
+  let page: number = 1;
+  let limit: number = 10;
+  let status: 'upcoming' | 'live' | 'finished' | undefined;
+  let noDevLimit: boolean | undefined;
     try {
-      ({ leagueId, page, limit, status } = QuerySchema.parse({
+      ({ leagueId, page, limit, status, noDevLimit } = QuerySchema.parse({
         leagueId: searchParams.get('leagueId') ?? undefined,
         page: searchParams.get('page') ?? undefined,
         limit: searchParams.get('limit') ?? undefined,
         status: searchParams.get('status') ?? undefined,
+        noDevLimit: searchParams.get('noDevLimit') ?? undefined,
       }));
     } catch (e) {
       if (e instanceof z.ZodError) {
@@ -225,7 +229,12 @@ export async function GET(request: NextRequest) {
       
       // Apply stratified sampling in development (Protocol I-IV)
       // Only applies to multi-league requests (no leagueId filter)
-      games = applyStratifiedSampling(games, 'leagueId');
+      // Allow callers to explicitly bypass sampling by passing `noDevLimit=true`.
+      if (!noDevLimit) {
+        games = applyStratifiedSampling(games, 'leagueId');
+      } else {
+        logger.info('Bypassing development stratified sampling due to noDevLimit flag');
+      }
       
       // Filter by status if specified
       if (status) {

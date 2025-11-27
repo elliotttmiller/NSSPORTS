@@ -25,6 +25,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import { Game } from '@/types';
 import { StreamingService } from '@/lib/streaming-service';
 import { logger } from '@/lib/logger';
+import { getGamesPaginated } from '@/services/api';
 
 // Module-scoped logger for this store
 const log = logger.createScopedLogger('LiveDataStore');
@@ -104,69 +105,40 @@ const createLiveDataStore = () => create<LiveDataState>()(
     log.debug('Starting fetchAllMatches...');
     
     try {
-      // Use /api/games endpoint which fetches all leagues in parallel
-      // This is more efficient than making separate /api/matches calls
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+      // Iterate paginated /api/games until all pages are fetched
+      // Stream pages into state as they arrive to improve perceived performance
+      const pageLimit = 500; // Use up to 500 per page (API allows <=500)
+      let page = 1;
+      let allMatches: Game[] = [];
 
-      const url = force ? `/api/games?page=1&limit=100&t=${Date.now()}` : '/api/games?page=1&limit=100';
-      const response = await fetch(url, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        signal: controller.signal,
-        // Ensure we bypass service worker/CDN caches when forcing
-        cache: force ? 'no-store' : 'default',
-      });
-      
-      clearTimeout(timeoutId);
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch games: ${response.status} ${response.statusText}`);
+      while (true) {
+  // Request full results from the server (bypass dev sampling) so the /games listing
+  // receives the complete set. In production this parameter is ignored.
+  const pageResult = await getGamesPaginated(undefined, page, pageLimit, force /* bypassCache */, true /* skipDevLimit */);
+        const pageMatches = Array.isArray(pageResult.data) ? pageResult.data : [];
+
+        // Append and stream partial results
+        allMatches = [...allMatches, ...pageMatches];
+        set({ matches: allMatches, status: 'loading', error: null, lastFetch: Date.now() });
+
+        log.info(`Fetched page ${page} with ${pageMatches.length} games (cumulative: ${allMatches.length})`);
+
+        if (!pageResult.pagination.hasNextPage) break;
+        page += 1;
+        // Safety cap to avoid accidental infinite loops
+        if (page > 50) break;
       }
-      
-      const json = await response.json();
-      
-      // Handle paginated response from /api/games
-      const matches = Array.isArray(json.data) ? json.data : [];
-      
-  log.info(`✅ Fetched ${matches.length} games successfully`);
-      
-      set({
-        matches,
-        status: 'success',
-        error: null,
-        lastFetch: Date.now(),
-      });
-      
-      // Enable streaming if we have live games
-      const liveGamesCount = matches.filter((g: Game) => g.status === 'live').length;
+
+      set({ matches: allMatches, status: 'success', error: null, lastFetch: Date.now() });
+
+      const liveGamesCount = allMatches.filter((g: Game) => g.status === 'live').length;
       if (liveGamesCount > 0) {
         log.info(`Found ${liveGamesCount} live games, will enable streaming`);
       }
-      
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      
-      // Don't block UI on timeout - set empty state and allow render
-      if (error instanceof Error && error.name === 'AbortError') {
-  log.warn('⚠️ Fetch timeout - rendering with no games');
-        set({
-          matches: [],
-          status: 'success', // Set success to unblock UI
-          error: 'Request timeout - no games available',
-          lastFetch: Date.now(),
-        });
-      } else {
-  log.error('❌ Error fetching matches:', error);
-        set({
-          matches: [],
-          status: 'error',
-          error: errorMessage,
-          lastFetch: Date.now(),
-        });
-      }
+      log.error('❌ Error fetching matches:', error);
+      set({ matches: [], status: 'error', error: errorMessage, lastFetch: Date.now() });
     }
   },
   /**

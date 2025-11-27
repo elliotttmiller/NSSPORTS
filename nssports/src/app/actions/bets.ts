@@ -17,6 +17,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import prisma from "@/lib/prisma";
+import type { LeagueID } from '@/types/game';
 import { auth } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 
@@ -192,6 +193,56 @@ export async function placeSingleBetAction(
       };
     }
 
+    // === INDUSTRY STANDARD: LIVE BETTING MARKET CLOSURE ENFORCEMENT ===
+    // Ensure we're not accepting bets for markets that should be closed
+    if (game.status === "live") {
+      // Load full game state for validation
+      const fullGame = await prisma.game.findUnique({
+        where: { id: gameId },
+        select: {
+          id: true,
+          status: true,
+          startTime: true,
+          homeScore: true,
+          awayScore: true,
+          period: true,
+          timeRemaining: true,
+          league: { select: { id: true } },
+        },
+      });
+
+      if (!fullGame) {
+        logger.warn('[placeSingleBetAction] Game disappeared before placement', { gameId });
+        return { success: false, error: 'Game not available for betting' };
+      }
+
+      const { validateBetPlacement, isPeriodCompleted } = await import("@/lib/market-closure-rules");
+      const gameState = {
+        leagueId: fullGame.league?.id as unknown as LeagueID,
+        status: fullGame.status as 'upcoming' | 'live' | 'finished',
+        startTime: fullGame.startTime instanceof Date ? fullGame.startTime.toISOString() : String(fullGame.startTime),
+        homeScore: fullGame.homeScore ?? undefined,
+        awayScore: fullGame.awayScore ?? undefined,
+        period: fullGame.period ?? undefined,
+        timeRemaining: fullGame.timeRemaining ?? undefined,
+      };
+
+      const validationError = validateBetPlacement(gameState);
+      if (validationError) {
+        logger.warn('[placeSingleBetAction] Market closed by rule', { reason: validationError, gameId });
+        return { success: false, error: validationError };
+      }
+
+      // If this is a game prop with a period ID, ensure the period hasn't started
+      if (gameProp?.periodID) {
+        if (isPeriodCompleted(gameProp.periodID, gameState)) {
+          const msg = `Cannot place bet on ${gameProp.periodID.toUpperCase()} - period has already completed`;
+          logger.warn('[placeSingleBetAction] Period prop closed', { periodID: gameProp.periodID, gameId });
+          return { success: false, error: msg };
+        }
+      }
+    }
+
     logger.info("[placeSingleBetAction] Creating bet in database...");
 
     // Check available balance (balance minus pending bet risk)
@@ -355,6 +406,62 @@ export async function placeParlayBetAction(
           success: false,
           error: "Cannot place bet on finished game",
         };
+      }
+    }
+
+    // === INDUSTRY STANDARD: VALIDATE EACH PARLAY LEG FOR MARKET CLOSURE ===
+    {
+      const { validateBetPlacement, isPeriodCompleted } = await import("@/lib/market-closure-rules");
+      const gameIds = Array.from(new Set(legs.map((l: any) => l.gameId).filter(Boolean)));
+      const games = await prisma.game.findMany({
+        where: { id: { in: gameIds } },
+        select: {
+          id: true,
+          status: true,
+          startTime: true,
+          homeScore: true,
+          awayScore: true,
+          period: true,
+          timeRemaining: true,
+          league: { select: { id: true } },
+        },
+      });
+
+      const gameMap = new Map(games.map((g: any) => [g.id, g]));
+
+      for (const leg of legs) {
+        if (!leg.gameId) continue;
+        const g = gameMap.get(leg.gameId);
+        if (!g) {
+          return { success: false, error: `Game not found: ${leg.gameId}` };
+        }
+
+        if (g.status === "finished") {
+          return { success: false, error: `Cannot place parlay bet with finished game: ${leg.gameId}` };
+        }
+
+        if (g.status === "live") {
+          const gameState = {
+            leagueId: g.league?.id as unknown as LeagueID,
+            status: g.status as 'upcoming' | 'live' | 'finished',
+            startTime: g.startTime instanceof Date ? g.startTime.toISOString() : String(g.startTime),
+            homeScore: g.homeScore ?? undefined,
+            awayScore: g.awayScore ?? undefined,
+            period: g.period ?? undefined,
+            timeRemaining: g.timeRemaining ?? undefined,
+          };
+
+          const validationError = validateBetPlacement(gameState);
+          if (validationError) {
+            return { success: false, error: `Parlay leg ${leg.gameId}: ${validationError}` };
+          }
+
+          if (leg.betType === 'game_prop' && (leg as any).gameProp?.periodID) {
+            if (isPeriodCompleted((leg as any).gameProp.periodID, gameState)) {
+              return { success: false, error: `Parlay leg ${leg.gameId}: Cannot bet on ${(leg as any).gameProp.periodID.toUpperCase()} - period has already completed` };
+            }
+          }
+        }
       }
     }
 
@@ -524,6 +631,62 @@ export async function placeTeaserBetAction(
           success: false,
           error: "Cannot place bet on finished game",
         };
+      }
+    }
+
+    // === INDUSTRY STANDARD: VALIDATE EACH TEASER LEG FOR MARKET CLOSURE ===
+    {
+      const { validateBetPlacement, isPeriodCompleted } = await import("@/lib/market-closure-rules");
+      const gameIds = Array.from(new Set(legs.map((l: any) => l.gameId).filter(Boolean)));
+      const games = await prisma.game.findMany({
+        where: { id: { in: gameIds } },
+        select: {
+          id: true,
+          status: true,
+          startTime: true,
+          homeScore: true,
+          awayScore: true,
+          period: true,
+          timeRemaining: true,
+          league: { select: { id: true } },
+        },
+      });
+
+      const gameMap = new Map(games.map((g: any) => [g.id, g]));
+
+      for (const leg of legs) {
+        if (!leg.gameId) continue;
+        const g = gameMap.get(leg.gameId);
+        if (!g) {
+          return { success: false, error: `Game not found: ${leg.gameId}` };
+        }
+
+        if (g.status === "finished") {
+          return { success: false, error: `Cannot place teaser bet with finished game: ${leg.gameId}` };
+        }
+
+        if (g.status === "live") {
+          const gameState = {
+            leagueId: g.league?.id as unknown as LeagueID,
+            status: g.status as 'upcoming' | 'live' | 'finished',
+            startTime: g.startTime instanceof Date ? g.startTime.toISOString() : String(g.startTime),
+            homeScore: g.homeScore ?? undefined,
+            awayScore: g.awayScore ?? undefined,
+            period: g.period ?? undefined,
+            timeRemaining: g.timeRemaining ?? undefined,
+          };
+
+          const validationError = validateBetPlacement(gameState);
+          if (validationError) {
+            return { success: false, error: `Teaser leg ${leg.gameId}: ${validationError}` };
+          }
+
+          if (leg.betType === 'game_prop' && (leg as any).gameProp?.periodID) {
+            if (isPeriodCompleted((leg as any).gameProp.periodID, gameState)) {
+              return { success: false, error: `Teaser leg ${leg.gameId}: Cannot bet on ${(leg as any).gameProp.periodID.toUpperCase()} - period has already completed` };
+            }
+          }
+        }
       }
     }
 

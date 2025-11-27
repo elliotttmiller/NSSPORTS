@@ -200,6 +200,8 @@ export const getGamesPaginated = async (
   page: number = 1,
   limit: number = 10,
   bypassCache: boolean = false,
+  // When true, instruct server to bypass development sampling/limits (development only)
+  skipDevLimit: boolean = false,
 ): Promise<PaginatedResponse<Game>> => {
   // Validate and sanitize pagination parameters to prevent 422 errors
   // Ensure page and limit are valid positive integers
@@ -218,6 +220,11 @@ export const getGamesPaginated = async (
   // Add cache-busting parameter to force fresh data from SDK
   if (bypassCache) {
     params.append('_t', Date.now().toString());
+  }
+
+  // Allow callers to request full results in development by passing skipDevLimit
+  if (skipDevLimit) {
+    params.append('noDevLimit', 'true');
   }
 
   const json = await fetchAPI<unknown>(`/games?${params.toString()}`);
