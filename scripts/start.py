@@ -215,10 +215,11 @@ def run() -> None:
     try:
         # Start Next.js development server
         print_status("Launching Next.js development server", "info")
+        # Start Next.js dev server from the project folder (use list args, no shell)
         dev_server = subprocess.Popen(
             [npm_executable, 'run', 'dev'],
             cwd=PROJECT_PATH,
-            shell=True,
+            shell=False,
             env=os.environ.copy()
         )
         
@@ -228,10 +229,11 @@ def run() -> None:
         
         # Start ngrok tunnel
         print_status("Establishing ngrok tunnel", "info")
+        # Start ngrok from the project folder so any local config resolves correctly
         ngrok = subprocess.Popen(
             ['ngrok', 'http', str(DEV_SERVER_PORT), f'--domain={NGROK_STATIC_DOMAIN}'],
             cwd=PROJECT_PATH,
-            shell=True,
+            shell=False,
             env=os.environ.copy()
         )
         
@@ -265,12 +267,16 @@ def run() -> None:
         print_status("Starting professional settlement system (BullMQ + Redis)", "info")
 
         # Start the professional settlement system (handles both init and worker)
+        # Start the professional settlement system from the project folder.
+        # Use `npm exec` to invoke the project-local binaries (works on Windows with shell=False).
+        creationflags = subprocess.CREATE_NEW_PROCESS_GROUP if os.name == 'nt' else 0
+        settlement_cmd = [npm_executable, 'exec', '--', 'tsx', 'scripts/start-professional-settlement.ts']
         settlement_worker = subprocess.Popen(
-            ['npx', 'tsx', 'scripts/start-professional-settlement.ts'],
+            settlement_cmd,
             cwd=PROJECT_PATH,
-            shell=True,
+            shell=False,
             env=os.environ.copy(),
-            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == 'nt' else 0
+            creationflags=creationflags
         )
         
         # Give it a moment to initialize and check for errors

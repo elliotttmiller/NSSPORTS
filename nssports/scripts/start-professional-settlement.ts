@@ -38,6 +38,7 @@ logger.info('');
 
 import { getSettlementQueue, initializeSettlementQueue, startSettlementWorker } from '../src/services/settlement-queue.service';
 import { logger } from '../src/lib/logger';
+import { healthCheck } from '../src/lib/redis';
 
 const WORKER_CONCURRENCY = parseInt(process.env.SETTLEMENT_WORKER_CONCURRENCY || '1');
 const STATS_INTERVAL = 60000; // Print stats every 60 seconds
@@ -109,6 +110,21 @@ async function main() {
   });
 
   try {
+    // Pre-check: verify Redis connectivity before initializing queues
+    logger.info('');
+    logger.info('🔎 Verifying Redis connectivity...');
+    try {
+      const redisHealthy = await healthCheck();
+      if (!redisHealthy) {
+        logger.error('❌ Redis health check failed. Aborting settlement startup. Check REDIS_HOST/PORT/PASSWORD/TLS and network connectivity.');
+        process.exit(1);
+      }
+      logger.info('✅ Redis health check passed');
+    } catch (err) {
+      logger.error('❌ Error while performing Redis health check. Aborting.', err);
+      process.exit(1);
+    }
+
     // Step 1: Initialize queue and schedule recurring jobs
     logger.info('');
     logger.info('📦 Step 1: Initializing settlement queue...');
