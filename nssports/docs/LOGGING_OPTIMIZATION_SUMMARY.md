@@ -4,6 +4,8 @@
 
 This optimization significantly improved the logging system for maximum performance and efficiency. The changes reduce production overhead by ~90% while maintaining developer-friendly logging in development.
 
+> See also: `LOGGING_PERFORMANCE_IMPACT.md` for a full end-to-end performance analysis and quantitative estimates.
+
 ## Key Achievements
 
 - **66% reduction in console statements**: From 553 to 188

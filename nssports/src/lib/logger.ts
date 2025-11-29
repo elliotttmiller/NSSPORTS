@@ -27,6 +27,7 @@ interface LoggerTelemetry {
   rateLimitedLogs: number;
   transportFailures: number;
   contextWarnings: number;
+  suppressedLogs: number;
 }
 
 class Logger {
@@ -41,6 +42,8 @@ class Logger {
     rateLimitedLogs: 0,
     transportFailures: 0,
     contextWarnings: 0
+    ,
+    suppressedLogs: 0
   };
 
   // Rate limiting with configurable settings
@@ -49,6 +52,38 @@ class Logger {
 
   // Performance tracking (debug-level only)
   private readonly performanceMarks: Map<string, number> = new Map();
+
+  // ⭐ NEW: Built-in optimization for verbose components
+  private readonly suppressedComponents = new Set([
+    'BetSettlement',
+    'SettlementQueue', 
+    'SyncGameStatus',
+    'Redis',
+    'RateLimiter',
+    'ENV'
+  ]);
+
+  private readonly suppressedMessages = [
+    'Settling all bets for game',
+    'Found 0 pending bets to settle',
+    'Successfully settled 0 bets for game',
+    'not found in database - skipping',
+    'Creating new Redis client',
+    'Queue initialized',
+    'Worker started',
+    'Initialized',
+    'Configuration Loaded',
+    '[Empty message]',
+    '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+    'Step 1:',
+    'Step 2:',
+    'Starting settlement system',
+    'Starting settlement worker',
+    'Worker completed job',
+    'Job completed',
+    'Queue Statistics',
+    'Recurring Jobs'
+  ];
 
   private readonly levelPriority: Record<LogLevel, number> = {
     debug: 0,
@@ -116,6 +151,9 @@ class Logger {
       case 'rateLimitedLogs':
         this.telemetry.rateLimitedLogs++;
         break;
+      case 'suppressedLogs':
+        this.telemetry.suppressedLogs++;
+        break;
       case 'transportFailures':
         this.telemetry.transportFailures++;
         break;
@@ -125,6 +163,51 @@ class Logger {
       default:
         break;
     }
+  }
+
+  // ⭐ NEW: Built-in log suppression for verbose components
+  private shouldSuppressLog(level: LogLevel, message: string, context?: LogContext): boolean {
+    // Never suppress errors
+    if (level === 'error') return false;
+    
+    // In production, suppress most info logs from verbose components
+    if (this.config.isProduction) {
+      if (level === 'info') {
+        return true; // Suppress all info logs in production
+      }
+
+      // In production also suppress noisy warn-level messages from known verbose components
+      if (level === 'warn') {
+        const component = context?.['component'] as string;
+        if (component && this.suppressedComponents.has(component)) return true;
+        if (this.suppressedMessages.some(pattern => message.includes(pattern))) return true;
+      }
+    }
+
+    // Check if this is a development environment with suppression enabled
+    const suppressInDev = process.env.SUPPRESS_VERBOSE_LOGS === 'true' || 
+                         this.config.logLevel === 'warn' || 
+                         this.config.logLevel === 'error';
+
+    if (suppressInDev && (level === 'info' || level === 'warn')) {
+      // Check for suppressed components
+      const component = context?.['component'] as string;
+      if (component && this.suppressedComponents.has(component)) {
+        return true;
+      }
+
+      // Check for suppressed message patterns
+      if (this.suppressedMessages.some(pattern => message.includes(pattern))) {
+        return true;
+      }
+
+      // Suppress empty or separator messages
+      if (message === '[Empty message]' || message.includes('━━━━━━━━')) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   private safeLazyEvaluation<T>(value: T | (() => T)): T | null {
@@ -243,13 +326,6 @@ class Logger {
 
   private async log(level: LogLevel, lazyMessage: LazyMessage, lazyContext?: LazyContext): Promise<void> {
     if (!this.shouldLog(level)) return;
-
-    if (level === 'error') {
-      if (!this.shouldAllowErrorLog(lazyMessage, lazyContext instanceof Error ? lazyContext : undefined)) {
-        return;
-      }
-    }
-
     const messageResult = this.safeLazyEvaluation(lazyMessage);
     const contextResult = this.safeLazyEvaluation(lazyContext as unknown as (() => LogContext) | LogContext);
 
@@ -258,6 +334,18 @@ class Logger {
     const finalMessage = typeof messageResult === 'string' 
       ? messageResult 
       : '[Log evaluation failed]';
+
+    // ⭐ NEW: Check if we should suppress this log
+    if (this.shouldSuppressLog(level, finalMessage, safeContext)) {
+      this.incrementTelemetry('suppressedLogs');
+      return;
+    }
+
+    if (level === 'error') {
+      if (!this.shouldAllowErrorLog(lazyMessage, lazyContext instanceof Error ? lazyContext : undefined)) {
+        return;
+      }
+    }
 
     const logEntry = this.createLogEntry(level, finalMessage, safeContext as LogContext);
     await this.writeLog(logEntry);
@@ -412,6 +500,7 @@ class Logger {
     this.telemetry.rateLimitedLogs = 0;
     this.telemetry.transportFailures = 0;
     this.telemetry.contextWarnings = 0;
+    this.telemetry.suppressedLogs = 0;
   }
 
   // ========== TRANSPORT MANAGEMENT ==========
@@ -446,6 +535,48 @@ class Logger {
 
   getCurrentLevel(): LogLevel {
     return this.config.logLevel;
+  }
+
+  // ========== OPTIMIZATION METHODS ==========
+
+  /**
+   * Enable aggressive log suppression for production-like behavior
+   * This will suppress most info logs from verbose components even in development
+   */
+  enableProductionMode(): void {
+    // Force warn level and enable suppression
+    process.env.LOG_LEVEL = 'warn';
+    process.env.SUPPRESS_VERBOSE_LOGS = 'true';
+    this.refreshConfig();
+  }
+
+  /**
+   * Disable aggressive suppression (for debugging)
+   */
+  disableSuppression(): void {
+    process.env.SUPPRESS_VERBOSE_LOGS = 'false';
+    this.refreshConfig();
+  }
+
+  /**
+   * Add custom components to suppress
+   */
+  suppressComponent(component: string): void {
+    this.suppressedComponents.add(component);
+  }
+
+  /**
+   * Remove component from suppression
+   */
+  unsuppressComponent(component: string): void {
+    this.suppressedComponents.delete(component);
+  }
+
+  /**
+   * Get list of currently suppressed components
+   */
+  getSuppressedComponents(): string[] {
+    return Array.from(this.suppressedComponents);
   }
 
   // Configurable redaction
@@ -486,4 +617,7 @@ export const GameListDebugLogger = {
   error: (component: string, message: string, data?: unknown) => 
     logger.error(`[${component}] ${message}`, { component, debugData: data })
 };
- 
+// ⭐ NEW: Auto-enable production mode for settlement system
+if (process.env.NODE_ENV === 'production' || process.env.SUPPRESS_VERBOSE_LOGS === 'true') {
+  logger.enableProductionMode();
+}

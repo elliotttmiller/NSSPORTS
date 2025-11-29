@@ -27,7 +27,15 @@ basePrisma.$connect().catch((err: unknown) => {
 // Create Prisma client and add middleware to automatically create PlayerTransaction records when bets are placed
 function createPrismaClient() {
   // Middleware intercepts create on Bet model, runs the create, then performs post-processing.
-  basePrisma.$use(async (params: any, next: (params: any) => Promise<any>) => {
+  // Register middleware if supported by this Prisma client instance.
+  // Some build/runtime paths (e.g. compiled server bundles) may provide a
+  // client shape that doesn't include the $use helper; guard at runtime to
+  // avoid calling a missing function and crashing the collector during build.
+  if (typeof (basePrisma as any).$use === 'function') {
+    // Cast to `any` for the middleware call so TypeScript is satisfied with
+    // the current generated Prisma client types (v6.x). If you upgrade to
+    // Prisma v7 and regenerate types, you can remove the cast.
+    (basePrisma as any).$use(async (params: any, next: (params: any) => Promise<any>) => {
     if (params.model === 'Bet' && params.action === 'create') {
       // Perform the original create
       const result = await next(params);
@@ -144,7 +152,10 @@ function createPrismaClient() {
     }
 
     return next(params);
-  });
+    });
+  } else {
+    logger.warn('Prisma client does not support middleware ($use); skipping middleware registration');
+  }
 
   return basePrisma;
 }

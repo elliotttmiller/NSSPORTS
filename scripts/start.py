@@ -254,9 +254,16 @@ def run() -> None:
             print()
             print_separator()
         
+        # Configure optimized logging before starting settlement system
+        print_status("Configuring optimized logging", "info")
+        os.environ['LOG_LEVEL'] = os.environ.get('LOG_LEVEL', 'warn')  # Only show warnings and errors by default
+        os.environ['SUPPRESS_VERBOSE_LOGS'] = os.environ.get('SUPPRESS_VERBOSE_LOGS', 'true')  # Enable built-in suppression
+        os.environ['LOG_RATE_LIMIT_ENABLED'] = os.environ.get('LOG_RATE_LIMIT_ENABLED', 'true')
+        os.environ['LOG_RATE_LIMIT_MAX_ERRORS'] = os.environ.get('LOG_RATE_LIMIT_MAX_ERRORS', '5')
+
         # Start professional BullMQ settlement system
         print_status("Starting professional settlement system (BullMQ + Redis)", "info")
-        
+
         # Start the professional settlement system (handles both init and worker)
         settlement_worker = subprocess.Popen(
             ['npx', 'tsx', 'scripts/start-professional-settlement.ts'],

@@ -509,6 +509,12 @@ export async function getAllEvents(
       },
     };
   } catch (error) {
+    // Treat SDK 404 "No Events found" as a valid empty response to avoid noisy error logs
+    if (error instanceof Error && error.message.includes('404') && error.message.includes('No Events found')) {
+      logger.info('No events found for paginated query', { options, maxPages });
+      return { data: [], meta: { hasMore: false, pageCount: 0 } };
+    }
+
     logger.error('Error fetching all events', error);
     throw error;
   }
