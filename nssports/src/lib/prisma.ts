@@ -31,6 +31,10 @@ function createPrismaClient() {
   // Some build/runtime paths (e.g. compiled server bundles) may provide a
   // client shape that doesn't include the $use helper; guard at runtime to
   // avoid calling a missing function and crashing the collector during build.
+  // Emit the warning at most once per process to avoid noisy repeated logs
+  // during Next.js multi-pass builds.
+  let prismaMiddlewareWarned = false;
+
   if (typeof (basePrisma as any).$use === 'function') {
     // Cast to `any` for the middleware call so TypeScript is satisfied with
     // the current generated Prisma client types (v6.x). If you upgrade to
@@ -154,7 +158,10 @@ function createPrismaClient() {
     return next(params);
     });
   } else {
-    logger.warn('Prisma client does not support middleware ($use); skipping middleware registration');
+    if (!prismaMiddlewareWarned && process.env.NODE_ENV !== 'production') {
+      logger.warn('Prisma client does not support middleware ($use); skipping middleware registration');
+      prismaMiddlewareWarned = true;
+    }
   }
 
   return basePrisma;

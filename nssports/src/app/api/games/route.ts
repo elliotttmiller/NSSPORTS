@@ -6,7 +6,7 @@ import { withErrorHandling, ApiErrors, successResponse } from '@/lib/apiResponse
 import { getAllEventsWithCache } from '@/lib/hybrid-cache';
 import { transformSDKEvents } from '@/lib/transformers/sportsgameodds-sdk';
 import { logger } from '@/lib/logger';
-import { applyStratifiedSampling } from '@/lib/devDataLimit';
+import { applyStratifiedSampling } from '@/lib/rate-limiter';
 import { MAIN_LINE_ODDIDS } from '@/lib/sportsgameodds-sdk';
 import type { ExtendedSDKEvent } from '@/lib/transformers/sportsgameodds-sdk';
 

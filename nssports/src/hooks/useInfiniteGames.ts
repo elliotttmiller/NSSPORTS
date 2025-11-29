@@ -7,11 +7,13 @@ export interface UseInfiniteGamesParams {
   status?: string; // reserved for future filtering if API supports it
   limit?: number;
   bypassCache?: boolean; // Force fresh data from SDK
+  // When true, instruct server to bypass development sampling/limits (development only)
+  skipDevLimit?: boolean;
 }
 
 const isDevelopment = process.env.NODE_ENV === 'development';
 
-export function useInfiniteGames({ leagueId, status, limit = 10, bypassCache = false }: UseInfiniteGamesParams) {
+export function useInfiniteGames({ leagueId, status, limit = 10, bypassCache = false, skipDevLimit = false }: UseInfiniteGamesParams) {
   // Note: status is included in the key for future extensibility
   return useInfiniteQuery<PaginatedResponse<Game>>({
     queryKey: ['games', 'infinite', leagueId, status, limit, bypassCache ? Date.now() : 'cached'],
@@ -19,7 +21,7 @@ export function useInfiniteGames({ leagueId, status, limit = 10, bypassCache = f
     queryFn: ({ pageParam }) => {
       // Safely convert pageParam to number, defaulting to 1 if invalid
       const page = typeof pageParam === 'number' && Number.isFinite(pageParam) ? pageParam : 1;
-      return getGamesPaginated(leagueId, page, limit, bypassCache);
+      return getGamesPaginated(leagueId, page, limit, bypassCache, skipDevLimit);
     },
     getNextPageParam: (lastPage) => {
       if (!lastPage?.pagination) return undefined;

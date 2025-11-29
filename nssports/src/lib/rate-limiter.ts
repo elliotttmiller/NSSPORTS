@@ -357,3 +357,126 @@ class RateLimiter {
 
 // Singleton instance
 export const rateLimiter = new RateLimiter();
+
+// -----------------------------------------------------------------------------
+// Development data limiting utilities (migrated from devDataLimit.ts)
+// Co-located with the rate limiter so dev-mode policies can be coordinated.
+// -----------------------------------------------------------------------------
+
+interface DevLimitConfig {
+  gamesPerLeague: number;
+  singleLeagueLimit: number;
+  intelligentSampling: boolean;
+}
+
+function getDevLimitConfig(): DevLimitConfig {
+  const gamesPerLeague = parseInt(process.env.DEV_GAMES_PER_LEAGUE || '10', 10);
+  const singleLeagueLimit = parseInt(process.env.DEV_SINGLE_LEAGUE_LIMIT || '25', 10);
+
+  return {
+    gamesPerLeague: isNaN(gamesPerLeague) ? 10 : gamesPerLeague,
+    singleLeagueLimit: isNaN(singleLeagueLimit) ? 25 : singleLeagueLimit,
+    intelligentSampling: true,
+  };
+}
+
+export function isDevLimitingEnabled(): boolean {
+  return process.env.NODE_ENV === 'development';
+}
+
+function intelligentSample<T extends Record<string, unknown>>(
+  games: T[],
+  limit: number,
+  statusKey: keyof T = 'status' as keyof T
+): T[] {
+  if (games.length <= limit) return games;
+
+  const byStatus = {
+    live: games.filter(g => g[statusKey] === 'live'),
+    upcoming: games.filter(g => g[statusKey] === 'upcoming'),
+    finished: games.filter(g => g[statusKey] === 'finished'),
+  };
+
+  const sampled: T[] = [];
+  const weights = { live: 0.4, upcoming: 0.5, finished: 0.1 };
+
+  const liveSample = byStatus.live.slice(0, Math.ceil(limit * weights.live));
+  const upcomingSample = byStatus.upcoming.slice(0, Math.ceil(limit * weights.upcoming));
+  const finishedSample = byStatus.finished.slice(0, Math.ceil(limit * weights.finished));
+
+  sampled.push(...liveSample, ...upcomingSample, ...finishedSample);
+
+  if (sampled.length < limit) {
+    const remaining = games.filter(g => !sampled.includes(g));
+    sampled.push(...remaining.slice(0, limit - sampled.length));
+  }
+
+  return sampled.slice(0, limit);
+}
+
+export function applyStratifiedSampling<T extends Record<string, unknown>>(
+  games: T[],
+  leagueIdKey: keyof T = 'leagueId' as keyof T
+): T[] {
+  if (!isDevLimitingEnabled()) return games;
+
+  const config = getDevLimitConfig();
+  if (config.gamesPerLeague === 0) return games;
+
+  const gamesByLeague = games.reduce((acc, game) => {
+    const leagueId = (game[leagueIdKey] as string) || 'other';
+    if (!acc[leagueId]) acc[leagueId] = [];
+    acc[leagueId].push(game);
+    return acc;
+  }, {} as Record<string, T[]>);
+
+  const leagueDistribution = Object.entries(gamesByLeague)
+    .map(([league, leagueGames]) => `${league}: ${leagueGames.length}`)
+    .join(', ');
+  logger.info(`[DEV] Games by league (before limit) - ${leagueDistribution}`);
+
+  const sampledGames: T[] = [];
+  for (const [leagueId, leagueGames] of Object.entries(gamesByLeague)) {
+    const limited = config.intelligentSampling
+      ? intelligentSample(leagueGames, config.gamesPerLeague)
+      : leagueGames.slice(0, config.gamesPerLeague);
+
+    sampledGames.push(...limited);
+
+    if (limited.length < leagueGames.length) {
+      logger.info(`[DEV] Limited ${leagueId} from ${leagueGames.length} to ${limited.length} games`);
+    }
+  }
+
+  const reduction = games.length > 0 ? Math.round(((games.length - sampledGames.length) / games.length) * 100) : 0;
+  logger.info(`[DEV] Stratified sampling: ${games.length} → ${sampledGames.length} games (${reduction}% reduction)`);
+
+  return sampledGames;
+}
+
+export function applySingleLeagueLimit<T extends Record<string, unknown>>(games: T[]): T[] {
+  if (!isDevLimitingEnabled()) return games;
+
+  const config = getDevLimitConfig();
+  if (config.singleLeagueLimit === 0) return games;
+
+  if (games.length > config.singleLeagueLimit) {
+    const limited = config.intelligentSampling
+      ? intelligentSample(games, config.singleLeagueLimit)
+      : games.slice(0, config.singleLeagueLimit);
+
+    const reduction = Math.round(((games.length - limited.length) / games.length) * 100);
+    logger.info(`[DEV] Single league limit: ${games.length} → ${config.singleLeagueLimit} games (${reduction}% reduction)`);
+    return limited;
+  }
+
+  return games;
+}
+
+export function applyDevLimit<T extends Record<string, unknown>>(
+  games: T[],
+  isMultiLeague: boolean,
+  leagueIdKey: keyof T = 'leagueId' as keyof T
+): T[] {
+  return isMultiLeague ? applyStratifiedSampling(games, leagueIdKey) : applySingleLeagueLimit(games);
+}

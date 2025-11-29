@@ -74,6 +74,8 @@ export default function GamesPage() {
           limit={100} 
           leagueId={undefined} 
           status={undefined} 
+          // Bypass development sampling so "All Sports" shows full results when requested
+          skipDevLimit={true}
           onTotalGamesChange={setTotalGames}
           onRefreshReady={(refreshFn) => { gameListRefreshRef.current = refreshFn; }}
           showDateFilterInHeader={true}

@@ -4,7 +4,7 @@ import { withErrorHandling, successResponse, ApiErrors } from '@/lib/apiResponse
 import { getEventsWithCache } from '@/lib/hybrid-cache';
 import { transformSDKEvents } from '@/lib/transformers/sportsgameodds-sdk';
 import { logger } from '@/lib/logger';
-import { applySingleLeagueLimit } from '@/lib/devDataLimit';
+import { applySingleLeagueLimit } from '@/lib/rate-limiter';
 import { MAIN_LINE_ODDIDS } from '@/lib/sportsgameodds-sdk';
 import type { ExtendedSDKEvent } from '@/lib/transformers/sportsgameodds-sdk';
 

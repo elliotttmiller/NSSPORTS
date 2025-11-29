@@ -23,6 +23,8 @@ export type GameListProps = Partial<UsePaginatedGamesParams> & {
   onRefreshReady?: (refreshFn: () => Promise<void>) => void; // Callback to expose refresh function to parent
   onSportFilterChange?: (sport: string | undefined) => void; // Callback when sport filter changes (for parent-managed filters)
   showDateFilterInHeader?: boolean; // Show date filter inline with league headers
+  // When true, instruct server to bypass development sampling/limits (development only)
+  skipDevLimit?: boolean;
 };
 
 // ⭐ MEMOIZED: League header to prevent re-renders
@@ -95,7 +97,7 @@ const DateFilterButton = memo(({
 ));
 DateFilterButton.displayName = 'DateFilterButton';
 
-export function GameList({ leagueId, status, limit = 10, onTotalGamesChange, bypassCache = false, onRefreshReady, onSportFilterChange, showDateFilterInHeader = false }: GameListProps) {
+export function GameList({ leagueId, status, limit = 10, onTotalGamesChange, bypassCache = false, onRefreshReady, onSportFilterChange, showDateFilterInHeader = false, skipDevLimit = false }: GameListProps) {
   const [allGames, setAllGames] = useState<Game[]>([]);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedSport, setSelectedSport] = useState<string>("all");
@@ -105,7 +107,9 @@ export function GameList({ leagueId, status, limit = 10, onTotalGamesChange, byp
     leagueId, 
     status, 
     limit,
-    bypassCache 
+    bypassCache,
+    // forward client opt-in to bypass dev limits
+    skipDevLimit,
   });
 
   const pages = useMemo(() => data?.pages ?? [], [data]);
