@@ -84,6 +84,19 @@ const nextConfig: NextConfig = {
     formats: ['image/avif', 'image/webp'],
   },
 
+  // Allowlist for cross-origin dev origins (ngrok, tunnels, etc.)
+  // See: https://nextjs.org/docs/app/api-reference/config/next-config-js/allowedDevOrigins
+  // Use an environment variable (comma-separated) to keep this flexible in CI/hosted dev.
+  // Normalize origins: ensure each entry includes a protocol (default to https://)
+  allowedDevOrigins: (process.env.NEXT_ALLOWED_DEV_ORIGINS || 'https://nssportsclub.ngrok.app')
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean)
+    .map((origin) => {
+      if (/^https?:\/\//i.test(origin)) return origin;
+      return `https://${origin}`;
+    }),
+
   // Security and performance headers
   async headers() {
     return [
