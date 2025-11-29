@@ -8,11 +8,4 @@ require('dotenv/config');
 
 module.exports = {
   schema: 'prisma/schema.prisma',
-  migrations: {
-    path: 'prisma/migrations',
-  },
-  // `datasource` (singular) is required by `prisma migrate deploy` in v7.
-  datasource: {
-    url: process.env.DATABASE_URL,
-  },
 };
