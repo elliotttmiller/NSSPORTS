@@ -500,30 +500,32 @@ export async function getAllEvents(
     // ✅ CRITICAL: ALWAYS request consensus odds calculations
     // This is what gives us bookOdds (real market consensus)
     // Without this, SDK only returns individual sportsbook odds, no bookOdds
-    const consensusEnabled = options.includeConsensus !== false; // Default to true
+    
+    // Convert eventIDs array to comma-separated string BEFORE creating params
+    // to ensure proper handling in the SDK request
+    let eventIDsValue = options.eventIDs;
+    if (eventIDsValue && Array.isArray(eventIDsValue)) {
+      eventIDsValue = eventIDsValue.join(',');
+    }
     
     // ✅ APPLY REPUTABLE BOOKMAKERS FILTER GLOBALLY
     // If no bookmakerID specified, use our curated list of top-tier sportsbooks
     // This ensures all consensus odds calculations use only reputable sources
     const params = {
       ...options,
+      eventIDs: eventIDsValue,
       bookmakerID: options.bookmakerID || REPUTABLE_BOOKMAKERS,
-      includeConsensus: consensusEnabled, // CRITICAL: Request bookOdds calculations
+      includeConsensus: options.includeConsensus !== false, // Default to true
     } as any;
     
     log.info('Fetching all events with pagination', { 
       options: {
         ...options,
-        includeConsensus: consensusEnabled,
+        includeConsensus: params.includeConsensus,
         bookmakerCount: params.bookmakerID?.split(',').length || 0,
       }, 
       maxPages 
     });
-    
-    // Convert eventIDs array to comma-separated string if needed
-    if (params.eventIDs && Array.isArray(params.eventIDs)) {
-      params.eventIDs = params.eventIDs.join(',');
-    }
     
     let allEvents: any[] = [];
     let page = await client.events.get(params);
