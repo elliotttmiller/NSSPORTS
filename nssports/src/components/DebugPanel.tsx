@@ -247,11 +247,19 @@ export function DebugPanel() {
                         </button>
                       </div>
                       <div className="text-sm text-white break-words">{log.message}</div>
-                      {isExpanded && log.details && (
+                      {isExpanded && log.details ? (
                         <pre className="mt-2 text-xs bg-black/50 p-2 rounded overflow-x-auto text-gray-300">
-                          {JSON.stringify(log.details, null, 2)}
+                          {(() => {
+                            try {
+                              return typeof log.details === 'string' 
+                                ? log.details 
+                                : JSON.stringify(log.details, null, 2);
+                            } catch {
+                              return 'Unable to display details';
+                            }
+                          })()}
                         </pre>
-                      )}
+                      ) : null}
                     </div>
                   </div>
                 </div>
