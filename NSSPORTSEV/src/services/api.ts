@@ -210,7 +210,11 @@ export const getSports = async (): Promise<Sport[]> => {
           // Create sport display name with proper handling of edge cases
           let sportName = 'Unknown Sport';
           if (sportID && sportID !== 'UNKNOWN' && sportID.length > 0) {
-            sportName = sportID.charAt(0).toUpperCase() + sportID.slice(1).toLowerCase();
+            // Handle underscored sport IDs like 'MIXED_MARTIAL_ARTS' -> 'Mixed Martial Arts'
+            sportName = sportID
+              .split('_')
+              .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+              .join(' ');
           }
           
           sportMap.set(sportID, {
@@ -269,7 +273,8 @@ export const getGamesByLeague = async (leagueId: string): Promise<Game[]> => {
         oddIDs: MAIN_LINE_ODDIDS,
         includeOpposingOddIDs: true,
         includeConsensus: true,
-        finalized: false, // Only get upcoming and live games
+        // Exclude finalized games to reduce response size and focus on active betting opportunities
+        finalized: false,
       }, 10); // maxPages
       
       return result.data.map(transformSDKEventToGame);
@@ -417,7 +422,8 @@ export const getGamesPaginated = async (
           oddIDs: MAIN_LINE_ODDIDS,
           includeOpposingOddIDs: true,
           includeConsensus: true,
-          finalized: false, // Only get upcoming and live games
+          // Exclude finalized games to reduce response size and focus on active betting opportunities
+          finalized: false,
           limit: safeLimit,
         }, 10); // maxPages
         
