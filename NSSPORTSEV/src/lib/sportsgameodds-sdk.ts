@@ -384,8 +384,35 @@ export function getSportsGameOddsClient() {
   const apiKey = process.env.NEXT_PUBLIC_SPORTSGAMEODDS_API_KEY || process.env.SPORTSGAMEODDS_API_KEY;
   
   if (!apiKey) {
+    // Log detailed error to help with debugging (development only)
+    const hasPublicKey = !!process.env.NEXT_PUBLIC_SPORTSGAMEODDS_API_KEY;
+    const hasServerKey = !!process.env.SPORTSGAMEODDS_API_KEY;
+    const isClient = typeof window !== 'undefined';
+    
+    // Log error with minimal information disclosure
+    if (process.env.NODE_ENV === 'development') {
+      log.error('SportsGameOdds API key not configured', {
+        hasPublicKey,
+        hasServerKey,
+        isClient,
+        sgoEnvVarsCount: Object.keys(process.env).filter(k => k.includes('SPORTSGAMEODDS')).length,
+      });
+    } else {
+      log.error('SportsGameOdds API key not configured', {
+        hasPublicKey,
+        hasServerKey,
+        isClient,
+      });
+    }
     throw new Error('SPORTSGAMEODDS_API_KEY or NEXT_PUBLIC_SPORTSGAMEODDS_API_KEY is not configured');
   }
+
+  // Log successful initialization (without exposing the key)
+  log.info('SportsGameOdds SDK client initialized', {
+    keySource: process.env.NEXT_PUBLIC_SPORTSGAMEODDS_API_KEY ? 'NEXT_PUBLIC' : 'SERVER',
+    keyLength: apiKey.length,
+    isClient: typeof window !== 'undefined',
+  });
 
   return new SportsGameOdds({
     apiKeyHeader: apiKey,
@@ -460,6 +487,21 @@ export async function getLeagues(options: {
  * @param maxPages Maximum number of pages to fetch (safety limit, default: 10)
  * @returns All events across all pages
  */
+
+/**
+ * Helper function to count bookmakers from bookmakerID parameter
+ * Handles both string (comma-separated) and array types
+ */
+function getBookmakerCount(bookmakerID: string | string[] | undefined): number {
+  if (Array.isArray(bookmakerID)) {
+    return bookmakerID.length;
+  }
+  if (typeof bookmakerID === 'string') {
+    return bookmakerID.split(',').length;
+  }
+  return 0;
+}
+
 export async function getAllEvents(
   options: {
     leagueID?: string;
@@ -480,13 +522,34 @@ export async function getAllEvents(
   const client = getSportsGameOddsClient();
   
   try {
-  log.info('Fetching all events with pagination', { options, maxPages });
+    // ✅ CRITICAL: ALWAYS request consensus odds calculations
+    // This is what gives us bookOdds (real market consensus)
+    // Without this, SDK only returns individual sportsbook odds, no bookOdds
     
-    // Convert eventIDs array to comma-separated string if needed
-    const params = { ...options } as any;
-    if (params.eventIDs && Array.isArray(params.eventIDs)) {
-      params.eventIDs = params.eventIDs.join(',');
-    }
+    // Convert eventIDs array to comma-separated string BEFORE creating params
+    // to ensure proper handling in the SDK request
+    const eventIDsString = Array.isArray(options.eventIDs) 
+      ? options.eventIDs.join(',') 
+      : options.eventIDs;
+    
+    // ✅ APPLY REPUTABLE BOOKMAKERS FILTER GLOBALLY
+    // If no bookmakerID specified, use our curated list of top-tier sportsbooks
+    // This ensures all consensus odds calculations use only reputable sources
+    const params = {
+      ...options,
+      eventIDs: eventIDsString,
+      bookmakerID: options.bookmakerID || REPUTABLE_BOOKMAKERS,
+      includeConsensus: options.includeConsensus ?? true, // Default to true if undefined
+    } as any;
+    
+    log.info('Fetching all events with pagination', { 
+      options: {
+        ...options,
+        includeConsensus: params.includeConsensus,
+        bookmakerCount: getBookmakerCount(params.bookmakerID),
+      }, 
+      maxPages 
+    });
     
     let allEvents: any[] = [];
     let page = await client.events.get(params);

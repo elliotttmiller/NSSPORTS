@@ -61,6 +61,8 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_APP_NAME: process.env.NEXT_PUBLIC_APP_NAME,
     // Expose GITHUB_PAGES flag to client for static export detection
     NEXT_PUBLIC_GITHUB_PAGES: process.env.GITHUB_PAGES,
+    // Expose API key to client for GitHub Pages static export
+    NEXT_PUBLIC_SPORTSGAMEODDS_API_KEY: process.env.NEXT_PUBLIC_SPORTSGAMEODDS_API_KEY,
   },
 
   // Image domains for optimization
