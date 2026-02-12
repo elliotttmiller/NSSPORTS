@@ -26,7 +26,7 @@ async function getCachedAllGames() {
   const now = new Date();
   const sixHoursAgo = new Date(now.getTime() - 6 * 60 * 60 * 1000); // Look back 6 hours
   const startsAfter = sixHoursAgo; // Include games that started up to 6 hours ago (live games)
-  const startsBefore = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days ahead (1 week)
+  const startsBefore = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000); // 3 days ahead
   
   // ⭐ PAGINATION: Max 10 pages per league (100 games/page = up to 1000 games per league)
   // This ensures we fetch ALL available games without hitting API limits

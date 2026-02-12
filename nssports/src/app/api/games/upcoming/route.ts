@@ -18,7 +18,7 @@ export async function GET() {
       
       // Define time range for upcoming games
       const now = new Date();
-      const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+      const threeDaysFromNow = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
       
       // Development-friendly limits: fetch only what we need (3-5 games per league)
       const isDevelopment = process.env.NODE_ENV === 'development';
@@ -37,7 +37,7 @@ export async function GET() {
           finalized: false,                // ✅ OFFICIAL: Exclude finished games
           oddsAvailable: true,             // ✅ OFFICIAL: Only games with odds
           startsAfter: now.toISOString(),
-          startsBefore: sevenDaysFromNow.toISOString(),
+          startsBefore: threeDaysFromNow.toISOString(),
           oddIDs: 'game-ml,game-ats,game-ou', // Main lines: moneyline, spread, total
           includeOpposingOddIDs: true, // Get both sides of each market
           limit: fetchLimit,
@@ -48,7 +48,7 @@ export async function GET() {
           finalized: false,                // ✅ OFFICIAL: Exclude finished games
           oddsAvailable: true,             // ✅ OFFICIAL: Only games with odds
           startsAfter: now.toISOString(),
-          startsBefore: sevenDaysFromNow.toISOString(),
+          startsBefore: threeDaysFromNow.toISOString(),
           oddIDs: 'game-ml,game-ats,game-ou', // Main lines: moneyline, spread, total
           includeOpposingOddIDs: true, // Get both sides of each market
           limit: fetchLimit,
@@ -59,7 +59,7 @@ export async function GET() {
           finalized: false,                // ✅ OFFICIAL: Exclude finished games
           oddsAvailable: true,             // ✅ OFFICIAL: Only games with odds
           startsAfter: now.toISOString(),
-          startsBefore: sevenDaysFromNow.toISOString(),
+          startsBefore: threeDaysFromNow.toISOString(),
           oddIDs: 'game-ml,game-ats,game-ou', // Main lines: moneyline, spread, total
           includeOpposingOddIDs: true,
           limit: fetchLimit,
@@ -70,7 +70,7 @@ export async function GET() {
           finalized: false,                // ✅ OFFICIAL: Exclude finished games
           oddsAvailable: true,             // ✅ OFFICIAL: Only games with odds
           startsAfter: now.toISOString(),
-          startsBefore: sevenDaysFromNow.toISOString(),
+          startsBefore: threeDaysFromNow.toISOString(),
           oddIDs: 'game-ml,game-ats,game-ou', // Main lines: moneyline, spread, total
           includeOpposingOddIDs: true,
           limit: fetchLimit,
@@ -81,7 +81,7 @@ export async function GET() {
           finalized: false,                // ✅ OFFICIAL: Exclude finished games
           oddsAvailable: true,             // ✅ OFFICIAL: Only games with odds
           startsAfter: now.toISOString(),
-          startsBefore: sevenDaysFromNow.toISOString(),
+          startsBefore: threeDaysFromNow.toISOString(),
           oddIDs: 'game-ml,game-ats,game-ou', // Main lines: moneyline, spread, total
           includeOpposingOddIDs: true,
           limit: fetchLimit,
@@ -92,7 +92,7 @@ export async function GET() {
           finalized: false,                // ✅ OFFICIAL: Exclude finished games
           oddsAvailable: true,             // ✅ OFFICIAL: Only games with odds
           startsAfter: now.toISOString(),
-          startsBefore: sevenDaysFromNow.toISOString(),
+          startsBefore: threeDaysFromNow.toISOString(),
           oddIDs: 'game-ml,game-ats,game-ou', // Main lines: moneyline, spread, total
           includeOpposingOddIDs: true,
           limit: fetchLimit,
@@ -103,7 +103,7 @@ export async function GET() {
           finalized: false,                // ✅ OFFICIAL: Exclude finished games
           oddsAvailable: true,             // ✅ OFFICIAL: Only games with odds
           startsAfter: now.toISOString(),
-          startsBefore: sevenDaysFromNow.toISOString(),
+          startsBefore: threeDaysFromNow.toISOString(),
           oddIDs: 'game-ml,game-ats,game-ou', // Main lines: moneyline for tennis
           includeOpposingOddIDs: true,
           limit: fetchLimit,
@@ -114,7 +114,7 @@ export async function GET() {
           finalized: false,                // ✅ OFFICIAL: Exclude finished games
           oddsAvailable: true,             // ✅ OFFICIAL: Only games with odds
           startsAfter: now.toISOString(),
-          startsBefore: sevenDaysFromNow.toISOString(),
+          startsBefore: threeDaysFromNow.toISOString(),
           oddIDs: 'game-ml,game-ats,game-ou', // Main lines: moneyline for tennis
           includeOpposingOddIDs: true,
           limit: fetchLimit,
@@ -125,7 +125,7 @@ export async function GET() {
           finalized: false,                // ✅ OFFICIAL: Exclude finished games
           oddsAvailable: true,             // ✅ OFFICIAL: Only games with odds
           startsAfter: now.toISOString(),
-          startsBefore: sevenDaysFromNow.toISOString(),
+          startsBefore: threeDaysFromNow.toISOString(),
           oddIDs: 'game-ml,game-ats,game-ou', // Main lines: moneyline for tennis
           includeOpposingOddIDs: true,
           limit: fetchLimit,

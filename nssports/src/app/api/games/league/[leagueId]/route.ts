@@ -128,7 +128,7 @@ export async function GET(
       // Define time range: look back 6 hours to include live games, and 7 days ahead
       const now = new Date();
       const startsAfter = new Date(now.getTime() - 6 * 60 * 60 * 1000); // 6 hours ago
-      const startsBefore = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
+      const startsBefore = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000); // 3 days from now
 
       // Fetch events using the hybrid cache (same params as /api/games for consistency)
       const response = await getEventsWithCache({
