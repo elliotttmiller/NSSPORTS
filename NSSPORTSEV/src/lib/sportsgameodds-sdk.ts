@@ -384,8 +384,25 @@ export function getSportsGameOddsClient() {
   const apiKey = process.env.NEXT_PUBLIC_SPORTSGAMEODDS_API_KEY || process.env.SPORTSGAMEODDS_API_KEY;
   
   if (!apiKey) {
+    // Log detailed error to help with debugging
+    const hasPublicKey = !!process.env.NEXT_PUBLIC_SPORTSGAMEODDS_API_KEY;
+    const hasServerKey = !!process.env.SPORTSGAMEODDS_API_KEY;
+    const isClient = typeof window !== 'undefined';
+    log.error('SportsGameOdds API key not configured', {
+      hasPublicKey,
+      hasServerKey,
+      isClient,
+      availableEnvVars: Object.keys(process.env).filter(k => k.includes('SPORTSGAMEODDS')),
+    });
     throw new Error('SPORTSGAMEODDS_API_KEY or NEXT_PUBLIC_SPORTSGAMEODDS_API_KEY is not configured');
   }
+
+  // Log successful initialization (without exposing the key)
+  log.info('SportsGameOdds SDK client initialized', {
+    keySource: process.env.NEXT_PUBLIC_SPORTSGAMEODDS_API_KEY ? 'NEXT_PUBLIC' : 'SERVER',
+    keyLength: apiKey.length,
+    isClient: typeof window !== 'undefined',
+  });
 
   return new SportsGameOdds({
     apiKeyHeader: apiKey,
@@ -480,10 +497,30 @@ export async function getAllEvents(
   const client = getSportsGameOddsClient();
   
   try {
-  log.info('Fetching all events with pagination', { options, maxPages });
+    // ✅ CRITICAL: ALWAYS request consensus odds calculations
+    // This is what gives us bookOdds (real market consensus)
+    // Without this, SDK only returns individual sportsbook odds, no bookOdds
+    const consensusEnabled = options.includeConsensus !== false; // Default to true
+    
+    // ✅ APPLY REPUTABLE BOOKMAKERS FILTER GLOBALLY
+    // If no bookmakerID specified, use our curated list of top-tier sportsbooks
+    // This ensures all consensus odds calculations use only reputable sources
+    const params = {
+      ...options,
+      bookmakerID: options.bookmakerID || REPUTABLE_BOOKMAKERS,
+      includeConsensus: consensusEnabled, // CRITICAL: Request bookOdds calculations
+    } as any;
+    
+    log.info('Fetching all events with pagination', { 
+      options: {
+        ...options,
+        includeConsensus: consensusEnabled,
+        bookmakerCount: params.bookmakerID?.split(',').length || 0,
+      }, 
+      maxPages 
+    });
     
     // Convert eventIDs array to comma-separated string if needed
-    const params = { ...options } as any;
     if (params.eventIDs && Array.isArray(params.eventIDs)) {
       params.eventIDs = params.eventIDs.join(',');
     }
