@@ -26,12 +26,11 @@ const log = logger.createScopedLogger('API');
 function getDateRangeForGames(): { startsAfter: string } {
   // Use UTC to ensure consistent behavior across different server timezones
   const now = new Date();
-  const threeDaysAgo = new Date(Date.UTC(
-    now.getUTCFullYear(),
-    now.getUTCMonth(),
-    now.getUTCDate() - 3,
-    0, 0, 0, 0 // Start of day in UTC
-  ));
+  const threeDaysAgo = new Date(now);
+  // Set to 3 days ago and start of day in UTC
+  // setUTCDate automatically handles month/year rollover
+  threeDaysAgo.setUTCDate(now.getUTCDate() - 3);
+  threeDaysAgo.setUTCHours(0, 0, 0, 0);
   
   // Format as ISO 8601 string (already in UTC)
   const startsAfter = threeDaysAgo.toISOString();
