@@ -149,7 +149,13 @@ NEXT_PUBLIC_API_BASE_URL=your_api_url
 # Streaming Configuration
 NEXT_PUBLIC_PUSHER_KEY=your_pusher_key
 NEXT_PUBLIC_PUSHER_CLUSTER=your_cluster
+
+# SportsGameOdds API (for live odds streaming)
+SPORTSGAMEODDS_API_KEY=your_api_key
+NEXT_PUBLIC_STREAMING_ENABLED=true
 ```
+
+📖 **For detailed streaming API setup with GitHub Actions, see [STREAMING_SETUP.md](./STREAMING_SETUP.md)**
 
 ### Development
 
