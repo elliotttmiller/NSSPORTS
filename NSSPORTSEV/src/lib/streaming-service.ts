@@ -323,10 +323,11 @@ export class StreamingService {
     feed: StreamFeed,
     options: StreamOptions
   ): Promise<StreamConnectionInfo> {
-    const apiKey = process.env.SPORTSGAMEODDS_API_KEY;
+    // Check for client-side API key first (required for static export/GitHub Pages)
+    const apiKey = process.env.NEXT_PUBLIC_SPORTSGAMEODDS_API_KEY || process.env.SPORTSGAMEODDS_API_KEY;
     
     if (!apiKey) {
-      throw new Error('SPORTSGAMEODDS_API_KEY not configured');
+      throw new Error('SPORTSGAMEODDS_API_KEY or NEXT_PUBLIC_SPORTSGAMEODDS_API_KEY not configured');
     }
 
     const params: Record<string, string> = { feed };

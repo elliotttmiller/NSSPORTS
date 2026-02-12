@@ -367,16 +367,24 @@ export const HORSE_RACING_MAIN_LINE_ODDIDS = [
 
 /**
  * Get configured SDK client instance
- * Server-side only - API key is never exposed to client
+ * 
+ * GitHub Pages Static Export Support:
+ * - Checks for NEXT_PUBLIC_SPORTSGAMEODDS_API_KEY (client-side) first
+ * - Falls back to SPORTSGAMEODDS_API_KEY (server-side) if available
+ * 
+ * Security Note: For GitHub Pages deployment, the API key will be exposed
+ * in the client bundle. Consider using rate limiting or a proxy service
+ * for production deployments.
  * 
  * Official SDK Configuration:
  * https://sportsgameodds.com/docs/sdk
  */
 export function getSportsGameOddsClient() {
-  const apiKey = process.env.SPORTSGAMEODDS_API_KEY;
+  // Check for client-side API key first (required for static export/GitHub Pages)
+  const apiKey = process.env.NEXT_PUBLIC_SPORTSGAMEODDS_API_KEY || process.env.SPORTSGAMEODDS_API_KEY;
   
   if (!apiKey) {
-    throw new Error('SPORTSGAMEODDS_API_KEY is not configured');
+    throw new Error('SPORTSGAMEODDS_API_KEY or NEXT_PUBLIC_SPORTSGAMEODDS_API_KEY is not configured');
   }
 
   return new SportsGameOdds({
