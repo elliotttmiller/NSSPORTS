@@ -28,6 +28,10 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   compress: true,
   
+  // GitHub Pages deployment configuration
+  output: process.env.GITHUB_PAGES === 'true' ? 'export' : undefined,
+  basePath: process.env.GITHUB_PAGES === 'true' ? '/NSSPORTS/NSSPORTSEV' : '',
+  
   // Disable dev indicators for cleaner development experience
   devIndicators: false,
   
