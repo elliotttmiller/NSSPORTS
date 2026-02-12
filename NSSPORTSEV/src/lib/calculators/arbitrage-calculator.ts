@@ -17,6 +17,8 @@
  */
 
 import { logger } from "@/lib/logger";
+// Note: decimalToAmerican imported for potential future use
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { americanToDecimal, decimalToAmerican } from "./ev-calculator";
 
 /**
@@ -172,7 +174,7 @@ export function calculateArbitrageProfit(
  */
 function assessArbitrageQuality(
   profitPercent: number,
-  arbitragePercent: number
+  _arbitragePercent: number
 ): 'excellent' | 'good' | 'fair' | 'poor' {
   // Higher profit margin = better quality
   if (profitPercent >= 3) return 'excellent';

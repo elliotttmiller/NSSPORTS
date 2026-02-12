@@ -1,7 +1,6 @@
 "use client";
 
 import { createContext, useContext, useEffect, ReactNode, useRef, useState } from 'react';
-import { useSession } from 'next-auth/react';
 import { useLiveDataStore } from '@/store';
 
 interface LiveDataContextType {
@@ -21,7 +20,6 @@ interface LiveDataProviderProps {
 export function LiveDataProvider({ children }: LiveDataProviderProps) {
   const [isHydrated, setIsHydrated] = useState(false);
   const initializationStarted = useRef(false);
-  const { data: session, status: sessionStatus } = useSession();
   
   const fetchAllMatches = useLiveDataStore.getState().fetchAllMatches;
   const status = useLiveDataStore((state) => state.status);
@@ -31,24 +29,21 @@ export function LiveDataProvider({ children }: LiveDataProviderProps) {
     setIsHydrated(true);
   }, []);
 
-  // Initialize data fetching when authenticated - fetch ALL leagues
+  // Initialize data fetching (no auth required for EV app)
   useEffect(() => {
-    const isAuthenticated = sessionStatus === 'authenticated' && session?.user;
-    
     if (
       isHydrated && 
-      isAuthenticated &&
       !initializationStarted.current && 
       status === 'idle'
     ) {
       initializationStarted.current = true;
       
-      // Reduced delay for faster initial load after login
+      // Reduced delay for faster initial load
       setTimeout(() => {
         fetchAllMatches().catch(() => {
           // Store will handle error state, don't block here
         });
-      }, 50); // Reduced from 100ms
+      }, 50);
       
       // Safety timeout - if fetch hangs, force success state after 15s
       setTimeout(() => {
@@ -62,7 +57,7 @@ export function LiveDataProvider({ children }: LiveDataProviderProps) {
         }
       }, 15000);
     }
-  }, [isHydrated, sessionStatus, session, status, fetchAllMatches]);
+  }, [isHydrated, status, fetchAllMatches]);
 
   return (
     <LiveDataContext.Provider value={{ 

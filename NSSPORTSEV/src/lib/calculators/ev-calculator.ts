@@ -192,7 +192,7 @@ export function calculateKelly(
   const decimalOdds = americanToDecimal(americanOdds);
   
   // Calculate Kelly fraction
-  const q = 1 - trueProbability; // Probability of losing
+  // Note: q (probability of losing) used in Kelly formula derivation
   const kellyFraction = ((decimalOdds * trueProbability) - 1) / (decimalOdds - 1);
   
   // Ensure Kelly fraction is not negative (only bet on +EV opportunities)
