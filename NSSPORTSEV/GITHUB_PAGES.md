@@ -32,8 +32,22 @@ The `next.config.ts` file is configured for GitHub Pages deployment:
 {
   output: process.env.GITHUB_PAGES === 'true' ? 'export' : undefined,
   basePath: process.env.GITHUB_PAGES === 'true' ? '/NSSPORTS' : '',
+  env: {
+    // Expose GITHUB_PAGES flag to client for static export detection
+    NEXT_PUBLIC_GITHUB_PAGES: process.env.GITHUB_PAGES,
+  },
 }
 ```
+
+### Automatic API Detection
+
+The app automatically detects when running in GitHub Pages (static export) mode and uses the SportsGameOdds SDK directly instead of trying to call Next.js API routes:
+
+- **Build time**: The `GITHUB_PAGES` environment variable is set to `'true'` during the build
+- **Runtime**: The app checks for `typeof window !== 'undefined'` (browser context) or `process.env.NEXT_PUBLIC_GITHUB_PAGES === 'true'`
+- **Fallback**: If neither condition is met, it falls back to using Next.js API routes (for server-side rendering)
+
+This ensures the app works seamlessly in both static export (GitHub Pages) and traditional Next.js deployment modes.
 
 ### GitHub Repository Settings
 
@@ -73,7 +87,7 @@ For live odds integration with real-time streaming:
 - `NEXT_PUBLIC_STREAMING_ENABLED`: Enable/disable WebSocket streaming (default: `false`)
 - `SPORTSGAMEODDS_API_KEY`: API key for SportsGameOdds API (for server-side builds)
 
-**Important Note for GitHub Pages**: Since GitHub Pages only serves static files, the streaming service will automatically fall back to REST API polling instead of WebSocket streaming. This is handled gracefully in the code.
+**Important Note for GitHub Pages**: Since GitHub Pages only serves static files, the app automatically detects when running in a browser context and uses the SDK directly instead of API routes. The streaming service will automatically fall back to REST API polling instead of WebSocket streaming. This is handled gracefully in the code.
 
 To add secrets:
 

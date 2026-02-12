@@ -59,6 +59,8 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
     NEXT_PUBLIC_API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL,
     NEXT_PUBLIC_APP_NAME: process.env.NEXT_PUBLIC_APP_NAME,
+    // Expose GITHUB_PAGES flag to client for static export detection
+    NEXT_PUBLIC_GITHUB_PAGES: process.env.GITHUB_PAGES,
   },
 
   // Image domains for optimization
