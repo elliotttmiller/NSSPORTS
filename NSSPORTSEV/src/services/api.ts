@@ -17,6 +17,29 @@ const DEFAULT_LEAGUES = ['NBA', 'NFL', 'NHL'];
 
 const log = logger.createScopedLogger('API');
 
+/**
+ * Get date range for fetching games
+ * Returns startsAfter set to 3 days ago (UTC) to fetch recent and future games
+ * This ensures we fetch games from the last 3 days to present/future
+ * Note: startsBefore is intentionally not set to allow fetching all future games
+ */
+function getDateRangeForGames(): { startsAfter: string } {
+  // Use UTC to ensure consistent behavior across different server timezones
+  const now = new Date();
+  const threeDaysAgo = new Date(now);
+  // Set to 3 days ago and start of day in UTC
+  // setUTCDate automatically handles month/year rollover
+  threeDaysAgo.setUTCDate(now.getUTCDate() - 3);
+  threeDaysAgo.setUTCHours(0, 0, 0, 0);
+  
+  // Format as ISO 8601 string (already in UTC)
+  const startsAfter = threeDaysAgo.toISOString();
+  
+  log.debug('Date range for games', { startsAfter });
+  
+  return { startsAfter };
+}
+
 class ApiHttpError extends Error {
   status: number;
   body?: unknown;
@@ -268,6 +291,7 @@ export const getGamesByLeague = async (leagueId: string): Promise<Game[]> => {
     try {
       log.info('Fetching games by league from SDK directly', { leagueId });
       
+      const dateRange = getDateRangeForGames();
       const result = await getAllEvents({
         leagueID: leagueId,
         oddIDs: MAIN_LINE_ODDIDS,
@@ -275,6 +299,8 @@ export const getGamesByLeague = async (leagueId: string): Promise<Game[]> => {
         includeConsensus: true,
         // Exclude finalized games to reduce response size and focus on active betting opportunities
         finalized: false,
+        // Include date range to fetch games from last 3 days to future
+        ...dateRange,
       }, 10); // maxPages
       
       return result.data.map(transformSDKEventToGame);
@@ -329,6 +355,7 @@ export const getLiveGames = async (): Promise<Game[]> => {
       
       const leagues = DEFAULT_LEAGUES;
       const allEvents: SDKEvent[] = [];
+      const dateRange = getDateRangeForGames();
       
       for (const league of leagues) {
         const result = await getAllEvents({
@@ -337,6 +364,8 @@ export const getLiveGames = async (): Promise<Game[]> => {
           includeOpposingOddIDs: true,
           includeConsensus: true,
           live: true, // Only get live games
+          // Include date range to fetch games from last 3 days to future
+          ...dateRange,
         }, 5); // maxPages
         
         allEvents.push(...result.data);
@@ -366,6 +395,7 @@ export const getUpcomingGames = async (): Promise<Game[]> => {
       
       const leagues = DEFAULT_LEAGUES;
       const allEvents: SDKEvent[] = [];
+      const dateRange = getDateRangeForGames();
       
       for (const league of leagues) {
         const result = await getAllEvents({
@@ -375,6 +405,8 @@ export const getUpcomingGames = async (): Promise<Game[]> => {
           includeConsensus: true,
           live: false, // Only get upcoming games
           finalized: false,
+          // Include date range to fetch games from last 3 days to future
+          ...dateRange,
         }, 5); // maxPages
         
         allEvents.push(...result.data);
@@ -415,6 +447,7 @@ export const getGamesPaginated = async (
       // Fetch events from SDK
       const leagues = leagueId ? [leagueId] : DEFAULT_LEAGUES;
       const allEvents: SDKEvent[] = [];
+      const dateRange = getDateRangeForGames();
       
       for (const league of leagues) {
         const result = await getAllEvents({
@@ -425,6 +458,8 @@ export const getGamesPaginated = async (
           // Exclude finalized games to reduce response size and focus on active betting opportunities
           finalized: false,
           limit: safeLimit,
+          // Include date range to fetch games from last 3 days to future
+          ...dateRange,
         }, 10); // maxPages
         
         allEvents.push(...result.data);
