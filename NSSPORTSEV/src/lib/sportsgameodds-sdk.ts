@@ -389,13 +389,13 @@ export function getSportsGameOddsClient() {
     const hasServerKey = !!process.env.SPORTSGAMEODDS_API_KEY;
     const isClient = typeof window !== 'undefined';
     
-    // Only log environment variable names in development
+    // Log error with minimal information disclosure
     if (process.env.NODE_ENV === 'development') {
       log.error('SportsGameOdds API key not configured', {
         hasPublicKey,
         hasServerKey,
         isClient,
-        availableEnvVars: Object.keys(process.env).filter(k => k.includes('SPORTSGAMEODDS')),
+        sgoEnvVarsCount: Object.keys(process.env).filter(k => k.includes('SPORTSGAMEODDS')).length,
       });
     } else {
       log.error('SportsGameOdds API key not configured', {
@@ -528,17 +528,16 @@ export async function getAllEvents(
     
     // Convert eventIDs array to comma-separated string BEFORE creating params
     // to ensure proper handling in the SDK request
-    let eventIDsValue = options.eventIDs;
-    if (eventIDsValue && Array.isArray(eventIDsValue)) {
-      eventIDsValue = eventIDsValue.join(',');
-    }
+    const eventIDsString = Array.isArray(options.eventIDs) 
+      ? options.eventIDs.join(',') 
+      : options.eventIDs;
     
     // ✅ APPLY REPUTABLE BOOKMAKERS FILTER GLOBALLY
     // If no bookmakerID specified, use our curated list of top-tier sportsbooks
     // This ensures all consensus odds calculations use only reputable sources
     const params = {
       ...options,
-      eventIDs: eventIDsValue,
+      eventIDs: eventIDsString,
       bookmakerID: options.bookmakerID || REPUTABLE_BOOKMAKERS,
       includeConsensus: options.includeConsensus ?? true, // Default to true if undefined
     } as any;
