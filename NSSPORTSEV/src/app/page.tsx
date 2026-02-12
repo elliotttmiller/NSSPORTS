@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { EVCalculator } from "@/components/features/calculators/EVCalculator";
@@ -22,6 +23,15 @@ export default function HomePage() {
           <p className="text-sm text-muted-foreground">
             Real-time odds tracking with EV+ analysis and arbitrage detection
           </p>
+          
+          {/* Quick Navigation */}
+          <div className="flex gap-3 pt-2">
+            <Link href="/live-odds">
+              <Button variant="default">
+                🔴 Live Odds Dashboard
+              </Button>
+            </Link>
+          </div>
         </header>
 
         {/* Calculator Tabs */}
@@ -74,30 +84,30 @@ export default function HomePage() {
           </Card>
 
           <Card className="p-6">
-            <h2 className="mb-2 text-xl font-semibold">🔄 Live Odds Tracking</h2>
+            <h2 className="mb-2 text-xl font-semibold">✅ Live Odds Tracking</h2>
             <p className="text-muted-foreground text-sm">
-              Real-time odds updates with sub-second latency (Coming Soon)
+              Real-time odds updates with sub-second latency via WebSocket
             </p>
           </Card>
 
           <Card className="p-6">
-            <h2 className="mb-2 text-xl font-semibold">🔄 Multi-Sport Support</h2>
+            <h2 className="mb-2 text-xl font-semibold">✅ Multi-Sport Support</h2>
             <p className="text-muted-foreground text-sm">
-              Track odds for NFL, NBA, NHL, and more (Coming Soon)
+              Track odds for NFL, NBA, NHL, and more leagues
             </p>
           </Card>
 
           <Card className="p-6">
-            <h2 className="mb-2 text-xl font-semibold">🔄 Historical Analysis</h2>
+            <h2 className="mb-2 text-xl font-semibold">✅ Historical Analysis</h2>
             <p className="text-muted-foreground text-sm">
-              View historical odds movements and CLV tracking (Coming Soon)
+              View historical odds movements and CLV tracking
             </p>
           </Card>
 
           <Card className="p-6">
-            <h2 className="mb-2 text-xl font-semibold">🔄 Smart Alerts</h2>
+            <h2 className="mb-2 text-xl font-semibold">✅ Smart Alerts</h2>
             <p className="text-muted-foreground text-sm">
-              Automated notifications for profitable opportunities (Coming Soon)
+              Automated notifications for profitable opportunities
             </p>
           </Card>
         </div>
