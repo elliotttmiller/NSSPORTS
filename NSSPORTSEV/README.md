@@ -1,34 +1,40 @@
-# NSSPORTSEV - Sports Odds Tracking & EV+/Arbitrage Calculator
+# NSSPORTSEV - Sports Betting Analyzer, Calculator & Predictor
 
 ## Overview
 
-NSSPORTSEV is a real-time sports betting odds tracking and analysis platform focused on identifying positive expected value (EV+) opportunities and arbitrage situations across multiple sportsbooks. Unlike traditional sports betting platforms, NSSPORTSEV does not facilitate bet placement but instead provides sophisticated analytics and tracking tools for professional sports bettors and analysts.
+NSSPORTSEV is a professional sports betting analysis platform focused on identifying positive expected value (EV+) opportunities and arbitrage situations. Unlike traditional sportsbook platforms, NSSPORTSEV does **not** facilitate bet placement. Instead, it provides sophisticated calculators and analytics tools for serious sports bettors who want to make data-driven decisions.
 
-## Key Features
-
-### 🔴 Live Odds Tracking
-- Real-time odds updates from multiple sportsbooks
-- Sub-second latency via WebSocket streaming
-- Support for NFL, NBA, NHL, and more
-- Comprehensive market coverage (spreads, moneylines, totals, props)
+## ✅ Implemented Features
 
 ### 📊 EV+ Calculator
-- Calculate expected value for betting opportunities
-- Customizable parameters and assumptions
-- Historical win rate analysis
-- Edge detection and quantification
+- **Industry-standard expected value calculations** using proven mathematical formulas
+- **Kelly Criterion integration** for optimal bet sizing recommendations
+- **Vig-free probability estimation** to remove bookmaker margins
+- **Edge detection** and confidence-based recommendations
+- **Closing Line Value (CLV) analysis** to measure bet quality
+- **Interactive UI** with real-time calculations
 
 ### 🎯 Arbitrage Finder
-- Automatic detection of arbitrage opportunities
-- Multi-sportsbook odds comparison
-- Real-time alert system
-- Profitability calculations including juice/vig
+- **Automatic arbitrage detection** across multiple outcomes
+- **Optimal stake distribution** calculations for guaranteed profit
+- **Multi-sportsbook comparison** (2-way, 3-way, and N-way markets)
+- **Quality assessment** with warning system for execution risks
+- **Risk-free profit calculator** with detailed breakdown
+- **Interactive UI** supporting unlimited outcomes
 
-### 📈 Analytics & Insights
+## 🔄 Coming Soon
+
+### Live Odds Tracking
+- Real-time odds updates from multiple sportsbooks
+- Sub-second latency via WebSocket streaming
+- Support for NFL, NBA, NHL, and more sports
+- Comprehensive market coverage (spreads, moneylines, totals, props)
+
+### Analytics & Insights
 - Historical odds movement tracking
 - Line shopping recommendations
 - Market efficiency analysis
-- Closing line value (CLV) tracking
+- Automated opportunity alerts
 
 ## Technology Stack
 
@@ -46,30 +52,27 @@ This codebase shares the UI design system and live odds infrastructure with NSSP
 ```
 NSSPORTSEV/
 ├── src/
-│   ├── app/                    # Next.js app directory
-│   │   ├── api/               # API routes
-│   │   ├── layout.tsx         # Root layout
-│   │   ├── page.tsx           # Home page
-│   │   └── globals.css        # Global styles & theme
+│   ├── app/                        # Next.js app directory
+│   │   ├── layout.tsx             # Root layout (no auth)
+│   │   ├── page.tsx               # Calculator dashboard
+│   │   └── globals.css            # Global styles & theme
 │   ├── components/
-│   │   ├── ui/                # Base UI components (cards, buttons, etc.)
-│   │   ├── layouts/           # Layout components
-│   │   ├── features/          # Feature-specific components
-│   │   └── providers/         # Context providers
-│   ├── context/               # React contexts (streaming, etc.)
-│   ├── lib/                   # Core utilities
-│   │   ├── odds-juice-service.ts    # Odds adjustment engine
-│   │   ├── streaming-service.ts     # WebSocket service
-│   │   └── sportsgameodds-sdk.ts    # API SDK
-│   ├── services/              # API clients
-│   ├── hooks/                 # React hooks
-│   ├── store/                 # Zustand stores
-│   └── types/                 # TypeScript types
-├── public/                    # Static assets
-├── package.json
-├── next.config.ts
-├── tsconfig.json
-└── postcss.config.mjs
+│   │   ├── ui/                    # Base UI components
+│   │   ├── layouts/               # Layout components (simplified)
+│   │   ├── features/
+│   │   │   └── calculators/       # EV+ and Arbitrage calculators
+│   │   └── providers/             # Context providers
+│   ├── lib/
+│   │   ├── calculators/           # Core calculation engines
+│   │   │   ├── ev-calculator.ts   # EV+ and Kelly Criterion
+│   │   │   └── arbitrage-calculator.ts  # Arbitrage detection
+│   │   ├── streaming-service.ts   # WebSocket service (future use)
+│   │   └── sportsgameodds-sdk.ts  # API SDK (future use)
+│   ├── hooks/                     # React hooks
+│   ├── store/                     # Zustand stores
+│   └── types/                     # TypeScript types
+├── public/                        # Static assets
+└── package.json
 ```
 
 ## Design System
@@ -88,15 +91,39 @@ The UI design system is shared with NSSPORTS:
 - Responsive design system
 - Dark-mode optimized
 
-## Live Odds Pipeline
+## Algorithms & Mathematics
 
-The odds data pipeline maintains the same architecture as NSSPORTS:
+NSSPORTSEV implements industry-standard algorithms backed by decades of research:
 
-1. **Data Sources**: Integration with sports odds APIs
-2. **Streaming**: Real-time WebSocket updates via Pusher
-3. **Caching**: Smart caching with dynamic TTL
-4. **Processing**: Odds juice adjustment and normalization
-5. **Distribution**: Zustand store + React Query for state management
+### Expected Value (EV+) Formula
+```
+EV = (Probability Win × Profit Win) - (Probability Lose × Amount Lost)
+```
+- **Positive EV** (+EV) indicates a profitable long-term opportunity
+- Calculation accounts for true win probability vs implied odds probability
+- Edge detection identifies the advantage over bookmaker margins
+
+### Kelly Criterion Formula
+```
+Kelly Fraction = [(odds × win probability) - 1] / (odds - 1)
+```
+- **Optimal bet sizing** to maximize long-term bankroll growth
+- Fractional Kelly (e.g., 25% Kelly) recommended for risk management
+- Prevents overbetting and minimizes risk of ruin
+
+### Arbitrage Detection Formula
+```
+Arbitrage % = (1/Odds₁ + 1/Odds₂ + ... + 1/Oddsₙ) × 100
+```
+- **Guaranteed profit** when Arbitrage % < 100%
+- Works for 2-way, 3-way, and N-way markets
+- Optimal stake distribution ensures equal payout regardless of outcome
+
+### Research Sources
+- [Expected Value Calculator - Bet Hero](https://app.betherosports.com/calculators/expected-value)
+- [Kelly Criterion Calculator - ValueBets](https://valuebets.net/tools/kelly-criterion-calculator)
+- [Arbitrage Calculator - Dyutam](https://dyutam.com/tools/arbitrage-calculator)
+- [Bayesian Probabilities in Sports Betting - R-bloggers](https://www.r-bloggers.com/2026/02/designing-sports-betting-systems-in-r-bayesian-probabilities-expected-value-and-kelly-logic/)
 
 ## Getting Started
 
@@ -152,34 +179,50 @@ npm start
 
 ## Key Differences from NSSPORTS
 
-### Removed Features
-- ❌ Bet placement functionality
-- ❌ User accounts and authentication
-- ❌ Bet slip and bet history
-- ❌ Settlement and payout logic
-- ❌ Database for user data and bets
+NSSPORTSEV is built from NSSPORTS but with a completely different purpose:
 
-### New Features
-- ✅ EV+ calculation engine
-- ✅ Arbitrage detection algorithms
-- ✅ Multi-sportsbook odds comparison
-- ✅ Advanced analytics dashboard
-- ✅ Alert and notification system
-- ✅ Historical odds tracking
+### What Was Removed
+- ❌ **Sportsbook features**: Odds juicing/margin management system
+- ❌ **Bet placement**: Bet slip, bet history, settlement logic
+- ❌ **User accounts**: Authentication, user balances, profiles
+- ❌ **Database**: Prisma ORM, PostgreSQL for user/bet data
+- ❌ **Backend operations**: Bet processing, payout calculations
 
-## Roadmap
+### What Was Added
+- ✅ **EV+ Calculator**: Industry-standard expected value calculations
+- ✅ **Kelly Criterion**: Optimal bet sizing recommendations
+- ✅ **Arbitrage Finder**: Guaranteed profit opportunity detection
+- ✅ **Multi-outcome support**: 2-way, 3-way, N-way market analysis
+- ✅ **Vig removal**: Clean probability calculations
+- ✅ **Interactive UI**: Real-time calculators and analysis
 
-### Phase 1: Core Infrastructure (Current)
-- [x] Project setup and structure
-- [x] UI component library
-- [x] Live odds streaming pipeline
-- [ ] Basic dashboard layout
+## Implementation Status
 
-### Phase 2: EV+ Calculator
-- [ ] Expected value calculation engine
-- [ ] Customizable probability inputs
-- [ ] Historical data integration
-- [ ] EV+ opportunity alerts
+### ✅ Completed (Phase 1-3)
+- [x] Remove all sportsbook and betting features
+- [x] Remove database dependencies (Prisma)
+- [x] Remove authentication system
+- [x] Implement EV+ calculation engine
+- [x] Implement Kelly Criterion calculator
+- [x] Implement arbitrage detection algorithm
+- [x] Build EV+ calculator UI component
+- [x] Build arbitrage calculator UI component
+- [x] Create interactive dashboard
+- [x] Successful production build
+
+### 🔄 In Progress (Phase 4)
+- [ ] Connect calculators to live odds streaming
+- [ ] Real-time opportunity detection
+- [ ] Automated alerts and notifications
+- [ ] Performance optimization
+
+### 📋 Planned (Phase 5-6)
+- [ ] Live odds dashboard integration
+- [ ] Historical odds tracking
+- [ ] Multi-sportsbook comparison view
+- [ ] CLV (Closing Line Value) tracking
+- [ ] Advanced filtering and sorting
+- [ ] Export and reporting features
 
 ### Phase 3: Arbitrage Detection
 - [ ] Multi-sportsbook odds aggregation
