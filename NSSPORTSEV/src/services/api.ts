@@ -19,14 +19,21 @@ const log = logger.createScopedLogger('API');
 
 /**
  * Get date range for fetching games
- * Returns startsAfter (3 days ago) and startsBefore (not set, to include future games)
+ * Returns startsAfter set to 3 days ago (UTC) to fetch recent and future games
  * This ensures we fetch games from the last 3 days to present/future
+ * Note: startsBefore is intentionally not set to allow fetching all future games
  */
 function getDateRangeForGames(): { startsAfter: string } {
-  const threeDaysAgo = new Date();
-  threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+  // Use UTC to ensure consistent behavior across different server timezones
+  const now = new Date();
+  const threeDaysAgo = new Date(Date.UTC(
+    now.getUTCFullYear(),
+    now.getUTCMonth(),
+    now.getUTCDate() - 3,
+    0, 0, 0, 0 // Start of day in UTC
+  ));
   
-  // Format as ISO 8601 string
+  // Format as ISO 8601 string (already in UTC)
   const startsAfter = threeDaysAgo.toISOString();
   
   log.debug('Date range for games', { startsAfter });
