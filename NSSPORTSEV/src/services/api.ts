@@ -3,7 +3,6 @@ import { z } from "zod";
 import { GameSchema } from "@/lib/schemas/game";
 import { SportSchema } from "@/lib/schemas/sport";
 import { paginatedResponseSchema } from "@/lib/schemas/pagination";
-import { BetsResponseSchema } from "@/lib/schemas/bets";
 import type { ApiSuccessResponse } from "@/lib/apiResponse";
 
 // API Base URL from environment
@@ -41,8 +40,8 @@ async function fetchAPI<T>(
         'Content-Type': 'application/json',
         ...fetchOptions?.headers,
       },
-      // Always include cookies for auth (supports same-origin and cross-origin with CORS)
-      credentials: 'include',
+      // No authentication required for EV app
+      credentials: 'omit',
     };
     
     // ✅ OPTIMIZATION: Add priority hint for browser (Chrome, Edge support)
@@ -96,30 +95,6 @@ function unwrapApiData<T>(json: unknown): T {
   // Fallback: treat json as the payload itself
   return json as T;
 }
-
-// Get bet history
-export const getBetHistory = async (): Promise<ReturnType<typeof BetsResponseSchema.parse>> => {
-  try {
-    const json = await fetchAPI<unknown>('/my-bets');
-    const payload = unwrapApiData<unknown>(json);
-    return BetsResponseSchema.parse(payload);
-  } catch (err) {
-    if (err instanceof ApiHttpError && err.status === 401) {
-      // Not authenticated: return empty history without throwing
-      return [] as ReturnType<typeof BetsResponseSchema.parse>;
-    }
-    throw err;
-  }
-};
-
-// Helper function to calculate odds payout
-export const calculatePayout = (stake: number, odds: number): number => {
-  if (odds > 0) {
-    return stake * (odds / 100);
-  } else {
-    return stake * (100 / Math.abs(odds));
-  }
-};
 
 // Get sports with leagues
 export const getSports = async (): Promise<Sport[]> => {

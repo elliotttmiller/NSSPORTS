@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { ThreePanelLayout, AuthLayout } from "@/components/layouts";
+import { ThreePanelLayout } from "@/components/layouts";
 import { ReactNode } from "react";
 
 interface ConditionalLayoutProps {
@@ -14,17 +14,10 @@ export function ConditionalLayout({ children }: ConditionalLayoutProps) {
   // Admin routes should render without any layout wrapper (they have their own layout)
   const isAdminRoute = pathname.startsWith('/admin');
   
-  // Use AuthLayout for authentication pages
-  const isAuthPage = pathname.startsWith('/auth/') || pathname === '/welcome';
-  
   if (isAdminRoute) {
     return <>{children}</>;
   }
   
-  if (isAuthPage) {
-    return <AuthLayout>{children}</AuthLayout>;
-  }
-  
-  // Use ThreePanelLayout for all other pages
+  // Use ThreePanelLayout for all pages
   return <ThreePanelLayout>{children}</ThreePanelLayout>;
 }
