@@ -1,0 +1,311 @@
+
+@import "tailwindcss";
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    background-color: #0a0a0a;       
+  }
+
+  body {
+    font-family: "Inter", sans-serif;
+    background-color: #0a0a0a;       
+    color: #ffffff;
+  }
+
+  /* Seamless scrolling - Hide all scrollbars globally */
+  * {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  *::-webkit-scrollbar {
+    display: none;
+  }
+
+  .scrollbar-hide,
+  .seamless-scroll {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar,
+  .seamless-scroll::-webkit-scrollbar {
+    display: none;
+  }
+
+  .virtual-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(155, 155, 155, 0.5) transparent;
+  }
+
+  .virtual-scrollbar::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .virtual-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .virtual-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(155, 155, 155, 0.5);
+    border-radius: 2px;
+  }
+
+  /* Next.js Official Mobile Scroll Implementation */
+  .seamless-scroll {
+    /* iOS momentum scrolling - Apple's official recommendation */
+    -webkit-overflow-scrolling: touch;
+
+    /* Prevent overscroll bounce - modern approach */
+    overscroll-behavior-y: contain;
+    overscroll-behavior-x: none;
+
+    /* Hardware acceleration for smooth scrolling */
+    transform: translateZ(0);
+    will-change: scroll-position;
+
+    /* Touch optimizations */
+    touch-action: pan-y;
+  }
+
+  /* Mobile scrolling: rely on native momentum */
+  @media (max-width: 768px) {
+    html {
+      -webkit-text-size-adjust: 100%;
+    }
+    body {
+      /* allow natural scrolling */
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-y;
+    }
+    [data-mobile-scroll] {
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-y;
+      overscroll-behavior: contain;
+      scroll-behavior: auto;
+    }
+    .mobile-safe-area {
+      padding-bottom: env(safe-area-inset-bottom, 1rem);
+    }
+    * { -webkit-tap-highlight-color: rgba(0,0,0,0.1); }
+  }
+
+  /* High DPI optimizations */
+  @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {    
+    .seamless-scroll {
+      /* Enhanced rendering on retina displays */
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+  }
+}
+
+/* Focus states */
+.focus-ring:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+:root {
+  /* Core color system - Dark theme with blue accents */
+  /* Softer, less harsh dark gray for background */
+  --color-bg: #0a0a0a;
+  --color-bg-inset: #0a0a0a;
+  --color-bg-overlay: #18181b;
+  --color-fg: oklch(0.98 0.003 240);
+  --color-fg-secondary: oklch(0.7 0.007 240);
+
+  /* Neutral grays */
+  --color-neutral-4: oklch(0.25 0.005 240);
+  --color-neutral-7: oklch(0.4 0.007 240);
+  --color-neutral-8: oklch(0.5 0.007 240);
+  --color-neutral-11: oklch(0.14 0.007 240);
+  --color-neutral-12: oklch(0.12 0.007 240);
+
+  /* Green accent system (darker, muted) */
+  --color-accent-9: #17804e;
+  --color-accent-contrast: #f8fafc;
+  --color-accent-secondary-9: #11613a;
+
+  /* Focus and interaction */
+  --color-focus-ring: #17804e;
+
+  /* Base colors - using defined variables */
+  --background: var(--color-bg);
+  --foreground: var(--color-fg);
+
+  --card: #111215;
+  --card-foreground: var(--color-fg);
+
+  --popover: var(--color-bg-inset);
+  --popover-foreground: var(--color-fg);
+
+  /* Action colors - Blue theme */
+  --primary: var(--color-accent-9);
+  --primary-foreground: var(--color-accent-contrast);
+
+  --secondary: var(--color-neutral-11);
+  --secondary-foreground: var(--color-neutral-4);
+
+  --accent: var(--color-accent-9);
+  --accent-foreground: var(--color-accent-contrast);
+
+  --muted: var(--color-neutral-12);
+  --muted-foreground: var(--color-fg-secondary);
+  --border: var(--color-neutral-11);
+  --input: var(--color-neutral-11);
+  --ring: var(--color-focus-ring);
+
+  --destructive: oklch(0.55 0.15 0);
+  --destructive-foreground: var(--color-accent-contrast);
+
+  --color-win: var(--color-accent-secondary-9);
+  --color-loss: oklch(0.55 0.15 0);
+  --color-info: var(--color-accent-9);
+
+  --radius: 0.5rem;
+}
+
+@theme {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-win: var(--color-win);
+  --color-loss: var(--color-loss);
+  --color-info: var(--color-info);
+
+  --radius-sm: calc(var(--radius) * 0.5);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) * 1.5);
+  --radius-xl: calc(var(--radius) * 2);
+  --radius-2xl: calc(var(--radius) * 3);
+  --radius-full: 9999px;
+
+  --font-sans: var(--font-inter);
+
+  /* Scroll shadow variables */
+  --scroll-shadow-opacity: 1;
+}
+
+/* Global scroll shadow effect for game card lists */
+[data-scroll-shadow] {
+  position: relative;
+}
+
+[data-scroll-shadow]::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 20px;
+  background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.08)); 
+  opacity: var(--scroll-shadow-opacity);
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Sleek, ultra-thin white outline glow for header and panels */
+.header-glow, .panel-glow {
+  box-shadow: 0 0 0 0.5px rgba(255,255,255,0.05), 0 0.5px 4px 0 rgba(255,255,255,0.02);
+  border-radius: var(--radius-lg);
+}
+
+/* Custom Bet Selection Animations */
+@keyframes betGlow {
+  0%, 100% {
+    box-shadow: 0 0 0 1px var(--color-accent) / 0.3,
+                0 0 20px var(--color-accent) / 0.15,
+                inset 0 0 0 1px var(--color-accent) / 0.1;
+  }
+  50% {
+    box-shadow: 0 0 0 1px var(--color-accent) / 0.5,
+                0 0 30px var(--color-accent) / 0.25,
+                inset 0 0 0 1px var(--color-accent) / 0.2;
+  }
+}
+
+@keyframes parlayGlow {
+  0%, 100% {
+    box-shadow: 0 0 0 1px #3b82f6 / 0.3,
+                0 0 20px #3b82f6 / 0.15,
+                inset 0 0 0 1px #3b82f6 / 0.1;
+  }
+  50% {
+    box-shadow: 0 0 0 1px #3b82f6 / 0.5,
+                0 0 30px #3b82f6 / 0.25,
+                inset 0 0 0 1px #3b82f6 / 0.2;
+  }
+}
+
+.bet-selected-straight {
+  animation: betGlow 2s ease-in-out infinite;
+  background: linear-gradient(135deg, var(--color-accent) / 0.05, var(--color-accent) / 0.02);
+  border-color: var(--color-accent) / 0.4 !important;
+  transition: all 0.3s ease;
+}
+
+.bet-selected-parlay {
+  animation: parlayGlow 2s ease-in-out infinite;
+  background: linear-gradient(135deg, #3b82f6 / 0.05, #3b82f6 / 0.02);      
+  border-color: #3b82f6 / 0.4 !important;
+  transition: all 0.3s ease;
+}
+
+.bet-unselected {
+  transition: all 0.3s ease;
+  background: transparent;
+}
+
+.bet-unselected:hover {
+  border-color: var(--color-border) / 0.6;
+  background: var(--color-muted) / 0.3;
+}
+
+/* Mobile: Non-interactive bet cards for smooth scrolling */
+@media (max-width: 768px) {
+  [data-slot="card"] {
+    /* Remove all interactive states on mobile */
+    pointer-events: auto;
+    cursor: default !important;
+    touch-action: pan-y !important;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  /* Ensure buttons and interactive elements still work */
+  [data-slot="card"] button,
+  [data-slot="card"] a,
+  [data-slot="card"] input,
+  [data-slot="card"] select,
+  [data-slot="card"] textarea {
+    pointer-events: auto;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+}
