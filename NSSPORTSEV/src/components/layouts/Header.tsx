@@ -1,53 +1,77 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState, useEffect } from "react";
-import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
-import { User, X, SignIn } from "@phosphor-icons/react/dist/ssr";
-import { Button, Badge } from "@/components/ui";
-import { useAccount } from "@/hooks/useAccount";
 import Image from "next/image";
-import { useSession, signOut } from "next-auth/react";
-interface MobileAccountDropdownProps {
-  balance: number;
-  available: number;
-  risk: number;
-  freePlay: number;
-  isAuthenticated: boolean;
-  userEmail?: string | null;
-  onLogout: () => void;
-}
 
-function MobileAccountDropdown({ balance, available, risk, freePlay, isAuthenticated, userEmail, onLogout }: MobileAccountDropdownProps) {
-  // Sync username for display, matching homepage logic
-  const { data: session } = useSession();
-  const displayName = session?.user?.name;
-  const [showDropdown, setShowDropdown] = useState(false);
+export function Header() {
+  const pathname = usePathname();
 
   return (
-    <>
-      <Button 
-        variant="ghost" 
-        size="sm" 
-        className="h-8 w-8 p-0"
-        onClick={() => setShowDropdown(!showDropdown)}
-      >
-        <User
-          size={18}
-          className="text-muted-foreground hover:text-foreground transition-colors"
-        />
-      </Button>
-
-      {showDropdown && createPortal(
-        <>
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 bg-card/80 backdrop-blur-sm z-40"
-            onClick={() => setShowDropdown(false)}
+    <header 
+      className="fixed top-0 left-0 right-0 h-16 bg-background border-b border-border flex items-center px-4 z-50"
+      style={{ top: 'env(safe-area-inset-top, 0)' }}
+    >
+      <div className="flex items-center justify-between w-full max-w-[1920px] mx-auto">
+        {/* Logo */}
+        <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+          <Image
+            src="/mn-outline.svg"
+            alt="NSSPORTSEV"
+            width={32}
+            height={32}
+            className="w-8 h-8"
           />
-          
-          {/* Dropdown */}
+          <span className="font-bold text-lg tracking-tight">NSSPORTSEV</span>
+        </Link>
+
+        {/* Navigation */}
+        <nav className="hidden md:flex items-center gap-1">
+          <Link 
+            href="/" 
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              pathname === "/" 
+                ? "bg-accent text-accent-foreground" 
+                : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+            }`}
+          >
+            Dashboard
+          </Link>
+          <Link 
+            href="/odds" 
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              pathname === "/odds" 
+                ? "bg-accent text-accent-foreground" 
+                : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+            }`}
+          >
+            Live Odds
+          </Link>
+          <Link 
+            href="/ev-calculator" 
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              pathname === "/ev-calculator" 
+                ? "bg-accent text-accent-foreground" 
+                : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+            }`}
+          >
+            EV+ Calculator
+          </Link>
+          <Link 
+            href="/arbitrage" 
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              pathname === "/arbitrage" 
+                ? "bg-accent text-accent-foreground" 
+                : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+            }`}
+          >
+            Arbitrage
+          </Link>
+        </nav>
+      </div>
+    </header>
+  );
+}
           <div 
             className="fixed w-64 bg-card border border-border rounded-xl shadow-2xl z-50 max-w-[calc(100vw-32px)]"
             style={{
