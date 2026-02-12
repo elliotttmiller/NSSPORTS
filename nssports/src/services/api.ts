@@ -5,9 +5,22 @@ import { SportSchema } from "@/lib/schemas/sport";
 import { paginatedResponseSchema } from "@/lib/schemas/pagination";
 import { BetsResponseSchema } from "@/lib/schemas/bets";
 import type { ApiSuccessResponse } from "@/lib/apiResponse";
+import { useDebugStore, createPendingLog, completePendingLog } from "@/store/debugStore";
 
 // API Base URL from environment
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || '/api';
+
+// Initialize debug config on client side
+if (typeof window !== 'undefined') {
+  const debugStore = useDebugStore.getState();
+  debugStore.setConfig({
+    environment: process.env.NODE_ENV || 'development',
+    apiKeyConfigured: !!process.env.NEXT_PUBLIC_SPORTSGAMEODDS_API_KEY,
+    apiKey: process.env.NEXT_PUBLIC_SPORTSGAMEODDS_API_KEY || null,
+    useDirectSDK: typeof window !== 'undefined',
+    isGitHubPages: typeof window !== 'undefined' && window.location.hostname.includes('github.io'),
+  });
+}
 
 class ApiHttpError extends Error {
   status: number;
@@ -33,6 +46,12 @@ async function fetchAPI<T>(
   const url = `${API_BASE_URL}${endpoint}`;
   const { priority, ...fetchOptions } = options || {};
   
+  // Create debug log
+  const logId = typeof window !== 'undefined' 
+    ? createPendingLog('api', 'API Request', `${fetchOptions.method || 'GET'} ${endpoint}`, { url, options: fetchOptions })
+    : '';
+  const startTime = Date.now();
+  
   try {
     // Build fetch options with priority if in browser environment
     const requestOptions: RequestInit = {
@@ -52,6 +71,7 @@ async function fetchAPI<T>(
     }
     
     const response = await fetch(url, requestOptions);
+    const duration = Date.now() - startTime;
 
     if (!response.ok) {
       let body: unknown = undefined;
@@ -71,13 +91,43 @@ async function fetchAPI<T>(
         });
       }
       
+      // Complete debug log with error
+      if (logId) {
+        completePendingLog(logId, false, duration, { 
+          status: response.status, 
+          statusText: response.statusText, 
+          body,
+          error: `${response.status} ${response.statusText}`
+        });
+      }
+      
       throw new ApiHttpError(`API Error: ${response.status} ${response.statusText}`, response.status, body);
     }
 
     const json = await response.json();
+    
+    // Complete debug log with success
+    if (logId) {
+      completePendingLog(logId, true, duration, { 
+        status: response.status,
+        dataSize: JSON.stringify(json).length 
+      });
+    }
+    
     return json as T;
   } catch (error) {
+    const duration = Date.now() - startTime;
     console.error(`Error fetching ${endpoint}:`, error);
+    
+    // Complete debug log with error
+    if (logId) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      completePendingLog(logId, false, duration, { 
+        error: errorMessage,
+        errorType: error instanceof Error ? error.constructor.name : typeof error
+      });
+    }
+    
     throw error;
   }
 }

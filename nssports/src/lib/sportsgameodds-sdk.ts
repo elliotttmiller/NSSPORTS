@@ -61,6 +61,7 @@ import { logger } from "./logger";
 const log = logger.createScopedLogger('SportsGameOddsSDK');
 import { rateLimiter } from "./rate-limiter";
 import { SOCCER_LEAGUES, QUARTER_PERIODS } from './constants';
+import { useDebugStore, createPendingLog, completePendingLog } from '@/store/debugStore';
 
 // Re-export official SDK types for use in other files
 // SDK provides types through the main namespace
@@ -376,7 +377,33 @@ export function getSportsGameOddsClient() {
   const apiKey = process.env.SPORTSGAMEODDS_API_KEY;
   
   if (!apiKey) {
+    // Log SDK initialization error
+    if (typeof window !== 'undefined') {
+      useDebugStore.getState().addLog({
+        type: 'error',
+        category: 'SDK',
+        message: 'SPORTSGAMEODDS_API_KEY is not configured',
+        details: { 
+          error: 'Missing API key in environment variables',
+          envVarName: 'SPORTSGAMEODDS_API_KEY'
+        }
+      });
+    }
     throw new Error('SPORTSGAMEODDS_API_KEY is not configured');
+  }
+
+  // Log successful SDK initialization
+  if (typeof window !== 'undefined') {
+    useDebugStore.getState().addLog({
+      type: 'info',
+      category: 'SDK',
+      message: 'SportsGameOdds SDK client initialized',
+      details: {
+        apiKey: `${apiKey.substring(0, 8)}...`,
+        timeout: 20000,
+        maxRetries: 3
+      }
+    });
   }
 
   return new SportsGameOdds({
@@ -395,16 +422,40 @@ export async function getLeagues(options: {
 } = {}) {
   const client = getSportsGameOddsClient();
   
+  // Create debug log
+  const logId = typeof window !== 'undefined' 
+    ? createPendingLog('sdk', 'SDK Request', 'getLeagues', { options })
+    : '';
+  const startTime = Date.now();
+  
   try {
   log.info('Fetching leagues from SportsGameOdds SDK');
     
     const page: any = await client.leagues.get(options as any);
     const leagues = page.data || [];
     
+    const duration = Date.now() - startTime;
   log.info(`Fetched ${leagues.length} leagues`);
+    
+    // Complete debug log with success
+    if (logId) {
+      completePendingLog(logId, true, duration, { leagueCount: leagues.length });
+    }
+    
     return leagues;
   } catch (error) {
+    const duration = Date.now() - startTime;
     logger.error('Error fetching leagues', error);
+    
+    // Complete debug log with error
+    if (logId) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      completePendingLog(logId, false, duration, { 
+        error: errorMessage,
+        errorType: error instanceof Error ? error.constructor.name : typeof error
+      });
+    }
+    
     throw error;
   }
 }
@@ -471,6 +522,12 @@ export async function getAllEvents(
 ) {
   const client = getSportsGameOddsClient();
   
+  // Create debug log
+  const logId = typeof window !== 'undefined' 
+    ? createPendingLog('sdk', 'SDK Request', 'getAllEvents', { options, maxPages })
+    : '';
+  const startTime = Date.now();
+  
   try {
   log.info('Fetching all events with pagination', { options, maxPages });
     
@@ -499,7 +556,17 @@ export async function getAllEvents(
       logger.warn(`Reached max pages limit (${maxPages}), there may be more data available`);
     }
     
+    const duration = Date.now() - startTime;
     logger.info(`Fetched ${allEvents.length} total events across ${pageCount} pages`);
+    
+    // Complete debug log with success
+    if (logId) {
+      completePendingLog(logId, true, duration, { 
+        eventCount: allEvents.length, 
+        pageCount,
+        hasMore: page.hasNextPage()
+      });
+    }
     
     return {
       data: allEvents,
@@ -509,13 +576,37 @@ export async function getAllEvents(
       },
     };
   } catch (error) {
+    const duration = Date.now() - startTime;
+    
     // Treat SDK 404 "No Events found" as a valid empty response to avoid noisy error logs
     if (error instanceof Error && error.message.includes('404') && error.message.includes('No Events found')) {
       logger.info('No events found for paginated query', { options, maxPages });
+      
+      // Complete debug log with success (empty result is valid)
+      if (logId) {
+        completePendingLog(logId, true, duration, { 
+          eventCount: 0, 
+          pageCount: 0,
+          hasMore: false,
+          message: 'No events found'
+        });
+      }
+      
       return { data: [], meta: { hasMore: false, pageCount: 0 } };
     }
 
     logger.error('Error fetching all events', error);
+    
+    // Complete debug log with error
+    if (logId) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      completePendingLog(logId, false, duration, { 
+        error: errorMessage,
+        errorType: error instanceof Error ? error.constructor.name : typeof error,
+        options
+      });
+    }
+    
     throw error;
   }
 }

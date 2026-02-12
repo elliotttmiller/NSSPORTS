@@ -10,6 +10,7 @@ import { AuthProvider, LiveDataProvider } from "@/components/providers";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AddToHomeScreenPrompt } from "@/components/AddToHomeScreenPrompt";
+import { DebugPanel } from "@/components/DebugPanel";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -103,6 +104,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </StreamingProvider>
             </QueryProvider>
           </AuthProvider>
+          <DebugPanel />
         </ErrorBoundary>
       </body>
     </html>

@@ -14,6 +14,7 @@ import { RefreshButton } from "@/components/ui";
 import { useRefresh } from "@/context";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { logger } from '@/lib/logger';
+import { useDebugStore } from '@/store/debugStore';
 
 /**
  * Helper function to check if games array has actually changed
@@ -91,6 +92,12 @@ export default function LivePage() {
       // Silent background updates - no logging spam
       if (!isBackgroundUpdate) {
         logger.debug('[LivePage] Initial fetch from /api/games/live...');
+        useDebugStore.getState().addLog({
+          type: 'info',
+          category: 'LivePage',
+          message: 'Fetching live games from /api/games/live',
+          details: { isBackgroundUpdate, forceUpdate },
+        });
       }
   const url = forceUpdate ? `/api/games/live?t=${Date.now()}` : '/api/games/live';
       const response = await fetch(url, {
@@ -177,6 +184,17 @@ export default function LivePage() {
       // Only log errors that aren't timeouts on background updates
       if (!isBackgroundUpdate || !isTimeoutError) {
         logger.error('[LivePage] Error', new Error(errorMsg));
+        useDebugStore.getState().addLog({
+          type: 'error',
+          category: 'LivePage',
+          message: `Error fetching live games: ${errorMsg}`,
+          details: { 
+            error: err instanceof Error ? { name: err.name, message: err.message, stack: err.stack } : err,
+            isBackgroundUpdate,
+            forceUpdate,
+            isTimeoutError
+          },
+        });
       }
       
       // Mobile: Only set error on initial load to avoid disrupting user experience
