@@ -107,7 +107,7 @@ export function ArbitrageCalculator() {
         </div>
 
         {outcomes.map((outcome, index) => (
-          <div key={index} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-12 gap-2 sm:gap-3 md:gap-2 items-end">
+          <div key={index} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-12 gap-3 items-end">
             <div className="sm:col-span-2 md:col-span-3 space-y-1">
               <Label htmlFor={`outcome-${index}`} className="text-xs">Outcome</Label>
               <Input

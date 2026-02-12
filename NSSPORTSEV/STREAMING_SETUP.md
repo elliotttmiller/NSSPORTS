@@ -93,8 +93,11 @@ Navigate to `http://localhost:3000/live-odds` and verify that streaming connects
 ### Streaming Not Connecting
 
 **Check 1: Verify API Key**
+
+⚠️ **Security Warning**: Never share your actual API key. Use a test key for debugging or replace with `your-api-key-here`.
+
 ```bash
-# Test API key with curl
+# Test API key with curl (replace YOUR_API_KEY with your actual key)
 curl -H "x-api-key: YOUR_API_KEY" \
   "https://api.sportsgameodds.com/v2/stream/events?feed=events:live"
 ```

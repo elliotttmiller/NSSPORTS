@@ -55,7 +55,9 @@ export function Header() {
         <button
           className="md:hidden p-2 rounded-md hover:bg-accent/50 transition-colors"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          aria-label="Toggle menu"
+          aria-label="Toggle navigation menu"
+          aria-expanded={mobileMenuOpen}
+          aria-controls="mobile-menu"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -76,7 +78,12 @@ export function Header() {
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden absolute top-16 left-0 right-0 bg-background border-b border-border shadow-lg">
+        <div
+          id="mobile-menu"
+          className="md:hidden absolute top-16 left-0 right-0 bg-background border-b border-border shadow-lg"
+          role="navigation"
+          aria-label="Mobile navigation"
+        >
           <nav className="flex flex-col p-4 space-y-2">
             <Link 
               href="/" 
