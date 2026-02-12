@@ -384,16 +384,26 @@ export function getSportsGameOddsClient() {
   const apiKey = process.env.NEXT_PUBLIC_SPORTSGAMEODDS_API_KEY || process.env.SPORTSGAMEODDS_API_KEY;
   
   if (!apiKey) {
-    // Log detailed error to help with debugging
+    // Log detailed error to help with debugging (development only)
     const hasPublicKey = !!process.env.NEXT_PUBLIC_SPORTSGAMEODDS_API_KEY;
     const hasServerKey = !!process.env.SPORTSGAMEODDS_API_KEY;
     const isClient = typeof window !== 'undefined';
-    log.error('SportsGameOdds API key not configured', {
-      hasPublicKey,
-      hasServerKey,
-      isClient,
-      availableEnvVars: Object.keys(process.env).filter(k => k.includes('SPORTSGAMEODDS')),
-    });
+    
+    // Only log environment variable names in development
+    if (process.env.NODE_ENV === 'development') {
+      log.error('SportsGameOdds API key not configured', {
+        hasPublicKey,
+        hasServerKey,
+        isClient,
+        availableEnvVars: Object.keys(process.env).filter(k => k.includes('SPORTSGAMEODDS')),
+      });
+    } else {
+      log.error('SportsGameOdds API key not configured', {
+        hasPublicKey,
+        hasServerKey,
+        isClient,
+      });
+    }
     throw new Error('SPORTSGAMEODDS_API_KEY or NEXT_PUBLIC_SPORTSGAMEODDS_API_KEY is not configured');
   }
 
@@ -522,7 +532,7 @@ export async function getAllEvents(
       options: {
         ...options,
         includeConsensus: params.includeConsensus,
-        bookmakerCount: params.bookmakerID?.split(',').length || 0,
+        bookmakerCount: typeof params.bookmakerID === 'string' ? params.bookmakerID.split(',').length : 0,
       }, 
       maxPages 
     });
