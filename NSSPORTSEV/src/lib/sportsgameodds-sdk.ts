@@ -487,6 +487,21 @@ export async function getLeagues(options: {
  * @param maxPages Maximum number of pages to fetch (safety limit, default: 10)
  * @returns All events across all pages
  */
+
+/**
+ * Helper function to count bookmakers from bookmakerID parameter
+ * Handles both string (comma-separated) and array types
+ */
+function getBookmakerCount(bookmakerID: string | string[] | undefined): number {
+  if (Array.isArray(bookmakerID)) {
+    return bookmakerID.length;
+  }
+  if (typeof bookmakerID === 'string') {
+    return bookmakerID.split(',').length;
+  }
+  return 0;
+}
+
 export async function getAllEvents(
   options: {
     leagueID?: string;
@@ -525,16 +540,14 @@ export async function getAllEvents(
       ...options,
       eventIDs: eventIDsValue,
       bookmakerID: options.bookmakerID || REPUTABLE_BOOKMAKERS,
-      includeConsensus: options.includeConsensus !== false, // Default to true
+      includeConsensus: options.includeConsensus ?? true, // Default to true if undefined
     } as any;
     
     log.info('Fetching all events with pagination', { 
       options: {
         ...options,
         includeConsensus: params.includeConsensus,
-        bookmakerCount: Array.isArray(params.bookmakerID) 
-          ? params.bookmakerID.length 
-          : (typeof params.bookmakerID === 'string' ? params.bookmakerID.split(',').length : 0),
+        bookmakerCount: getBookmakerCount(params.bookmakerID),
       }, 
       maxPages 
     });
