@@ -31,7 +31,7 @@ The `next.config.ts` file is configured for GitHub Pages deployment:
 ```typescript
 {
   output: process.env.GITHUB_PAGES === 'true' ? 'export' : undefined,
-  basePath: process.env.GITHUB_PAGES === 'true' ? '/NSSPORTS/NSSPORTSEV' : '',
+  basePath: process.env.GITHUB_PAGES === 'true' ? '/NSSPORTS' : '',
 }
 ```
 
@@ -58,19 +58,22 @@ Or with a custom domain if configured.
 
 No environment variables are strictly required for the calculators to work, as they operate client-side.
 
-### Optional Variables
+### Optional Variables for Live Odds
 
-For live odds integration (future enhancement):
+For live odds integration with real-time streaming:
 
-- `NEXT_PUBLIC_API_BASE_URL`: Base URL for API endpoints (defaults to `/api`)
-- `NEXT_PUBLIC_SPORTSGAMEODDS_API_KEY`: API key for live odds (stored as GitHub secret)
+- `NEXT_PUBLIC_STREAMING_ENABLED`: Enable/disable WebSocket streaming (default: `false`)
+- `SPORTSGAMEODDS_API_KEY`: API key for SportsGameOdds API (for server-side builds)
+
+**Important Note for GitHub Pages**: Since GitHub Pages only serves static files, the streaming service will automatically fall back to REST API polling instead of WebSocket streaming. This is handled gracefully in the code.
 
 To add secrets:
 
 1. Go to **Settings** > **Secrets and variables** > **Actions**
 2. Click **New repository secret**
-3. Add the secret name and value
-4. Reference in the workflow file
+3. Add the secret name and value:
+   - `NEXT_PUBLIC_STREAMING_ENABLED`: Set to `true` to enable client-side streaming detection
+   - `SPORTSGAMEODDS_API_KEY`: Your API key (optional for static builds)
 
 ## Manual Deployment
 
@@ -94,6 +97,22 @@ GITHUB_PAGES=true npm run build
 npx serve out
 ```
 
+The application will be available at `http://localhost:3000/NSSPORTS/` (note the basePath).
+
+## Mobile Responsiveness
+
+The application is fully mobile responsive with:
+- Responsive grid layouts using Tailwind's sm:, md:, and lg: breakpoints
+- Mobile-friendly hamburger navigation menu
+- Touch-optimized controls and spacing
+- Safe area insets for notched devices
+- Fluid typography and spacing that adapts to screen size
+
+Tested on breakpoints:
+- Mobile: 320px - 640px (portrait and landscape)
+- Tablet: 640px - 1024px
+- Desktop: 1024px+
+
 ## Troubleshooting
 
 ### Build Fails
@@ -108,15 +127,23 @@ npx serve out
 1. Verify the `basePath` in `next.config.ts` matches your repository structure
 2. Check browser console for 404 errors
 3. Ensure images and assets use relative paths
+4. Make sure `.nojekyll` file exists in the `public/` directory
 
-### API Routes Don't Work
+### Streaming Not Working
 
-GitHub Pages only serves static files. API routes (`/api/*`) won't work in static export mode.
+GitHub Pages only serves static files, so:
+- WebSocket streaming is not available on GitHub Pages
+- The app automatically falls back to REST API polling
+- For full WebSocket streaming support, deploy to a platform that supports Node.js (Vercel, Railway, etc.)
+- The streaming detection is handled gracefully in the code
 
-For live odds integration:
-- Use client-side API calls to external services
-- Consider using a separate backend service (Vercel, Railway, etc.)
-- Update `NEXT_PUBLIC_API_BASE_URL` to point to your backend
+### Mobile Display Issues
+
+If pages don't display correctly on mobile:
+1. Check viewport meta tags in `layout.tsx`
+2. Verify responsive breakpoints are properly configured
+3. Test on actual devices or Chrome DevTools mobile emulation
+4. Check for fixed widths that should be responsive
 
 ## Custom Domain
 

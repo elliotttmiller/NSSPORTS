@@ -169,7 +169,7 @@ export function EVCalculator() {
           <h3 className="text-lg font-semibold">Analysis Results</h3>
 
           {/* EV Results */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="space-y-1">
               <p className="text-sm text-muted-foreground">Expected Value</p>
               <p className={`text-2xl font-bold ${analysis.isPositiveEV ? 'text-green-500' : 'text-red-500'}`}>
