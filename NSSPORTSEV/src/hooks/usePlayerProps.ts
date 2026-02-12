@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { usePropsStream } from '@/context/StreamingContext';
+import { getPlayerProps } from '@/services/api';
 
 export interface PlayerProp {
   id: string;
@@ -90,12 +91,8 @@ export function usePlayerProps(
   return useQuery({
     queryKey: ['playerProps', gameId],
     queryFn: async () => {
-      const response = await fetch(`/api/matches/${gameId}/player-props`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch player props');
-      }
-      const data = await response.json();
-      return data.data as PlayerProp[];
+      const data = await getPlayerProps(gameId);
+      return data as PlayerProp[];
     },
     enabled,
     staleTime,                    // Dynamic: 15s for live, 120s for upcoming

@@ -4,12 +4,14 @@ import { GameSchema } from "@/lib/schemas/game";
 import { SportSchema } from "@/lib/schemas/sport";
 import { paginatedResponseSchema } from "@/lib/schemas/pagination";
 import type { ApiSuccessResponse } from "@/lib/apiResponse";
-import { getAllEvents, getLeagues, MAIN_LINE_ODDIDS, type SDKEvent } from "@/lib/sportsgameodds-sdk";
+import { getAllEvents, getLeagues, MAIN_LINE_ODDIDS, type SDKEvent, getPlayerProps as sdkGetPlayerProps, getGameProps as sdkGetGameProps } from "@/lib/sportsgameodds-sdk";
 import { logger } from "@/lib/logger";
 
 // GitHub Pages Static Export: Call SDK directly instead of /api routes
 // This allows the app to work without Next.js API routes
-const USE_DIRECT_SDK = process.env.GITHUB_PAGES === 'true' || 
+// Check for client-side (browser) context first, then environment variables
+const USE_DIRECT_SDK = (typeof window !== 'undefined') || 
+                       process.env.NEXT_PUBLIC_GITHUB_PAGES === 'true' ||
                        process.env.NEXT_PUBLIC_USE_DIRECT_SDK === 'true';
 
 // Default leagues to fetch when no specific league is specified
@@ -519,4 +521,65 @@ export const getGamesPaginated = async (
   const Schema = paginatedResponseSchema(GameSchema);
   const parsed = Schema.parse(payload) as PaginatedResponse<Game>;
   return parsed;
+};
+
+/**
+ * Get player props for a specific game/event
+ * Supports both GitHub Pages static export and API routes
+ */
+export const getPlayerProps = async (
+  gameId: string,
+  options: {
+    playerID?: string;
+    propType?: string;
+  } = {}
+) => {
+  // GitHub Pages Static Export: Call SDK directly
+  if (USE_DIRECT_SDK) {
+    try {
+      log.info('Fetching player props from SDK directly', { gameId, options });
+      return await sdkGetPlayerProps(gameId, options);
+    } catch (error) {
+      log.error('Error fetching player props from SDK', error);
+      throw error;
+    }
+  }
+  
+  // Fallback to API routes
+  const response = await fetch(`/api/matches/${gameId}/player-props`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch player props');
+  }
+  const data = await response.json();
+  return data.data;
+};
+
+/**
+ * Get game props for a specific game/event
+ * Supports both GitHub Pages static export and API routes
+ */
+export const getGameProps = async (
+  gameId: string,
+  options: {
+    propType?: string;
+  } = {}
+) => {
+  // GitHub Pages Static Export: Call SDK directly
+  if (USE_DIRECT_SDK) {
+    try {
+      log.info('Fetching game props from SDK directly', { gameId, options });
+      return await sdkGetGameProps(gameId, options);
+    } catch (error) {
+      log.error('Error fetching game props from SDK', error);
+      throw error;
+    }
+  }
+  
+  // Fallback to API routes
+  const response = await fetch(`/api/matches/${gameId}/game-props`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch game props');
+  }
+  const data = await response.json();
+  return data.data;
 };
