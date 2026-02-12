@@ -17,9 +17,7 @@
  */
 
 import { logger } from "@/lib/logger";
-// Note: decimalToAmerican imported for potential future use
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { americanToDecimal, decimalToAmerican } from "./ev-calculator";
+import { americanToDecimal } from "./ev-calculator";
 
 /**
  * Outcome with odds from a specific sportsbook
@@ -171,10 +169,10 @@ export function calculateArbitrageProfit(
 
 /**
  * Assess the quality of an arbitrage opportunity
+ * Quality is based on profit margin - higher is better
  */
 function assessArbitrageQuality(
-  profitPercent: number,
-  _arbitragePercent: number
+  profitPercent: number
 ): 'excellent' | 'good' | 'fair' | 'poor' {
   // Higher profit margin = better quality
   if (profitPercent >= 3) return 'excellent';
@@ -259,7 +257,7 @@ export function analyzeArbitrage(
   const profitCalc = calculateArbitrageProfit(normalizedOutcomes, totalStake);
   
   // Assess quality
-  const quality = assessArbitrageQuality(profitCalc.profitPercent, detection.arbitragePercent);
+  const quality = assessArbitrageQuality(profitCalc.profitPercent);
   
   // Generate warnings
   const warnings = generateArbitrageWarnings(normalizedOutcomes, profitCalc.profitPercent);
