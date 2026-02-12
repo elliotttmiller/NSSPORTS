@@ -49,6 +49,8 @@ jobs:
           # Add any required environment variables here
           NEXT_PUBLIC_API_BASE_URL: ${{ secrets.NEXT_PUBLIC_API_BASE_URL || '/api' }}
           NEXT_PUBLIC_STREAMING_ENABLED: ${{ secrets.NEXT_PUBLIC_STREAMING_ENABLED || 'false' }}
+          # For static export, API key must be exposed to client
+          NEXT_PUBLIC_SPORTSGAMEODDS_API_KEY: ${{ secrets.SPORTSGAMEODDS_API_KEY || secrets.NEXT_PUBLIC_SPORTSGAMEODDS_API_KEY }}
           SPORTSGAMEODDS_API_KEY: ${{ secrets.SPORTSGAMEODDS_API_KEY || '' }}
           GITHUB_PAGES: 'true'
       

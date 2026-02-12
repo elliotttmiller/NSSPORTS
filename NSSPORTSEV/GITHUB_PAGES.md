@@ -56,7 +56,15 @@ Or with a custom domain if configured.
 
 ### Required Variables
 
-No environment variables are strictly required for the calculators to work, as they operate client-side.
+For GitHub Pages static export, the API key must be exposed to the client:
+
+- `NEXT_PUBLIC_SPORTSGAMEODDS_API_KEY`: API key for SportsGameOdds API (exposed in client bundle)
+- `NEXT_PUBLIC_STREAMING_ENABLED`: Enable/disable WebSocket streaming (default: `false`)
+
+**⚠️ Security Note**: For GitHub Pages deployment, the API key will be exposed in the client-side JavaScript bundle. Consider using:
+- A rate-limited API key for public deployments
+- A separate key for production vs development
+- API key rotation if exposed publicly
 
 ### Optional Variables for Live Odds
 
