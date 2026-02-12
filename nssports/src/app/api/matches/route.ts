@@ -107,9 +107,9 @@ export async function GET(request: NextRequest) {
       
       // ⭐ CRITICAL OPTIMIZATION: Separate LIVE vs UPCOMING games
       // Official SDK Method: Use live=true for in-progress games, finalized=false for not finished
-      // FORWARD-LOOKING: Wider window to find available games (14 days)
+      // FORWARD-LOOKING: Fetch games from now to 3 days in the future
       const now = new Date();
-      const fourteenDaysFromNow = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000); // 14 days ahead
+      const threeDaysFromNow = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000); // 3 days ahead
       
       logger.info(`Fetching events for ${sport} (lines=${lines}) using hybrid cache with live/upcoming separation`);
       
@@ -127,12 +127,12 @@ export async function GET(request: NextRequest) {
       
       // Query 2: UPCOMING GAMES (not started yet, can use longer cache TTL)
       // Official SDK Pattern: Not live, not finalized, future start times only
-      // FORWARD-LOOKING: From now to 14 days ahead (wider window to find games)
+      // FORWARD-LOOKING: From now to 3 days ahead
       const upcomingGamesResponse = await getEventsWithCache({
         leagueID,
         finalized: false,                          // ✅ OFFICIAL: Not finished
         startsAfter: now.toISOString(),           // ✅ From current time forward
-        startsBefore: fourteenDaysFromNow.toISOString(), // ✅ Max 14 days ahead
+        startsBefore: threeDaysFromNow.toISOString(), // ✅ Max 3 days ahead
         oddIDs,                                    // ✅ OFFICIAL: Filter specific markets (50-90% reduction)
         includeOpposingOddIDs: true,              // ✅ OFFICIAL: Get both sides automatically
         includeConsensus: true,                   // ✅ CRITICAL: Request bookOdds calculations
