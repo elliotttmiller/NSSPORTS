@@ -1,36 +1,9 @@
-import { Prisma } from '@prisma/client';
+/**
+ * API Types for NSSPORTSEV
+ * Clean types without database dependencies
+ */
 
-// Prisma types with all relations
-export type GameWithRelations = Prisma.GameGetPayload<{
-  include: {
-    homeTeam: true;
-    awayTeam: true;
-    odds: true;
-  };
-}>;
-
-export type OddsRecord = Prisma.OddsGetPayload<{
-  select: {
-    id: true;
-    gameId: true;
-    betType: true;
-    selection: true;
-    odds: true;
-    line: true;
-    lastUpdated: true;
-  };
-}>;
-
-export type TeamRecord = Prisma.TeamGetPayload<{
-  select: {
-    id: true;
-    name: true;
-    shortName: true;
-    logo: true;
-    record: true;
-  };
-}>;
-
+// Odds data structure for EV+ and arbitrage analysis
 export interface OddsMap {
   [betType: string]: {
     [selection: string]: {
@@ -39,4 +12,35 @@ export interface OddsMap {
       lastUpdated: Date;
     };
   };
+}
+
+// Team information from API
+export interface TeamRecord {
+  id: string;
+  name: string;
+  shortName: string;
+  logo: string;
+  record?: string | null;
+}
+
+// Odds record from API
+export interface OddsRecord {
+  id: string;
+  gameId: string;
+  betType: string;
+  selection: string;
+  odds: number;
+  line?: number | null;
+  lastUpdated: Date;
+}
+
+// Game with relations from API
+export interface GameWithRelations {
+  id: string;
+  homeTeam: TeamRecord;
+  awayTeam: TeamRecord;
+  odds: OddsRecord[];
+  startTime: Date;
+  status: string;
+  leagueId: string;
 }
