@@ -14,7 +14,7 @@ import { useAllMatches, useFetchAllMatches, useIsLoading } from "@/hooks/useStab
 import { getOpportunityDetector, type OpportunityAlert } from "@/lib/opportunity-detector";
 import { getHistoricalTracker } from "@/lib/historical-tracker";
 import { toast } from "sonner";
-import type { Game } from "@/types/game";
+import type { Game } from "@/types";
 
 export default function LiveOddsPage() {
   const matches = useAllMatches();
@@ -41,11 +41,15 @@ export default function LiveOddsPage() {
       
       // Show toast notification
       const message = alert.type === 'ev' 
-        ? `EV+ Opportunity: ${alert.details.expectedValuePercent.toFixed(2)}% edge detected!`
-        : `Arbitrage Opportunity: ${alert.details.profitPercent.toFixed(2)}% profit detected!`;
+        ? `EV+ Opportunity: ${(alert.details as import("@/lib/opportunity-detector").EVOpportunity).expectedValuePercent.toFixed(2)}% edge detected!`
+        : `Arbitrage Opportunity: ${(alert.details as import("@/lib/opportunity-detector").ArbitrageOpportunity).profitPercent.toFixed(2)}% profit detected!`;
+      
+      const gameDesc = alert.game.homeTeam && alert.game.awayTeam
+        ? `${alert.game.homeTeam.name} vs ${alert.game.awayTeam.name}`
+        : 'Game opportunity detected';
       
       toast.success(message, {
-        description: `${alert.game.homeTeam.name} vs ${alert.game.awayTeam.name}`,
+        description: gameDesc,
         duration: 10000,
       });
     });
@@ -144,7 +148,7 @@ export default function LiveOddsPage() {
             
             <div>
               <Button
-                onClick={fetchMatches}
+                onClick={() => fetchMatches()}
                 variant="outline"
                 disabled={isLoading}
               >
@@ -185,21 +189,21 @@ export default function LiveOddsPage() {
                     </div>
                     
                     <p className="font-medium">
-                      {alert.game.homeTeam.name} vs {alert.game.awayTeam.name}
+                      {alert.game.homeTeam?.name || 'Home'} vs {alert.game.awayTeam?.name || 'Away'}
                     </p>
                     
                     {alert.type === 'ev' && (
                       <p className="text-sm text-muted-foreground mt-1">
-                        EV: {alert.details.expectedValuePercent.toFixed(2)}% • 
-                        Edge: {(alert.details.edge * 100).toFixed(2)}% • 
-                        Kelly: {(alert.details.kellyFraction * 100).toFixed(2)}%
+                        EV: {(alert.details as import("@/lib/opportunity-detector").EVOpportunity).expectedValuePercent.toFixed(2)}% • 
+                        Edge: {((alert.details as import("@/lib/opportunity-detector").EVOpportunity).edge * 100).toFixed(2)}% • 
+                        Kelly: {((alert.details as import("@/lib/opportunity-detector").EVOpportunity).kellyFraction * 100).toFixed(2)}%
                       </p>
                     )}
                     
                     {alert.type === 'arbitrage' && (
                       <p className="text-sm text-muted-foreground mt-1">
-                        Profit: {alert.details.profitPercent.toFixed(2)}% • 
-                        Arb%: {alert.details.arbitragePercent.toFixed(2)}%
+                        Profit: {(alert.details as import("@/lib/opportunity-detector").ArbitrageOpportunity).profitPercent.toFixed(2)}% • 
+                        Arb%: {(alert.details as import("@/lib/opportunity-detector").ArbitrageOpportunity).arbitragePercent.toFixed(2)}%
                       </p>
                     )}
                   </div>
@@ -297,6 +301,19 @@ interface GameCardProps {
 }
 
 function GameCard({ game, isDetecting }: GameCardProps) {
+  // Helper to safely access nested odds
+  const homeSpread = game.odds?.spread?.home?.line;
+  const homeSpreadOdds = game.odds?.spread?.home?.odds;
+  const awaySpread = game.odds?.spread?.away?.line;
+  const awaySpreadOdds = game.odds?.spread?.away?.odds;
+  
+  const homeML = game.odds?.moneyline?.home?.odds;
+  const awayML = game.odds?.moneyline?.away?.odds;
+  
+  const total = game.odds?.total?.home?.line;
+  const overOdds = game.odds?.total?.home?.odds;
+  const underOdds = game.odds?.total?.away?.odds;
+  
   return (
     <Card className="p-6">
       <div className="space-y-4">
@@ -304,7 +321,7 @@ function GameCard({ game, isDetecting }: GameCardProps) {
         <div>
           <div className="flex items-center justify-between mb-2">
             <Badge variant={game.status === 'live' ? 'destructive' : 'secondary'}>
-              {game.status}
+              {game.status || 'upcoming'}
             </Badge>
             <span className="text-sm text-muted-foreground">
               {new Date(game.startTime).toLocaleString()}
@@ -312,52 +329,59 @@ function GameCard({ game, isDetecting }: GameCardProps) {
           </div>
           
           <h3 className="text-lg font-bold">
-            {game.homeTeam.name} vs {game.awayTeam.name}
+            {game.homeTeam?.name || 'Home Team'} vs {game.awayTeam?.name || 'Away Team'}
           </h3>
         </div>
         
         {/* Odds */}
         <div className="space-y-2">
           {/* Spread */}
-          {game.homeSpread !== undefined && game.awaySpread !== undefined && (
+          {homeSpread != null && awaySpread != null && (
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Spread</span>
               <div className="flex gap-4">
                 <span>
-                  {game.homeTeam.abbreviation} {game.homeSpread > 0 ? '+' : ''}{game.homeSpread}
-                  {game.homeSpreadOdds && ` (${game.homeSpreadOdds > 0 ? '+' : ''}${game.homeSpreadOdds})`}
+                  {game.homeTeam?.shortName || 'HOME'} {homeSpread > 0 ? '+' : ''}{homeSpread}
+                  {homeSpreadOdds != null && ` (${homeSpreadOdds > 0 ? '+' : ''}${homeSpreadOdds})`}
                 </span>
                 <span>
-                  {game.awayTeam.abbreviation} {game.awaySpread > 0 ? '+' : ''}{game.awaySpread}
-                  {game.awaySpreadOdds && ` (${game.awaySpreadOdds > 0 ? '+' : ''}${game.awaySpreadOdds})`}
+                  {game.awayTeam?.shortName || 'AWAY'} {awaySpread > 0 ? '+' : ''}{awaySpread}
+                  {awaySpreadOdds != null && ` (${awaySpreadOdds > 0 ? '+' : ''}${awaySpreadOdds})`}
                 </span>
               </div>
             </div>
           )}
           
           {/* Moneyline */}
-          {game.homeMoneylineOdds && game.awayMoneylineOdds && (
+          {homeML != null && awayML != null && (
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Moneyline</span>
               <div className="flex gap-4">
                 <span>
-                  {game.homeTeam.abbreviation} {game.homeMoneylineOdds > 0 ? '+' : ''}{game.homeMoneylineOdds}
+                  {game.homeTeam?.shortName || 'HOME'} {homeML > 0 ? '+' : ''}{homeML}
                 </span>
                 <span>
-                  {game.awayTeam.abbreviation} {game.awayMoneylineOdds > 0 ? '+' : ''}{game.awayMoneylineOdds}
+                  {game.awayTeam?.shortName || 'AWAY'} {awayML > 0 ? '+' : ''}{awayML}
                 </span>
               </div>
             </div>
           )}
           
           {/* Total */}
-          {game.totalPoints && game.overOdds && game.underOdds && (
+          {total != null && overOdds != null && underOdds != null && (
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Total</span>
               <div className="flex gap-4">
-                <span>O {game.totalPoints} ({game.overOdds > 0 ? '+' : ''}{game.overOdds})</span>
-                <span>U {game.totalPoints} ({game.underOdds > 0 ? '+' : ''}{game.underOdds})</span>
+                <span>O {total} ({overOdds > 0 ? '+' : ''}{overOdds})</span>
+                <span>U {total} ({underOdds > 0 ? '+' : ''}{underOdds})</span>
               </div>
+            </div>
+          )}
+          
+          {/* Display message if no odds available */}
+          {homeSpread == null && homeML == null && total == null && (
+            <div className="text-sm text-muted-foreground text-center py-2">
+              No odds available
             </div>
           )}
         </div>

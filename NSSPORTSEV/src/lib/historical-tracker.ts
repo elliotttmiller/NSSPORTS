@@ -12,7 +12,7 @@
  */
 
 import { logger } from './logger';
-import type { Game } from '@/types/game';
+import type { Game } from '@/types';
 
 /**
  * Odds snapshot at a specific point in time
@@ -244,15 +244,15 @@ export class HistoricalTracker {
         const snapshot: OddsSnapshot = {
           timestamp,
           gameId: game.id,
-          homeSpread: game.homeSpread,
-          homeSpreadOdds: game.homeSpreadOdds,
-          awaySpread: game.awaySpread,
-          awaySpreadOdds: game.awaySpreadOdds,
-          homeMoneylineOdds: game.homeMoneylineOdds,
-          awayMoneylineOdds: game.awayMoneylineOdds,
-          totalPoints: game.totalPoints,
-          overOdds: game.overOdds,
-          underOdds: game.underOdds,
+          homeSpread: game.odds?.spread?.home?.line ?? undefined,
+          homeSpreadOdds: game.odds?.spread?.home?.odds ?? undefined,
+          awaySpread: game.odds?.spread?.away?.line ?? undefined,
+          awaySpreadOdds: game.odds?.spread?.away?.odds ?? undefined,
+          homeMoneylineOdds: game.odds?.moneyline?.home?.odds ?? undefined,
+          awayMoneylineOdds: game.odds?.moneyline?.away?.odds ?? undefined,
+          totalPoints: game.odds?.total?.home?.line ?? undefined,
+          overOdds: game.odds?.total?.home?.odds ?? undefined,
+          underOdds: game.odds?.total?.away?.odds ?? undefined,
         };
         
         await this.storage.saveSnapshot(snapshot);
