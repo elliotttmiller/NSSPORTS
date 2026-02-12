@@ -532,7 +532,9 @@ export async function getAllEvents(
       options: {
         ...options,
         includeConsensus: params.includeConsensus,
-        bookmakerCount: typeof params.bookmakerID === 'string' ? params.bookmakerID.split(',').length : 0,
+        bookmakerCount: Array.isArray(params.bookmakerID) 
+          ? params.bookmakerID.length 
+          : (typeof params.bookmakerID === 'string' ? params.bookmakerID.split(',').length : 0),
       }, 
       maxPages 
     });
