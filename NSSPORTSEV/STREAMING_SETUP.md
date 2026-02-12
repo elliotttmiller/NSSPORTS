@@ -23,8 +23,10 @@ The NSSPORTSEV app supports real-time odds streaming via WebSocket connections u
 
 | Secret Name | Description | Required |
 |------------|-------------|----------|
-| `SPORTSGAMEODDS_API_KEY` | Your SportsGameOdds API key | ✅ Yes |
+| `SPORTSGAMEODDS_API_KEY` or `NEXT_PUBLIC_SPORTSGAMEODDS_API_KEY` | Your SportsGameOdds API key (use NEXT_PUBLIC_ for static export) | ✅ Yes |
 | `NEXT_PUBLIC_STREAMING_ENABLED` | Enable streaming (set to `true`) | ⚠️ Optional |
+
+**Important for GitHub Pages**: Use `NEXT_PUBLIC_SPORTSGAMEODDS_API_KEY` instead of `SPORTSGAMEODDS_API_KEY` to expose the key to the client bundle for static export.
 
 ### Step 2: Verify Workflow Configuration
 
@@ -47,12 +49,20 @@ Create a `.env.local` file in the `NSSPORTSEV` directory:
 
 ```bash
 # SportsGameOdds API Configuration
+# For development or server-side use:
 SPORTSGAMEODDS_API_KEY="your-api-key-here"
+
+# For GitHub Pages static export (exposes key in client bundle):
+NEXT_PUBLIC_SPORTSGAMEODDS_API_KEY="your-api-key-here"
+
+# Enable streaming (optional)
 NEXT_PUBLIC_STREAMING_ENABLED="true"
 
 # Optional: API Base URL
 NEXT_PUBLIC_API_BASE_URL="/api"
 ```
+
+**Security Note**: When using `NEXT_PUBLIC_SPORTSGAMEODDS_API_KEY`, the API key will be exposed in the client-side JavaScript bundle. Consider using rate-limited keys for public deployments.
 
 ### Step 2: Test Locally
 

@@ -248,6 +248,36 @@ NSSPORTSEV is built from NSSPORTS but with a completely different purpose:
 - [ ] Kelly criterion calculator
 - [ ] Advanced filtering and search
 
+## Deployment
+
+### GitHub Pages (Static Export)
+
+NSSPORTSEV is configured for deployment to GitHub Pages as a static site. The application calls the SportsGameOdds API directly from the client instead of using Next.js API routes.
+
+#### Configuration
+
+1. **Environment Variables**: Set `NEXT_PUBLIC_SPORTSGAMEODDS_API_KEY` in GitHub Actions secrets
+   - This exposes the API key in the client bundle (use rate-limited keys)
+   - Required for static export to work without server-side API routes
+
+2. **Build Command**: `GITHUB_PAGES=true npm run build`
+   - Enables static export mode (`output: 'export'`)
+   - Configures base path to `/NSSPORTS`
+
+3. **Automatic Deployment**: Pushes to `main` branch trigger GitHub Actions workflow
+
+See [GITHUB_PAGES.md](./GITHUB_PAGES.md) for detailed deployment instructions.
+
+#### Security Considerations
+
+⚠️ **API Key Exposure**: For GitHub Pages deployment, the API key is exposed in the client-side JavaScript bundle. Consider:
+- Using a rate-limited API key for public deployments
+- Implementing additional client-side rate limiting
+- Rotating keys periodically
+- Monitoring API usage for abuse
+
+For server-side deployments (Vercel, Railway, etc.), use `SPORTSGAMEODDS_API_KEY` instead to keep the key server-side.
+
 ## Contributing
 
 This is a private project. For questions or suggestions, contact the repository owner.
