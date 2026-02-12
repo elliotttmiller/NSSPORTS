@@ -101,25 +101,27 @@ export default function LiveOddsPage() {
   }, [fetchMatches]);
   
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="mx-auto max-w-7xl space-y-6">
+    <div className="min-h-screen bg-background p-4 sm:p-6">
+      <div className="mx-auto max-w-7xl space-y-4 sm:space-y-6">
         {/* Header */}
         <header className="space-y-2">
-          <h1 className="text-4xl font-bold tracking-tight">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight">
             Live Odds Dashboard
           </h1>
-          <p className="text-muted-foreground text-lg">
+          <p className="text-muted-foreground text-sm sm:text-base md:text-lg">
             Real-time odds tracking with automated opportunity detection
           </p>
         </header>
         
         {/* Controls */}
-        <Card className="p-6">
-          <div className="flex flex-wrap gap-4">
-            <div>
+        <Card className="p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:gap-4">
+            <div className="flex-1 min-w-[200px]">
               <Button
                 onClick={isTracking ? handleStopTracking : handleStartTracking}
                 variant={isTracking ? "default" : "outline"}
+                className="w-full sm:w-auto"
+                size="sm"
               >
                 {isTracking ? '✅ Tracking Active' : 'Start Historical Tracking'}
               </Button>
@@ -131,10 +133,12 @@ export default function LiveOddsPage() {
               </p>
             </div>
             
-            <div>
+            <div className="flex-1 min-w-[200px]">
               <Button
                 onClick={handleToggleDetection}
                 variant={isDetecting ? "default" : "outline"}
+                className="w-full sm:w-auto"
+                size="sm"
               >
                 {isDetecting ? '✅ Detection Active' : 'Enable Auto-Detection'}
               </Button>
@@ -146,11 +150,13 @@ export default function LiveOddsPage() {
               </p>
             </div>
             
-            <div>
+            <div className="flex-1 min-w-[200px]">
               <Button
                 onClick={() => fetchMatches()}
                 variant="outline"
                 disabled={isLoading}
+                className="w-full sm:w-auto"
+                size="sm"
               >
                 {isLoading ? 'Refreshing...' : 'Refresh Odds'}
               </Button>
@@ -163,16 +169,16 @@ export default function LiveOddsPage() {
         
         {/* Recent Alerts */}
         {recentAlerts.length > 0 && (
-          <Card className="p-6">
-            <h2 className="text-xl font-bold mb-4">Recent Opportunities</h2>
+          <Card className="p-4 sm:p-6">
+            <h2 className="text-lg sm:text-xl font-bold mb-4">Recent Opportunities</h2>
             <div className="space-y-3">
               {recentAlerts.map((alert) => (
                 <div
                   key={alert.id}
-                  className="flex items-start justify-between p-4 rounded-lg bg-card border border-border"
+                  className="flex flex-col sm:flex-row sm:items-start sm:justify-between p-3 sm:p-4 rounded-lg bg-card border border-border gap-3"
                 >
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <Badge
                         variant={alert.type === 'ev' ? 'default' : 'secondary'}
                       >
@@ -188,12 +194,12 @@ export default function LiveOddsPage() {
                       </Badge>
                     </div>
                     
-                    <p className="font-medium">
+                    <p className="font-medium text-sm sm:text-base">
                       {alert.game.homeTeam?.name || 'Home'} vs {alert.game.awayTeam?.name || 'Away'}
                     </p>
                     
                     {alert.type === 'ev' && (
-                      <p className="text-sm text-muted-foreground mt-1">
+                      <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                         EV: {(alert.details as import("@/lib/opportunity-detector").EVOpportunity).expectedValuePercent.toFixed(2)}% • 
                         Edge: {((alert.details as import("@/lib/opportunity-detector").EVOpportunity).edge * 100).toFixed(2)}% • 
                         Kelly: {((alert.details as import("@/lib/opportunity-detector").EVOpportunity).kellyFraction * 100).toFixed(2)}%

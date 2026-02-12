@@ -107,8 +107,8 @@ export function ArbitrageCalculator() {
         </div>
 
         {outcomes.map((outcome, index) => (
-          <div key={index} className="grid grid-cols-12 gap-2 items-end">
-            <div className="col-span-3 space-y-1">
+          <div key={index} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-12 gap-2 sm:gap-3 md:gap-2 items-end">
+            <div className="sm:col-span-2 md:col-span-3 space-y-1">
               <Label htmlFor={`outcome-${index}`} className="text-xs">Outcome</Label>
               <Input
                 id={`outcome-${index}`}
@@ -117,7 +117,7 @@ export function ArbitrageCalculator() {
                 placeholder="Team A"
               />
             </div>
-            <div className="col-span-4 space-y-1">
+            <div className="sm:col-span-2 md:col-span-4 space-y-1">
               <Label htmlFor={`sportsbook-${index}`} className="text-xs">Sportsbook</Label>
               <Input
                 id={`sportsbook-${index}`}
@@ -126,7 +126,7 @@ export function ArbitrageCalculator() {
                 placeholder="DraftKings"
               />
             </div>
-            <div className="col-span-3 space-y-1">
+            <div className="sm:col-span-1 md:col-span-3 space-y-1">
               <Label htmlFor={`odds-${index}`} className="text-xs">American Odds</Label>
               <Input
                 id={`odds-${index}`}
@@ -136,7 +136,7 @@ export function ArbitrageCalculator() {
                 placeholder="+150"
               />
             </div>
-            <div className="col-span-2">
+            <div className="sm:col-span-1 md:col-span-2">
               {outcomes.length > 2 && (
                 <Button
                   onClick={() => handleRemoveOutcome(index)}
@@ -184,24 +184,24 @@ export function ArbitrageCalculator() {
 
           {/* Profit Summary */}
           {analysis.isArbitrage && (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div className="space-y-1">
                 <p className="text-sm text-muted-foreground">Guaranteed Profit</p>
-                <p className="text-3xl font-bold text-green-500">
+                <p className="text-2xl sm:text-3xl font-bold text-green-500">
                   ${analysis.profit.toFixed(2)}
                 </p>
               </div>
 
               <div className="space-y-1">
                 <p className="text-sm text-muted-foreground">Profit %</p>
-                <p className="text-3xl font-bold text-green-500">
+                <p className="text-2xl sm:text-3xl font-bold text-green-500">
                   {analysis.profitPercent.toFixed(2)}%
                 </p>
               </div>
 
               <div className="space-y-1">
                 <p className="text-sm text-muted-foreground">Quality</p>
-                <p className={`text-2xl font-bold capitalize ${
+                <p className={`text-xl sm:text-2xl font-bold capitalize ${
                   analysis.quality === 'excellent' ? 'text-green-500' :
                   analysis.quality === 'good' ? 'text-blue-500' :
                   analysis.quality === 'fair' ? 'text-yellow-500' :
@@ -219,12 +219,12 @@ export function ArbitrageCalculator() {
             <div className="space-y-2">
               {analysis.stakes.map((stake, index) => (
                 <div key={index} className="p-3 bg-accent/50 rounded-lg">
-                  <div className="flex justify-between items-center">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
                     <div>
                       <p className="font-medium">{stake.outcome}</p>
                       <p className="text-sm text-muted-foreground">{stake.sportsbook}</p>
                     </div>
-                    <div className="text-right">
+                    <div className="sm:text-right">
                       <p className="text-xl font-bold">${stake.stake.toFixed(2)}</p>
                       <p className="text-sm text-muted-foreground">
                         {stake.stakePercent.toFixed(1)}% of total
