@@ -10,7 +10,10 @@ import { logger } from "@/lib/logger";
 // GitHub Pages Static Export: Call SDK directly instead of /api routes
 // This allows the app to work without Next.js API routes
 const USE_DIRECT_SDK = process.env.GITHUB_PAGES === 'true' || 
-                       typeof window !== 'undefined'; // Always use SDK in browser
+                       process.env.NEXT_PUBLIC_USE_DIRECT_SDK === 'true';
+
+// Default leagues to fetch when no specific league is specified
+const DEFAULT_LEAGUES = ['NBA', 'NFL', 'NHL'];
 
 const log = logger.createScopedLogger('API');
 
@@ -204,9 +207,15 @@ export const getSports = async (): Promise<Sport[]> => {
         const sportID = leagueData.sportID || 'UNKNOWN';
         
         if (!sportMap.has(sportID)) {
+          // Create sport display name with proper handling of edge cases
+          let sportName = 'Unknown Sport';
+          if (sportID && sportID !== 'UNKNOWN' && sportID.length > 0) {
+            sportName = sportID.charAt(0).toUpperCase() + sportID.slice(1).toLowerCase();
+          }
+          
           sportMap.set(sportID, {
             id: sportID.toLowerCase(),
-            name: sportID.charAt(0) + sportID.slice(1).toLowerCase(),
+            name: sportName,
             icon: '',
             leagues: []
           });
@@ -313,7 +322,7 @@ export const getLiveGames = async (): Promise<Game[]> => {
     try {
       log.info('Fetching live games from SDK directly');
       
-      const leagues = ['NBA', 'NFL', 'NHL'];
+      const leagues = DEFAULT_LEAGUES;
       const allEvents: SDKEvent[] = [];
       
       for (const league of leagues) {
@@ -350,7 +359,7 @@ export const getUpcomingGames = async (): Promise<Game[]> => {
     try {
       log.info('Fetching upcoming games from SDK directly');
       
-      const leagues = ['NBA', 'NFL', 'NHL'];
+      const leagues = DEFAULT_LEAGUES;
       const allEvents: SDKEvent[] = [];
       
       for (const league of leagues) {
@@ -399,7 +408,7 @@ export const getGamesPaginated = async (
       log.info('Fetching games from SDK directly', { leagueId, page: safePage, limit: safeLimit });
       
       // Fetch events from SDK
-      const leagues = leagueId ? [leagueId] : ['NBA', 'NFL', 'NHL'];
+      const leagues = leagueId ? [leagueId] : DEFAULT_LEAGUES;
       const allEvents: SDKEvent[] = [];
       
       for (const league of leagues) {
