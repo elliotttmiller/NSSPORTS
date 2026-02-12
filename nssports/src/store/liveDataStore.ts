@@ -26,6 +26,7 @@ import { Game } from '@/types';
 import { StreamingService } from '@/lib/streaming-service';
 import { logger } from '@/lib/logger';
 import { getGamesPaginated } from '@/services/api';
+import { useDebugStore } from '@/store/debugStore';
 
 // Module-scoped logger for this store
 const log = logger.createScopedLogger('LiveDataStore');
@@ -104,6 +105,16 @@ const createLiveDataStore = () => create<LiveDataState>()(
     set({ status: 'loading', error: null });
     log.debug('Starting fetchAllMatches...');
     
+    // Add debug log
+    if (typeof window !== 'undefined') {
+      useDebugStore.getState().addLog({
+        type: 'info',
+        category: 'LiveDataStore',
+        message: 'Starting fetchAllMatches',
+        details: { force },
+      });
+    }
+    
     try {
       // Iterate paginated /api/games until all pages are fetched
       // Stream pages into state as they arrive to improve perceived performance
@@ -135,10 +146,30 @@ const createLiveDataStore = () => create<LiveDataState>()(
       if (liveGamesCount > 0) {
         log.info(`Found ${liveGamesCount} live games, will enable streaming`);
       }
+      
+      // Add success debug log
+      if (typeof window !== 'undefined') {
+        useDebugStore.getState().addLog({
+          type: 'info',
+          category: 'LiveDataStore',
+          message: `Successfully fetched ${allMatches.length} games (${liveGamesCount} live)`,
+          details: { totalGames: allMatches.length, liveGames: liveGamesCount },
+        });
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       log.error('❌ Error fetching matches:', error);
       set({ matches: [], status: 'error', error: errorMessage, lastFetch: Date.now() });
+      
+      // Add error debug log
+      if (typeof window !== 'undefined') {
+        useDebugStore.getState().addLog({
+          type: 'error',
+          category: 'LiveDataStore',
+          message: `Error fetching matches: ${errorMessage}`,
+          details: { error: error instanceof Error ? { name: error.name, message: error.message, stack: error.stack } : error },
+        });
+      }
     }
   },
   /**
