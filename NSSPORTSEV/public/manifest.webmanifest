@@ -1,0 +1,71 @@
+{
+  "name": "NSSPORTSCLUB",
+  "short_name": "NSSPORTS",
+  "description": "Professional sports betting platform for NFL, NBA, and NHL games",
+  "theme_color": "#0f172a",
+  "background_color": "#0a0a0a",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "categories": [
+    "sports",
+    "entertainment",
+    "lifestyle"
+  ],
+  "icons": [
+    {
+      "src": "/mn-outline.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/pwa-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Live Games",
+      "short_name": "Live",
+      "description": "View live games",
+      "url": "/live",
+      "icons": [
+        {
+          "src": "/app/icon.svg",
+          "sizes": "any"
+        }
+      ]
+    },
+    {
+      "name": "My Bets",
+      "short_name": "Bets",
+      "description": "View your bet history",
+      "url": "/my-bets",
+      "icons": [
+        {
+          "src": "/app/icon.svg",
+          "sizes": "any"
+        }
+      ]
+    }
+  ],
+  "version": "1.0.0",
+  "build": 52
+}
