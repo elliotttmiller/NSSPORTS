@@ -73,6 +73,15 @@ export function formatGameDate(date: Date | string): string {
   });
 }
 
+// Format team ID to display name (e.g., "DETROIT_PISTONS" → "Detroit Pistons")
+export function formatTeamName(teamId: string): string {
+  if (!teamId) return '';
+  return teamId
+    .split('_')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+}
+
 // Format currency without cents (no decimals)
 export function formatCurrencyNoCents(amount: number): string {
   return new Intl.NumberFormat("en-US", {
