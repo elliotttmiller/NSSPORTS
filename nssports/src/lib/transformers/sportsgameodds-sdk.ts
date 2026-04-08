@@ -368,10 +368,11 @@ function getTeamLogo(team: SDKTeam, leagueId: string): string {
   if (!team.teamID) return '';
 
   // Map league IDs to logo paths
+  const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
   const leagueLogoPaths: Record<string, string> = {
-    'NBA': '/logos/nba',
-    'NFL': '/logos/nfl',
-    'NHL': '/logos/nhl',
+    'NBA': `${basePath}/logos/nba`,
+    'NFL': `${basePath}/logos/nfl`,
+    'NHL': `${basePath}/logos/nhl`,
   };
 
   const logoPath = leagueLogoPaths[leagueId];

@@ -1,14 +1,10 @@
 import { LeaguePageClient } from './LeaguePageClient';
+import { STATIC_SPORTS } from '@/lib/data/sportsDatabase';
 
 export function generateStaticParams() {
-  return [
-    { leagueId: 'nba' },
-    { leagueId: 'nfl' },
-    { leagueId: 'nhl' },
-    { leagueId: 'mlb' },
-    { leagueId: 'ncaab' },
-    { leagueId: 'ncaaf' },
-  ];
+  return STATIC_SPORTS.flatMap((sport) =>
+    sport.leagues.map((league) => ({ leagueId: league.id }))
+  );
 }
 
 export const dynamicParams = false;

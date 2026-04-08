@@ -20,15 +20,17 @@ import type { Sport, League } from "@/types";
 // ---------------------------------------------------------------------------
 
 /** Local SVG league logos (under public/logos/) */
+const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
+
 const LOCAL: Record<string, string> = {
-  NBA: "/logos/nba/NBA.svg",
-  NFL: "/logos/nfl/NFL.svg",
-  NHL: "/logos/nhl/NHL.svg",
-  NCAAB: "/logos/ncaa/NCAA_logo.svg",
-  NCAAF: "/logos/ncaa/NCAA_logo.svg",
-  ATP: "/logos/atp/atp.svg",
-  WTA: "/logos/wta/wta.svg",
-  ITF: "/logos/itf/itf.svg",
+  NBA: `${BASE_PATH}/logos/nba/NBA.svg`,
+  NFL: `${BASE_PATH}/logos/nfl/NFL.svg`,
+  NHL: `${BASE_PATH}/logos/nhl/NHL.svg`,
+  NCAAB: `${BASE_PATH}/logos/ncaa/NCAA_logo.svg`,
+  NCAAF: `${BASE_PATH}/logos/ncaa/NCAA_logo.svg`,
+  ATP: `${BASE_PATH}/logos/atp/atp.svg`,
+  WTA: `${BASE_PATH}/logos/wta/wta.svg`,
+  ITF: `${BASE_PATH}/logos/itf/itf.svg`,
 };
 
 /** ESPN CDN logos for leagues without local assets */
