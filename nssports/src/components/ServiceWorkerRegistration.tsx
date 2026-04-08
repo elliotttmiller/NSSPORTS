@@ -22,8 +22,9 @@ export function ServiceWorkerRegistration() {
       typeof window !== "undefined" &&
       "serviceWorker" in navigator
     ) {
+      const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
       navigator.serviceWorker
-        .register("/sw.js")
+        .register(`${basePath}/sw.js`)
         .then((registration) => {
           if (isDev) {
             logger.info(`✅ Service Worker registered: ${registration.scope}`);

@@ -15,6 +15,7 @@ import { useRefresh } from "@/context";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { logger } from '@/lib/logger';
 import { useDebugStore } from '@/store/debugStore';
+import { getLiveGames } from '@/services/api';
 
 /**
  * Helper function to check if games array has actually changed
@@ -99,23 +100,7 @@ export default function LivePage() {
           details: { isBackgroundUpdate, forceUpdate },
         });
       }
-  const url = forceUpdate ? `/api/games/live?t=${Date.now()}` : '/api/games/live';
-      const response = await fetch(url, {
-        // Mobile: Add cache control to get fresh data without page reload
-        headers: {
-          'Cache-Control': 'no-cache',
-        },
-        // When forcing an update, bypass service worker/CDN caches
-        cache: forceUpdate ? 'no-store' : 'default',
-        // Timeout must be longer than API's 25s timeout - 35s to allow for network overhead
-        // Background updates: 5 leagues × ~2s each + cache operations can take 10-15s
-        signal: AbortSignal.timeout(35000),
-      });
-      if (!response.ok) {
-        throw new Error(`Failed to fetch: ${response.status}`);
-      }
-      const json = await response.json();
-  const games = Array.isArray(json.data) ? json.data : [];
+      const games = await getLiveGames();
       if (!isBackgroundUpdate) {
         logger.info(() => `[LivePage] ✅ Games loaded - ${games.length} live games`);
       }

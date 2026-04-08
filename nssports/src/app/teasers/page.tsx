@@ -10,6 +10,7 @@ import { ArrowLeft } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
 import type { Game } from "@/types";
 import type { TeaserType } from "@/types/teaser";
+import { getUpcomingGames } from "@/services/api";
 import { getAvailableTeaserTypes, getTeaserConfig } from "@/types/teaser";
 
 export default function TeasersPage() {
@@ -27,12 +28,7 @@ export default function TeasersPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch('/api/games/upcoming');
-      if (!response.ok) {
-        throw new Error(`Failed to fetch: ${response.status}`);
-      }
-      const json = await response.json();
-      const gamesData = Array.isArray(json.data) ? json.data : [];
+      const gamesData = await getUpcomingGames();
       setGames(gamesData);
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to fetch games';
