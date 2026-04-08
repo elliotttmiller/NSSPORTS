@@ -37,19 +37,32 @@ import {
 import type { ExtendedSDKEvent } from "@/lib/transformers/sportsgameodds-sdk";
 
 // ---------------------------------------------------------------------------
+// SDK league shape (the SDK types these as `any`; we use a minimal interface)
+// ---------------------------------------------------------------------------
+
+interface SDKLeague {
+  leagueID?: string;
+  id?: string;
+  name?: string;
+  names?: { long?: string; medium?: string; short?: string };
+}
+
+// ---------------------------------------------------------------------------
 // Debug store initialisation
 // ---------------------------------------------------------------------------
 
 if (typeof window !== 'undefined') {
   const debugStore = useDebugStore.getState();
+  const hostname = window.location.hostname;
+  // Precise GitHub Pages detection: must end with ".github.io" or equal "github.io"
+  const isGitHubPages =
+    hostname === 'github.io' || hostname.endsWith('.github.io');
   debugStore.setConfig({
     environment: process.env.NODE_ENV || 'development',
     apiKeyConfigured: !!process.env.NEXT_PUBLIC_SPORTSGAMEODDS_API_KEY,
     apiKey: process.env.NEXT_PUBLIC_SPORTSGAMEODDS_API_KEY || null,
     useDirectSDK: true,
-    isGitHubPages:
-      typeof window !== 'undefined' &&
-      window.location.hostname.includes('github.io'),
+    isGitHubPages,
   });
 }
 
@@ -119,8 +132,7 @@ export const getSports = async (): Promise<Sport[]> => {
     const sportMap = new Map<string, { name: string; leagues: League[] }>();
 
     for (const league of leagues) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const raw = league as any;
+      const raw = league as SDKLeague;
       const leagueId: string = raw.leagueID || raw.id || '';
       if (!leagueId) continue;
 

@@ -393,7 +393,7 @@ export function getSportsGameOddsClient() {
         category: 'SDK',
         message: 'SportsGameOdds API key is not configured',
         details: {
-          error: 'Missing API key – set NEXT_PUBLIC_SPORTSGAMEODDS_API_KEY in GitHub repo secrets',
+          error: 'Missing API key – add SPORTSGAMEODDS_API_KEY to GitHub repo secrets; the workflow will expose it as NEXT_PUBLIC_SPORTSGAMEODDS_API_KEY at build time',
           envVarNames: ['NEXT_PUBLIC_SPORTSGAMEODDS_API_KEY', 'SPORTSGAMEODDS_API_KEY'],
         }
       });
