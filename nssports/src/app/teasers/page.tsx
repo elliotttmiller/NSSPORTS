@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo, useCallback } from "react";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/lib/clientAuth";
 import { useBetSlip } from "@/context";
 import { TeaserMobileGameCard } from "@/components/features/teasers/TeaserMobileGameCard";
 import { LoadingScreen } from "@/components/LoadingScreen";
