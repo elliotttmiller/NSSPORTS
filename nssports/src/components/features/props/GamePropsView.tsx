@@ -2,8 +2,8 @@
 
 import { useState, useMemo } from "react";
 import { Game } from "@/types";
-import { GamePropsMap } from "@/hooks/useGameProps";
-import { GamePropCategory, GamePropData } from "./GamePropCategory";
+import { GamePropsMap, GamePropData } from "@/hooks/useGameProps";
+import { GamePropCategory } from "./GamePropCategory";
 import { cn } from "@/lib/utils";
 
 interface GamePropsViewProps {

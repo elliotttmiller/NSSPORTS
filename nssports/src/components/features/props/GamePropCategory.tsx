@@ -8,8 +8,6 @@ import { Game } from "@/types";
 import { motion, AnimatePresence } from "framer-motion";
 import type { GamePropData } from "@/hooks/useGameProps";
 
-export type { GamePropData };
-
 interface GamePropCategoryProps {
   category: {
     name: string;

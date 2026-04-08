@@ -15,6 +15,16 @@ export interface PlayerProp {
   category: string;
 }
 
+/** Shape of a single player-prop entry returned by the SDK's getPlayerProps. */
+interface SDKPlayerProp {
+  propID: string;
+  propType: string;
+  player: { playerID: string; name: string; teamID?: string; position?: string };
+  line: number;
+  overOdds: number;
+  underOdds: number;
+}
+
 /**
  * Fetch player props for a specific game
  * 
@@ -93,14 +103,7 @@ export function usePlayerProps(
     queryFn: async () => {
       // Call the SDK directly – no API routes exist in the static export
       const sdkProps = await getPlayerProps(gameId);
-      return sdkProps.map((p: {
-        propID: string;
-        propType: string;
-        player: { playerID: string; name: string; teamID?: string; position?: string };
-        line: number;
-        overOdds: number;
-        underOdds: number;
-      }): PlayerProp => ({
+      return (sdkProps as SDKPlayerProp[]).map((p): PlayerProp => ({
         id: p.propID,
         playerId: p.player.playerID,
         playerName: p.player.name,
