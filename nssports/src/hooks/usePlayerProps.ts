@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { usePropsStream } from '@/context/StreamingContext';
 import { getPlayerProps } from '@/lib/sportsgameodds-sdk';
+import { formatTeamName } from '@/lib/formatters';
 
 export interface PlayerProp {
   id: string;
@@ -108,7 +109,7 @@ export function usePlayerProps(
         playerId: p.player.playerID,
         playerName: p.player.name,
         position: p.player.position || '',
-        team: p.player.teamID || '',
+        team: formatTeamName(p.player.teamID || ''),
         statType: p.propType,
         line: p.line,
         overOdds: p.overOdds,
