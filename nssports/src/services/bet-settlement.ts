@@ -2,3 +2,4 @@
 export const BetSettlementService = null;
 export async function settleBets(): Promise<void> {}
 export async function gradeParlay(): Promise<void> {}
+export async function settleGameBets(_gameId: string): Promise<unknown[]> { return []; }
