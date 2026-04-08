@@ -137,7 +137,7 @@ export const getSports = async (): Promise<Sport[]> => {
   // level constant across re-renders.
   const sports: Sport[] = STATIC_SPORTS.map((s) => ({
     ...s,
-    leagues: s.leagues.map((l) => ({ ...l })),
+    leagues: s.leagues.map((l) => ({ ...l, games: [...l.games] })),
   }));
 
   // Track which leagues are already present so we don't add duplicates.
@@ -185,7 +185,7 @@ export const getSports = async (): Promise<Sport[]> => {
     }
   } catch (err) {
     // SDK unavailable – static data is sufficient for development.
-    console.warn('[api] SDK league fetch skipped (no API key or network error):', err);
+    console.warn('[api] SDK league fetch failed (network or API error):', err);
   }
 
   return sports;
