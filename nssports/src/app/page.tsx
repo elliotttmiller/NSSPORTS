@@ -18,6 +18,7 @@ import { useEffect, useState, useMemo, useCallback } from "react";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import type { Game } from "@/types";
 import { logger } from '@/lib/logger';
+import { getLiveGames } from '@/services/api';
 
 export default function Home() {
   const { data: session } = useSession();
@@ -56,18 +57,7 @@ function AuthenticatedHomePage({ session }: { session: import("@/lib/clientAuth"
       if (!isBackgroundUpdate) {
         logger.debug('[HomePage] Initial fetch from /api/games/live...');
       }
-      const response = await fetch('/api/games/live', {
-        headers: {
-          'Cache-Control': 'no-cache',
-        },
-        // Timeout: 45s for initial load (hybrid cache can be slow), 30s for background updates
-        signal: AbortSignal.timeout(isBackgroundUpdate ? 30000 : 45000),
-      });
-      if (!response.ok) {
-        throw new Error(`Failed to fetch: ${response.status}`);
-      }
-      const json = await response.json();
-      const games = Array.isArray(json.data) ? json.data : [];
+      const games = await getLiveGames();
       if (!isBackgroundUpdate) {
         logger.info(() => `[HomePage] ✅ Games loaded - ${games.length} live games`);
       }

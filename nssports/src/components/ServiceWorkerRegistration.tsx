@@ -22,8 +22,12 @@ export function ServiceWorkerRegistration() {
       typeof window !== "undefined" &&
       "serviceWorker" in navigator
     ) {
+      // NEXT_PUBLIC_BASE_PATH is baked in at build time by next.config.ts, so it is
+      // always defined at runtime.  The empty-string fallback is only present to
+      // satisfy TypeScript (process.env values are typed as string | undefined).
+      const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
       navigator.serviceWorker
-        .register("/sw.js")
+        .register(`${basePath}/sw.js`)
         .then((registration) => {
           if (isDev) {
             logger.info(`✅ Service Worker registered: ${registration.scope}`);

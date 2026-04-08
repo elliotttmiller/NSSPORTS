@@ -17,7 +17,7 @@
 
 const CACHE_NAME = 'nssports-v3';
 const STATIC_CACHE = [
-  '/manifest.webmanifest',
+  '/NSSPORTS/manifest.webmanifest',
 ];
 
 // Install event - cache essential resources
