@@ -6,21 +6,9 @@ import { cn } from "@/lib/utils";
 import { GamePropRow } from "./GamePropRow";
 import { Game } from "@/types";
 import { motion, AnimatePresence } from "framer-motion";
+import type { GamePropData } from "@/hooks/useGameProps";
 
-// Define the prop structure that matches the actual API data
-export interface GamePropData {
-  marketID: string;
-  marketCategory: string;
-  propType: string;
-  outcomes: Array<{
-    id: string;
-    description: string;
-    selection: string;
-    odds: number;
-    line?: number;
-    sideID: string;
-  }>;
-}
+export type { GamePropData };
 
 interface GamePropCategoryProps {
   category: {

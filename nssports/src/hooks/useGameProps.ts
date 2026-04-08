@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { usePropsStream } from '@/context/StreamingContext';
+import { getGameProps } from '@/lib/sportsgameodds-sdk';
 
 export interface GameProp {
   id: string;
@@ -10,7 +11,23 @@ export interface GameProp {
   line: number | null;
 }
 
-export type GamePropsMap = Record<string, GameProp[]>;
+export interface GamePropOutcome {
+  id: string;
+  description: string;
+  selection: string;
+  odds: number;
+  line?: number;
+  sideID: string;
+}
+
+export interface GamePropData {
+  marketID: string;
+  marketCategory: string;
+  propType: string;
+  outcomes: GamePropOutcome[];
+}
+
+export type GamePropsMap = Record<string, GamePropData[]>;
 
 /**
  * Fetch game props for a specific game
@@ -74,12 +91,16 @@ export function useGameProps(
   return useQuery({
     queryKey: ['gameProps', gameId],
     queryFn: async () => {
-      const response = await fetch(`/api/matches/${gameId}/game-props`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch game props');
+      // Call the SDK directly – no API routes exist in the static export
+      const sdkProps = await getGameProps(gameId);
+      // Group SDK results by propType into the expected map structure
+      const grouped: GamePropsMap = {};
+      for (const prop of sdkProps as GamePropData[]) {
+        const key = prop.propType;
+        if (!grouped[key]) grouped[key] = [];
+        grouped[key].push(prop);
       }
-      const data = await response.json();
-      return data.data as GamePropsMap;
+      return grouped;
     },
     enabled,
     staleTime,                    // Dynamic: 15s for live, 60s for upcoming (Pro plan)
