@@ -1,8 +1,10 @@
 import type { NextConfig } from "next";
 
+const BASE_PATH = '/NSSPORTS';
+
 const nextConfig: NextConfig = {
   output: 'export',
-  basePath: '/NSSPORTS',
+  basePath: BASE_PATH,
   trailingSlash: true,
   reactStrictMode: true,
   poweredByHeader: false,
@@ -29,7 +31,7 @@ const nextConfig: NextConfig = {
     // The GitHub Actions workflow passes the GitHub secret as this env var.
     NEXT_PUBLIC_SPORTSGAMEODDS_API_KEY: process.env.NEXT_PUBLIC_SPORTSGAMEODDS_API_KEY,
     // Expose the basePath so client components can build correct absolute URLs.
-    NEXT_PUBLIC_BASE_PATH: '/NSSPORTS',
+    NEXT_PUBLIC_BASE_PATH: BASE_PATH,
   },
   images: {
     unoptimized: true,
