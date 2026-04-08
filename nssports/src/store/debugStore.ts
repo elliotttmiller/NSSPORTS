@@ -75,7 +75,7 @@ const initialStats = {
   averageResponseTime: 0,
 };
 
-export const useDebugStore = create<DebugState>((set, get) => ({
+export const useDebugStore = create<DebugState>((set, _get) => ({
   isVisible: false,
   logs: [],
   maxLogs: 100,
