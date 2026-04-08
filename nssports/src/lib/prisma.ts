@@ -1,4 +1,4 @@
 // Prisma disabled for static export
-import type { PrismaClient } from '@prisma/client';
-export const prisma = null as unknown as PrismaClient;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const prisma = null as any;
 export default prisma;
