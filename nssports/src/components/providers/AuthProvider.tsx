@@ -5,6 +5,9 @@ import { LoadingScreen } from "../LoadingScreen";
 import { usePathname, useRouter } from "next/navigation";
 import { SessionProvider, useSession } from "@/lib/clientAuth";
 
+// Set to true to bypass login/auth enforcement (UI and code remain intact)
+const AUTH_DISABLED = true;
+
 interface AuthProviderProps {
   children: ReactNode;
 }
@@ -47,6 +50,10 @@ function AuthGuard({ children }: { children: ReactNode }) {
   const isPublicRoute = PUBLIC_ROUTES.some(route => pathname.startsWith(route));
 
   useEffect(() => {
+    if (AUTH_DISABLED) {
+      setIsReady(true);
+      return;
+    }
     if (!isHydrated) return;
     if (status === 'loading') {
       setIsReady(false);
@@ -68,6 +75,10 @@ function AuthGuard({ children }: { children: ReactNode }) {
     }, 150);
     return () => clearTimeout(timer);
   }, [status, isHydrated, isPublicRoute, pathname, router]);
+
+  if (AUTH_DISABLED) {
+    return <>{children}</>;
+  }
 
   if (!isHydrated || status === 'loading' || !isReady) {
     return (
