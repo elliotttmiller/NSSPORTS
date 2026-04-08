@@ -25,6 +25,9 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
     NEXT_PUBLIC_API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL,
     NEXT_PUBLIC_APP_NAME: process.env.NEXT_PUBLIC_APP_NAME,
+    // Expose the SportsGameOdds API key to the browser bundle.
+    // The GitHub Actions workflow passes the GitHub secret as this env var.
+    NEXT_PUBLIC_SPORTSGAMEODDS_API_KEY: process.env.NEXT_PUBLIC_SPORTSGAMEODDS_API_KEY,
   },
   images: {
     unoptimized: true,

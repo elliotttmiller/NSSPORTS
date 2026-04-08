@@ -1,185 +1,176 @@
+/**
+ * Sports Odds API – Client-Side Service Layer
+ *
+ * This module is the single point of integration between the Next.js static
+ * export frontend and the SportsGameOdds SDK.
+ *
+ * Because the app is deployed as a fully-static bundle on GitHub Pages there
+ * are no server-side API routes.  All data is fetched directly from the
+ * SportsGameOdds REST API using the official TypeScript SDK, whose key is
+ * injected at build time via the NEXT_PUBLIC_SPORTSGAMEODDS_API_KEY env var
+ * (sourced from the SPORTSGAMEODDS_API_KEY GitHub repo secret).
+ *
+ * Architecture:
+ *   GitHub Secret (SPORTSGAMEODDS_API_KEY)
+ *     → GitHub Actions workflow env (NEXT_PUBLIC_SPORTSGAMEODDS_API_KEY)
+ *       → next.config.ts env section (bakes value into bundle)
+ *         → getSportsGameOddsClient() in sportsgameodds-sdk.ts
+ *           → this service layer (all data-fetch helpers)
+ *             → React hooks / Zustand stores / UI components
+ */
+
 import type { Game, Sport, League, PaginatedResponse } from "@/types";
-import { z } from "zod";
-import { GameSchema } from "@/lib/schemas/game";
-import { SportSchema } from "@/lib/schemas/sport";
-import { paginatedResponseSchema } from "@/lib/schemas/pagination";
 import { BetsResponseSchema } from "@/lib/schemas/bets";
-import type { ApiSuccessResponse } from "@/lib/apiResponse";
-import { useDebugStore, createPendingLog, completePendingLog } from "@/store/debugStore";
+import { useDebugStore } from "@/store/debugStore";
+import {
+  getEvents,
+  getAllEvents,
+  getLeagues as sdkGetLeagues,
+  MAIN_LINE_ODDIDS,
+  REPUTABLE_BOOKMAKERS,
+} from "@/lib/sportsgameodds-sdk";
+import {
+  transformSDKEvents,
+  transformSDKEvent,
+  getSportForLeague,
+} from "@/lib/transformers/sportsgameodds-sdk";
+import type { ExtendedSDKEvent } from "@/lib/transformers/sportsgameodds-sdk";
 
-// API Base URL from environment
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || '/api';
+// ---------------------------------------------------------------------------
+// SDK league shape (the SDK types these as `any`; we use a minimal interface)
+// ---------------------------------------------------------------------------
 
-// Initialize debug config on client side
+interface SDKLeague {
+  leagueID?: string;
+  id?: string;
+  name?: string;
+  names?: { long?: string; medium?: string; short?: string };
+}
+
+// ---------------------------------------------------------------------------
+// Debug store initialisation
+// ---------------------------------------------------------------------------
+
 if (typeof window !== 'undefined') {
   const debugStore = useDebugStore.getState();
+  const hostname = window.location.hostname;
+  // Precise GitHub Pages detection: must end with ".github.io" or equal "github.io"
+  const isGitHubPages =
+    hostname === 'github.io' || hostname.endsWith('.github.io');
   debugStore.setConfig({
     environment: process.env.NODE_ENV || 'development',
     apiKeyConfigured: !!process.env.NEXT_PUBLIC_SPORTSGAMEODDS_API_KEY,
     apiKey: process.env.NEXT_PUBLIC_SPORTSGAMEODDS_API_KEY || null,
-    useDirectSDK: typeof window !== 'undefined',
-    isGitHubPages: typeof window !== 'undefined' && window.location.hostname.includes('github.io'),
+    useDirectSDK: true,
+    isGitHubPages,
   });
 }
 
-class ApiHttpError extends Error {
-  status: number;
-  body?: unknown;
-  constructor(message: string, status: number, body?: unknown) {
-    super(message);
-    this.name = 'ApiHttpError';
-    this.status = status;
-    this.body = body;
-  }
-}
+// ---------------------------------------------------------------------------
+// Shared query options – applied to every events request
+// ---------------------------------------------------------------------------
 
-// Pagination response interface
-// ...removed local PaginatedResponse, now using shared type from src/types/index.ts
+const EVENTS_QUERY_BASE = {
+  oddsAvailable: true,
+  oddIDs: MAIN_LINE_ODDIDS,
+  includeOpposingOddIDs: true,
+  includeConsensus: true,
+  bookmakerID: REPUTABLE_BOOKMAKERS,
+} as const;
 
-// Helper function to make API requests with error handling and optimizations
-async function fetchAPI<T>(
-  endpoint: string, 
-  options?: RequestInit & { 
-    priority?: 'high' | 'low' | 'auto';  // Request priority hint for browser
-  }
-): Promise<T> {
-  const url = `${API_BASE_URL}${endpoint}`;
-  const { priority, ...fetchOptions } = options || {};
-  
-  // Create debug log
-  const logId = typeof window !== 'undefined' 
-    ? createPendingLog('api', 'API Request', `${fetchOptions.method || 'GET'} ${endpoint}`, { url, options: fetchOptions })
-    : '';
-  const startTime = Date.now();
-  
-  try {
-    // Build fetch options with priority if in browser environment
-    const requestOptions: RequestInit = {
-      ...fetchOptions,
-      headers: {
-        'Content-Type': 'application/json',
-        ...fetchOptions?.headers,
-      },
-      // Always include cookies for auth (supports same-origin and cross-origin with CORS)
-      credentials: 'include',
-    };
-    
-    // ✅ OPTIMIZATION: Add priority hint for browser (Chrome, Edge support)
-    // Only applies in browser context, ignored in Node.js
-    if (typeof window !== 'undefined' && priority) {
-      (requestOptions as Record<string, unknown>).priority = priority;
-    }
-    
-    const response = await fetch(url, requestOptions);
-    const duration = Date.now() - startTime;
-
-    if (!response.ok) {
-      let body: unknown = undefined;
-      try {
-        body = await response.json();
-      } catch {
-        // ignore body parse errors
-      }
-      
-      // Enhanced error logging for 422 validation errors
-      if (response.status === 422) {
-        console.error(`422 Validation Error on ${endpoint}:`, {
-          status: response.status,
-          statusText: response.statusText,
-          body,
-          url: response.url
-        });
-      }
-      
-      // Complete debug log with error
-      if (logId) {
-        completePendingLog(logId, false, duration, { 
-          status: response.status, 
-          statusText: response.statusText, 
-          body,
-          error: `${response.status} ${response.statusText}`
-        });
-      }
-      
-      throw new ApiHttpError(`API Error: ${response.status} ${response.statusText}`, response.status, body);
-    }
-
-    const json = await response.json();
-    
-    // Complete debug log with success
-    if (logId) {
-      completePendingLog(logId, true, duration, { 
-        status: response.status,
-        dataSize: JSON.stringify(json).length 
-      });
-    }
-    
-    return json as T;
-  } catch (error) {
-    const duration = Date.now() - startTime;
-    console.error(`Error fetching ${endpoint}:`, error);
-    
-    // Complete debug log with error
-    if (logId) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      completePendingLog(logId, false, duration, { 
-        error: errorMessage,
-        errorType: error instanceof Error ? error.constructor.name : typeof error
-      });
-    }
-    
-    throw error;
-  }
-}
-
-// Helper to unwrap our standardized success envelope shape when present
-function unwrapApiData<T>(json: unknown): T {
-  if (
-    json &&
-    typeof json === 'object' &&
-    'data' in (json as Record<string, unknown>) &&
-    'success' in (json as Record<string, unknown>) &&
-    (json as ApiSuccessResponse<unknown>).success === true
-  ) {
-    return (json as ApiSuccessResponse<T>).data;
-  }
-  // Fallback: treat json as the payload itself
-  return json as T;
-}
-
-// Get bet history
-export const getBetHistory = async (): Promise<ReturnType<typeof BetsResponseSchema.parse>> => {
-  try {
-    const json = await fetchAPI<unknown>('/my-bets');
-    const payload = unwrapApiData<unknown>(json);
-    return BetsResponseSchema.parse(payload);
-  } catch (err) {
-    if (err instanceof ApiHttpError && err.status === 401) {
-      // Not authenticated: return empty history without throwing
-      return [] as ReturnType<typeof BetsResponseSchema.parse>;
-    }
-    throw err;
-  }
+// Human-readable sport display names
+const SPORT_DISPLAY_NAMES: Record<string, string> = {
+  BASKETBALL: 'Basketball',
+  FOOTBALL: 'Football',
+  HOCKEY: 'Hockey',
+  BASEBALL: 'Baseball',
+  SOCCER: 'Soccer',
+  TENNIS: 'Tennis',
+  GOLF: 'Golf',
+  MMA: 'MMA',
+  BOXING: 'Boxing',
+  HORSE_RACING: 'Horse Racing',
 };
 
-// Helper function to calculate odds payout
+// ---------------------------------------------------------------------------
+// Utility helpers
+// ---------------------------------------------------------------------------
+
+/** Calculate potential payout from a stake and American odds value. */
 export const calculatePayout = (stake: number, odds: number): number => {
   if (odds > 0) {
     return stake * (odds / 100);
-  } else {
-    return stake * (100 / Math.abs(odds));
+  }
+  return stake * (100 / Math.abs(odds));
+};
+
+// ---------------------------------------------------------------------------
+// Bet history – no backend in static export; return empty list
+// ---------------------------------------------------------------------------
+
+export const getBetHistory = async (): Promise<
+  ReturnType<typeof BetsResponseSchema.parse>
+> => {
+  return [] as ReturnType<typeof BetsResponseSchema.parse>;
+};
+
+// ---------------------------------------------------------------------------
+// Sports / leagues
+// ---------------------------------------------------------------------------
+
+/**
+ * Fetch available sports and their leagues from the SDK.
+ * Results are grouped by sport using the league→sport mapping in the
+ * transformer.  Falls back to an empty array on error so the UI degrades
+ * gracefully when the API key has not been configured yet.
+ */
+export const getSports = async (): Promise<Sport[]> => {
+  try {
+    const leagues = await sdkGetLeagues({ active: true });
+
+    // Group leagues by sport
+    const sportMap = new Map<string, { name: string; leagues: League[] }>();
+
+    for (const league of leagues) {
+      const raw = league as SDKLeague;
+      const leagueId: string = raw.leagueID || raw.id || '';
+      if (!leagueId) continue;
+
+      const sportId = getSportForLeague(leagueId);
+      if (sportId === 'UNKNOWN') continue;
+
+      if (!sportMap.has(sportId)) {
+        sportMap.set(sportId, {
+          name: SPORT_DISPLAY_NAMES[sportId] || sportId,
+          leagues: [],
+        });
+      }
+
+      const leagueName: string =
+        raw.names?.long || raw.name || raw.leagueID || leagueId;
+
+      sportMap.get(sportId)!.leagues.push({
+        id: leagueId,
+        name: leagueName,
+        sportId,
+        logo: '',
+        games: [],
+      });
+    }
+
+    return Array.from(sportMap.entries()).map(([id, { name, leagues }]) => ({
+      id,
+      name,
+      icon: '',
+      leagues,
+    }));
+  } catch (error) {
+    console.error('[api] Error fetching sports from SDK:', error);
+    return [];
   }
 };
 
-// Get sports with leagues
-export const getSports = async (): Promise<Sport[]> => {
-  const json = await fetchAPI<unknown>('/sports');
-  // Some routes may return success envelope; unwrap if present
-  const payload = unwrapApiData<unknown>(json);
-  return z.array(SportSchema).parse(payload) as Sport[];
-};
-
-// Get specific league
+/** Find a specific league by its ID across all sports. */
 export const getLeague = async (
   leagueId: string,
 ): Promise<League | undefined> => {
@@ -191,96 +182,146 @@ export const getLeague = async (
   return undefined;
 };
 
-// Get games by league
+// ---------------------------------------------------------------------------
+// Games
+// ---------------------------------------------------------------------------
+
+/** Fetch all games for a specific league. */
 export const getGamesByLeague = async (leagueId: string): Promise<Game[]> => {
-  const json = await fetchAPI<unknown>(`/games/league/${leagueId}`);
-  const payload = unwrapApiData<unknown>(json);
-  return z.array(GameSchema).parse(payload) as Game[];
+  try {
+    const result = await getEvents({
+      leagueID: leagueId,
+      ...EVENTS_QUERY_BASE,
+    });
+    const games = await transformSDKEvents(result.data as ExtendedSDKEvent[]);
+    return games as unknown as Game[];
+  } catch (error) {
+    console.error(`[api] Error fetching games for league ${leagueId}:`, error);
+    return [];
+  }
 };
 
-// Get single game
+/** Fetch a single game by its event ID. */
 export const getGame = async (gameId: string): Promise<Game | undefined> => {
   try {
-    // The /api/games endpoint enforces limit <= 100 via Zod; iterate pages safely
-    let page = 1;
-    const limit = 100;
-    while (true) {
-      const pageResult = await getGamesPaginated(undefined, page, limit);
-      const found = pageResult.data.find((g) => g.id === gameId);
-      if (found) return found;
-      if (!pageResult.pagination.hasNextPage) break;
-      page += 1;
-      // Safety stop to avoid accidental infinite loops
-      if (page > 50) break; // 5,000 items upper bound
-    }
-    return undefined;
+    const result = await getEvents({
+      eventIDs: gameId,
+      ...EVENTS_QUERY_BASE,
+    });
+    if (!result.data.length) return undefined;
+    const transformed = await transformSDKEvent(
+      result.data[0] as ExtendedSDKEvent,
+    );
+    return transformed ? (transformed as unknown as Game) : undefined;
   } catch (error) {
-    console.error('Error fetching game:', error);
+    console.error('[api] Error fetching game:', error);
     return undefined;
   }
 };
 
-// Get trending games (live games)
+/** Return the top 6 currently-live games for the trending section. */
 export const getTrendingGames = async (): Promise<Game[]> => {
   const liveGames = await getLiveGames();
   return liveGames.slice(0, 6);
 };
 
-// Get live games
-// NOTE: This function is deprecated in favor of using the centralized liveDataStore
-// For new code, use: useLiveDataStore(selectLiveMatches)
+/** Fetch all currently in-progress games. */
 export const getLiveGames = async (): Promise<Game[]> => {
-  const json = await fetchAPI<unknown>('/games/live');
-  const payload = unwrapApiData<unknown>(json);
-  return z.array(GameSchema).parse(payload) as Game[];
+  try {
+    const result = await getEvents({
+      live: true,
+      finalized: false,
+      ...EVENTS_QUERY_BASE,
+    });
+    const games = await transformSDKEvents(result.data as ExtendedSDKEvent[]);
+    return games as unknown as Game[];
+  } catch (error) {
+    console.error('[api] Error fetching live games:', error);
+    return [];
+  }
 };
 
-// Get upcoming games
-// NOTE: This function is deprecated in favor of using the centralized liveDataStore
-// For new code, use: useLiveDataStore(selectUpcomingMatches)
+/** Fetch all upcoming (not-yet-started) games. */
 export const getUpcomingGames = async (): Promise<Game[]> => {
-  const json = await fetchAPI<unknown>('/games/upcoming');
-  const payload = unwrapApiData<unknown>(json);
-  return z.array(GameSchema).parse(payload) as Game[];
+  try {
+    const result = await getEvents({
+      live: false,
+      finalized: false,
+      ...EVENTS_QUERY_BASE,
+    });
+    const games = await transformSDKEvents(result.data as ExtendedSDKEvent[]);
+    return games as unknown as Game[];
+  } catch (error) {
+    console.error('[api] Error fetching upcoming games:', error);
+    return [];
+  }
 };
 
-// Main paginated games API
+/**
+ * Paginated games API – compatibility shim for existing hooks & the live-data
+ * store that iterate pages via `hasNextPage`.
+ *
+ * Because the SDK uses cursor-based pagination internally (handled by
+ * `getAllEvents`) we fetch ALL events in a single SDK call on page 1 and
+ * return them as one page with `hasNextPage: false`.  Callers that loop on
+ * `hasNextPage` will therefore complete in a single iteration.
+ *
+ * @param leagueId   Optional league filter (uppercase, e.g. 'NBA')
+ * @param page       1-based page number (only page 1 returns data)
+ * @param limit      Kept for interface compatibility; ignored (all results are
+ *                   returned at once)
+ * @param bypassCache  Kept for interface compatibility; no-op in SDK mode
+ * @param skipDevLimit Kept for interface compatibility; no-op in SDK mode
+ */
 export const getGamesPaginated = async (
   leagueId?: string,
   page: number = 1,
-  limit: number = 10,
-  bypassCache: boolean = false,
-  // When true, instruct server to bypass development sampling/limits (development only)
-  skipDevLimit: boolean = false,
+  _limit: number = 10,
+  _bypassCache: boolean = false,
+  _skipDevLimit: boolean = false,
 ): Promise<PaginatedResponse<Game>> => {
-  // Validate and sanitize pagination parameters to prevent 422 errors
-  // Ensure page and limit are valid positive integers
-  const safePage = Number.isFinite(page) && page > 0 ? Math.floor(page) : 1;
-  const safeLimit = Number.isFinite(limit) && limit > 0 && limit <= 500 ? Math.floor(limit) : 100;
-  
-  const params = new URLSearchParams({
-    page: safePage.toString(),
-    limit: safeLimit.toString(),
-  });
+  const empty: PaginatedResponse<Game> = {
+    data: [],
+    pagination: {
+      page,
+      limit: 0,
+      total: 0,
+      totalPages: 1,
+      hasNextPage: false,
+      hasPrevPage: page > 1,
+    },
+  };
 
-  if (leagueId) {
-    params.append('leagueId', leagueId);
+  // Only the first page carries data
+  if (page > 1) return empty;
+
+  try {
+    const result = await getAllEvents(
+      {
+        leagueID: leagueId,
+        ...EVENTS_QUERY_BASE,
+      },
+      20, // SDK-level page limit safety cap
+    );
+
+    const games = await transformSDKEvents(result.data as ExtendedSDKEvent[]);
+    const total = games.length;
+
+    return {
+      data: games as unknown as Game[],
+      pagination: {
+        page: 1,
+        limit: total,
+        total,
+        totalPages: 1,
+        hasNextPage: false,
+        hasPrevPage: false,
+      },
+    };
+  } catch (error) {
+    console.error('[api] Error fetching paginated games:', error);
+    return empty;
   }
-
-  // Add cache-busting parameter to force fresh data from SDK
-  if (bypassCache) {
-    params.append('_t', Date.now().toString());
-  }
-
-  // Allow callers to request full results in development by passing skipDevLimit
-  if (skipDevLimit) {
-    params.append('noDevLimit', 'true');
-  }
-
-  const json = await fetchAPI<unknown>(`/games?${params.toString()}`);
-  // Unwrap the success envelope to get the actual data
-  const payload = unwrapApiData<unknown>(json);
-  const Schema = paginatedResponseSchema(GameSchema);
-  const parsed = Schema.parse(payload) as PaginatedResponse<Game>;
-  return parsed;
 };
+
+

@@ -368,28 +368,41 @@ export const HORSE_RACING_MAIN_LINE_ODDIDS = [
 
 /**
  * Get configured SDK client instance
- * Server-side only - API key is never exposed to client
- * 
+ * Works in both browser (static export) and server-side contexts.
+ *
+ * API key resolution order:
+ * 1. NEXT_PUBLIC_SPORTSGAMEODDS_API_KEY – baked in at build time, available in browser
+ * 2. SPORTSGAMEODDS_API_KEY             – available in server-side / Node contexts only
+ *
+ * The GitHub Actions workflow injects the secret as NEXT_PUBLIC_SPORTSGAMEODDS_API_KEY
+ * so both values originate from the same GitHub repo secret.
+ *
  * Official SDK Configuration:
  * https://sportsgameodds.com/docs/sdk
  */
 export function getSportsGameOddsClient() {
-  const apiKey = process.env.SPORTSGAMEODDS_API_KEY;
-  
+  const apiKey =
+    process.env.NEXT_PUBLIC_SPORTSGAMEODDS_API_KEY ||
+    process.env.SPORTSGAMEODDS_API_KEY;
+
   if (!apiKey) {
     // Log SDK initialization error
     if (typeof window !== 'undefined') {
       useDebugStore.getState().addLog({
         type: 'error',
         category: 'SDK',
-        message: 'SPORTSGAMEODDS_API_KEY is not configured',
-        details: { 
-          error: 'Missing API key in environment variables',
-          envVarName: 'SPORTSGAMEODDS_API_KEY'
+        message: 'SportsGameOdds API key is not configured',
+        details: {
+          error: 'Missing API key – add SPORTSGAMEODDS_API_KEY to GitHub repo secrets; the workflow will expose it as NEXT_PUBLIC_SPORTSGAMEODDS_API_KEY at build time',
+          envVarNames: ['NEXT_PUBLIC_SPORTSGAMEODDS_API_KEY', 'SPORTSGAMEODDS_API_KEY'],
         }
       });
     }
-    throw new Error('SPORTSGAMEODDS_API_KEY is not configured');
+    throw new Error(
+      'SportsGameOdds API key is not configured. ' +
+      'Set SPORTSGAMEODDS_API_KEY in GitHub repo secrets – ' +
+      'the workflow will expose it as NEXT_PUBLIC_SPORTSGAMEODDS_API_KEY at build time.'
+    );
   }
 
   // Log successful SDK initialization
