@@ -2,6 +2,7 @@
 export class RateLimiter {
   async acquire(): Promise<void> {}
   async release(): Promise<void> {}
+  async execute<T>(_id: string, fn: () => Promise<T>, _priority?: number): Promise<T> { return fn(); }
   getMetrics() { return {}; }
 }
 export const rateLimiter = new RateLimiter();
