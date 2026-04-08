@@ -35,6 +35,7 @@ import {
   getSportForLeague,
 } from "@/lib/transformers/sportsgameodds-sdk";
 import type { ExtendedSDKEvent } from "@/lib/transformers/sportsgameodds-sdk";
+import { STATIC_SPORTS, getStaticLeague } from "@/lib/data/sportsDatabase";
 
 // ---------------------------------------------------------------------------
 // SDK league shape (the SDK types these as `any`; we use a minimal interface)
@@ -119,61 +120,86 @@ export const getBetHistory = async (): Promise<
 // ---------------------------------------------------------------------------
 
 /**
- * Fetch available sports and their leagues from the SDK.
- * Results are grouped by sport using the league→sport mapping in the
- * transformer.  Falls back to an empty array on error so the UI degrades
- * gracefully when the API key has not been configured yet.
+ * Return the sports categories and leagues list.
+ *
+ * Strategy (development-first):
+ *  1. Always start from the static local database so the sidebar is
+ *     immediately populated without any API key.
+ *  2. If the SDK is reachable (API key configured), merge the live league
+ *     list on top: any league that the API returns but is missing from the
+ *     static database is appended under the appropriate sport group, so new
+ *     or regional leagues surface automatically.
+ *  3. The static database always wins for logos and display names because
+ *     the SDK returns empty logos.
  */
 export const getSports = async (): Promise<Sport[]> => {
+  // Deep-clone the static database so mutations don't pollute the module-
+  // level constant across re-renders.
+  const sports: Sport[] = STATIC_SPORTS.map((s) => ({
+    ...s,
+    leagues: s.leagues.map((l) => ({ ...l, games: [...l.games] })),
+  }));
+
+  // Track which leagues are already present so we don't add duplicates.
+  const knownLeagueIds = new Set<string>(
+    sports.flatMap((s) => s.leagues.map((l) => l.id)),
+  );
+
+  // Attempt to augment with live SDK data (best-effort; never blocks render).
   try {
-    const leagues = await sdkGetLeagues({ active: true });
+    if (process.env.NEXT_PUBLIC_SPORTSGAMEODDS_API_KEY) {
+      const sdkLeagues = await sdkGetLeagues({ active: true });
 
-    // Group leagues by sport
-    const sportMap = new Map<string, { name: string; leagues: League[] }>();
+      for (const raw of sdkLeagues as SDKLeague[]) {
+        const leagueId = raw.leagueID || raw.id || '';
+        if (!leagueId || knownLeagueIds.has(leagueId)) continue;
 
-    for (const league of leagues) {
-      const raw = league as SDKLeague;
-      const leagueId: string = raw.leagueID || raw.id || '';
-      if (!leagueId) continue;
+        const sportId = getSportForLeague(leagueId);
+        if (sportId === 'UNKNOWN') continue;
 
-      const sportId = getSportForLeague(leagueId);
-      if (sportId === 'UNKNOWN') continue;
+        const leagueName =
+          raw.names?.long || raw.name || raw.leagueID || leagueId;
 
-      if (!sportMap.has(sportId)) {
-        sportMap.set(sportId, {
-          name: SPORT_DISPLAY_NAMES[sportId] || sportId,
-          leagues: [],
-        });
+        const sport = sports.find((s) => s.id === sportId);
+        const newLeague: League = {
+          id: leagueId,
+          name: leagueName,
+          sportId,
+          logo: '',
+          games: [],
+        };
+
+        if (sport) {
+          sport.leagues.push(newLeague);
+        } else {
+          sports.push({
+            id: sportId,
+            name: SPORT_DISPLAY_NAMES[sportId] || sportId,
+            icon: '',
+            leagues: [newLeague],
+          });
+        }
+
+        knownLeagueIds.add(leagueId);
       }
-
-      const leagueName: string =
-        raw.names?.long || raw.name || raw.leagueID || leagueId;
-
-      sportMap.get(sportId)!.leagues.push({
-        id: leagueId,
-        name: leagueName,
-        sportId,
-        logo: '',
-        games: [],
-      });
     }
-
-    return Array.from(sportMap.entries()).map(([id, { name, leagues }]) => ({
-      id,
-      name,
-      icon: '',
-      leagues,
-    }));
-  } catch (error) {
-    console.error('[api] Error fetching sports from SDK:', error);
-    return [];
+  } catch (err) {
+    // SDK unavailable – static data is sufficient for development.
+    console.warn('[api] SDK league fetch failed (network or API error):', err);
   }
+
+  return sports;
 };
 
-/** Find a specific league by its ID across all sports. */
+/** Find a specific league by its ID. Checks the static database first, then
+ *  falls back to a full sports fetch if not found (handles SDK-only leagues). */
 export const getLeague = async (
   leagueId: string,
 ): Promise<League | undefined> => {
+  const staticResult = getStaticLeague(leagueId);
+  if (staticResult) return staticResult;
+
+  // Fallback: search across dynamically-fetched sports (SDK-only leagues)
   const sports = await getSports();
   for (const sport of sports) {
     const league = sport.leagues.find((l) => l.id === leagueId);
