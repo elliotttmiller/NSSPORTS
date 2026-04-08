@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/lib/clientAuth";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { ArrowLeft, Eye, EyeSlash, Warning } from "@phosphor-icons/react";

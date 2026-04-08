@@ -8,7 +8,7 @@ import {
   MobileGameTableHeader, 
   DesktopGameTableHeader 
 } from "@/components/features/games";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/lib/clientAuth";
 import { useBetHistory } from "@/context";
 import { useAccount } from "@/hooks/useAccount";
 import { formatCurrency } from "@/lib/formatters";
@@ -16,7 +16,6 @@ import { useLiveDataStore } from "@/store/liveDataStore";
 import { useGameTransitions } from "@/hooks/useGameTransitions";
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { LoadingScreen } from "@/components/LoadingScreen";
-import type { Session } from "next-auth";
 import type { Game } from "@/types";
 import { logger } from '@/lib/logger';
 
@@ -29,7 +28,7 @@ export default function Home() {
 }
 
 // Separate component that only renders when authenticated
-function AuthenticatedHomePage({ session }: { session: Session }) {
+function AuthenticatedHomePage({ session }: { session: import("@/lib/clientAuth").ClientSession | null }) {
   const { placedBets } = useBetHistory();
   const activeBetsCount = (placedBets || []).filter(b => b.status === 'pending').length;
   

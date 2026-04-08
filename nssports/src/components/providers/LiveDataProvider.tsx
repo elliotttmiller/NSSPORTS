@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, ReactNode, useRef, useState } from 'react';
-import { useSession } from 'next-auth/react';
+import { useSession } from '@/lib/clientAuth';
 import { useLiveDataStore } from '@/store';
 
 interface LiveDataContextType {

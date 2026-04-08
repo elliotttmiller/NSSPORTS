@@ -8,7 +8,7 @@ import { User, X, SignIn } from "@phosphor-icons/react/dist/ssr";
 import { Button, Badge } from "@/components/ui";
 import { useAccount } from "@/hooks/useAccount";
 import Image from "next/image";
-import { useSession, signOut } from "next-auth/react";
+import { useSession, signOut } from "@/lib/clientAuth";
 interface MobileAccountDropdownProps {
   balance: number;
   available: number;
@@ -184,7 +184,7 @@ export function Header() {
   const freePlay = account?.freePlay ?? 0;
 
   const handleLogout = async () => {
-    await signOut({ callbackUrl: "/" });
+    await signOut();
   };
 
   // Portal dropdown state
@@ -385,7 +385,7 @@ export function Header() {
             risk={risk}
             freePlay={freePlay}
             isAuthenticated={isAuthenticated}
-            userEmail={session?.user?.email}
+            userEmail={session?.user?.username}
             onLogout={handleLogout}
           />
         </div>
