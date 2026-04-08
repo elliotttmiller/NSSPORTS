@@ -18,7 +18,7 @@ interface StatTypeCategoryProps {
       playerId: string;
       playerName: string;
       position: string;
-      team: "home" | "away";
+      team: string;
       statType: string;
       line: number;
       overOdds: number;

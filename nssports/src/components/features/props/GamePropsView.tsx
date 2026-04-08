@@ -2,8 +2,8 @@
 
 import { useState, useMemo } from "react";
 import { Game } from "@/types";
-import { GamePropsMap } from "@/hooks/useGameProps";
-import { GamePropCategory, GamePropData } from "./GamePropCategory";
+import { GamePropsMap, GamePropData } from "@/hooks/useGameProps";
+import { GamePropCategory } from "./GamePropCategory";
 import { cn } from "@/lib/utils";
 
 interface GamePropsViewProps {
@@ -27,11 +27,10 @@ export function GamePropsView({ game, gameProps }: GamePropsViewProps) {
   const [activeCategory, setActiveCategory] = useState<string>("all");
 
   // Group props by market category
-  // Cast gameProps to the correct structure (API returns proper structure, but hook type is simplified)
   const propsByCategory = useMemo(() => {
     const grouped: Record<string, Record<string, GamePropData[]>> = {};
     
-    Object.entries(gameProps as unknown as Record<string, GamePropData[]>).forEach(([propType, props]) => {
+    Object.entries(gameProps).forEach(([propType, props]) => {
       props.forEach((prop) => {
         const category = prop.marketCategory || "Other Props";
         if (!grouped[category]) {
@@ -60,7 +59,7 @@ export function GamePropsView({ game, gameProps }: GamePropsViewProps) {
   // Filter props based on selected category
   const filteredProps = useMemo(() => {
     if (activeCategory === "all") {
-      return gameProps as unknown as Record<string, GamePropData[]>;
+      return gameProps;
     }
     return propsByCategory[activeCategory] || {};
   }, [activeCategory, gameProps, propsByCategory]);

@@ -1,17 +1,28 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { usePropsStream } from '@/context/StreamingContext';
+import { getPlayerProps } from '@/lib/sportsgameodds-sdk';
 
 export interface PlayerProp {
   id: string;
   playerId: string;
   playerName: string;
   position: string;
-  team: "home" | "away";
+  team: string;
   statType: string;
   line: number;
   overOdds: number;
   underOdds: number;
   category: string;
+}
+
+/** Shape of a single player-prop entry returned by the SDK's getPlayerProps. */
+interface SDKPlayerProp {
+  propID: string;
+  propType: string;
+  player: { playerID: string; name: string; teamID?: string; position?: string };
+  line: number;
+  overOdds: number;
+  underOdds: number;
 }
 
 /**
@@ -90,12 +101,20 @@ export function usePlayerProps(
   return useQuery({
     queryKey: ['playerProps', gameId],
     queryFn: async () => {
-      const response = await fetch(`/api/matches/${gameId}/player-props`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch player props');
-      }
-      const data = await response.json();
-      return data.data as PlayerProp[];
+      // Call the SDK directly – no API routes exist in the static export
+      const sdkProps = await getPlayerProps(gameId);
+      return (sdkProps as SDKPlayerProp[]).map((p): PlayerProp => ({
+        id: p.propID,
+        playerId: p.player.playerID,
+        playerName: p.player.name,
+        position: p.player.position || '',
+        team: p.player.teamID || '',
+        statType: p.propType,
+        line: p.line,
+        overOdds: p.overOdds,
+        underOdds: p.underOdds,
+        category: p.propType,
+      }));
     },
     enabled,
     staleTime,                    // Dynamic: 15s for live, 120s for upcoming
