@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Game } from "@/types";
 import { GamePropsMap, GamePropData } from "@/hooks/useGameProps";
 import { GamePropCategory } from "./GamePropCategory";
@@ -20,11 +20,79 @@ const categoryPriority: Record<string, number> = {
   "4th Quarter": 5,
   "1st Half": 6,
   "2nd Half": 7,
+  "1st Period": 8,
+  "2nd Period": 9,
+  "3rd Period": 10,
   "Other Props": 99,
 };
 
+// Ordered category names for past-period detection
+const QUARTER_CATEGORIES = ["1st Quarter", "2nd Quarter", "3rd Quarter", "4th Quarter"] as const;
+const PERIOD_CATEGORIES = ["1st Period", "2nd Period", "3rd Period"] as const;
+
+/**
+ * Returns the set of market category names whose periods have already
+ * completed in a live game. These categories must not be available for
+ * betting since the outcome of a past period is already known.
+ */
+function getPastPeriodCategories(game: Game): Set<string> {
+  const past = new Set<string>();
+  if (game.status !== "live") return past;
+
+  const display = (game.periodDisplay || game.period || "").toLowerCase();
+
+  // Quarter-based sports (NBA, NFL, NCAAB, NCAAF)
+  // Matches: "3rd quarter", "3q", "q3"
+  const quarterMatch =
+    display.match(/\b([1-4])(?:st|nd|rd|th)?\s*quarter\b/) ||
+    display.match(/\b([1-4])q\b/) ||
+    display.match(/\bq([1-4])\b/);
+  if (quarterMatch) {
+    const current = parseInt(quarterMatch[1], 10);
+    for (let i = 0; i < current - 1; i++) past.add(QUARTER_CATEGORIES[i]);
+    // 1st Half ends when the 3rd quarter starts
+    if (current >= 3) past.add("1st Half");
+    return past;
+  }
+
+  // Half-based sports
+  // Matches: "2nd half", "2h"
+  const halfMatch =
+    display.match(/\b([12])(?:st|nd)?\s*half\b/) ||
+    display.match(/\b([12])h\b/);
+  if (halfMatch && parseInt(halfMatch[1], 10) === 2) {
+    past.add("1st Half");
+    return past;
+  }
+
+  // Period-based sports (NHL)
+  // Matches: "2nd period", "2p"
+  const periodMatch =
+    display.match(/\b([1-3])(?:st|nd|rd)?\s*period\b/) ||
+    display.match(/\b([1-3])p\b/);
+  if (periodMatch) {
+    const current = parseInt(periodMatch[1], 10);
+    for (let i = 0; i < current - 1; i++) past.add(PERIOD_CATEGORIES[i]);
+    return past;
+  }
+
+  return past;
+}
+
 export function GamePropsView({ game, gameProps }: GamePropsViewProps) {
   const [activeCategory, setActiveCategory] = useState<string>("all");
+
+  // Determine which period categories are no longer bettable for live games
+  const pastCategories = useMemo(() => getPastPeriodCategories(game), [game]);
+
+  // If the currently selected category becomes a past period (e.g. game
+  // advances to the next quarter while the user has that tab open), reset
+  // the selection so they are never looking at closed markets.
+  useEffect(() => {
+    if (activeCategory !== "all" && pastCategories.has(activeCategory)) {
+      setActiveCategory("all");
+    }
+  }, [activeCategory, pastCategories]);
 
   // Group props by market category
   const propsByCategory = useMemo(() => {
@@ -46,15 +114,17 @@ export function GamePropsView({ game, gameProps }: GamePropsViewProps) {
     return grouped;
   }, [gameProps]);
 
-  // Get sorted categories
+  // Get sorted categories, excluding past periods for live games
   const categories = useMemo(() => {
-    const cats = Object.keys(propsByCategory).sort((a, b) => {
-      const priorityA = categoryPriority[a] || 999;
-      const priorityB = categoryPriority[b] || 999;
-      return priorityA - priorityB;
-    });
+    const cats = Object.keys(propsByCategory)
+      .filter((cat) => !pastCategories.has(cat))
+      .sort((a, b) => {
+        const priorityA = categoryPriority[a] || 999;
+        const priorityB = categoryPriority[b] || 999;
+        return priorityA - priorityB;
+      });
     return cats;
-  }, [propsByCategory]);
+  }, [propsByCategory, pastCategories]);
 
   // Filter props based on selected category
   const filteredProps = useMemo(() => {
