@@ -26,6 +26,10 @@ const categoryPriority: Record<string, number> = {
   "Other Props": 99,
 };
 
+// Ordered category names for past-period detection
+const QUARTER_CATEGORIES = ["1st Quarter", "2nd Quarter", "3rd Quarter", "4th Quarter"] as const;
+const PERIOD_CATEGORIES = ["1st Period", "2nd Period", "3rd Period"] as const;
+
 /**
  * Returns the set of market category names whose periods have already
  * completed in a live game. These categories must not be available for
@@ -45,8 +49,7 @@ function getPastPeriodCategories(game: Game): Set<string> {
     display.match(/\bq([1-4])\b/);
   if (quarterMatch) {
     const current = parseInt(quarterMatch[1], 10);
-    const quarterNames = ["1st Quarter", "2nd Quarter", "3rd Quarter", "4th Quarter"];
-    for (let i = 0; i < current - 1; i++) past.add(quarterNames[i]);
+    for (let i = 0; i < current - 1; i++) past.add(QUARTER_CATEGORIES[i]);
     // 1st Half ends when the 3rd quarter starts
     if (current >= 3) past.add("1st Half");
     return past;
@@ -69,8 +72,7 @@ function getPastPeriodCategories(game: Game): Set<string> {
     display.match(/\b([1-3])p\b/);
   if (periodMatch) {
     const current = parseInt(periodMatch[1], 10);
-    const periodNames = ["1st Period", "2nd Period", "3rd Period"];
-    for (let i = 0; i < current - 1; i++) past.add(periodNames[i]);
+    for (let i = 0; i < current - 1; i++) past.add(PERIOD_CATEGORIES[i]);
     return past;
   }
 
