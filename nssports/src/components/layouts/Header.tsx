@@ -238,7 +238,7 @@ export function Header() {
           className="flex items-center space-x-2 hover:opacity-80 transition-opacity cursor-pointer"
         >
           <Image
-            src="/mn-outline.svg"
+            src={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/mn-outline.svg`}
             alt="NorthStar Sports"
             width={32}
             height={32}
