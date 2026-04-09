@@ -42,11 +42,12 @@ function getPastPeriodCategories(game: Game): Set<string> {
   const display = (game.periodDisplay || game.period || "").toLowerCase();
 
   // Quarter-based sports (NBA, NFL, NCAAB, NCAAF)
-  // Matches: "3rd quarter", "3q", "q3"
+  // Matches: "3rd quarter", "3rd qtr", "3q", "q3", bare "3" / "3rd" (from SDK period field)
   const quarterMatch =
-    display.match(/\b([1-4])(?:st|nd|rd|th)?\s*quarter\b/) ||
+    display.match(/\b([1-4])(?:st|nd|rd|th)?\s*(?:quarter|qtr)\b/) ||
     display.match(/\b([1-4])q\b/) ||
-    display.match(/\bq([1-4])\b/);
+    display.match(/\bq([1-4])\b/) ||
+    display.match(/^([1-4])(?:st|nd|rd|th)?$/);
   if (quarterMatch) {
     const current = parseInt(quarterMatch[1], 10);
     for (let i = 0; i < current - 1; i++) past.add(QUARTER_CATEGORIES[i]);
